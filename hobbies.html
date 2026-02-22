@@ -1,0 +1,476 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hobbies &amp; Interests | Dr. Robert Gettens</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ---- BILLS FAN SECTION ---- */
+        .bills-section {
+            background: linear-gradient(135deg, #00183d 0%, var(--bills-blue) 60%, #003fa3 100%);
+            color: white;
+            padding: 60px 20px;
+        }
+        .bills-section .section-title { color: white; }
+        .bills-section .section-title::after { background: var(--bills-red); }
+        .bills-section .section-subtitle { color: rgba(255,255,255,0.75); }
+
+        .roster-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+        .player-card {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 18px 14px;
+            text-align: center;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .player-card:hover { transform: translateY(-4px); background: rgba(198,12,48,0.3); }
+        .player-number { font-size: 2.2rem; font-weight: bold; font-family: 'Courier New', monospace; color: #FFD700; }
+        .player-name { font-size: 0.9rem; font-weight: bold; margin: 6px 0 2px; color: white; }
+        .player-pos { font-size: 0.75rem; color: var(--bills-silver); text-transform: uppercase; letter-spacing: 1px; }
+
+        .bills-quote {
+            background: rgba(198,12,48,0.2);
+            border: 2px solid var(--bills-red);
+            border-radius: 10px;
+            padding: 24px 28px;
+            margin-top: 28px;
+            text-align: center;
+            font-size: 1.15rem;
+            font-style: italic;
+            color: rgba(255,255,255,0.9);
+        }
+
+        /* ---- GAME SECTION ---- */
+        .game-section { background: #0a0a18; padding: 50px 20px; }
+        .game-section .section-title { color: #fff; }
+        .game-section .section-title::after { background: var(--bills-red); }
+        .game-section .section-subtitle { color: #aaa; }
+
+        #gameWrapper { max-width: 820px; margin: 0 auto; }
+
+        #gameCanvas {
+            display: block; width: 100%; height: auto;
+            border-radius: 8px 8px 0 0;
+        }
+
+        #gameUI {
+            background: #0d0d22;
+            padding: 14px 16px 18px;
+            border: 3px solid var(--bills-blue);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+        }
+
+        #gameMessage {
+            color: #FFD700; font-family: 'Courier New', monospace;
+            font-size: 0.9rem; text-align: center; min-height: 22px;
+            padding: 4px 0; letter-spacing: 0.3px;
+        }
+        #gameStatus {
+            color: #888; font-family: 'Courier New', monospace;
+            font-size: 0.75rem; text-align: center; margin-top: 4px;
+        }
+
+        /* Menu overlay inside UI */
+        #gMenu { text-align: center; padding: 8px 0; }
+        #gMenu h3 { color: white; font-family: 'Courier New', monospace; margin-bottom: 16px; font-size: 1.1rem; }
+        #gMenu p { color: #888; font-size: 0.82rem; font-family: 'Courier New', monospace; margin-bottom: 12px; }
+        .opp-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px; }
+
+        .opp-btn {
+            background: transparent; border: 2px solid var(--bills-silver);
+            color: white; padding: 9px 16px; border-radius: 6px;
+            cursor: pointer; font-family: 'Courier New', monospace;
+            font-size: 0.78rem; transition: all 0.2s; min-width: 120px;
+        }
+        .opp-btn:hover { border-color: var(--bills-red); color: var(--bills-red); transform: translateY(-2px); }
+
+        #gPlaySel {
+            display: none; flex-wrap: wrap; gap: 10px;
+            justify-content: center; padding: 6px 0;
+        }
+
+        .play-btn {
+            background: var(--bills-blue); color: white;
+            border: 2px solid #0057b8; padding: 9px 14px;
+            border-radius: 6px; cursor: pointer;
+            font-family: 'Courier New', monospace; font-size: 0.8rem;
+            font-weight: bold; text-transform: uppercase; letter-spacing: 0.8px;
+            transition: all 0.15s;
+        }
+        .play-btn:hover { background: var(--bills-red); border-color: #ff3355; transform: translateY(-2px); }
+
+        #gOver { display: none; text-align: center; padding: 10px 0; }
+        #gOver h3 { color: #FFD700; font-family: 'Courier New', monospace; font-size: 1.1rem; margin-bottom: 8px; }
+        #goResult { color: white; font-family: 'Courier New', monospace; font-size: 1rem; margin-bottom: 6px; }
+        #goScore { color: var(--bills-silver); font-family: 'Courier New', monospace; font-size: 0.85rem; margin-bottom: 14px; }
+
+        /* ---- ADIRONDACKS SECTION ---- */
+        .adk-section { padding: 60px 20px; background: #e8f4e8; }
+
+        .adk-hero-banner {
+            background: linear-gradient(135deg, #1a4a1a 0%, #2d7d2d 50%, #1a4a2a 100%);
+            color: white; border-radius: 14px; padding: 40px 36px;
+            display: flex; align-items: center; gap: 36px;
+            margin-bottom: 36px; box-shadow: 0 6px 24px rgba(0,80,0,0.3);
+        }
+        .adk-icon-big { font-size: 5rem; flex-shrink: 0; }
+        .adk-hero-text h3 { font-size: 1.6rem; margin-bottom: 10px; }
+        .adk-hero-text p { color: rgba(255,255,255,0.88); font-size: 1rem; line-height: 1.7; }
+        .adk-hero-text em { color: #aaffaa; font-style: normal; font-weight: bold; }
+
+        .activity-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .activity-tile {
+            background: white; border-radius: 10px; padding: 26px 20px;
+            text-align: center; box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+            border-top: 4px solid #2d7d2d; transition: transform 0.2s;
+        }
+        .activity-tile:hover { transform: translateY(-5px); }
+        .activity-tile .tile-icon { font-size: 2.6rem; margin-bottom: 12px; }
+        .activity-tile h3 { color: #1a4a1a; margin-bottom: 8px; font-size: 1.05rem; }
+        .activity-tile p { color: #555; font-size: 0.88rem; line-height: 1.6; }
+
+        .wilmington-box {
+            background: white; border-radius: 10px; padding: 28px;
+            margin-top: 28px; box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+            border-left: 5px solid #2d7d2d;
+        }
+        .wilmington-box h3 { color: #1a4a1a; font-size: 1.2rem; margin-bottom: 12px; }
+        .wilmington-box p { color: #444; font-size: 0.97rem; line-height: 1.75; }
+
+        /* ---- READING SECTION ---- */
+        .reading-section { padding: 60px 20px; background: #f5f0e8; }
+        .reading-section .section-title { color: var(--bills-blue); }
+
+        .genre-block {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 28px;
+            margin-bottom: 32px;
+        }
+        @media(max-width:640px) { .genre-block { grid-template-columns: 1fr; } }
+
+        .genre-card {
+            background: white; border-radius: 10px; padding: 28px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+            border-top: 4px solid var(--bills-blue);
+        }
+        .genre-card.fantasy { border-top-color: #7b2d8b; }
+        .genre-card h3 { font-size: 1.15rem; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+        .genre-card h3 .icon { font-size: 1.5rem; }
+        .genre-card p { color: #555; font-size: 0.95rem; line-height: 1.7; margin-bottom: 12px; }
+        .genre-card ul { list-style: none; padding: 0; }
+        .genre-card ul li { padding: 5px 0; border-bottom: 1px solid #eee; font-size: 0.88rem; color: #444; }
+        .genre-card ul li::before { content: '📖 '; }
+        .genre-card ul li:last-child { border-bottom: none; }
+
+        /* Bookshelf */
+        .bookshelf-wrap { overflow-x: auto; padding-bottom: 12px; }
+        .bookshelf {
+            display: flex; gap: 8px; align-items: flex-end;
+            background: #3d2a1a; border-radius: 6px 6px 0 0;
+            padding: 12px 16px 6px; min-width: max-content;
+            border-bottom: 8px solid #2a1a0a;
+        }
+        .book {
+            width: 34px; min-height: 110px; border-radius: 3px 0 0 3px;
+            display: flex; align-items: center; justify-content: center;
+            writing-mode: vertical-rl; font-size: 0.58rem; font-weight: bold;
+            color: white; cursor: default; transition: transform 0.2s, min-height 0.2s;
+            padding: 6px 3px; font-family: Arial, sans-serif; letter-spacing: 0.5px;
+            box-shadow: 3px 3px 6px rgba(0,0,0,0.35); position: relative;
+            text-align: center;
+        }
+        .book:hover { transform: translateY(-10px); min-height: 140px; }
+        .book::after {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+            width: 6px; background: rgba(0,0,0,0.2); border-radius: 3px 0 0 3px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+    <div class="nav-inner">
+        <a class="nav-brand" href="index.html">Dr. <span>Gettens</span> | WNE BME</a>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="index.html#research">Research</a></li>
+            <li><a href="index.html#teaching">Teaching</a></li>
+            <li><a href="index.html#timeline">Timeline</a></li>
+            <li><a href="hobbies.html" class="active">Hobbies</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hobby Hero -->
+<div class="hobby-hero">
+<img src="https://wne.edu/directory/img/Gettens-400x500.jpg" alt="Dr. G (Robert Gettens)" style="width:100px;height:125px;border-radius:50%;border:3px solid var(--bills-red);margin-bottom:16px;object-fit:cover;">
+    <h1>Beyond the Lab</h1>
+    <p style="color:rgba(255,255,255,0.8); font-family:Arial,sans-serif;">
+        Buffalo Bills superfan. Adirondack explorer. Fly fisherman. Sci-fi bookworm.
+    </p>
+</div>
+
+<!-- ============================================================
+     BUFFALO BILLS SECTION
+     ============================================================ -->
+<section class="bills-section">
+    <div class="section-inner">
+        <div class="hobby-header">
+            <div class="hobby-icon" style="font-size:2rem;">🏈</div>
+            <div>
+                <h2 class="section-title">Buffalo Bills Fan — For Life</h2>
+                <p class="section-subtitle">Bills Mafia through and through</p>
+            </div>
+        </div>
+
+        <p style="color:rgba(255,255,255,0.85); max-width:750px; font-size:1.05rem; line-height:1.8; margin-bottom:20px;">
+            Some things in life are certain: the laws of thermodynamics, the importance of biocompatibility
+            testing, and the undying faith of a Buffalo Bills fan. Through the highs and the heartbreaks —
+            and there have been many — the Bills are family. The colors are blue and red. Always.
+        </p>
+
+        <h3 style="color:#FFD700; font-family:'Courier New',monospace; margin-bottom:16px; font-size:1rem; letter-spacing:1px;">
+            ★ LEGENDS OF ONE BILLS DRIVE ★
+        </h3>
+
+        <div class="roster-grid">
+            <div class="player-card"><div class="player-number">12</div><div class="player-name">Jim Kelly</div><div class="player-pos">QB · Hall of Fame</div></div>
+            <div class="player-card"><div class="player-number">34</div><div class="player-name">Thurman Thomas</div><div class="player-pos">RB · Hall of Fame</div></div>
+            <div class="player-card"><div class="player-number">83</div><div class="player-name">Andre Reed</div><div class="player-pos">WR · Hall of Fame</div></div>
+            <div class="player-card"><div class="player-number">78</div><div class="player-name">Bruce Smith</div><div class="player-pos">DE · Hall of Fame</div></div>
+            <div class="player-card"><div class="player-number">80</div><div class="player-name">James Lofton</div><div class="player-pos">WR · Hall of Fame</div></div>
+            <div class="player-card"><div class="player-number">47</div><div class="player-name">Marv Levy</div><div class="player-pos">HC · 4× Super Bowl</div></div>
+            <div class="player-card"><div class="player-number">17</div><div class="player-name">Josh Allen</div><div class="player-pos">QB · Current Era</div></div>
+            <div class="player-card"><div class="player-number">14</div><div class="player-name">Stefon Diggs</div><div class="player-pos">WR · Game Changer</div></div>
+        </div>
+
+        <div class="bills-quote">
+            "How you play the game is for college ball. The professional is there to win."
+            — Vince Lombardi. The Bills play to win. Every. Single. Time.
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     TECMO BOWL GAME
+     ============================================================ -->
+<section class="game-section">
+    <div class="section-inner">
+        <div class="hobby-header">
+            <div class="hobby-icon">🕹️</div>
+            <div>
+                <h2 class="section-title" style="color:white;">Tecmo Bowl: Bills Edition</h2>
+                <p class="section-subtitle">Pick your plays. Call the shots. BEAT EVERYBODY.</p>
+            </div>
+        </div>
+
+        <p style="color:#999; margin-bottom:24px; font-family:'Courier New',monospace; font-size:0.85rem; max-width:700px;">
+            Retro arcade football with the legendary Buffalo Bills. Choose your opponent,
+            call your plays, and lead the Bills to glory. Jim Kelly, Thurman Thomas, and
+            Bruce Smith are ready. Are you?
+        </p>
+
+        <div id="gameWrapper">
+            <canvas id="gameCanvas" width="800" height="420"></canvas>
+            <div id="gameUI">
+                <div id="gameMessage"></div>
+                <div id="gameStatus"></div>
+
+                <!-- Main Menu -->
+                <div id="gMenu">
+                    <h3>⚡ TECMO BOWL: BUFFALO BILLS EDITION ⚡</h3>
+                    <p>SELECT YOUR OPPONENT — THEN CRUSH THEM</p>
+                    <div class="opp-grid">
+                        <button class="opp-btn" onclick="TecmoBowl.start(0)">MIA Dolphins</button>
+                        <button class="opp-btn" onclick="TecmoBowl.start(1)">NE Patriots</button>
+                        <button class="opp-btn" onclick="TecmoBowl.start(2)">NY Jets</button>
+                        <button class="opp-btn" onclick="TecmoBowl.start(3)">DAL Cowboys</button>
+                        <button class="opp-btn" onclick="TecmoBowl.start(4)">KC Chiefs</button>
+                        <button class="opp-btn" onclick="TecmoBowl.start(5)">SF 49ers</button>
+                    </div>
+                </div>
+
+                <!-- Play Selection -->
+                <div id="gPlaySel">
+                    <button class="play-btn" onclick="TecmoBowl.selectPlay(0)">34 TOSS LEFT</button>
+                    <button class="play-btn" onclick="TecmoBowl.selectPlay(1)">34 POWER RIGHT</button>
+                    <button class="play-btn" onclick="TecmoBowl.selectPlay(2)">KELLY QUICK</button>
+                    <button class="play-btn" onclick="TecmoBowl.selectPlay(3)">KELLY DEEP</button>
+                    <button class="play-btn" onclick="TecmoBowl.selectPlay(4)" style="background:#8b0000; border-color:#cc0000;">HAIL MARY</button>
+                </div>
+
+                <!-- Game Over -->
+                <div id="gOver">
+                    <h3>🏁 FINAL SCORE</h3>
+                    <div id="goResult"></div>
+                    <div id="goScore"></div>
+                    <button class="play-btn" onclick="TecmoBowl.restart()" style="margin-top:8px;">PLAY AGAIN</button>
+                </div>
+            </div>
+        </div>
+
+        <p style="color:#555; margin-top:18px; font-size:0.8rem; font-family:'Courier New',monospace; text-align:center;">
+            HOW TO PLAY: Select an opponent → Click plays when it's your turn (Bills always have the ball first!)
+            → Watch the action → The Bills win. Obviously.
+        </p>
+    </div>
+</section>
+
+<!-- ============================================================
+     ADIRONDACKS
+     ============================================================ -->
+<section class="adk-section">
+    <div class="section-inner">
+        <div class="hobby-header">
+            <div class="hobby-icon" style="background:#2d7d2d;">⛰️</div>
+            <div>
+                <h2 class="section-title" style="color:#1a4a1a;">The Adirondacks</h2>
+                <p class="section-subtitle" style="color:#3a6a3a;">Home away from home &mdash; the Central Adirondacks</p>
+            </div>
+        </div>
+
+        <div class="adk-hero-banner">
+            <div class="adk-icon-big">🏔️</div>
+            <div class="adk-hero-text">
+                <h3>The Central Adirondacks — Where the Air is Better</h3>
+                <p>
+                    The <em>Central Adirondacks</em> are a second home — where the rivers are cold and clear, the trails are long, and the only thing on the agenda is being outside. Whether it's fly fishing the legendary trout streams, kayaking the lakes, hiking the peaks, or just sitting by the water with family and friends, this is where recharging actually happens.</p>
+            </div>
+        </div>
+
+        <div class="activity-grid">
+            <div class="activity-tile">
+                <div class="tile-icon">🎣</div>
+                <h3>Fly Fishing</h3>
+                <p>The AuSable River is legendary trout water. There's nothing quite like matching
+                the hatch on a cool Adirondack morning with a well-tied dry fly.</p>
+            </div>
+            <div class="activity-tile">
+                <div class="tile-icon">🛶</div>
+                <h3>Kayaking</h3>
+                <p>Paddling the lakes and rivers of the Adirondacks — from the calm stillness of
+                the ponds at dawn to the faster water in the gorges.</p>
+            </div>
+            <div class="activity-tile">
+                <div class="tile-icon">🥾</div>
+                <h3>Hiking</h3>
+                <p>The High Peaks are right there. Whether it's a quick summit day or a longer
+                backcountry trek, the trails never get old. Whiteface Mountain is practically
+                a neighbor.</p>
+            </div>
+            <div class="activity-tile">
+                <div class="tile-icon">🌲</div>
+                <h3>All Things Outdoors</h3>
+                <p>Snowshoeing in winter, wildlife watching in the fall color, swimming in the
+                summer. The Adirondacks offer something extraordinary in every season.</p>
+            </div>
+        </div>
+
+        <div class="wilmington-box">
+            <h3>⛰️ The Central Adirondacks</h3>
+            <p>
+                The Central Adirondacks offer something extraordinary in every season — and I spend as much time there as possible. Cold rivers for fly fishing, lakes for kayaking, trails and peaks for hiking, and endless space to clear your head with family and friends. It's where engineers go to remember why they became engineers in the first place.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     READING
+     ============================================================ -->
+<section class="reading-section">
+    <div class="section-inner">
+        <div class="hobby-header">
+            <div class="hobby-icon">📚</div>
+            <div>
+                <h2 class="section-title">Reading — Sci-Fi &amp; Fantasy</h2>
+                <p class="section-subtitle">Because the universe is too interesting to stop at reality</p>
+            </div>
+        </div>
+
+        <div class="genre-block">
+            <div class="genre-card">
+                <h3><span class="icon">🚀</span> Science Fiction</h3>
+                <p>
+                    Science fiction does what science itself does best: asks "what if?" Hard SF
+                    especially resonates — the kind that takes physics seriously while still telling
+                    a gripping human story. Engineers make the best SF readers.
+                </p>
+                <ul>
+                    <li>Dune — Frank Herbert</li>
+                    <li>The Martian — Andy Weir</li>
+                    <li>Foundation — Isaac Asimov</li>
+                    <li>Ender's Game — Orson Scott Card</li>
+                    <li>The Three-Body Problem — Liu Cixin</li>
+                    <li>Rendezvous with Rama — Arthur C. Clarke</li>
+                </ul>
+            </div>
+            <div class="genre-card fantasy">
+                <h3><span class="icon">🧙</span> Fantasy</h3>
+                <p>
+                    Epic world-building, complex characters, and the kind of deep lore that
+                    rewards close reading. Fantasy at its best is just as intellectually demanding
+                    as the best technical literature — and considerably more fun at 2am.
+                </p>
+                <ul>
+                    <li>The Lord of the Rings — J.R.R. Tolkien</li>
+                    <li>The Name of the Wind — Patrick Rothfuss</li>
+                    <li>A Song of Ice and Fire — G.R.R. Martin</li>
+                    <li>The Stormlight Archive — Brandon Sanderson</li>
+                    <li>The Wheel of Time — Robert Jordan</li>
+                    <li>Mistborn — Brandon Sanderson</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Bookshelf decoration -->
+        <div class="bookshelf-wrap">
+            <div class="bookshelf">
+                <div class="book" style="background:#1a3a6a; min-height:155px;">DUNE</div>
+                <div class="book" style="background:#6a1a1a; min-height:130px;">FOUNDATION</div>
+                <div class="book" style="background:#2d4a1a; min-height:145px;">LORD OF THE RINGS</div>
+                <div class="book" style="background:#4a1a4a; min-height:160px;">STORMLIGHT</div>
+                <div class="book" style="background:#1a4a4a; min-height:125px;">THE MARTIAN</div>
+                <div class="book" style="background:#6a3a1a; min-height:148px;">WHEEL OF TIME</div>
+                <div class="book" style="background:#1a2a6a; min-height:135px;">ENDER'S GAME</div>
+                <div class="book" style="background:#3a1a1a; min-height:152px;">GAME OF THRONES</div>
+                <div class="book" style="background:#2a4a2a; min-height:140px;">NAME OF THE WIND</div>
+                <div class="book" style="background:#5a3a1a; min-height:128px;">THREE BODY PROBLEM</div>
+                <div class="book" style="background:#1a4a3a; min-height:143px;">MISTBORN</div>
+                <div class="book" style="background:#3a2a5a; min-height:158px;">RAMA</div>
+            </div>
+        </div>
+
+        <p style="color:#888; font-size:0.8rem; text-align:center; margin-top:8px; font-style:italic;">
+            Hover the books for a closer look. The shelf is always growing.
+        </p>
+    </div>
+</section>
+
+
+<!-- Footer -->
+<footer>
+    <p>
+        <strong>Dr. G</strong> &mdash; Professor &amp; Department Chair, Biomedical Engineering<br>
+        Western New England University &bull; Springfield, MA<br><br>
+        <a href="index.html">Back to Main Page</a> &bull;
+        <a href="index.html#research">Research</a> &bull;
+        <a href="index.html#teaching">Teaching</a><br><br>
+        &copy; 2024 Dr. G (Robert Gettens) &bull; Go Bills! 🏈 &bull; Tight Lines! 🎣
+    </p>
+</footer>
+
+<script src="tecmo.js"></script>
+</body>
+</html>
