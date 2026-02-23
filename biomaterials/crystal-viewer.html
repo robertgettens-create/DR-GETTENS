@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crystal Structure Viewer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #12131a;
+      color: #dde1f0;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 270px;
+      min-width: 270px;
+      background: #1a1d2e;
+      border-right: 1px solid #2a2d45;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding: 20px 16px;
+      overflow-y: auto;
+    }
+
+    #sidebar h1 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #7eb8f7;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      border-bottom: 1px solid #2a2d45;
+      padding-bottom: 12px;
+    }
+
+    .section-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #5a6080;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
+    }
+
+    /* Structure buttons */
+    .struct-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+
+    .struct-btn {
+      padding: 9px 4px;
+      background: #1e2238;
+      border: 1px solid #2e3355;
+      border-radius: 7px;
+      color: #9ba8c8;
+      cursor: pointer;
+      font-size: 0.76rem;
+      font-weight: 600;
+      text-align: center;
+      transition: background 0.18s, border-color 0.18s, color 0.18s;
+      line-height: 1.35;
+    }
+    .struct-btn:hover:not(:disabled) {
+      background: #253060;
+      border-color: #4a6bcc;
+      color: #c8d8ff;
+    }
+    .struct-btn.active {
+      background: #2751b8;
+      border-color: #4a79ff;
+      color: #ffffff;
+    }
+    .struct-btn:disabled {
+      opacity: 0.32;
+      cursor: not-allowed;
+    }
+
+    /* Info panel */
+    .info-panel {
+      background: #1e2238;
+      border: 1px solid #2a2d45;
+      border-radius: 8px;
+      padding: 13px 14px;
+      font-size: 0.8rem;
+      line-height: 2;
+    }
+    .info-row { display: flex; justify-content: space-between; align-items: baseline; }
+    .info-key { color: #5a6080; font-size: 0.73rem; }
+    .info-val { color: #c8d8ff; font-weight: 600; }
+
+    /* Controls hint */
+    .controls-hint {
+      font-size: 0.74rem;
+      color: #454a65;
+      line-height: 2;
+    }
+    .controls-hint b { color: #6878a0; }
+
+    /* Phase badge */
+    #canvas-wrap {
+      flex: 1;
+      position: relative;
+    }
+    #canvas-wrap canvas { display: block; }
+
+    .phase-badge {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      background: rgba(39,81,184,0.25);
+      border: 1px solid #2751b8;
+      border-radius: 5px;
+      padding: 4px 12px;
+      font-size: 0.72rem;
+      color: #7eb8f7;
+      pointer-events: none;
+    }
+
+    .axis-legend {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      font-size: 0.72rem;
+      color: #454a65;
+      pointer-events: none;
+      line-height: 1.9;
+    }
+    .axis-legend span { font-weight: 700; }
+    .ax { color: #ff5555; }
+    .ay { color: #55ff55; }
+    .az { color: #5599ff; }
+
+    /* ── Plane controls ── */
+    .miller-wrap { display: flex; flex-direction: column; gap: 8px; }
+    .miller-row  { display: flex; align-items: center; gap: 6px; }
+    .m-lbl {
+      font-size: 0.75rem; font-weight: 700; color: #6878a0;
+      width: 14px; text-align: center;
+    }
+    .m-inp {
+      width: 46px;
+      background: #0f1020;
+      border: 1px solid #2e3355;
+      border-radius: 5px;
+      color: #c8d8ff;
+      font-size: 0.88rem;
+      padding: 5px 4px;
+      text-align: center;
+      -moz-appearance: textfield;
+    }
+    .m-inp::-webkit-outer-spin-button,
+    .m-inp::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .m-inp:focus { outline: none; border-color: #4a6bcc; }
+    .toggle-btn {
+      width: 100%;
+      padding: 8px;
+      background: #1e2238;
+      border: 1px solid #2e3355;
+      border-radius: 7px;
+      color: #9ba8c8;
+      cursor: pointer;
+      font-size: 0.76rem;
+      font-weight: 600;
+      transition: background 0.18s, border-color 0.18s, color 0.18s;
+    }
+    .toggle-btn:hover { background: #253060; border-color: #4a6bcc; color: #c8d8ff; }
+    .toggle-btn.active      { background: #b82751; border-color: #ff4479; color: #ffffff; }
+    .toggle-btn.gold.active { background: #7a6500; border-color: #ffdd00; color: #ffee77; }
+    .toggle-btn.teal.active   { background: #0a4a3a; border-color: #00ddaa; color: #99ffee; }
+    .toggle-btn.orange.active { background: #7a3000; border-color: #ff7722; color: #ffbb88; }
+    .toggle-btn.amber.active  { background: #5a4000; border-color: #ffaa00; color: #ffe080; }
+    .toggle-btn.violet.active { background: #3a0a5a; border-color: #cc66ff; color: #eeccff; }
+    .toggle-btn:disabled { opacity: 0.32; cursor: not-allowed; }
+    .struct-subgroup-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #7eb8f7;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 8px 0 5px;
+      opacity: 0.80;
+    }
+    .plane-note {
+      font-size: 0.70rem;
+      color: #ff9966;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<div id="sidebar">
+  <h1>Crystal Viewer</h1>
+
+  <div>
+    <div class="section-label">Structure</div>
+    <div class="struct-subgroup-label">Metal Structures</div>
+    <div class="struct-grid" style="margin-bottom:10px">
+      <button class="struct-btn active" data-key="SC">Simple<br>Cubic</button>
+      <button class="struct-btn" data-key="BCC">Body-Centered<br>Cubic (BCC)</button>
+      <button class="struct-btn" data-key="FCC">Face-Centered<br>Cubic (FCC)</button>
+      <button class="struct-btn" data-key="HCP">Hexagonal<br>Close-Packed</button>
+    </div>
+    <div class="struct-subgroup-label">Ceramic Structures</div>
+    <div class="struct-grid">
+      <button class="struct-btn" data-key="DC">Diamond<br>Cubic</button>
+      <button class="struct-btn" data-key="NaCl">Rock Salt<br>(NaCl)</button>
+      <button class="struct-btn" data-key="ZnS">Zinc Blende<br>(ZnS)</button>
+      <button class="struct-btn" data-key="CsCl">Cesium<br>Chloride</button>
+      <button class="struct-btn" data-key="Fluorite">Fluorite<br>(CaF₂)</button>
+      <button class="struct-btn" data-key="Perovskite">Perovskite<br>(ABO₃)</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">Structure Info</div>
+    <div class="info-panel">
+      <div class="info-row"><span class="info-key">Name</span>         <span class="info-val" id="inf-name">—</span></div>
+      <div class="info-row"><span class="info-key">Atoms / cell</span> <span class="info-val" id="inf-atoms">—</span></div>
+      <div class="info-row"><span class="info-key">Coord. number</span><span class="info-val" id="inf-coord">—</span></div>
+      <div class="info-row"><span class="info-key">APF</span>           <span class="info-val" id="inf-apf">—</span></div>
+      <div class="info-row"><span class="info-key">Example</span>       <span class="info-val" id="inf-ex">—</span></div>
+    </div>
+  </div>
+
+  <div id="display-section">
+    <div class="section-label">Display Options</div>
+    <button id="btn-pack"  class="toggle-btn teal">Space-Fill Overlay</button>
+    <button id="btn-multi"    class="toggle-btn orange">2×2×2 Array</button>
+    <button id="btn-hcp-cell" class="toggle-btn amber" style="display:none">Primitive Cell</button>
+    <button id="btn-cut" class="toggle-btn violet" disabled>Cut Atoms</button>
+    <div class="info-panel" id="pack-info" style="display:none">
+      <div class="info-row">
+        <span class="info-key">Atom radius</span>
+        <span class="info-val" id="pack-r">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Touch dir.</span>
+        <span class="info-val" id="pack-dir">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="plane-section">
+    <div class="section-label">Crystallographic Plane</div>
+    <div class="miller-wrap">
+      <div class="miller-row">
+        <span class="m-lbl">h</span>
+        <input class="m-inp" type="number" id="inp-h" value="1" min="-9" max="9">
+        <span class="m-lbl">k</span>
+        <input class="m-inp" type="number" id="inp-k" value="0" min="-9" max="9">
+        <span class="m-lbl">l</span>
+        <input class="m-inp" type="number" id="inp-l" value="0" min="-9" max="9">
+      </div>
+      <button id="btn-plane" class="toggle-btn">Show Plane</button>
+      <div class="info-panel" id="plane-info" style="display:none">
+        <div class="info-row">
+          <span class="info-key">Notation</span>
+          <span class="info-val" id="pln-hkl">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">d-spacing</span>
+          <span class="info-val" id="pln-d">—</span>
+        </div>
+      </div>
+      <div class="plane-note" id="plane-note" style="display:none"></div>
+    </div>
+  </div>
+
+  <div id="dir-section">
+    <div class="section-label">Crystallographic Direction</div>
+    <div class="miller-wrap">
+      <div class="miller-row">
+        <span class="m-lbl">u</span>
+        <input class="m-inp" type="number" id="inp-u" value="1" min="-9" max="9">
+        <span class="m-lbl">v</span>
+        <input class="m-inp" type="number" id="inp-v" value="0" min="-9" max="9">
+        <span class="m-lbl">w</span>
+        <input class="m-inp" type="number" id="inp-w" value="0" min="-9" max="9">
+      </div>
+      <button id="btn-dir" class="toggle-btn gold">Show Direction</button>
+      <div class="info-panel" id="dir-info" style="display:none">
+        <div class="info-row">
+          <span class="info-key">Notation</span>
+          <span class="info-val" id="dir-uvw">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Magnitude</span>
+          <span class="info-val" id="dir-mag">—</span>
+        </div>
+        <div class="info-row" id="dir-weber-row" style="display:none">
+          <span class="info-key">4-index</span>
+          <span class="info-val" id="dir-weber">—</span>
+        </div>
+      </div>
+      <div class="plane-note" id="dir-note" style="display:none"></div>
+    </div>
+  </div>
+
+  <div id="legend-section" style="display:none">
+    <div class="section-label">Atom Legend</div>
+    <div id="legend-items"></div>
+  </div>
+
+  <div>
+    <div class="section-label">Mouse Controls</div>
+    <div class="controls-hint">
+      <b>Left drag</b> &nbsp;— Rotate<br>
+      <b>Right drag</b> — Pan<br>
+      <b>Scroll</b> &nbsp;&nbsp;&nbsp;&nbsp;— Zoom<br>
+      <b>Dbl-click</b> &nbsp;— Reset view
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ CANVAS ═══════════════ -->
+<div id="canvas-wrap">
+  <div class="phase-badge">Phase 2 · Simple Cubic</div>
+  <div class="axis-legend">
+    <span class="ax">■ a</span> &nbsp;
+    <span class="ay">■ b</span> &nbsp;
+    <span class="az">■ c</span>
+  </div>
+</div>
+
+<!-- Three.js + OrbitControls via CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  SCENE SETUP
+// ═══════════════════════════════════════════════════
+const wrap = document.getElementById('canvas-wrap');
+
+const scene    = new THREE.Scene();
+scene.background = new THREE.Color(0x12131a);
+
+const camera = new THREE.PerspectiveCamera(42, wrap.clientWidth / wrap.clientHeight, 0.05, 200);
+camera.position.set(3.8, 2.8, 3.8);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+renderer.localClippingEnabled = true;   // required for per-material clipping planes
+wrap.appendChild(renderer.domElement);
+
+// Orbit controls
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping  = true;
+controls.dampingFactor  = 0.07;
+controls.target.set(0.5, 0.5, 0.5);
+controls.update();
+
+// Lights
+scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+const sun = new THREE.DirectionalLight(0xffffff, 0.85);
+sun.position.set(6, 9, 6);
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0x8899ff, 0.25);
+fill.position.set(-4, -3, -6);
+scene.add(fill);
+
+// Axis helper (subtle)
+const axisHelper = new THREE.AxesHelper(0.6);
+axisHelper.position.set(-0.05, -0.05, -0.05);
+scene.add(axisHelper);
+
+// Plane overlay — kept separate from structGroup so it survives structure switches
+const planeGroup = new THREE.Group();
+scene.add(planeGroup);
+let planeActive = false;
+
+// Direction overlay — kept separate from structGroup so it survives structure switches
+const dirGroup = new THREE.Group();
+scene.add(dirGroup);
+let dirActive = false;
+
+// Space-fill packing overlay — semi-transparent full-size spheres
+const packGroup = new THREE.Group();
+scene.add(packGroup);
+let packActive = false;
+
+// Multi-cell overlay — 2×2×2 supercell (SC, BCC, FCC only)
+const multiGroup = new THREE.Group();
+scene.add(multiGroup);
+let multiActive = false;
+
+// HCP primitive unit cell wireframe overlay
+const hcpCellGroup = new THREE.Group();
+scene.add(hcpCellGroup);
+let hcpCellActive = false;
+
+// Cut-atom unit cell overlay — clipped-sphere view (SC only initially)
+const cutGroup = new THREE.Group();
+scene.add(cutGroup);
+let cutActive = false;
+
+// ═══════════════════════════════════════════════════
+//  CRYSTAL STRUCTURE DEFINITIONS
+// ═══════════════════════════════════════════════════
+
+const STRUCTURES = {
+
+  SC: {
+    name:    'Simple Cubic',
+    info: {
+      atoms:   '1  (8 corners × ⅛)',
+      coord:   '6',
+      apf:     '0.524  (52.4 %)',
+      example: 'Polonium (Po)'
+    },
+    build(group) {
+      const R = 0.24;
+      const corners = [
+        [0,0,0],[1,0,0],[0,1,0],[1,1,0],
+        [0,0,1],[1,0,1],[0,1,1],[1,1,1]
+      ];
+      const mat = atomMat(0x4db8ff);
+      corners.forEach(p => {
+        const m = new THREE.Mesh(sphereGeo(R), mat);
+        m.position.set(...p);
+        group.add(m);
+      });
+      addUnitCellBox(group, 0,0,0, 1,1,1);
+    }
+  },
+
+  // ── BCC ──────────────────────────────────────────
+  BCC: {
+    name:    'Body-Centered Cubic',
+    info: {
+      atoms:   '2  (8 × ⅛  +  1 body)',
+      coord:   '8',
+      apf:     '0.680  (68.0 %)',
+      example: 'W, Cr, α-Fe, Mo, V, Na'
+    },
+    build(group) {
+      const R = 0.22;
+      const corners = [
+        [0,0,0],[1,0,0],[0,1,0],[1,1,0],
+        [0,0,1],[1,0,1],[0,1,1],[1,1,1]
+      ];
+      const body = [0.5, 0.5, 0.5];
+
+      const mat = atomMat(0xff8844);
+
+      // Corner atoms
+      corners.forEach(p => {
+        const m = new THREE.Mesh(sphereGeo(R), mat);
+        m.position.set(...p);
+        group.add(m);
+      });
+
+      // Body-center atom
+      const bm = new THREE.Mesh(sphereGeo(R), mat);
+      bm.position.set(...body);
+      group.add(bm);
+
+      // Touch bonds: body-center → every corner (shows ⟨111⟩ touching direction)
+      corners.forEach(p => addBond(group, body, p, 0xffcc44, 0.28));
+
+      addUnitCellBox(group, 0,0,0, 1,1,1);
+    }
+  },
+
+  // ── FCC ──────────────────────────────────────────
+  FCC: {
+    name:    'Face-Centered Cubic',
+    info: {
+      atoms:   '4  (8 × ⅛  +  6 × ½)',
+      coord:   '12',
+      apf:     '0.740  (74.0 %)',
+      example: 'Al, Cu, Au, Ag, Ni, γ-Fe'
+    },
+    build(group) {
+      const R = 0.20;
+      const corners = [
+        [0,0,0],[1,0,0],[0,1,0],[1,1,0],
+        [0,0,1],[1,0,1],[0,1,1],[1,1,1]
+      ];
+      // Six face-center positions and the four corners of each face
+      const faces = [
+        { fc:[0.5,0.5,0], ring:[[0,0,0],[1,0,0],[0,1,0],[1,1,0]] }, // -Z face
+        { fc:[0.5,0.5,1], ring:[[0,0,1],[1,0,1],[0,1,1],[1,1,1]] }, // +Z face
+        { fc:[0.5,0,0.5], ring:[[0,0,0],[1,0,0],[0,0,1],[1,0,1]] }, // -Y face
+        { fc:[0.5,1,0.5], ring:[[0,1,0],[1,1,0],[0,1,1],[1,1,1]] }, // +Y face
+        { fc:[0,0.5,0.5], ring:[[0,0,0],[0,1,0],[0,0,1],[0,1,1]] }, // -X face
+        { fc:[1,0.5,0.5], ring:[[1,0,0],[1,1,0],[1,0,1],[1,1,1]] }, // +X face
+      ];
+
+      const matCorner = atomMat(0x44cc88);
+      const matFace   = atomMat(0x88ffbb); // slightly lighter for face atoms
+
+      // Corner atoms
+      corners.forEach(p => {
+        const m = new THREE.Mesh(sphereGeo(R), matCorner);
+        m.position.set(...p);
+        group.add(m);
+      });
+
+      // Face-center atoms + touch bonds to face corners
+      faces.forEach(({ fc, ring }) => {
+        const fm = new THREE.Mesh(sphereGeo(R), matFace);
+        fm.position.set(...fc);
+        group.add(fm);
+        // Touch bonds: face-center → 4 face corners (shows ⟨110⟩ touching direction)
+        ring.forEach(p => addBond(group, fc, p, 0x88ffbb, 0.22));
+      });
+
+      addUnitCellBox(group, 0,0,0, 1,1,1);
+    }
+  },
+
+  // ── HCP ──────────────────────────────────────────
+  HCP: {
+    name:    'Hexagonal Close-Packed',
+    info: {
+      atoms:   '6  (12 × ⅙  +  2 × ½  +  3)',
+      coord:   '12',
+      apf:     '0.740  (74.0 %)',
+      example: 'Mg, Ti, Zn, Co, Cd, Be'
+    },
+    camPos:    [3.5, 2.5, 4.5],
+    camTarget: [0, 0, 0.82],
+    legend: [
+      { color: '#9966ff', label: 'A-layer atoms (corners / face-center)' },
+      { color: '#cc99ff', label: 'B-layer atoms (interior — 3 per cell)' }
+    ],
+    build(group) {
+      const c  = 1.633;            // ideal c/a ratio  (a = 1)
+      const s3 = Math.sqrt(3);
+      const R  = 0.20;
+
+      // Six vertex directions of the hexagonal prism
+      const hv = Array.from({length: 6}, (_, i) => {
+        const ang = (i * Math.PI) / 3;
+        return [Math.cos(ang), Math.sin(ang)];
+      });
+
+      const matA = atomMat(0x9966ff);   // A-layer (corners + face-centers)
+      const matB = atomMat(0xcc99ff);   // B-layer (interior)
+
+      // Bottom & top hexagon corner atoms (12 total, each shared by 6 cells → 2 effective)
+      hv.forEach(([x, y]) => {
+        addAtom(group, x, y, 0, R, matA);
+        addAtom(group, x, y, c, R, matA);
+      });
+
+      // Bottom & top face-center atoms (2 × ½ = 1 effective)
+      addAtom(group, 0, 0, 0, R, matA);
+      addAtom(group, 0, 0, c, R, matA);
+
+      // 3 interior B-layer atoms at z = c/2
+      // Positions = centroids of alternating triangles T(V0,O,V1), T(V2,O,V3), T(V4,O,V5)
+      [
+        [ 0.5,  s3/6, c/2],   // centroid of triangle O-V0-V1
+        [-0.5,  s3/6, c/2],   // centroid of triangle O-V2-V3
+        [ 0.0, -s3/3, c/2]    // centroid of triangle O-V4-V5
+      ].forEach(([x, y, z]) => addAtom(group, x, y, z, R, matB));
+
+      // Hexagonal prism wireframe
+      drawHexPrism(group, hv, c);
+    }
+  },
+
+  // ── Diamond Cubic ─────────────────────────────────
+  DC: {
+    name:    'Diamond Cubic',
+    info: {
+      atoms:   '8  (8 × ⅛  +  6 × ½  +  4)',
+      coord:   '4  (tetrahedral sp³)',
+      apf:     '0.340  (34.0 %)',
+      example: 'Diamond (C), Si, Ge'
+    },
+    camPos:    [3.8, 2.8, 3.8],
+    camTarget: [0.5, 0.5, 0.5],
+    legend: [
+      { color: '#7799ff', label: 'FCC sublattice  (corners + faces)' },
+      { color: '#ffcc44', label: 'Tetrahedral sublattice  (4 interior)' }
+    ],
+    build(group) {
+      const Rf = 0.17;   // FCC lattice atoms
+      const Rt = 0.17;   // Tetrahedral atoms (same size — same element)
+
+      const matF = atomMat(0x7799ff);   // FCC sublattice — blue
+      const matT = atomMat(0xffcc44);   // Tetrahedral sublattice — gold
+
+      // FCC lattice: 8 corners + 6 face-centers
+      const corners = [
+        [0,0,0],[1,0,0],[0,1,0],[1,1,0],
+        [0,0,1],[1,0,1],[0,1,1],[1,1,1]
+      ];
+      const faceCtrs = [
+        [0.5,0.5,0],[0.5,0.5,1],
+        [0.5,0,0.5],[0.5,1,0.5],
+        [0,0.5,0.5],[1,0.5,0.5]
+      ];
+      corners.forEach(([x,y,z])  => addAtom(group, x, y, z, Rf, matF));
+      faceCtrs.forEach(([x,y,z]) => addAtom(group, x, y, z, Rf, matF));
+
+      // Tetrahedral atoms: 4 interior positions (¼,¼,¼ + FCC translations)
+      const tets = [
+        [0.25, 0.25, 0.25],
+        [0.75, 0.75, 0.25],
+        [0.75, 0.25, 0.75],
+        [0.25, 0.75, 0.75]
+      ];
+      tets.forEach(([x,y,z]) => addAtom(group, x, y, z, Rt, matT));
+
+      // Tetrahedral bonds — each interior atom bonds to its 4 nearest FCC neighbors
+      // (all bond lengths = √3/4 × a ≈ 0.433)
+      const tetBonds = [
+        { t:[0.25,0.25,0.25], nb:[[0,0,0],[0.5,0.5,0],[0.5,0,0.5],[0,0.5,0.5]] },
+        { t:[0.75,0.75,0.25], nb:[[1,1,0],[0.5,0.5,0],[1,0.5,0.5],[0.5,1,0.5]] },
+        { t:[0.75,0.25,0.75], nb:[[1,0,1],[0.5,0,0.5],[1,0.5,0.5],[0.5,0.5,1]] },
+        { t:[0.25,0.75,0.75], nb:[[0,1,1],[0,0.5,0.5],[0.5,1,0.5],[0.5,0.5,1]] }
+      ];
+      tetBonds.forEach(({ t, nb }) =>
+        nb.forEach(n => addBond(group, t, n, 0xffcc44, 0.55))
+      );
+
+      addUnitCellBox(group, 0,0,0, 1,1,1);
+    }
+  },
+
+  // ── NaCl (Rock Salt) ──────────────────────────────
+  NaCl: {
+    name:    'Rock Salt (NaCl)',
+    info: {
+      atoms:   '8 ions  (4 Na⁺  +  4 Cl⁻)',
+      coord:   '6  (octahedral — both ions)',
+      apf:     '0.653  (65.3 %)',
+      example: 'NaCl, MgO, FeO, CaO, NiO'
+    },
+    camPos:    [3.8, 2.8, 3.8],
+    camTarget: [0.5, 0.5, 0.5],
+    legend: [
+      { color: '#99aad0', label: 'Na⁺  (corners + face-centers)' },
+      { color: '#55cc77', label: 'Cl⁻  (edge-centers + body-center)' }
+    ],
+    build(group) {
+      const Rna = 0.16;   // Na+  smaller cation
+      const Rcl = 0.24;   // Cl-  larger anion
+
+      const matNa = atomMat(0x99aad0);
+      const matCl = atomMat(0x55cc77);
+
+      // Na+ at FCC lattice: 8 corners + 6 face-centers
+      [
+        [0,0,0],[1,0,0],[0,1,0],[1,1,0],
+        [0,0,1],[1,0,1],[0,1,1],[1,1,1]
+      ].forEach(([x,y,z]) => addAtom(group, x, y, z, Rna, matNa));
+
+      [
+        [0.5,0.5,0],[0.5,0.5,1],
+        [0.5,0,0.5],[0.5,1,0.5],
+        [0,0.5,0.5],[1,0.5,0.5]
+      ].forEach(([x,y,z]) => addAtom(group, x, y, z, Rna, matNa));
+
+      // Cl- at 12 edge-centers + 1 body-center (octahedral interstitials)
+      [
+        [0.5,0,0],[0.5,1,0],[0.5,0,1],[0.5,1,1],   // x-edge midpoints
+        [0,0.5,0],[1,0.5,0],[0,0.5,1],[1,0.5,1],   // y-edge midpoints
+        [0,0,0.5],[1,0,0.5],[0,1,0.5],[1,1,0.5],   // z-edge midpoints
+        [0.5,0.5,0.5]                                // body-center
+      ].forEach(([x,y,z]) => addAtom(group, x, y, z, Rcl, matCl));
+
+      addUnitCellBox(group, 0,0,0, 1,1,1);
+    }
+  },
+
+  // ── CsCl (Cesium Chloride) ────────────────────────
+  CsCl: {
+    name:    'Cesium Chloride',
+    info: {
+      atoms:   '2 ions  (1 Cs⁺  +  1 Cl⁻)',
+      coord:   '8  (cubic — both ions)',
+      apf:     '0.680  (68.0 %)',
+      example: 'CsCl, CsBr, CsI, TlCl'
+    },
+    camPos:    [3.8, 2.8, 3.8],
+    camTarget: [0.5, 0.5, 0.5],
+    legend: [
+      { color: '#bb88ff', label: 'Cs⁺  (body-center)' },
+      { color: '#66ff99', label: 'Cl⁻  (corners)' }
+    ],
+    build(group) {
+      const Rcs = 0.21, Rcl = 0.23;
+      const matCs = atomMat(0xbb88ff);
+      const matCl = atomMat(0x66ff99);
+
+      // Cl⁻ at 8 corners
+      [[0,0,0],[1,0,0],[0,1,0],[1,1,0],
+       [0,0,1],[1,0,1],[0,1,1],[1,1,1]]
+        .forEach(([x,y,z]) => addAtom(group, x, y, z, Rcl, matCl));
+
+      // Cs⁺ at body center
+      addAtom(group, 0.5, 0.5, 0.5, Rcs, matCs);
+
+      // Bonds from Cs⁺ to all 8 Cl⁻ corners (shows 8-fold coordination)
+      [[0,0,0],[1,0,0],[0,1,0],[1,1,0],
+       [0,0,1],[1,0,1],[0,1,1],[1,1,1]]
+        .forEach(p => addBond(group, [0.5,0.5,0.5], p, 0xaaaaff, 0.30));
+
+      addUnitCellBox(group, 0,0,0, 1,1,1);
+    }
+  },
+
+  // ── Fluorite (CaF₂) ───────────────────────────────
+  Fluorite: {
+    name:    'Fluorite (CaF₂)',
+    info: {
+      atoms:   '12 ions  (4 Ca²⁺  +  8 F⁻)',
+      coord:   'Ca²⁺: 8  (cubic) / F⁻: 4  (tetrahedral)',
+      apf:     '0.606  (60.6 %)',
+      example: 'CaF₂, UO₂, ZrO₂, ThO₂'
+    },
+    camPos:    [3.8, 2.8, 3.8],
+    camTarget: [0.5, 0.5, 0.5],
+    legend: [
+      { color: '#44bb88', label: 'Ca²⁺  (FCC lattice)' },
+      { color: '#ffee55', label: 'F⁻   (all tetrahedral sites)' }
+    ],
+    build(group) {
+      const Rca = 0.19, Rf = 0.12;
+      const matCa = atomMat(0x44bb88);
+      const matF  = atomMat(0xffee55);
+
+      // Ca²⁺ at FCC: 8 corners + 6 face-centers
+      [[0,0,0],[1,0,0],[0,1,0],[1,1,0],
+       [0,0,1],[1,0,1],[0,1,1],[1,1,1]]
+        .forEach(([x,y,z]) => addAtom(group, x, y, z, Rca, matCa));
+      [[0.5,0.5,0],[0.5,0.5,1],[0.5,0,0.5],
+       [0.5,1,0.5],[0,0.5,0.5],[1,0.5,0.5]]
+        .forEach(([x,y,z]) => addAtom(group, x, y, z, Rca, matCa));
+
+      // F⁻ at all 8 tetrahedral voids
+      const fPos = [
+        [0.25,0.25,0.25],[0.75,0.25,0.25],
+        [0.25,0.75,0.25],[0.75,0.75,0.25],
+        [0.25,0.25,0.75],[0.75,0.25,0.75],
+        [0.25,0.75,0.75],[0.75,0.75,0.75]
+      ];
+      fPos.forEach(([x,y,z]) => addAtom(group, x, y, z, Rf, matF));
+
+      // F⁻ → Ca²⁺ tetrahedral bonds
+      const tetBonds = [
+        { f:[0.25,0.25,0.25], nb:[[0,0,0],    [0.5,0,0.5],  [0,0.5,0.5],  [0.5,0.5,0]]  },
+        { f:[0.75,0.25,0.25], nb:[[1,0,0],    [0.5,0,0.5],  [1,0.5,0.5],  [0.5,0.5,0]]  },
+        { f:[0.25,0.75,0.25], nb:[[0,1,0],    [0.5,1,0.5],  [0,0.5,0.5],  [0.5,0.5,0]]  },
+        { f:[0.75,0.75,0.25], nb:[[1,1,0],    [0.5,1,0.5],  [1,0.5,0.5],  [0.5,0.5,0]]  },
+        { f:[0.25,0.25,0.75], nb:[[0,0,1],    [0.5,0,0.5],  [0,0.5,0.5],  [0.5,0.5,1]]  },
+        { f:[0.75,0.25,0.75], nb:[[1,0,1],    [0.5,0,0.5],  [1,0.5,0.5],  [0.5,0.5,1]]  },
+        { f:[0.25,0.75,0.75], nb:[[0,1,1],    [0.5,1,0.5],  [0,0.5,0.5],  [0.5,0.5,1]]  },
+        { f:[0.75,0.75,0.75], nb:[[1,1,1],    [0.5,1,0.5],  [1,0.5,0.5],  [0.5,0.5,1]]  }
+      ];
+      tetBonds.forEach(({ f, nb }) =>
+        nb.forEach(n => addBond(group, f, n, 0xffee55, 0.35))
+      );
+
+      addUnitCellBox(group, 0,0,0, 1,1,1);
+    }
+  },
+
+  // ── Perovskite (ABO₃) ─────────────────────────────
+  Perovskite: {
+    name:    'Perovskite (ABO₃)',
+    info: {
+      atoms:   '5 ions  (1 A²⁺  +  1 B⁴⁺  +  3 O²⁻)',
+      coord:   'A: 12  (cuboctahedral) / B: 6  (octahedral)',
+      apf:     '~0.74  (varies by compound)',
+      example: 'BaTiO₃, SrTiO₃, PbZrO₃, LaMnO₃'
+    },
+    camPos:    [3.8, 2.8, 3.8],
+    camTarget: [0.5, 0.5, 0.5],
+    legend: [
+      { color: '#44aaee', label: 'A²⁺  (corners — e.g. Ba²⁺)' },
+      { color: '#ff6644', label: 'B⁴⁺  (body-center — e.g. Ti⁴⁺)' },
+      { color: '#ee3333', label: 'O²⁻  (face-centers)' }
+    ],
+    build(group) {
+      const Ra = 0.22, Rb = 0.11, Ro = 0.16;
+      const matA = atomMat(0x44aaee);
+      const matB = atomMat(0xff6644);
+      const matO = atomMat(0xee3333);
+
+      // A²⁺ at 8 corners
+      [[0,0,0],[1,0,0],[0,1,0],[1,1,0],
+       [0,0,1],[1,0,1],[0,1,1],[1,1,1]]
+        .forEach(([x,y,z]) => addAtom(group, x, y, z, Ra, matA));
+
+      // B⁴⁺ at body center
+      addAtom(group, 0.5, 0.5, 0.5, Rb, matB);
+
+      // O²⁻ at 6 face-centers (3 effective per cell → ABO₃)
+      const oPos = [
+        [0.5,0.5,0],[0.5,0.5,1],
+        [0.5,0,0.5],[0.5,1,0.5],
+        [0,0.5,0.5],[1,0.5,0.5]
+      ];
+      oPos.forEach(([x,y,z]) => addAtom(group, x, y, z, Ro, matO));
+
+      // B–O octahedral bonds
+      oPos.forEach(p => addBond(group, [0.5,0.5,0.5], p, 0xff8866, 0.42));
+
+      addUnitCellBox(group, 0,0,0, 1,1,1);
+    }
+  },
+
+  // ── ZnS (Zinc Blende) ─────────────────────────────
+  ZnS: {
+    name:    'Zinc Blende (ZnS)',
+    info: {
+      atoms:   '8 ions  (4 Zn²⁺  +  4 S²⁻)',
+      coord:   '4  (tetrahedral — both ions)',
+      apf:     '0.682  (68.2 %)',
+      example: 'ZnS, GaAs, InP, CdS, AlAs'
+    },
+    camPos:    [3.8, 2.8, 3.8],
+    camTarget: [0.5, 0.5, 0.5],
+    legend: [
+      { color: '#ffdd44', label: 'S²⁻  (FCC positions — corners + faces)' },
+      { color: '#4499ff', label: 'Zn²⁺  (tetrahedral sites — 4 interior)' }
+    ],
+    build(group) {
+      const Rs  = 0.22;   // S2-  larger anion
+      const Rz  = 0.15;   // Zn2+ smaller cation
+
+      const matS  = atomMat(0xffdd44);
+      const matZn = atomMat(0x4499ff);
+
+      // S2- at FCC lattice: 8 corners + 6 face-centers
+      [
+        [0,0,0],[1,0,0],[0,1,0],[1,1,0],
+        [0,0,1],[1,0,1],[0,1,1],[1,1,1]
+      ].forEach(([x,y,z]) => addAtom(group, x, y, z, Rs, matS));
+
+      [
+        [0.5,0.5,0],[0.5,0.5,1],
+        [0.5,0,0.5],[0.5,1,0.5],
+        [0,0.5,0.5],[1,0.5,0.5]
+      ].forEach(([x,y,z]) => addAtom(group, x, y, z, Rs, matS));
+
+      // Zn2+ at 4 tetrahedral sites — identical positions to Diamond Cubic interior atoms
+      const tets = [
+        [0.25,0.25,0.25],
+        [0.75,0.75,0.25],
+        [0.75,0.25,0.75],
+        [0.25,0.75,0.75]
+      ];
+      tets.forEach(([x,y,z]) => addAtom(group, x, y, z, Rz, matZn));
+
+      // Zn–S tetrahedral bonds (each Zn2+ bonds to its 4 nearest S2- neighbors)
+      const tetBonds = [
+        { t:[0.25,0.25,0.25], nb:[[0,0,0],[0.5,0.5,0],[0.5,0,0.5],[0,0.5,0.5]] },
+        { t:[0.75,0.75,0.25], nb:[[1,1,0],[0.5,0.5,0],[1,0.5,0.5],[0.5,1,0.5]] },
+        { t:[0.75,0.25,0.75], nb:[[1,0,1],[0.5,0,0.5],[1,0.5,0.5],[0.5,0.5,1]] },
+        { t:[0.25,0.75,0.75], nb:[[0,1,1],[0,0.5,0.5],[0.5,1,0.5],[0.5,0.5,1]] }
+      ];
+      tetBonds.forEach(({ t, nb }) =>
+        nb.forEach(n => addBond(group, t, n, 0x88bbff, 0.50))
+      );
+
+      addUnitCellBox(group, 0,0,0, 1,1,1);
+    }
+  }
+
+};
+
+// ═══════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════
+
+function sphereGeo(r) {
+  return new THREE.SphereGeometry(r, 40, 40);
+}
+
+function atomMat(color) {
+  return new THREE.MeshPhongMaterial({ color, shininess: 90, specular: 0x444466 });
+}
+
+// Draw a single bond (thin line) between two [x,y,z] arrays
+function addBond(group, p1, p2, color = 0xffcc44, opacity = 0.30) {
+  const pts = [new THREE.Vector3(...p1), new THREE.Vector3(...p2)];
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+  group.add(new THREE.Line(geo, mat));
+}
+
+// Draw the 12 edges of a rectangular unit cell
+function addUnitCellBox(group, x0,y0,z0, x1,y1,z1) {
+  const v = (x,y,z) => new THREE.Vector3(x,y,z);
+  const edges = [
+    // bottom face
+    [v(x0,y0,z0), v(x1,y0,z0)], [v(x1,y0,z0), v(x1,y1,z0)],
+    [v(x1,y1,z0), v(x0,y1,z0)], [v(x0,y1,z0), v(x0,y0,z0)],
+    // top face
+    [v(x0,y0,z1), v(x1,y0,z1)], [v(x1,y0,z1), v(x1,y1,z1)],
+    [v(x1,y1,z1), v(x0,y1,z1)], [v(x0,y1,z1), v(x0,y0,z1)],
+    // verticals
+    [v(x0,y0,z0), v(x0,y0,z1)], [v(x1,y0,z0), v(x1,y0,z1)],
+    [v(x0,y1,z0), v(x0,y1,z1)], [v(x1,y1,z0), v(x1,y1,z1)],
+  ];
+  const lmat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28 });
+  edges.forEach(([a,b]) => {
+    const geo = new THREE.BufferGeometry().setFromPoints([a,b]);
+    group.add(new THREE.Line(geo, lmat));
+  });
+}
+
+// Shorthand: create atom sphere and add to group
+function addAtom(group, x, y, z, r, mat) {
+  const m = new THREE.Mesh(sphereGeo(r), mat);
+  m.position.set(x, y, z);
+  group.add(m);
+}
+
+// Draw 18 edges of a hexagonal prism (6 bottom + 6 top + 6 vertical)
+function drawHexPrism(group, hv, c) {
+  const lmat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28 });
+  for (let i = 0; i < 6; i++) {
+    const j = (i + 1) % 6;
+    const [x0, y0] = hv[i];
+    const [x1, y1] = hv[j];
+    const mkLine = (ax,ay,az, bx,by,bz) => {
+      const geo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(ax,ay,az), new THREE.Vector3(bx,by,bz)
+      ]);
+      group.add(new THREE.Line(geo, lmat.clone()));
+    };
+    mkLine(x0, y0, 0,  x1, y1, 0);   // bottom edge
+    mkLine(x0, y0, c,  x1, y1, c);   // top edge
+    mkLine(x0, y0, 0,  x0, y0, c);   // vertical edge
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  BUILD / SWITCH STRUCTURE
+// ═══════════════════════════════════════════════════
+
+let structGroup = new THREE.Group();
+scene.add(structGroup);
+
+let currentKey = 'SC';
+
+function loadStructure(key) {
+  currentKey = key;
+
+  // Dispose old objects
+  while (structGroup.children.length) {
+    const c = structGroup.children[0];
+    if (c.geometry) c.geometry.dispose();
+    if (c.material)  c.material.dispose();
+    structGroup.remove(c);
+  }
+
+  const S = STRUCTURES[key];
+  S.build(structGroup);
+
+  // Update info panel
+  document.getElementById('inf-name').textContent  = S.name;
+  document.getElementById('inf-atoms').textContent = S.info.atoms;
+  document.getElementById('inf-coord').textContent = S.info.coord;
+  document.getElementById('inf-apf').textContent   = S.info.apf;
+  document.getElementById('inf-ex').textContent    = S.info.example;
+
+  // Update phase badge
+  document.querySelector('.phase-badge').textContent = 'Phase 6 · ' + S.name;
+
+  // Show/hide atom legend
+  const legSec   = document.getElementById('legend-section');
+  const legItems = document.getElementById('legend-items');
+  if (S.legend) {
+    legSec.style.display = '';
+    legItems.innerHTML = S.legend.map(({ color, label }) =>
+      `<div style="display:flex;align-items:center;gap:8px;margin:4px 0">
+         <div style="width:11px;height:11px;border-radius:50%;background:${color};flex-shrink:0"></div>
+         <span style="color:#c8d8ff;font-size:0.75rem">${label}</span>
+       </div>`
+    ).join('');
+  } else {
+    legSec.style.display = 'none';
+  }
+
+  // Keep plane overlay in sync when switching structures
+  if (planeActive) refreshPlane();
+
+  // Keep direction overlay in sync when switching structures
+  if (dirActive) refreshDir();
+
+  // Keep space-fill overlay in sync when switching structures
+  if (packActive) refreshPack();
+
+  // Multi-cell: enable button only for SC/BCC/FCC; auto-off for other structures
+  const btnMulti = document.getElementById('btn-multi');
+  const supportsMulti = ['SC', 'BCC', 'FCC'].includes(key);
+  btnMulti.disabled = !supportsMulti;
+  if (!supportsMulti && multiActive) {
+    multiActive = false;
+    btnMulti.classList.remove('active');
+    btnMulti.textContent = '2×2×2 Array';
+    clearMulti();
+  }
+  if (multiActive) refreshMulti();
+  else structGroup.visible = true;
+
+  // HCP primitive cell button: visible only for HCP; auto-off when switching away
+  const btnHcpCell = document.getElementById('btn-hcp-cell');
+  btnHcpCell.style.display = (key === 'HCP') ? '' : 'none';
+  if (key !== 'HCP' && hcpCellActive) {
+    hcpCellActive = false;
+    btnHcpCell.classList.remove('active');
+    btnHcpCell.textContent = 'Primitive Cell';
+    clearHcpCell();
+  }
+  if (hcpCellActive) refreshHcpCell();   // re-draw if already active (e.g. HCP reload)
+
+  // Cut-atom view: enabled only for SC; auto-off when switching away
+  const btnCut = document.getElementById('btn-cut');
+  const supportsCut = ['SC', 'BCC', 'FCC', 'HCP', 'NaCl', 'DC', 'ZnS', 'CsCl', 'Fluorite', 'Perovskite'].includes(key);
+  btnCut.disabled = !supportsCut;
+  if (!supportsCut && cutActive) {
+    cutActive = false;
+    btnCut.classList.remove('active');
+    btnCut.textContent = 'Cut Atoms';
+    clearCut();
+    structGroup.visible = true;
+  }
+  if (cutActive) { structGroup.visible = false; refreshCut(); }
+  // else: structGroup visibility is already set correctly by the multi-cell block above
+
+  // HCP uses 4-index Miller-Bravais notation — show a note
+  const planeNote = document.getElementById('plane-note');
+  if (planeNote) {
+    planeNote.style.display = key === 'HCP' ? '' : 'none';
+    if (key === 'HCP')
+      planeNote.textContent =
+        '⚠ HCP uses 4-index Miller-Bravais notation (hkil). ' +
+        'd-spacing calculated with c/a = 1.633.';
+  }
+
+  // HCP directions can also be shown in Weber 4-index notation — show a note
+  const dirNote = document.getElementById('dir-note');
+  if (dirNote) {
+    dirNote.style.display = key === 'HCP' ? '' : 'none';
+    if (key === 'HCP')
+      dirNote.textContent =
+        '⚠ HCP directions can be expressed in 4-index Weber notation [uvtw] where t = −(u+v).';
+  }
+}
+
+loadStructure('SC');
+
+// ═══════════════════════════════════════════════════
+//  BUTTON EVENTS
+// ═══════════════════════════════════════════════════
+
+document.querySelectorAll('.struct-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.disabled) return;
+    document.querySelectorAll('.struct-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadStructure(btn.dataset.key);
+  });
+});
+
+// Double-click resets camera to the current structure's default view
+renderer.domElement.addEventListener('dblclick', () => {
+  let p, t;
+  if (multiActive) {
+    p = [6.5, 4.8, 6.5]; t = [1, 1, 1];   // zoomed-out view for 2×2×2 supercell
+  } else {
+    const S = STRUCTURES[currentKey];
+    p = S.camPos    || [3.8, 2.8, 3.8];
+    t = S.camTarget || [0.5, 0.5, 0.5];
+  }
+  camera.position.set(...p);
+  controls.target.set(...t);
+  controls.update();
+});
+
+// ═══════════════════════════════════════════════════
+//  CRYSTALLOGRAPHIC PLANES
+// ═══════════════════════════════════════════════════
+
+function clearPlane() {
+  while (planeGroup.children.length) {
+    const c = planeGroup.children[0];
+    if (c.geometry) c.geometry.dispose();
+    if (c.material)  c.material.dispose();
+    planeGroup.remove(c);
+  }
+}
+
+// Return bounding box [xMin,xMax,yMin,yMax,zMin,zMax] and candidate n-values
+// for the current structure (HCP has a non-cubic cell; multi expands the cubic box).
+function getBoxParams() {
+  if (currentKey === 'HCP') {
+    return { box: [-1,1,-1,1,0,1.633], nVals: [0, 0.816, 1, -0.816, 1.633, -1, 2] };
+  }
+  if (multiActive) {
+    // 2×2×2 supercell: extend box to [0,2]³ and add more candidate n-values
+    return { box: [0,2,0,2,0,2], nVals: [1,2,3,-1,4,-2,5,-3,6,-4,0] };
+  }
+  return { box: [0,1,0,1,0,1], nVals: [1, 2, -1, 3, -2, 4, -3] };
+}
+
+// Clip plane h·x + k·y + l·z = n against an axis-aligned bounding box.
+// Returns unique [x,y,z] intersection points on the box edges.
+function clipPlaneToBox(h, k, l, n, box) {
+  const [xA,xB,yA,yB,zA,zB] = box;
+  const edges = [
+    [[xA,yA,zA],[xB,yA,zA]], [[xA,yB,zA],[xB,yB,zA]],   // bottom x-edges
+    [[xA,yA,zB],[xB,yA,zB]], [[xA,yB,zB],[xB,yB,zB]],   // top x-edges
+    [[xA,yA,zA],[xA,yB,zA]], [[xB,yA,zA],[xB,yB,zA]],   // front y-edges
+    [[xA,yA,zB],[xA,yB,zB]], [[xB,yA,zB],[xB,yB,zB]],   // back y-edges
+    [[xA,yA,zA],[xA,yA,zB]], [[xB,yA,zA],[xB,yA,zB]],   // left z-edges
+    [[xA,yB,zA],[xA,yB,zB]], [[xB,yB,zA],[xB,yB,zB]],   // right z-edges
+  ];
+  const EPS = 1e-8;
+  const raw = [];
+  for (const [[x0,y0,z0],[x1,y1,z1]] of edges) {
+    const v0 = h*x0+k*y0+l*z0, v1 = h*x1+k*y1+l*z1, dv = v1-v0;
+    if (Math.abs(dv) < EPS) continue;
+    const t = (n-v0)/dv;
+    if (t < -EPS || t > 1+EPS) continue;
+    const tc = Math.max(0, Math.min(1, t));
+    raw.push([x0+tc*(x1-x0), y0+tc*(y1-y0), z0+tc*(z1-z0)]);
+  }
+  // Deduplicate
+  const pts = [];
+  for (const p of raw)
+    if (!pts.some(q => Math.abs(q[0]-p[0])<1e-6 && Math.abs(q[1]-p[1])<1e-6 && Math.abs(q[2]-p[2])<1e-6))
+      pts.push(p);
+  return pts;
+}
+
+// Sort polygon vertices by angle around centroid so fan-triangulation is correct.
+function sortPolygon(pts, h, k, l) {
+  if (pts.length < 3) return pts;
+  const cx = pts.reduce((s,p)=>s+p[0],0)/pts.length;
+  const cy = pts.reduce((s,p)=>s+p[1],0)/pts.length;
+  const cz = pts.reduce((s,p)=>s+p[2],0)/pts.length;
+  const nv = new THREE.Vector3(h,k,l).normalize();
+  let u = new THREE.Vector3(1,0,0);
+  if (Math.abs(nv.dot(u)) > 0.85) u = new THREE.Vector3(0,1,0);
+  const right = new THREE.Vector3().crossVectors(nv,u).normalize();
+  const up    = new THREE.Vector3().crossVectors(right,nv).normalize();
+  return pts.slice().sort((a,b) => {
+    const angA = Math.atan2(
+      (a[0]-cx)*up.x+(a[1]-cy)*up.y+(a[2]-cz)*up.z,
+      (a[0]-cx)*right.x+(a[1]-cy)*right.y+(a[2]-cz)*right.z);
+    const angB = Math.atan2(
+      (b[0]-cx)*up.x+(b[1]-cy)*up.y+(b[2]-cz)*up.z,
+      (b[0]-cx)*right.x+(b[1]-cy)*right.y+(b[2]-cz)*right.z);
+    return angA - angB;
+  });
+}
+
+function buildPlaneMesh(h, k, l) {
+  clearPlane();
+  if (h===0 && k===0 && l===0) return;
+
+  const { box, nVals } = getBoxParams();
+
+  // Find the first n in nVals that produces a polygon inside the bounding box
+  let pts = [];
+  for (const n of nVals) {
+    const c = clipPlaneToBox(h, k, l, n, box);
+    if (c.length >= 3) { pts = c; break; }
+  }
+  if (pts.length < 3) return;
+
+  pts = sortPolygon(pts, h, k, l);
+
+  // Fan-triangulate the convex polygon and build the mesh
+  const verts = [];
+  for (let i = 1; i < pts.length-1; i++)
+    verts.push(...pts[0], ...pts[i], ...pts[i+1]);
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  geo.computeVertexNormals();
+  planeGroup.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+    color: 0xff3366, transparent: true, opacity: 0.28,
+    side: THREE.DoubleSide, depthWrite: false
+  })));
+
+  // Closed polygon outline
+  const ring = [...pts.map(p => new THREE.Vector3(...p)), new THREE.Vector3(...pts[0])];
+  planeGroup.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(ring),
+    new THREE.LineBasicMaterial({ color: 0xff6699, transparent: true, opacity: 0.95 })
+  ));
+
+  // ── Update sidebar ──────────────────────────────────
+  // Notation with Unicode combining overbar (U+0305) for negative indices
+  const fmt = i => i < 0 ? Math.abs(i)+'\u0305' : String(i);
+  document.getElementById('pln-hkl').textContent = '(' + [h,k,l].map(fmt).join('') + ')';
+
+  // d-spacing: cubic = a/√(h²+k²+l²), hexagonal uses different formula
+  let dText;
+  if (currentKey === 'HCP') {
+    const cRatio = 1.633;
+    const dInvSq = (4/3)*(h*h+h*k+k*k) + (l*l)/(cRatio*cRatio);
+    dText = dInvSq > 0 ? (1/Math.sqrt(dInvSq)).toFixed(4)+' · a' : '∞';
+  } else {
+    const dInvSq = h*h + k*k + l*l;
+    dText = dInvSq > 0 ? (1/Math.sqrt(dInvSq)).toFixed(4)+' · a' : '∞';
+  }
+  document.getElementById('pln-d').textContent = dText;
+  document.getElementById('plane-info').style.display = '';
+}
+
+function refreshPlane() {
+  if (!planeActive) return;
+  const h = parseInt(document.getElementById('inp-h').value) || 0;
+  const k = parseInt(document.getElementById('inp-k').value) || 0;
+  const l = parseInt(document.getElementById('inp-l').value) || 0;
+  buildPlaneMesh(h, k, l);
+}
+
+// Toggle button
+document.getElementById('btn-plane').addEventListener('click', () => {
+  planeActive = !planeActive;
+  const btn = document.getElementById('btn-plane');
+  btn.textContent = planeActive ? 'Hide Plane' : 'Show Plane';
+  btn.classList.toggle('active', planeActive);
+  if (planeActive) {
+    refreshPlane();
+  } else {
+    clearPlane();
+    document.getElementById('plane-info').style.display = 'none';
+  }
+});
+
+// Auto-redraw when any index input changes
+['inp-h','inp-k','inp-l'].forEach(id =>
+  document.getElementById(id).addEventListener('input', refreshPlane)
+);
+
+// ═══════════════════════════════════════════════════
+//  HCP PRIMITIVE UNIT CELL WIREFRAME
+// ═══════════════════════════════════════════════════
+//  The primitive cell is a parallelepiped with:
+//    a1 = (1, 0, 0)          [→ hex vertex hv[0]]
+//    a2 = (−0.5, √3/2, 0)    [→ hex vertex hv[2]]
+//    c  = (0, 0, 1.633)
+//  All 8 corners land exactly on existing A-layer atom sites.
+//  The cell contains 2 atoms: the A-layer origin + B-layer at (½, √3/6, c/2).
+
+function clearHcpCell() {
+  while (hcpCellGroup.children.length) {
+    const c = hcpCellGroup.children[0];
+    if (c.geometry) c.geometry.dispose();
+    if (c.material)  c.material.dispose();
+    hcpCellGroup.remove(c);
+  }
+}
+
+function buildHcpCell(grp) {
+  const s3 = Math.sqrt(3), cv = 1.633;
+
+  // 8 corners of the parallelepiped (all coincide with atom sites in the HCP display)
+  const verts = [
+    [0,    0,     0  ],   // v0: origin  (hex center, bottom)
+    [1,    0,     0  ],   // v1: +a1     (hv[0])
+    [-0.5, s3/2,  0  ],   // v2: +a2     (hv[2])
+    [0.5,  s3/2,  0  ],   // v3: +a1+a2  (hv[1])
+    [0,    0,     cv ],   // v4: +c
+    [1,    0,     cv ],   // v5: +a1+c
+    [-0.5, s3/2,  cv ],   // v6: +a2+c
+    [0.5,  s3/2,  cv ],   // v7: +a1+a2+c
+  ];
+
+  // 12 edges: bottom face, top face, 4 verticals
+  const edges = [
+    [0,1],[1,3],[3,2],[2,0],   // bottom parallelogram
+    [4,5],[5,7],[7,6],[6,4],   // top  parallelogram
+    [0,4],[1,5],[2,6],[3,7]    // vertical pillars
+  ];
+
+  const lmat = new THREE.LineBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.95 });
+  edges.forEach(([a, b]) => {
+    grp.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(...verts[a]),
+        new THREE.Vector3(...verts[b])
+      ]),
+      lmat.clone()
+    ));
+  });
+
+  // Small glowing sphere to highlight the B-layer atom inside the cell
+  // B-layer site = (2/3)a1 + (1/3)a2 + (1/2)c = (0.5, √3/6, c/2)
+  const bx = 0.5, by = s3 / 6, bz = cv / 2;
+  const marker = new THREE.Mesh(
+    new THREE.SphereGeometry(0.13, 30, 30),
+    new THREE.MeshPhongMaterial({ color: 0xffaa00, transparent: true, opacity: 0.55,
+                                   depthWrite: false, shininess: 60 })
+  );
+  marker.position.set(bx, by, bz);
+  grp.add(marker);
+}
+
+function refreshHcpCell() {
+  clearHcpCell();
+  if (!hcpCellActive) return;
+  buildHcpCell(hcpCellGroup);
+}
+
+// Toggle button
+document.getElementById('btn-hcp-cell').addEventListener('click', () => {
+  hcpCellActive = !hcpCellActive;
+  const btn = document.getElementById('btn-hcp-cell');
+  btn.textContent = hcpCellActive ? 'Hide Primitive Cell' : 'Primitive Cell';
+  btn.classList.toggle('active', hcpCellActive);
+  if (hcpCellActive) refreshHcpCell();
+  else clearHcpCell();
+});
+
+// ═══════════════════════════════════════════════════
+//  2×2×2 MULTI-CELL ARRAY  (SC, BCC, FCC only)
+// ═══════════════════════════════════════════════════
+
+function clearMulti() {
+  while (multiGroup.children.length) {
+    const c = multiGroup.children[0];
+    if (c.geometry) c.geometry.dispose();
+    if (c.material)  c.material.dispose();
+    multiGroup.remove(c);
+  }
+}
+
+function buildMultiCell(key, grp) {
+  // Per-structure atom type descriptors  { pos: [[x,y,z],...], color, r }
+  const CORNERS = [[0,0,0],[1,0,0],[0,1,0],[1,1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1]];
+  const FACES   = [[0.5,0.5,0],[0.5,0.5,1],[0.5,0,0.5],[0.5,1,0.5],[0,0.5,0.5],[1,0.5,0.5]];
+
+  let types;
+  if (key === 'SC') {
+    types = [{ pos: CORNERS, color: 0x4db8ff, r: 0.24 }];
+  } else if (key === 'BCC') {
+    types = [{ pos: [...CORNERS, [0.5,0.5,0.5]], color: 0xff8844, r: 0.22 }];
+  } else if (key === 'FCC') {
+    types = [
+      { pos: CORNERS, color: 0x44cc88, r: 0.20 },
+      { pos: FACES,   color: 0x88ffbb, r: 0.20 }
+    ];
+  } else return;
+
+  // Collect unique atom positions across 2×2×2 cells (deduplicate shared boundaries)
+  const placed = new Map();
+  for (let ix = 0; ix < 2; ix++) {
+    for (let iy = 0; iy < 2; iy++) {
+      for (let iz = 0; iz < 2; iz++) {
+        types.forEach(({ pos, color, r }) => {
+          pos.forEach(([x, y, z]) => {
+            const gx = x+ix, gy = y+iy, gz = z+iz;
+            const k = `${gx.toFixed(3)},${gy.toFixed(3)},${gz.toFixed(3)}`;
+            if (!placed.has(k)) placed.set(k, { gx, gy, gz, color, r });
+          });
+        });
+      }
+    }
+  }
+
+  // Draw deduplicated atoms
+  placed.forEach(({ gx, gy, gz, color, r }) =>
+    addAtom(grp, gx, gy, gz, r, atomMat(color))
+  );
+
+  // Draw 8 unit-cell outlines
+  for (let ix = 0; ix < 2; ix++)
+    for (let iy = 0; iy < 2; iy++)
+      for (let iz = 0; iz < 2; iz++)
+        addUnitCellBox(grp, ix, iy, iz, ix+1, iy+1, iz+1);
+}
+
+function refreshMulti() {
+  clearMulti();
+  if (!multiActive) { structGroup.visible = true; return; }
+  structGroup.visible = false;
+  buildMultiCell(currentKey, multiGroup);
+  // If a plane is showing, re-clip it to the 2×2×2 box
+  if (planeActive) refreshPlane();
+}
+
+// Toggle button
+document.getElementById('btn-multi').addEventListener('click', () => {
+  if (document.getElementById('btn-multi').disabled) return;
+  multiActive = !multiActive;
+  const btn = document.getElementById('btn-multi');
+  btn.textContent = multiActive ? 'Single Cell' : '2×2×2 Array';
+  btn.classList.toggle('active', multiActive);
+  refreshMulti();
+  // Also refresh plane if it's active (bounding box changes)
+  if (planeActive) refreshPlane();
+});
+
+// ═══════════════════════════════════════════════════
+//  SPACE-FILL PACKING OVERLAY
+// ═══════════════════════════════════════════════════
+
+function clearPack() {
+  while (packGroup.children.length) {
+    const c = packGroup.children[0];
+    if (c.geometry) c.geometry.dispose();
+    if (c.material)  c.material.dispose();
+    packGroup.remove(c);
+  }
+}
+
+function buildPackingOverlay(key, grp) {
+  const sfMat = col => new THREE.MeshPhongMaterial({
+    color: col, transparent: true, opacity: 0.42,
+    depthWrite: false, shininess: 30
+  });
+  const addSF = (positions, r, mat) => {
+    positions.forEach(([x, y, z]) => {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(r, 40, 40), mat);
+      m.position.set(x, y, z);
+      grp.add(m);
+    });
+  };
+
+  // Shared position lists
+  const CORNERS = [
+    [0,0,0],[1,0,0],[0,1,0],[1,1,0],
+    [0,0,1],[1,0,1],[0,1,1],[1,1,1]
+  ];
+  const FACES = [
+    [0.5,0.5,0],[0.5,0.5,1],[0.5,0,0.5],
+    [0.5,1,0.5],[0,0.5,0.5],[1,0.5,0.5]
+  ];
+  const TETS = [
+    [0.25,0.25,0.25],[0.75,0.75,0.25],
+    [0.75,0.25,0.75],[0.25,0.75,0.75]
+  ];
+
+  let rDisplay, dirText;
+
+  if (key === 'SC') {
+    addSF(CORNERS, 0.5, sfMat(0x4db8ff));
+    rDisplay = '0.5000 · a'; dirText = '⟨100⟩';
+
+  } else if (key === 'BCC') {
+    const r = Math.sqrt(3) / 4;   // ≈ 0.4330 — touch along ⟨111⟩
+    addSF([...CORNERS, [0.5,0.5,0.5]], r, sfMat(0xff8844));
+    rDisplay = r.toFixed(4) + ' · a'; dirText = '⟨111⟩';
+
+  } else if (key === 'FCC') {
+    const r = Math.sqrt(2) / 4;   // ≈ 0.3536 — touch along ⟨110⟩
+    addSF([...CORNERS, ...FACES], r, sfMat(0x44cc88));
+    rDisplay = r.toFixed(4) + ' · a'; dirText = '⟨110⟩';
+
+  } else if (key === 'HCP') {
+    const c = 1.633, s3 = Math.sqrt(3), r = 0.5;
+    const hv = Array.from({length: 6}, (_, i) =>
+      [Math.cos(i * Math.PI / 3), Math.sin(i * Math.PI / 3)]);
+    const layerA = hv.flatMap(([x, y]) => [[x,y,0],[x,y,c]]).concat([[0,0,0],[0,0,c]]);
+    addSF(layerA, r, sfMat(0x9966ff));
+    addSF([[0.5,s3/6,c/2],[-0.5,s3/6,c/2],[0,-s3/3,c/2]], r, sfMat(0xcc99ff));
+    rDisplay = '0.5000 · a'; dirText = 'a₁ (basal plane)';
+
+  } else if (key === 'DC') {
+    const r = Math.sqrt(3) / 8;   // ≈ 0.2165 — touch along ⟨111⟩ bond
+    addSF([...CORNERS, ...FACES], r, sfMat(0x7799ff));
+    addSF(TETS, r, sfMat(0xffcc44));
+    rDisplay = r.toFixed(4) + ' · a'; dirText = '⟨111⟩';
+
+  } else if (key === 'NaCl') {
+    // Na–Cl touch along ⟨100⟩ edge: r(Na⁺) + r(Cl⁻) = 0.5
+    addSF([...CORNERS, ...FACES], 0.18, sfMat(0x99aad0));
+    addSF([
+      [0.5,0,0],[0.5,1,0],[0.5,0,1],[0.5,1,1],
+      [0,0.5,0],[1,0.5,0],[0,0.5,1],[1,0.5,1],
+      [0,0,0.5],[1,0,0.5],[0,1,0.5],[1,1,0.5],
+      [0.5,0.5,0.5]
+    ], 0.32, sfMat(0x55cc77));
+    rDisplay = 'Na⁺ 0.18 / Cl⁻ 0.32 · a'; dirText = '⟨100⟩';
+
+  } else if (key === 'ZnS') {
+    // Zn–S touch along ⟨111⟩ bond: r(Zn²⁺) + r(S²⁻) = √3/4
+    addSF([...CORNERS, ...FACES], 0.309, sfMat(0xffdd44));
+    addSF(TETS, 0.124, sfMat(0x4499ff));
+    rDisplay = 'S²⁻ 0.309 / Zn²⁺ 0.124 · a'; dirText = '⟨111⟩';
+  }
+
+  document.getElementById('pack-r').textContent   = rDisplay;
+  document.getElementById('pack-dir').textContent = dirText;
+  document.getElementById('pack-info').style.display = '';
+}
+
+function refreshPack() {
+  if (!packActive) return;
+  clearPack();
+  buildPackingOverlay(currentKey, packGroup);
+}
+
+// Toggle button
+document.getElementById('btn-pack').addEventListener('click', () => {
+  packActive = !packActive;
+  const btn = document.getElementById('btn-pack');
+  btn.textContent = packActive ? 'Hide Space-Fill' : 'Space-Fill Overlay';
+  btn.classList.toggle('active', packActive);
+  if (packActive) {
+    refreshPack();
+  } else {
+    clearPack();
+    document.getElementById('pack-info').style.display = 'none';
+  }
+});
+
+// ═══════════════════════════════════════════════════
+//  CRYSTALLOGRAPHIC DIRECTIONS
+// ═══════════════════════════════════════════════════
+
+function clearDir() {
+  while (dirGroup.children.length) {
+    const child = dirGroup.children[0];
+    child.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material)  obj.material.dispose();
+    });
+    dirGroup.remove(child);
+  }
+}
+
+function buildDirArrow(u, v, w) {
+  clearDir();
+  if (u === 0 && v === 0 && w === 0) return;
+
+  const M   = Math.max(Math.abs(u), Math.abs(v), Math.abs(w));
+  const su  = u / M,  sv  = v / M,  sw  = w / M;   // scaled: max |component| = 1
+  const fmt = i => i < 0 ? Math.abs(i) + '\u0305' : String(i);
+
+  let arrowOrigin, arrowDir, arrowLen, notation, magnitudeText, weberText = null;
+
+  if (currentKey === 'HCP') {
+    const cRatio = 1.633;
+    const s3     = Math.sqrt(3);
+
+    // Convert fractional (a, b, c-index) → Cartesian using hex basis:
+    //   a1 = (1, 0, 0)   a2 = (0.5, √3/2, 0)   c = (0, 0, cRatio)
+    const toCart = (a, b, c) => new THREE.Vector3(
+      a + 0.5 * b,
+      (s3 / 2) * b,
+      cRatio * c
+    );
+
+    // Shift start so arrow stays inside the positive half-cell for each axis
+    arrowOrigin = toCart(Math.max(0, -su), Math.max(0, -sv), Math.max(0, -sw));
+    const endPt = toCart(Math.max(0,  su), Math.max(0,  sv), Math.max(0,  sw));
+
+    arrowLen = arrowOrigin.distanceTo(endPt);
+    if (arrowLen < 1e-6) return;
+    arrowDir = new THREE.Vector3().subVectors(endPt, arrowOrigin).normalize();
+
+    // Weber 4-index: t = −(u + v)
+    const t  = -(u + v);
+    notation      = '[' + [u, v, w].map(fmt).join('') + ']';
+    weberText     = '[' + [u, v, t, w].map(fmt).join('') + ']';
+    // Magnitude: a · √(u² + uv + v² + (c/a)² · w²)
+    magnitudeText = Math.sqrt(u*u + u*v + v*v + (cRatio*w)*(cRatio*w)).toFixed(4) + ' · a';
+
+  } else {
+    // Cubic: fractional coordinates equal Cartesian (a = 1)
+    arrowOrigin = new THREE.Vector3(Math.max(0, -su), Math.max(0, -sv), Math.max(0, -sw));
+    const endPt = new THREE.Vector3(Math.max(0,  su), Math.max(0,  sv), Math.max(0,  sw));
+
+    arrowLen = arrowOrigin.distanceTo(endPt);
+    if (arrowLen < 1e-6) return;
+    arrowDir = new THREE.Vector3().subVectors(endPt, arrowOrigin).normalize();
+
+    notation      = '[' + [u, v, w].map(fmt).join('') + ']';
+    // Magnitude: a · √(u² + v² + w²)
+    magnitudeText = Math.sqrt(u*u + v*v + w*w).toFixed(4) + ' · a';
+  }
+
+  const headLen = Math.min(0.20, arrowLen * 0.28);
+  const headWid = headLen * 0.55;
+  dirGroup.add(new THREE.ArrowHelper(arrowDir, arrowOrigin, arrowLen, 0xffdd00, headLen, headWid));
+
+  // ── Update sidebar info ────────────────────────────────
+  document.getElementById('dir-uvw').textContent = notation;
+  document.getElementById('dir-mag').textContent = magnitudeText;
+
+  const weberRow = document.getElementById('dir-weber-row');
+  if (weberText) {
+    weberRow.style.display = '';
+    document.getElementById('dir-weber').textContent = weberText;
+  } else {
+    weberRow.style.display = 'none';
+  }
+  document.getElementById('dir-info').style.display = '';
+}
+
+function refreshDir() {
+  if (!dirActive) return;
+  const u = parseInt(document.getElementById('inp-u').value) || 0;
+  const v = parseInt(document.getElementById('inp-v').value) || 0;
+  const w = parseInt(document.getElementById('inp-w').value) || 0;
+  buildDirArrow(u, v, w);
+}
+
+// Toggle button
+document.getElementById('btn-dir').addEventListener('click', () => {
+  dirActive = !dirActive;
+  const btn = document.getElementById('btn-dir');
+  btn.textContent = dirActive ? 'Hide Direction' : 'Show Direction';
+  btn.classList.toggle('active', dirActive);
+  if (dirActive) {
+    refreshDir();
+  } else {
+    clearDir();
+    document.getElementById('dir-info').style.display = 'none';
+  }
+});
+
+// Auto-redraw when any index input changes
+['inp-u', 'inp-v', 'inp-w'].forEach(id =>
+  document.getElementById(id).addEventListener('input', refreshDir)
+);
+
+// ═══════════════════════════════════════════════════
+//  CUT-ATOM UNIT CELL (SC only, Phase 6+)
+// ═══════════════════════════════════════════════════
+
+function clearCut() {
+  while (cutGroup.children.length) {
+    const c = cutGroup.children[0];
+    c.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+        else obj.material.dispose();
+      }
+    });
+    cutGroup.remove(c);
+  }
+}
+
+function buildCutCell(key, grp) {
+  const EPS = 1e-6;
+  const defN = new THREE.Vector3(0, 0, 1);   // default CircleGeometry normal
+
+  // ── Create a clipped sphere ────────────────────────────────────────────────
+  function mkSphere(x, y, z, R, color, planes) {
+    const mat = new THREE.MeshPhongMaterial({
+      color, shininess: 90, specular: 0x334466, clippingPlanes: planes
+    });
+    const m = new THREE.Mesh(new THREE.SphereGeometry(R, 64, 64), mat);
+    m.position.set(x, y, z); grp.add(m);
+  }
+
+  // ── Create a cap disc that fills a cut face ────────────────────────────────
+  // cx,cy,cz : centre of disc (atom centre if d=0, else projection onto face)
+  // r        : disc radius (R for d=0 atoms; sqrt(R²-d²) for set-back atoms)
+  // planes   : additional clipping planes to trim disc to cell region
+  // capNml   : outward normal direction of the cut face
+  function mkCap(cx, cy, cz, r, color, planes, capNml) {
+    const mat = new THREE.MeshPhongMaterial({
+      color, shininess: 90, specular: 0x334466,
+      side: THREE.DoubleSide, clippingPlanes: planes,
+      polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1
+    });
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(r, 64), mat);
+    disc.position.set(cx, cy, cz);
+    disc.quaternion.setFromUnitVectors(defN, capNml.clone().normalize());
+    grp.add(disc);
+  }
+
+  // ── Cubic-cell atom helper (SC corners, BCC body, FCC corners + face centres) ──
+  // Automatically detects which faces the atom sits on (within EPS of 0 or 1)
+  // and adds the sphere + one correctly-clipped cap disc per boundary face.
+  function addCubicAtom(x, y, z, R, color) {
+    const pl = [];
+    if (x < EPS)   pl.push(new THREE.Plane(new THREE.Vector3( 1, 0, 0),  0));
+    if (x > 1-EPS) pl.push(new THREE.Plane(new THREE.Vector3(-1, 0, 0),  1));
+    if (y < EPS)   pl.push(new THREE.Plane(new THREE.Vector3( 0, 1, 0),  0));
+    if (y > 1-EPS) pl.push(new THREE.Plane(new THREE.Vector3( 0,-1, 0),  1));
+    if (z < EPS)   pl.push(new THREE.Plane(new THREE.Vector3( 0, 0, 1),  0));
+    if (z > 1-EPS) pl.push(new THREE.Plane(new THREE.Vector3( 0, 0,-1),  1));
+
+    mkSphere(x, y, z, R, color, pl);
+
+    // Cap per boundary face; extra clips = all planes *except* this face's plane
+    if (x < EPS || x > 1-EPS)
+      mkCap(x, y, z, R, color, pl.filter(p => p.normal.x === 0), new THREE.Vector3(1, 0, 0));
+    if (y < EPS || y > 1-EPS)
+      mkCap(x, y, z, R, color, pl.filter(p => p.normal.y === 0), new THREE.Vector3(0, 1, 0));
+    if (z < EPS || z > 1-EPS)
+      mkCap(x, y, z, R, color, pl.filter(p => p.normal.z === 0), new THREE.Vector3(0, 0, 1));
+  }
+
+  // ── SC ────────────────────────────────────────────────────────────────────
+  if (key === 'SC') {
+    const R = 0.5, col = 0x4db8ff;
+    [[0,0,0],[1,0,0],[0,1,0],[1,1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, R, col));
+    addUnitCellBox(grp, 0, 0, 0, 1, 1, 1);
+
+  // ── BCC ───────────────────────────────────────────────────────────────────
+  } else if (key === 'BCC') {
+    const R = Math.sqrt(3) / 4, col = 0xff8844;   // R ≈ 0.4330, touch along ⟨111⟩
+    [[0,0,0],[1,0,0],[0,1,0],[1,1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, R, col));
+    addCubicAtom(0.5, 0.5, 0.5, R, col);  // body-centre: fully inside, pl=[] → no clipping
+    addUnitCellBox(grp, 0, 0, 0, 1, 1, 1);
+
+  // ── FCC ───────────────────────────────────────────────────────────────────
+  } else if (key === 'FCC') {
+    const R = Math.sqrt(2) / 4;            // R ≈ 0.3536, touch along ⟨110⟩
+    const colC = 0x44cc88, colF = 0x88ffbb;
+    [[0,0,0],[1,0,0],[0,1,0],[1,1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, R, colC));
+    // Face-centre atoms each sit on exactly one cell face → 1 clip + 1 cap
+    [[0.5,0.5,0],[0.5,0.5,1],[0.5,0,0.5],[0.5,1,0.5],[0,0.5,0.5],[1,0.5,0.5]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, R, colF));
+    addUnitCellBox(grp, 0, 0, 0, 1, 1, 1);
+
+  // ── HCP ───────────────────────────────────────────────────────────────────
+  } else if (key === 'HCP') {
+    const c = 1.633, s3 = Math.sqrt(3), R = 0.5;
+    const colA = 0x9966ff, colB = 0xcc99ff;
+    const zN = new THREE.Vector3(0, 0, 1);   // normal for z-face cap discs
+
+    // 6 lateral clipping planes for the hexagonal prism
+    // hexFP[j] keeps the interior: dot(-n_out_j, x) + s3/2 ≥ 0
+    const hexFP = Array.from({length: 6}, (_, j) => {
+      const a = (j + 0.5) * Math.PI / 3;
+      return new THREE.Plane(new THREE.Vector3(-Math.cos(a), -Math.sin(a), 0), s3 / 2);
+    });
+    // Outward normal vectors (for cap disc orientation)
+    const hexFN = Array.from({length: 6}, (_, j) => {
+      const a = (j + 0.5) * Math.PI / 3;
+      return new THREE.Vector3(Math.cos(a), Math.sin(a), 0);
+    });
+    const botP = new THREE.Plane(new THREE.Vector3(0, 0,  1),  0);  // keep z ≥ 0
+    const topP = new THREE.Plane(new THREE.Vector3(0, 0, -1),  c);  // keep z ≤ c
+
+    // A-layer centre atoms: cut by one horizontal face only
+    // Atom is at the centre of the prism so it never touches a lateral face.
+    mkSphere(0, 0, 0, R, colA, [botP]);
+    mkCap(0, 0, 0, R, colA, [], zN);        // full circle at z = 0
+
+    mkSphere(0, 0, c, R, colA, [topP]);
+    mkCap(0, 0, c, R, colA, [], zN);        // full circle at z = c
+
+    // A-layer hex vertex atoms — each lies on 2 lateral faces + 1 horizontal face
+    for (let i = 0; i < 6; i++) {
+      const ang = i * Math.PI / 3;
+      const vx  = Math.cos(ang), vy = Math.sin(ang);
+      const f1  = i, f2 = (i + 5) % 6;   // the two lateral faces meeting at vertex i
+
+      // z = 0 vertex
+      const plBot = [botP, hexFP[f1], hexFP[f2]];
+      mkSphere(vx, vy, 0, R, colA, plBot);
+      // Horizontal cap: trimmed by the 2 lateral planes → 1/6 sector
+      mkCap(vx, vy, 0, R, colA, [hexFP[f1], hexFP[f2]], zN);
+      // Lateral cap f1: trimmed by bottom plane + the other lateral → quarter
+      mkCap(vx, vy, 0, R, colA, [botP, hexFP[f2]], hexFN[f1]);
+      // Lateral cap f2: trimmed by bottom plane + the other lateral → quarter
+      mkCap(vx, vy, 0, R, colA, [botP, hexFP[f1]], hexFN[f2]);
+
+      // z = c vertex
+      const plTop = [topP, hexFP[f1], hexFP[f2]];
+      mkSphere(vx, vy, c, R, colA, plTop);
+      mkCap(vx, vy, c, R, colA, [hexFP[f1], hexFP[f2]], zN);
+      mkCap(vx, vy, c, R, colA, [topP, hexFP[f2]], hexFN[f1]);
+      mkCap(vx, vy, c, R, colA, [topP, hexFP[f1]], hexFN[f2]);
+    }
+
+    // B-layer atoms — each extends through exactly 1 lateral face.
+    // The atom centre is set back from the face by d = s3/6 ≈ 0.289.
+    // → cap must be placed at the PROJECTION of the atom onto that face,
+    //   with radius rCut = sqrt(R² - d²) ≈ 0.408 instead of R.
+    const dB   = s3 / 6;
+    const rCut = Math.sqrt(R * R - dB * dB);  // ≈ 0.408
+    [
+      { b: [0.5,   s3/6, c/2], fi: 0 },
+      { b: [-0.5,  s3/6, c/2], fi: 2 },
+      { b: [0,    -s3/3, c/2], fi: 4 }
+    ].forEach(({ b: [bx, by, bz], fi }) => {
+      mkSphere(bx, by, bz, R, colB, [hexFP[fi]]);
+      // Projection: move from atom centre outward to face by dB
+      const n = hexFN[fi];
+      mkCap(bx + dB * n.x, by + dB * n.y, bz, rCut, colB, [], n);
+    });
+
+    // Hexagonal prism wireframe
+    const hv = Array.from({length: 6}, (_, i) =>
+      [Math.cos(i * Math.PI / 3), Math.sin(i * Math.PI / 3)]);
+    drawHexPrism(grp, hv, c);
+
+  // ── NaCl (Rock Salt) ──────────────────────────────────────────────────────
+  } else if (key === 'NaCl') {
+    const Rna = 0.180, Rcl = 0.320;
+    const colNa = 0x99aad0, colCl = 0x55cc77;
+
+    // Na⁺ at FCC: 8 corners (⅛ shown) + 6 face-centers (½ shown)
+    [[0,0,0],[1,0,0],[0,1,0],[1,1,0],
+     [0,0,1],[1,0,1],[0,1,1],[1,1,1]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, Rna, colNa));
+    [[0.5,0.5,0],[0.5,0.5,1],[0.5,0,0.5],
+     [0.5,1,0.5],[0,0.5,0.5],[1,0.5,0.5]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, Rna, colNa));
+
+    // Cl⁻ at 12 edge-midpoints (¼ shown) + 1 body-center (whole sphere)
+    [[0.5,0,0],[0.5,1,0],[0.5,0,1],[0.5,1,1],
+     [0,0.5,0],[1,0.5,0],[0,0.5,1],[1,0.5,1],
+     [0,0,0.5],[1,0,0.5],[0,1,0.5],[1,1,0.5],
+     [0.5,0.5,0.5]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, Rcl, colCl));
+
+    addUnitCellBox(grp, 0, 0, 0, 1, 1, 1);
+
+  // ── Diamond Cubic ─────────────────────────────────────────────────────────
+  } else if (key === 'DC') {
+    const R = Math.sqrt(3) / 8;   // ≈ 0.2165 — touch along ⟨111⟩ bond
+    const colF = 0x7799ff, colT = 0xffcc44;
+
+    // FCC sublattice: 8 corners (⅛ shown) + 6 face-centers (½ shown)
+    [[0,0,0],[1,0,0],[0,1,0],[1,1,0],
+     [0,0,1],[1,0,1],[0,1,1],[1,1,1]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, R, colF));
+    [[0.5,0.5,0],[0.5,0.5,1],[0.5,0,0.5],
+     [0.5,1,0.5],[0,0.5,0.5],[1,0.5,0.5]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, R, colF));
+
+    // Tetrahedral atoms — interior, shown whole
+    [[0.25,0.25,0.25],[0.75,0.75,0.25],
+     [0.75,0.25,0.75],[0.25,0.75,0.75]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, R, colT));
+
+    addUnitCellBox(grp, 0, 0, 0, 1, 1, 1);
+
+  // ── ZnS (Zinc Blende) ─────────────────────────────────────────────────────
+  } else if (key === 'ZnS') {
+    // Touch along ⟨111⟩ bond: r(S) + r(Zn) = √3/4 ≈ 0.433
+    const Rs = 0.309, Rz = 0.124;
+    const colS = 0xffdd44, colZn = 0x4499ff;
+
+    // S²⁻ at FCC: 8 corners (⅛ shown) + 6 face-centers (½ shown)
+    [[0,0,0],[1,0,0],[0,1,0],[1,1,0],
+     [0,0,1],[1,0,1],[0,1,1],[1,1,1]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, Rs, colS));
+    [[0.5,0.5,0],[0.5,0.5,1],[0.5,0,0.5],
+     [0.5,1,0.5],[0,0.5,0.5],[1,0.5,0.5]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, Rs, colS));
+
+    // Zn²⁺ at 4 tetrahedral sites — interior, shown whole
+    [[0.25,0.25,0.25],[0.75,0.75,0.25],
+     [0.75,0.25,0.75],[0.25,0.75,0.75]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, Rz, colZn));
+
+    addUnitCellBox(grp, 0, 0, 0, 1, 1, 1);
+
+  // ── CsCl (Cesium Chloride) ────────────────────────────────────────────────
+  } else if (key === 'CsCl') {
+    // Touch along ⟨111⟩ body diagonal: r(Cs) + r(Cl) = √3/2 ≈ 0.866
+    // r(Cs⁺)/r(Cl⁻) ≈ 1.74/1.81 ≈ 0.961
+    const Rcl = 0.442, Rcs = 0.424;
+    const colCs = 0xbb88ff, colCl = 0x66ff99;
+
+    // Cl⁻ at 8 corners — each shows ⅛
+    [[0,0,0],[1,0,0],[0,1,0],[1,1,0],
+     [0,0,1],[1,0,1],[0,1,1],[1,1,1]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, Rcl, colCl));
+
+    // Cs⁺ at body center — fully inside, shown whole
+    addCubicAtom(0.5, 0.5, 0.5, Rcs, colCs);
+
+    addUnitCellBox(grp, 0, 0, 0, 1, 1, 1);
+
+  // ── Fluorite (CaF₂) ───────────────────────────────────────────────────────
+  } else if (key === 'Fluorite') {
+    // Touch along Ca–F bond: r(Ca) + r(F) = √3/4 ≈ 0.433
+    // r(Ca²⁺)/r(F⁻) ≈ 1.00/1.31 = 0.763  →  r(Ca) ≈ 0.187, r(F) ≈ 0.246
+    const Rca = 0.187, Rf = 0.246;
+    const colCa = 0x44bb88, colF = 0xffee55;
+
+    // Ca²⁺ at FCC: 8 corners (⅛ shown) + 6 face-centers (½ shown)
+    [[0,0,0],[1,0,0],[0,1,0],[1,1,0],
+     [0,0,1],[1,0,1],[0,1,1],[1,1,1]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, Rca, colCa));
+    [[0.5,0.5,0],[0.5,0.5,1],[0.5,0,0.5],
+     [0.5,1,0.5],[0,0.5,0.5],[1,0.5,0.5]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, Rca, colCa));
+
+    // F⁻ at all 8 tetrahedral sites — interior, shown whole
+    [[0.25,0.25,0.25],[0.75,0.25,0.25],
+     [0.25,0.75,0.25],[0.75,0.75,0.25],
+     [0.25,0.25,0.75],[0.75,0.25,0.75],
+     [0.25,0.75,0.75],[0.75,0.75,0.75]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, Rf, colF));
+
+    addUnitCellBox(grp, 0, 0, 0, 1, 1, 1);
+
+  // ── Perovskite (ABO₃) ────────────────────────────────────────────────────
+  } else if (key === 'Perovskite') {
+    // B–O touch along ⟨100⟩ edge: r(B) + r(O) = 0.5
+    // r(Ti⁴⁺)/r(O²⁻) ≈ 0.432  →  r(O) ≈ 0.349, r(B) ≈ 0.151
+    // A–O touch along face diagonal: r(A) + r(O) = √2/2 ≈ 0.707  →  r(A) ≈ 0.358
+    const Ra = 0.358, Rb = 0.151, Ro = 0.349;
+    const colA = 0x44aaee, colB = 0xff6644, colO = 0xee3333;
+
+    // A²⁺ at 8 corners — each shows ⅛
+    [[0,0,0],[1,0,0],[0,1,0],[1,1,0],
+     [0,0,1],[1,0,1],[0,1,1],[1,1,1]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, Ra, colA));
+
+    // B⁴⁺ at body center — fully inside, shown whole
+    addCubicAtom(0.5, 0.5, 0.5, Rb, colB);
+
+    // O²⁻ at 6 face-centers — each shows ½
+    [[0.5,0.5,0],[0.5,0.5,1],[0.5,0,0.5],
+     [0.5,1,0.5],[0,0.5,0.5],[1,0.5,0.5]]
+      .forEach(([x,y,z]) => addCubicAtom(x, y, z, Ro, colO));
+
+    addUnitCellBox(grp, 0, 0, 0, 1, 1, 1);
+  }
+}
+
+function refreshCut() {
+  if (!cutActive) return;
+  clearCut();
+  buildCutCell(currentKey, cutGroup);
+}
+
+// Toggle button
+document.getElementById('btn-cut').addEventListener('click', () => {
+  cutActive = !cutActive;
+  const btn = document.getElementById('btn-cut');
+  btn.textContent = cutActive ? 'Hide Cut View' : 'Cut Atoms';
+  btn.classList.toggle('active', cutActive);
+  if (cutActive) {
+    structGroup.visible = false;   // hide normal display while cut view is on
+    refreshCut();
+  } else {
+    clearCut();
+    structGroup.visible = true;
+  }
+});
+
+// ═══════════════════════════════════════════════════
+//  RESIZE + RENDER LOOP
+// ═══════════════════════════════════════════════════
+
+window.addEventListener('resize', () => {
+  camera.aspect = wrap.clientWidth / wrap.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+});
+
+(function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+})();
+</script>
+
+</body>
+</html>
