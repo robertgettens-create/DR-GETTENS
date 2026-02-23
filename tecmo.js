@@ -1,6 +1,6 @@
 /* ============================================================
    TECMO BOWL: BUFFALO BILLS EDITION
-   ⚠️ WARNING: The Bills always win. This is not a bug.
+   ⚠️ WARNING: The Bills are heavily favored. This is not a bug.
    ============================================================ */
 (function () {
     const canvas = document.getElementById('gameCanvas');
@@ -39,17 +39,6 @@
         { name: 'HAIL MARY',      desc: 'BILLS GO FOR BROKE!!!',     type: 'pass' },
     ];
 
-    // ─── CPU turnover messages (Bills always stop them) ───
-    const TURNOVER_MSGS = [
-        '💥 FUMBLE! Bruce Smith strips the ball! BILLS BALL!',
-        '🦅 INTERCEPTION! Darryl Talley picks it off!',
-        '🔥 SACK! Bruce Smith destroys the QB! Turnover on downs!',
-        '😱 False start... then FUMBLE! Bills ball — obviously.',
-        '🛑 Three and out! Bills defense is UNSTOPPABLE!',
-        '💨 QB sacked TWICE! Bills take over!',
-        '🏈 Fumble recovered by the Bills! The Mafia goes wild!',
-    ];
-
     // ─── Bills big play messages ───
     const TD_MSGS = [
         '🏆 TOUCHDOWN BUFFALO BILLS!! Jim Kelly to Andre Reed!!',
@@ -57,6 +46,32 @@
         '🏆 TOUCHDOWN BILLS!! Kelly launches it 60 yards!!',
         '🏆 SIX POINTS!! The Bills make it look EASY!!',
         '🏆 TOUCHDOWN!! Nobody can stop the Buffalo Bills!!',
+    ];
+
+    // ─── Opponent scoring messages ───
+    const OPP_TD_MSGS = [
+        msg => `😤 TOUCHDOWN ${msg}! They finally got one. Keep the faith, Mafia.`,
+        msg => `💥 ${msg} scores! Bills defense caught napping. That won't happen again.`,
+        msg => `😱 ${msg} finds the end zone! Bills still in control — don't panic.`,
+    ];
+
+    // ─── Defensive stop messages ───
+    const TURNOVER_MSGS = [
+        '💥 FUMBLE! Bruce Smith strips the ball! BILLS BALL!',
+        '🦅 INTERCEPTION! Darryl Talley picks it off!',
+        '🔥 SACK! Bruce Smith destroys the QB! Turnover on downs!',
+        '😱 False start... then FUMBLE! Bills ball — obviously.',
+        '🛑 Three and out! Bills defense holds firm!',
+        '💨 QB sacked TWICE! Bills take over!',
+        '🏈 Fumble recovered by the Bills! The Mafia goes wild!',
+    ];
+
+    // ─── Punt / 3-and-out messages ───
+    const PUNT_MSGS = [
+        `⬆️ Punted away! Bills get great field position.`,
+        `🦶 Short punt — Bills take over near midfield!`,
+        `🛡️ Three and out! Bills defense does its job.`,
+        `📢 Punt! Bills offense heads back on the field.`,
     ];
 
     let G = {};
@@ -237,13 +252,14 @@
         ctx.globalAlpha=1;
     }
 
-    function spawnParticles(x) {
+    function spawnParticles(x, colors) {
+        const c = colors || [BILLS.color, BILLS.accent];
         for (let i=0;i<70;i++) {
             particles.push({
                 x: x ? x+( Math.random()-0.5)*60 : Math.random()*W,
                 y: FIELD_T+Math.random()*FIELD_H,
                 vx:(Math.random()-0.5)*6, vy:-Math.random()*5-1,
-                color: Math.random()<0.5 ? BILLS.color : BILLS.accent,
+                color: Math.random()<0.5 ? c[0] : c[1],
                 life:1,
             });
         }
@@ -255,17 +271,44 @@
         });
     }
 
-    // ─── GAME LOGIC — BILLS ALWAYS WIN ───────────────────────
+    // ─── GAME LOGIC ──────────────────────────────────────────
 
     function billsPlay(play) {
-        // Bills ALWAYS succeed — guaranteed big gain or TD
         const bx = yardToX(G.ballYard);
         const my = midY();
 
-        // Always gain at least enough for first down, often a TD
-        const isTD = Math.random() < 0.55 || (G.down === 4); // More TD likelihood on 4th down
-        const yards = isTD ? (100 - G.ballYard) : (G.ytg + Math.floor(Math.random() * 20) + 3);
-        const targetYard = Math.min(G.ballYard + yards, 100);
+        // Outcome probabilities — Bills favored but not invincible
+        // 17% TD, 57% first down, 18% short gain, 8% no gain / loss
+        const r = Math.random();
+        let isTD = false;
+        let yards;
+
+        if (r < 0.17) {
+            // Touchdown!
+            isTD = true;
+            yards = 100 - G.ballYard;
+        } else if (r < 0.74) {
+            // Good gain — first down
+            isTD = false;
+            yards = G.ytg + Math.floor(Math.random() * 14) + 1;
+        } else if (r < 0.92) {
+            // Short gain — advances down counter, not far enough
+            isTD = false;
+            yards = Math.max(1, Math.floor(Math.random() * Math.max(G.ytg - 1, 1)));
+        } else {
+            // No gain or slight loss — tough play
+            isTD = false;
+            yards = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
+        }
+
+        // On 4th down, Bills are clutch — better odds
+        if (G.down === 4 && !isTD && yards < G.ytg) {
+            if (Math.random() < 0.42) {
+                yards = G.ytg + Math.floor(Math.random() * 5); // clutch conversion
+            }
+        }
+
+        const targetYard = Math.min(G.ballYard + Math.max(yards, -5), 100);
         const tx = yardToX(targetYard);
         const dy = (Math.random()-0.5)*70;
 
@@ -273,10 +316,16 @@
         if (play.type==='run') {
             entities.rb.tx=tx; entities.rb.ty=my+dy;
             entities.qb.tx=bx-50; entities.qb.ty=my;
-            // Defenders fail miserably — run away!
-            entities.d1.tx=FIELD_R-20; entities.d1.ty=my+80;
-            entities.d2.tx=FIELD_R-10; entities.d2.ty=my-80;
-            entities.d3.tx=FIELD_R-30; entities.d3.ty=my+40;
+            if (isTD) {
+                entities.d1.tx=FIELD_R-20; entities.d1.ty=my+80;
+                entities.d2.tx=FIELD_R-10; entities.d2.ty=my-80;
+                entities.d3.tx=FIELD_R-30; entities.d3.ty=my+40;
+            } else {
+                // Defenders get a piece of it on short runs
+                entities.d1.tx=tx+10; entities.d1.ty=my+dy;
+                entities.d2.tx=tx+20; entities.d2.ty=my+dy-20;
+                entities.d3.tx=tx+15; entities.d3.ty=my+dy+20;
+            }
             entities.ball.tx=tx; entities.ball.ty=my+dy;
         } else {
             entities.qb.tx=bx-40; entities.qb.ty=my;
@@ -284,52 +333,123 @@
             entities[wr].tx=tx; entities[wr].ty=my+dy;
             entities.ball.inAir=true;
             entities.ball.tx=tx; entities.ball.ty=my+dy;
-            // Defenders can't keep up
-            entities.d1.tx=tx+40; entities.d1.ty=my+dy+30;
-            entities.d2.tx=tx+30; entities.d2.ty=my+dy-20;
+            entities.d1.tx=tx+30; entities.d1.ty=my+dy+(isTD?40:10);
+            entities.d2.tx=tx+20; entities.d2.ty=my+dy-(isTD?30:5);
         }
-
-        const tdMsg = TD_MSGS[Math.floor(Math.random()*TD_MSGS.length)];
 
         setTimeout(() => {
             if (isTD || G.ballYard + yards >= 100) {
+                // Touchdown Bills!
                 G.billsScore += 7;
-                G.msg = tdMsg;
+                G.msg = TD_MSGS[Math.floor(Math.random()*TD_MSGS.length)];
                 spawnParticles(tx);
                 G.ballYard = 20; G.down = 1; G.ytg = 10;
-                G.timeLeft = Math.max(0, G.timeLeft - 30);
+                G.timeLeft = Math.max(0, G.timeLeft - 28);
                 G.phase = 'result';
                 placeEntities(); updateUI();
                 if (G.timeLeft <= 0) { nextQuarter(); return; }
                 schedule('cpuPlay', 2800);
+
             } else {
-                G.ballYard = Math.min(G.ballYard + yards, 99);
-                G.down = 1; G.ytg = 10; // Always a first down
-                G.msg = '📢 First Down Bills! +' + yards + ' yards. Unstoppable!';
+                const newYard = Math.min(Math.max(G.ballYard + yards, 0), 99);
+                const gained  = newYard - G.ballYard;
+                G.ballYard = newYard;
                 entities.ball.inAir = false;
-                G.timeLeft = Math.max(0, G.timeLeft - 20);
-                G.phase = 'result';
-                placeEntities(); updateUI();
-                if (G.timeLeft <= 0) { nextQuarter(); return; }
-                schedule('playSelect', 2000);
+
+                if (gained >= G.ytg) {
+                    // First down!
+                    G.down = 1; G.ytg = 10;
+                    G.msg = '📢 First Down Bills! +' + gained + ' yards — keep it moving!';
+                    G.timeLeft = Math.max(0, G.timeLeft - 18);
+                    G.phase = 'result';
+                    placeEntities(); updateUI();
+                    if (G.timeLeft <= 0) { nextQuarter(); return; }
+                    schedule('playSelect', 1800);
+
+                } else if (G.down < 4) {
+                    // Next down
+                    G.ytg = Math.max(G.ytg - gained, 1);
+                    G.down++;
+                    if (gained <= 0) {
+                        G.msg = '😤 No gain on that play. ' + G.down + (G.down===2?'nd':G.down===3?'rd':'th') + ' & ' + G.ytg;
+                    } else {
+                        G.msg = '📢 ' + gained + ' yard' + (gained===1?'':'s') + ' — ' + G.down + (G.down===2?'nd':G.down===3?'rd':'th') + ' & ' + G.ytg;
+                    }
+                    G.timeLeft = Math.max(0, G.timeLeft - 14);
+                    G.phase = 'result';
+                    placeEntities(); updateUI();
+                    if (G.timeLeft <= 0) { nextQuarter(); return; }
+                    schedule('playSelect', 1800);
+
+                } else {
+                    // 4th down failure — punt / turnover on downs
+                    if (G.ytg > 5) {
+                        G.msg = '⬆️ Bills punt it away. ' + G.opponent.abbr + ' takes over.';
+                    } else {
+                        G.msg = '😬 Bills come up short on 4th down! ' + G.opponent.abbr + ' ball.';
+                    }
+                    G.possession = 'opp';
+                    G.ballYard = Math.max(100 - G.ballYard, 15);
+                    G.down = 1; G.ytg = 10;
+                    G.timeLeft = Math.max(0, G.timeLeft - 16);
+                    G.phase = 'result';
+                    placeEntities(); updateUI();
+                    if (G.timeLeft <= 0) { nextQuarter(); return; }
+                    schedule('cpuPlay', 2400);
+                }
             }
         }, 1800);
     }
 
     function doCpuPlay() {
-        // CPU ALWAYS turns over — Bills defense is legendary
+        // CPU actually gets real scoring chances — but Bills defense is still dominant
         G.phase = 'cpuPlay';
-        G.msg = G.opponent.abbr + ' thinks they can score... 😂';
+        G.possession = 'opp';
+        G.msg = G.opponent.abbr + ' offense takes the field...';
         placeEntities(); updateUI();
 
+        // CPU outcome: ~17% TD, ~9% FG, ~38% turnover/sack, ~36% punt/3-and-out
+        const r = Math.random();
+
         setTimeout(() => {
-            // Always a turnover — Bills get the ball back
-            const msg = TURNOVER_MSGS[Math.floor(Math.random()*TURNOVER_MSGS.length)];
-            G.msg = msg;
-            G.possession = 'bills';
-            G.ballYard = 100 - G.ballYard;
-            G.down = 1; G.ytg = 10;
-            G.timeLeft = Math.max(0, G.timeLeft - 20);
+            if (r < 0.17) {
+                // CPU scores a TD
+                G.oppScore += 7;
+                const fn = OPP_TD_MSGS[Math.floor(Math.random() * OPP_TD_MSGS.length)];
+                G.msg = fn(G.opponent.abbr);
+                spawnParticles(yardToX(100 - G.ballYard), [G.opponent.color, G.opponent.accent || '#fff']);
+                G.possession = 'bills';
+                G.ballYard = 20; G.down = 1; G.ytg = 10;
+                G.timeLeft = Math.max(0, G.timeLeft - 28);
+
+            } else if (r < 0.26) {
+                // CPU kicks a field goal
+                G.oppScore += 3;
+                G.msg = '🎯 ' + G.opponent.abbr + ' kicks the field goal! 3 points! Bills down but not out.';
+                G.possession = 'bills';
+                G.ballYard = 20; G.down = 1; G.ytg = 10;
+                G.timeLeft = Math.max(0, G.timeLeft - 20);
+
+            } else if (r < 0.64) {
+                // Bills defense makes a stop / turnover
+                const msg = TURNOVER_MSGS[Math.floor(Math.random() * TURNOVER_MSGS.length)];
+                G.msg = msg;
+                G.possession = 'bills';
+                // Good field position on turnovers
+                G.ballYard = Math.min(Math.max(100 - G.ballYard + Math.floor(Math.random() * 20), 15), 65);
+                G.down = 1; G.ytg = 10;
+                G.timeLeft = Math.max(0, G.timeLeft - 16);
+
+            } else {
+                // CPU punts — Bills get decent field position
+                const msg = PUNT_MSGS[Math.floor(Math.random() * PUNT_MSGS.length)];
+                G.msg = msg;
+                G.possession = 'bills';
+                G.ballYard = Math.min(Math.max(100 - G.ballYard + 30 + Math.floor(Math.random() * 20), 15), 75);
+                G.down = 1; G.ytg = 10;
+                G.timeLeft = Math.max(0, G.timeLeft - 18);
+            }
+
             G.phase = 'result';
             placeEntities(); updateUI();
             if (G.timeLeft <= 0) { nextQuarter(); return; }
@@ -342,7 +462,7 @@
             G.phase = 'gameOver'; updateUI(); return;
         }
         G.quarter++; G.timeLeft = 120;
-        G.msg = 'Quarter ' + G.quarter + ' — Bills still in total control!';
+        G.msg = 'Quarter ' + G.quarter + ' — Bills lead the way!';
         G.phase = 'result'; updateUI();
         schedule('playSelect', 2200);
     }
@@ -350,7 +470,7 @@
     function schedule(nextPhase, delay) {
         setTimeout(()=>{
             G.phase = nextPhase; G.busy = false;
-            if (nextPhase==='playSelect') { placeEntities(); G.msg=''; }
+            if (nextPhase==='playSelect') { G.possession = 'bills'; placeEntities(); G.msg=''; }
             if (nextPhase==='cpuPlay') doCpuPlay();
             updateUI();
         }, delay);
@@ -396,14 +516,25 @@
             gStat.textContent='Q'+G.quarter+' | '+t+' | BUF '+G.billsScore+' - '+(G.opponent?G.opponent.abbr:'???')+' '+G.oppScore;
         }
         if (G.phase==='gameOver' && gOver) {
-            // Bills always win — taunt appropriately
             const margin = G.billsScore - G.oppScore;
-            const taunt = margin >= 35 ? 'ABSOLUTELY DEMOLISHED! 🏆🏆🏆' :
-                          margin >= 21 ? 'Total domination. Bills Mafia celebrates! 🏆' :
-                          'The Bills win. They always win. 🏈';
-            document.getElementById('goResult').textContent = taunt;
+            let resultMsg, scoreCtx;
+            if (margin > 0) {
+                resultMsg = margin >= 28 ? 'BILLS MAFIA WINS BIG! Total domination! 🏆🏆🏆' :
+                            margin >= 14 ? 'Bills win! A strong performance from Buffalo. 🏆' :
+                            margin >= 7  ? 'Hard-fought Bills victory! Never in doubt. 💪' :
+                                           'A nail-biter, but the Bills get it done! 🏈';
+                scoreCtx = 'Go Bills!';
+            } else if (margin === 0) {
+                resultMsg = "A tie?! The Bills don't lose — we'll call it a moral victory. 😅";
+                scoreCtx  = 'No Bills game ends in defeat.';
+            } else {
+                resultMsg = "An upset! That was an anomaly. The Bills will bounce back. 🙈";
+                scoreCtx  = 'Even legends have bad days.';
+            }
+            document.getElementById('goResult').textContent = resultMsg;
             document.getElementById('goScore').textContent =
-                'Buffalo Bills ' + G.billsScore + ' — ' + G.oppScore + ' ' + (G.opponent ? G.opponent.name : '');
+                'Buffalo Bills ' + G.billsScore + ' — ' + G.oppScore + ' ' + (G.opponent ? G.opponent.name : '') +
+                ' | ' + scoreCtx;
         }
     }
 

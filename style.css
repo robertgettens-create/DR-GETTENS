@@ -1,15 +1,23 @@
 /* ============================================================
    Dr. Robert Gettens - WNE Biomedical Engineering
-   Buffalo Bills Color Scheme
+   Professional palette (main page) + Bills palette (hobbies page)
    ============================================================ */
 
 :root {
+    /* Bills colors — kept for hobbies.html */
     --bills-blue: #00338D;
     --bills-red: #C60C30;
     --bills-white: #FFFFFF;
     --bills-silver: #A5ACAF;
     --bills-light-blue: #0057B8;
     --bills-dark: #001a4d;
+
+    /* Professional palette — used on main page */
+    --pro-dark: #1c2b3a;
+    --pro-blue: #2d4a6e;
+    --pro-mid: #3d6491;
+    --pro-accent: #4a7fa5;
+
     --bg-light: #f0f4f8;
     --text-dark: #1a1a2e;
 }
@@ -36,12 +44,12 @@ body {
 
 /* ---- NAVIGATION ---- */
 nav {
-    background: linear-gradient(135deg, var(--bills-dark) 0%, var(--bills-blue) 60%, #003fa3 100%);
+    background: linear-gradient(135deg, var(--pro-dark) 0%, var(--pro-blue) 100%);
     position: sticky;
     top: 0;
     z-index: 1000;
     box-shadow: 0 3px 15px rgba(0,0,0,0.4);
-    border-bottom: 4px solid var(--bills-red);
+    border-bottom: 4px solid var(--pro-accent);
 }
 
 .nav-inner {
@@ -63,7 +71,7 @@ nav {
 }
 
 .nav-brand span {
-    color: var(--bills-red);
+    color: var(--pro-accent);
 }
 
 .nav-links {
@@ -88,13 +96,13 @@ nav {
 .nav-links li a:hover,
 .nav-links li a.active {
     background: rgba(255,255,255,0.1);
-    border-bottom-color: var(--bills-red);
+    border-bottom-color: var(--pro-accent);
     color: #fff;
 }
 
 /* ---- HERO ---- */
 .hero {
-    background: linear-gradient(135deg, var(--bills-dark) 0%, var(--bills-blue) 50%, var(--bills-light-blue) 100%);
+    background: linear-gradient(135deg, var(--pro-dark) 0%, var(--pro-blue) 50%, var(--pro-mid) 100%);
     color: var(--bills-white);
     padding: 80px 20px 60px;
     text-align: center;
@@ -125,7 +133,7 @@ nav {
 .hero-shield {
     width: 90px;
     height: 90px;
-    background: var(--bills-red);
+    background: var(--pro-accent);
     clip-path: polygon(50% 0%, 100% 15%, 100% 70%, 50% 100%, 0% 70%, 0% 15%);
     margin: 0 auto 20px;
     display: flex;
@@ -199,6 +207,7 @@ nav {
     font-family: Arial, sans-serif;
 }
 
+/* Keep Go Bills! badge red — personality touch */
 .badge.red { background: rgba(198,12,48,0.5); border-color: var(--bills-red); }
 
 /* ---- SECTIONS ---- */
@@ -217,7 +226,7 @@ section:nth-child(even) {
 
 .section-title {
     font-size: 2rem;
-    color: var(--bills-blue);
+    color: var(--pro-blue);
     margin-bottom: 8px;
     position: relative;
     display: inline-block;
@@ -228,7 +237,7 @@ section:nth-child(even) {
     display: block;
     width: 60px;
     height: 4px;
-    background: var(--bills-red);
+    background: var(--pro-accent);
     margin-top: 6px;
     border-radius: 2px;
 }
@@ -249,7 +258,7 @@ section:nth-child(even) {
 }
 
 .about-photo-placeholder {
-    background: linear-gradient(135deg, var(--bills-blue), var(--bills-light-blue));
+    background: linear-gradient(135deg, var(--pro-blue), var(--pro-mid));
     border-radius: 12px;
     aspect-ratio: 3/4;
     display: flex;
@@ -257,8 +266,8 @@ section:nth-child(even) {
     align-items: center;
     justify-content: center;
     color: white;
-    border: 4px solid var(--bills-red);
-    box-shadow: 0 8px 25px rgba(0,51,141,0.3);
+    border: 4px solid var(--pro-accent);
+    box-shadow: 0 8px 25px rgba(28,43,58,0.3);
 }
 
 .about-photo-placeholder .initials {
@@ -280,7 +289,7 @@ section:nth-child(even) {
 }
 
 .about-text strong {
-    color: var(--bills-blue);
+    color: var(--pro-blue);
 }
 
 /* ---- RESEARCH CARDS ---- */
@@ -295,18 +304,18 @@ section:nth-child(even) {
     background: white;
     border-radius: 10px;
     padding: 28px;
-    border-top: 4px solid var(--bills-blue);
+    border-top: 4px solid var(--pro-blue);
     box-shadow: 0 4px 15px rgba(0,0,0,0.08);
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .research-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0,51,141,0.15);
+    box-shadow: 0 8px 25px rgba(45,74,110,0.15);
 }
 
 .research-card.featured {
-    border-top-color: var(--bills-red);
+    border-top-color: var(--pro-accent);
 }
 
 .research-card .icon {
@@ -315,7 +324,7 @@ section:nth-child(even) {
 }
 
 .research-card h3 {
-    color: var(--bills-blue);
+    color: var(--pro-blue);
     font-size: 1.1rem;
     margin-bottom: 10px;
 }
@@ -335,11 +344,11 @@ section:nth-child(even) {
 }
 
 .teaching-highlight {
-    background: linear-gradient(135deg, var(--bills-blue), var(--bills-dark));
+    background: linear-gradient(135deg, var(--pro-blue), var(--pro-dark));
     color: white;
     border-radius: 12px;
     padding: 36px;
-    box-shadow: 0 6px 20px rgba(0,51,141,0.3);
+    box-shadow: 0 6px 20px rgba(28,43,58,0.3);
 }
 
 .teaching-highlight h3 {
@@ -356,7 +365,7 @@ section:nth-child(even) {
 
 .quote-block {
     background: rgba(255,255,255,0.1);
-    border-left: 4px solid var(--bills-red);
+    border-left: 4px solid var(--pro-accent);
     padding: 16px 20px;
     border-radius: 0 8px 8px 0;
     margin: 20px 0;
@@ -380,7 +389,7 @@ section:nth-child(even) {
 
 .course-list li::before {
     content: '▶';
-    color: var(--bills-red);
+    color: var(--pro-accent);
     font-size: 0.7rem;
 }
 
@@ -398,13 +407,13 @@ section:nth-child(even) {
     align-items: center;
     gap: 20px;
     box-shadow: 0 3px 12px rgba(0,0,0,0.08);
-    border-left: 4px solid var(--bills-red);
+    border-left: 4px solid var(--pro-accent);
 }
 
 .stat-number {
     font-size: 2.5rem;
     font-weight: bold;
-    color: var(--bills-blue);
+    color: var(--pro-blue);
     font-family: Arial, sans-serif;
     min-width: 70px;
     text-align: center;
@@ -429,7 +438,7 @@ section:nth-child(even) {
     top: 0;
     bottom: 0;
     width: 3px;
-    background: linear-gradient(to bottom, var(--bills-blue), var(--bills-red));
+    background: linear-gradient(to bottom, var(--pro-blue), var(--pro-accent));
     border-radius: 2px;
 }
 
@@ -444,16 +453,16 @@ section:nth-child(even) {
     top: 6px;
     width: 16px;
     height: 16px;
-    background: var(--bills-red);
+    background: var(--pro-accent);
     border-radius: 50%;
     border: 3px solid var(--bills-white);
-    box-shadow: 0 0 0 2px var(--bills-blue);
+    box-shadow: 0 0 0 2px var(--pro-blue);
 }
 
 .timeline-year {
     font-size: 0.8rem;
     font-weight: bold;
-    color: var(--bills-red);
+    color: var(--pro-accent);
     text-transform: uppercase;
     letter-spacing: 1px;
     font-family: Arial, sans-serif;
@@ -461,7 +470,7 @@ section:nth-child(even) {
 }
 
 .timeline-content h3 {
-    color: var(--bills-blue);
+    color: var(--pro-blue);
     font-size: 1.1rem;
     margin-bottom: 6px;
 }
@@ -473,11 +482,11 @@ section:nth-child(even) {
 
 /* ---- FOOTER ---- */
 footer {
-    background: var(--bills-dark);
+    background: var(--pro-dark);
     color: rgba(255,255,255,0.7);
     text-align: center;
     padding: 30px 20px;
-    border-top: 4px solid var(--bills-red);
+    border-top: 4px solid var(--pro-accent);
     font-family: Arial, sans-serif;
     font-size: 0.88rem;
 }
@@ -495,7 +504,7 @@ footer strong {
 .btn {
     display: inline-block;
     padding: 12px 28px;
-    background: var(--bills-red);
+    background: var(--pro-accent);
     color: white;
     text-decoration: none;
     border-radius: 6px;
@@ -510,7 +519,7 @@ footer strong {
 }
 
 .btn:hover {
-    background: #a00826;
+    background: #3a6a8a;
     transform: translateY(-1px);
 }
 

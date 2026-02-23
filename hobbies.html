@@ -195,6 +195,46 @@
             content: ''; position: absolute; left: 0; top: 0; bottom: 0;
             width: 6px; background: rgba(0,0,0,0.2); border-radius: 3px 0 0 3px;
         }
+
+        /* ---- DAD MOMENT OF ZEN ---- */
+        .zen-section { padding: 60px 20px; background: #f2ede4; }
+        .zen-section .section-title { color: #4a3728; }
+        .zen-section .section-title::after { background: #8b6a4a; }
+        .zen-section .section-subtitle { color: #7a6a5a; }
+
+        .zen-show-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+            gap: 24px;
+            margin-top: 28px;
+        }
+        .zen-show-card {
+            background: white; border-radius: 12px; padding: 28px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.09);
+            border-top: 5px solid #8b6a4a;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .zen-show-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.14); }
+        .zen-show-card.toh { border-top-color: #5a7a3a; }
+        .zen-show-icon { font-size: 2.8rem; margin-bottom: 14px; }
+        .zen-show-card h3 { font-size: 1.15rem; color: #3a2a18; margin-bottom: 10px; }
+        .zen-show-card p { color: #555; font-size: 0.93rem; line-height: 1.7; margin-bottom: 16px; }
+        .zen-show-link {
+            display: inline-block; color: #8b6a4a; text-decoration: none;
+            font-family: Arial, sans-serif; font-size: 0.88rem; font-weight: bold;
+            border-bottom: 2px solid #c9a87a; padding-bottom: 2px;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .zen-show-link:hover { color: #5a3a18; border-color: #8b6a4a; }
+        .zen-show-link.green { color: #5a7a3a; border-color: #8aaa5a; }
+        .zen-show-link.green:hover { color: #3a5a1a; border-color: #5a7a3a; }
+        .zen-quote {
+            background: white; border-left: 5px solid #8b6a4a;
+            border-radius: 0 10px 10px 0; padding: 22px 28px;
+            margin-top: 28px; font-style: italic; color: #4a3728;
+            font-size: 1.02rem; box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+            line-height: 1.8;
+        }
     </style>
 </head>
 <body>
@@ -218,7 +258,7 @@
 <img src="https://wne.edu/directory/img/Gettens-400x500.jpg" alt="Dr. G (Robert Gettens)" style="width:100px;height:125px;border-radius:50%;border:3px solid var(--bills-red);margin-bottom:16px;object-fit:cover;">
     <h1>Beyond the Lab</h1>
     <p style="color:rgba(255,255,255,0.8); font-family:Arial,sans-serif;">
-        Buffalo Bills superfan. Adirondack explorer. Fly fisherman. Sci-fi bookworm.
+        Buffalo Bills superfan. Adirondack explorer. Fly fisherman. Sci-fi bookworm. Rick Steves devotee.
     </p>
 </div>
 
@@ -459,6 +499,88 @@
 </section>
 
 
+<!-- ============================================================
+     DAD MOMENT OF ZEN
+     ============================================================ -->
+<section class="zen-section">
+    <div class="section-inner">
+        <div class="hobby-header">
+            <div class="hobby-icon" style="background:#8b6a4a; font-size:1.9rem; width:60px; height:60px;">☕</div>
+            <div>
+                <h2 class="section-title">Dad Moment of Zen</h2>
+                <p class="section-subtitle">The perfect way to end the day</p>
+            </div>
+        </div>
+
+        <p style="color:#555; max-width:720px; font-size:1rem; line-height:1.8; margin-bottom:8px;">
+            After a long day of teaching, research, and keeping the BME department running —
+            sometimes you just need to sit down with something genuinely good on TV.
+            Rick Steves walking through a medieval village, or the <em>This Old House</em> crew
+            carefully restoring something beautiful. Pure, unironic, wholesome television.
+            This is the way.
+        </p>
+
+        <div class="zen-show-grid">
+
+            <div class="zen-show-card">
+                <div class="zen-show-icon">🌍</div>
+                <h3>Rick Steves' Europe</h3>
+                <p>
+                    The definitive guide to European travel — equal parts cultural education,
+                    practical wisdom, and genuine enthusiasm for the world. Rick Steves makes
+                    you want to pack a bag and get on a plane immediately. Perfect wind-down
+                    viewing for an engineer who likes to know how everything works.
+                </p>
+                <a class="zen-show-link"
+                   href="https://www.ricksteves.com/watch-read-listen/video/tv-show"
+                   target="_blank">
+                    &#8594; Watch Rick Steves' Europe
+                </a>
+            </div>
+
+            <div class="zen-show-card toh">
+                <div class="zen-show-icon">🏠</div>
+                <h3>This Old House</h3>
+                <p>
+                    Watching skilled craftspeople take a tired old home and bring it back to life
+                    hits differently as an engineer. The problem-solving, the materials knowledge,
+                    the craftsmanship and attention to detail. Genuinely, deeply satisfying
+                    television. Every episode is a case study in doing things right.
+                </p>
+                <a class="zen-show-link green"
+                   href="https://www.thisoldhouse.com/"
+                   target="_blank">
+                    &#8594; This Old House
+                </a>
+            </div>
+
+            <div class="zen-show-card toh">
+                <div class="zen-show-icon">🔨</div>
+                <h3>Ask This Old House</h3>
+                <p>
+                    The experts head into real homeowners' homes to tackle real problems.
+                    Practical, instructive, and always satisfying to watch. Half the projects
+                    make you think "I could do that." (You probably can. Or at least you'll
+                    have a better appreciation for whoever does.)
+                </p>
+                <a class="zen-show-link green"
+                   href="https://www.thisoldhouse.com/ask-this-old-house"
+                   target="_blank">
+                    &#8594; Ask This Old House
+                </a>
+            </div>
+
+        </div>
+
+        <div class="zen-quote">
+            ☕ &ldquo;The best evenings have no agenda &mdash; Rick Steves is heading somewhere
+            in Tuscany, someone on <em>This Old House</em> is carefully restoring a 200-year-old
+            door frame, and the grading can definitely wait until morning.&rdquo;
+        </div>
+    </div>
+</section>
+
+
 <!-- Footer -->
 <footer>
     <p>
@@ -467,7 +589,7 @@
         <a href="index.html">Back to Main Page</a> &bull;
         <a href="index.html#research">Research</a> &bull;
         <a href="index.html#teaching">Teaching</a><br><br>
-        &copy; 2024 Dr. G (Robert Gettens) &bull; Go Bills! 🏈 &bull; Tight Lines! 🎣
+        &copy; 2024 Dr. G (Robert Gettens) &bull; Go Bills! 🏈 &bull; Tight Lines! 🎣 &bull; Rick Steves is on ☕
     </p>
 </footer>
 
