@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Polymer Chain Viewer</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family:'Segoe UI',Tahoma,sans-serif;
+      background:#12131a; color:#dde1f0;
+      display:flex; height:100vh; overflow:hidden;
+    }
+    /* ── sidebar ── */
+    #sidebar {
+      width:295px; min-width:295px;
+      background:#1a1d2e; border-right:1px solid #2a2d45;
+      display:flex; flex-direction:column; gap:10px;
+      padding:14px 13px; overflow-y:auto;
+    }
+    #sidebar h1 {
+      font-size:.88rem; font-weight:700; color:#7eb8f7;
+      text-transform:uppercase; letter-spacing:2px;
+      border-bottom:1px solid #2a2d45; padding-bottom:9px;
+    }
+    .sec-label {
+      font-size:.62rem; font-weight:700; color:#5a6080;
+      text-transform:uppercase; letter-spacing:1.5px; margin-bottom:4px;
+    }
+    /* category header with coloured left border */
+    .cat-label {
+      font-size:.64rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:1.3px;
+      margin-bottom:4px; padding-left:7px;
+    }
+    .cat-label.addition    { color:#7fbfff; border-left:3px solid #3366cc; }
+    .cat-label.condensation{ color:#ffcc66; border-left:3px solid #cc8800; }
+
+    .poly-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+    .poly-btn {
+      padding:6px 3px; background:#1e2238;
+      border:1px solid #2e3355; border-radius:7px;
+      color:#9ba8c8; cursor:pointer;
+      font-size:.68rem; font-weight:600; text-align:center; line-height:1.3;
+      transition:background .15s,border-color .15s,color .15s;
+    }
+    .poly-btn:hover { background:#253060; border-color:#4a6bcc; color:#c8d8ff; }
+    .poly-btn.active.addition    { background:#162a52; border-color:#4a79ff; color:#aad0ff; }
+    .poly-btn.active.condensation{ background:#3a2800; border-color:#cc8800; color:#ffcc44; }
+    .poly-btn small { font-size:.60rem; opacity:.72; display:block; }
+    .poly-btn.disabled {
+      opacity:.38; cursor:not-allowed; pointer-events:none;
+      border-style:dashed;
+    }
+    /* ── conformation selector ── */
+    .conf-row { display:flex; gap:5px; }
+    .conf-btn {
+      flex:1; padding:7px 4px; background:#1e2238;
+      border:1px solid #2e3355; border-radius:7px;
+      color:#9ba8c8; cursor:pointer; font-size:.72rem; font-weight:700;
+      text-align:center; transition:background .15s,border-color .15s,color .15s;
+    }
+    .conf-btn:hover { background:#253060; border-color:#4a6bcc; color:#c8d8ff; }
+    .conf-btn.active.crystal   { background:#122a4a; border-color:#4a99ff; color:#88ccff; }
+    .conf-btn.active.amorphous { background:#3a2a0a; border-color:#dd9900; color:#ffcc44; }
+    /* ── slider ── */
+    .slider-row { display:flex; align-items:center; gap:8px; }
+    .slider-row label { font-size:.72rem; color:#6878a0; white-space:nowrap; }
+    input[type=range] { flex:1; accent-color:#4a79ff; cursor:pointer; }
+    .sval { font-size:.80rem; color:#c8d8ff; font-weight:700; min-width:28px; text-align:right; }
+    /* ── toggle buttons ── */
+    .tgl-btn {
+      width:100%; padding:6px 4px; background:#1e2238;
+      border:1px solid #2e3355; border-radius:7px;
+      color:#9ba8c8; cursor:pointer; font-size:.70rem; font-weight:600;
+      transition:background .15s,border-color .15s,color .15s;
+    }
+    .tgl-btn:hover { background:#253060; border-color:#4a6bcc; color:#c8d8ff; }
+    .tgl-btn.on.teal   { background:#0a4a3a; border-color:#00ddaa; color:#99ffee; }
+    .tgl-btn.on.violet { background:#3a0a5a; border-color:#cc66ff; color:#eeccff; }
+    .tgl-btn.on.amber  { background:#5a4000; border-color:#ffaa00; color:#ffe080; }
+    .btn-row { display:flex; gap:5px; }
+    .btn-row .tgl-btn { flex:1; }
+    /* ── info panel ── */
+    .info-panel {
+      background:#1e2238; border:1px solid #2a2d45;
+      border-radius:8px; padding:9px 11px; font-size:.76rem; line-height:1.85;
+    }
+    .info-row { display:flex; justify-content:space-between; align-items:baseline; gap:4px; }
+    .info-key { color:#5a6080; font-size:.66rem; white-space:nowrap; }
+    .info-val { color:#c8d8ff; font-weight:600; font-size:.70rem; text-align:right; }
+    .info-desc {
+      margin-top:6px; font-size:.67rem; color:#8890aa; line-height:1.5;
+      border-top:1px solid #2a2d45; padding-top:6px;
+    }
+    /* ── legend ── */
+    .legend { display:flex; flex-wrap:wrap; gap:5px; }
+    .leg-item { display:flex; align-items:center; gap:4px; font-size:.66rem; color:#8890aa; }
+    .leg-dot  { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+    /* ── controls hint ── */
+    .ctrl-hint { font-size:.67rem; color:#424a62; line-height:1.85; }
+    .ctrl-hint b { color:#565f78; }
+    /* ── canvas ── */
+    #canvas-wrap { flex:1; position:relative; overflow:hidden; }
+    #canvas-wrap canvas { display:block; }
+    .badge {
+      position:absolute; top:12px; right:14px;
+      background:rgba(39,81,184,.22); border:1px solid #2751b8;
+      border-radius:5px; padding:4px 13px; font-size:.70rem; color:#7eb8f7;
+      pointer-events:none; user-select:none;
+      transition:background .2s,border-color .2s,color .2s;
+    }
+    .badge.amorphous { background:rgba(80,55,0,.28); border-color:#886600; color:#ddaa33; }
+    .badge.condensation { background:rgba(60,40,0,.28); border-color:#997700; color:#ffcc44; }
+    .badge.condensation.amorphous { background:rgba(50,30,0,.35); border-color:#aa7700; color:#ffdd44; }
+    .atom-count-badge {
+      position:absolute; bottom:14px; right:14px;
+      background:rgba(20,24,40,.70); border:1px solid #2a2d45;
+      border-radius:5px; padding:3px 11px; font-size:.66rem; color:#5a6580;
+      pointer-events:none; user-select:none;
+    }
+    .perf-warn {
+      position:absolute; bottom:40px; right:14px;
+      background:rgba(55,30,0,.85); border:1px solid #aa6600;
+      border-radius:5px; padding:3px 11px; font-size:.63rem; color:#cc9933;
+      pointer-events:none; user-select:none; display:none;
+    }
+    .chunk-note {
+      font-size:.63rem; color:#3a4060; text-align:center;
+      border-top:1px solid #242840; padding-top:6px; line-height:1.6;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+<div id="sidebar">
+  <h1>🔬 Polymer Viewer</h1>
+
+  <!-- ── ADDITION POLYMERS ── -->
+  <div>
+    <div class="cat-label addition">Addition / Chain-Growth</div>
+    <div class="poly-grid">
+      <button class="poly-btn addition active" data-key="aPP"  data-cat="addition">Atactic<br>PP<br><small>Random coil</small></button>
+      <button class="poly-btn addition"        data-key="iPP"  data-cat="addition">Isotactic<br>PP<br><small>3₁ helix</small></button>
+      <button class="poly-btn addition"        data-key="aPS"  data-cat="addition">Atactic<br>PS<br><small>Random coil</small></button>
+      <button class="poly-btn addition"        data-key="iPS"  data-cat="addition">Isotactic<br>PS<br><small>3₁ helix</small></button>
+      <button class="poly-btn addition"        data-key="PVC"  data-cat="addition">PVC<br><small>Atactic</small></button>
+      <button class="poly-btn addition"        data-key="PMMA" data-cat="addition">PMMA<br><small>Atactic</small></button>
+      <button class="poly-btn addition"        data-key="PTFE" data-cat="addition">PTFE<br><small>13₆ helix</small></button>
+      <button class="poly-btn addition"        data-key="PI"   data-cat="addition">Poly-<br>isoprene<br><small>cis-1,4</small></button>
+      <button class="poly-btn addition"        data-key="pHEMA" data-cat="addition">pHEMA<br><small>Hydroxyethyl</small></button>
+    </div>
+  </div>
+
+  <!-- ── CONDENSATION / STEP-GROWTH POLYMERS ── -->
+  <div>
+    <div class="cat-label condensation">Condensation / Step-Growth</div>
+    <div class="poly-grid">
+      <button class="poly-btn condensation" data-key="iPLA"   data-cat="condensation">Isotactic<br>PLA<br><small>10₃ helix</small></button>
+      <button class="poly-btn condensation" data-key="Nylon66" data-cat="condensation">Nylon<br>6,6<br><small>Extended</small></button>
+      <button class="poly-btn condensation" data-key="PDMS"   data-cat="condensation">PDMS<br><small>4₁ helix</small></button>
+      <button class="poly-btn condensation" data-key="PEO"    data-cat="condensation">PEO<br><small>7₂ helix</small></button>
+      <button class="poly-btn condensation" data-key="PET"  data-cat="condensation">PET<br><small>Aromatic ester</small></button>
+      <button class="poly-btn condensation" data-key="PEEK" data-cat="condensation">PEEK<br><small>3 rings/mer</small></button>
+    </div>
+  </div>
+
+  <!-- ── CONFORMATION TOGGLE ── -->
+  <div>
+    <div class="sec-label">Conformation</div>
+    <div class="conf-row">
+      <button class="conf-btn active crystal"   id="btn-crystal">🔷 Crystal</button>
+      <button class="conf-btn amorphous"        id="btn-amor">☁ Amorphous</button>
+    </div>
+  </div>
+
+  <!-- ── CHAIN LENGTH ── -->
+  <div>
+    <div class="sec-label">Chain Length (N mer units)</div>
+    <div class="slider-row">
+      <label>N =</label>
+      <input type="range" id="mer-slider" min="1" max="200" value="30"/>
+      <span class="sval" id="mer-val">30</span>
+    </div>
+  </div>
+
+  <!-- ── DISPLAY TOGGLES ── -->
+  <div>
+    <div class="sec-label">Display</div>
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      <div class="btn-row">
+        <button class="tgl-btn teal"   id="btn-H">Show H Atoms</button>
+        <button class="tgl-btn violet" id="btn-spin">Auto Spin</button>
+      </div>
+      <div class="btn-row">
+        <button class="tgl-btn teal"  id="btn-backbone">Backbone Only</button>
+        <button class="tgl-btn amber" id="btn-mers">Colour Mers</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CPK LEGEND ── -->
+  <div>
+    <div class="sec-label">CPK Colour Key</div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#909090"></div>C</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#e0e0e0"></div>H</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#ff4444"></div>O</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#4477ff"></div>N</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#00cc00"></div>Cl</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#80ffff"></div>F</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#c8a050"></div>Si</div>
+    </div>
+  </div>
+
+  <!-- ── STRUCTURE INFO ── -->
+  <div>
+    <div class="sec-label">Structure Info</div>
+    <div class="info-panel">
+      <div class="info-row"><span class="info-key">Polymer</span>      <span class="info-val" id="inf-name">—</span></div>
+      <div class="info-row"><span class="info-key">Formula</span>      <span class="info-val" id="inf-formula">—</span></div>
+      <div class="info-row"><span class="info-key">Synthesis</span>    <span class="info-val" id="inf-synth">—</span></div>
+      <div class="info-row"><span class="info-key">Conformation</span> <span class="info-val" id="inf-conf">—</span></div>
+      <div class="info-row"><span class="info-key">Tg</span>           <span class="info-val" id="inf-tg">—</span></div>
+      <div class="info-row"><span class="info-key">Tm</span>           <span class="info-val" id="inf-tm">—</span></div>
+      <div class="info-row"><span class="info-key">Density</span>      <span class="info-val" id="inf-density">—</span></div>
+      <div class="info-desc" id="inf-desc"></div>
+    </div>
+  </div>
+
+  <!-- ── CONTROLS ── -->
+  <div>
+    <div class="ctrl-hint">
+      <b>Left drag</b> — Rotate · <b>Right drag</b> — Pan<br>
+      <b>Scroll</b> — Zoom · <b>Dbl-click</b> — Reset camera
+    </div>
+  </div>
+
+  <div class="chunk-note">2D structural formula view — coming soon</div>
+</div>
+
+<!-- ═══════════════════ CANVAS ═══════════════════ -->
+<div id="canvas-wrap">
+  <div class="badge" id="badge">aPP · Atactic</div>
+  <div class="perf-warn" id="perf-warn">⚠ Large chain — reduced render quality</div>
+  <div class="atom-count-badge" id="atom-count-badge"></div>
+</div>
+
+<!-- Three.js r128 + OrbitControls -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════
+const DEG = Math.PI / 180;
+const T   = 180 * DEG;   // trans / anti     (IUPAC ω = 180°)
+const Gp  =  60 * DEG;   // gauche-plus       (IUPAC ω = +60°)
+const Gm  = -60 * DEG;   // gauche-minus      (IUPAC ω = −60°)
+
+// CPK element colours and ball-and-stick radii (Å)
+const ELEM = {
+  C:  { color: 0x909090, r: 0.37 },
+  H:  { color: 0xe0e0e0, r: 0.24 },
+  O:  { color: 0xff4444, r: 0.34 },
+  N:  { color: 0x4477ff, r: 0.35 },
+  Cl: { color: 0x00cc00, r: 0.48 },
+  F:  { color: 0x80ffff, r: 0.29 },
+  Si: { color: 0xc8a050, r: 0.51 },   // golden-tan
+};
+
+const MER_COLORS = [0x5588cc, 0xe07744];
+
+// ─── Adaptive rendering quality ──────────────────────
+let _ql = 0;
+function getSphereSegs() { return _ql === 0 ? [14,10] : _ql === 1 ? [10,7] : [8,6]; }
+function getCylSegs()    { return _ql === 0 ? 7 : _ql === 1 ? 6 : 5; }
+
+// ─── Geometry / material cache ───────────────────────
+const _geoCache = {};
+function sphereGeo(r, ws, hs) {
+  const k = r.toFixed(3) + '_' + ws;
+  if (!_geoCache[k]) _geoCache[k] = new THREE.SphereGeometry(r, ws, hs);
+  return _geoCache[k];
+}
+const _matCache = {};
+function atomMat(c) {
+  if (!_matCache[c]) _matCache[c] = new THREE.MeshStandardMaterial({ color:c, roughness:.38, metalness:.06 });
+  return _matCache[c];
+}
+const BOND_MAT     = new THREE.MeshStandardMaterial({ color:0x555566, roughness:.55 });
+const DBL_BOND_MAT = new THREE.MeshStandardMaterial({ color:0xddaa22, roughness:.40, metalness:.04 });
+const BOND_R   = 0.10;
+
+// ─── Double-bond cylinder helper  (two parallel thin cylinders, golden) ──────
+function addDoubleBond(p1, p2, group) {
+  const dir  = new THREE.Vector3().subVectors(p2, p1).normalize();
+  const ref  = Math.abs(dir.y) < 0.9 ? new THREE.Vector3(0,1,0) : new THREE.Vector3(1,0,0);
+  const perp = new THREE.Vector3().crossVectors(dir, ref).normalize();
+  const sep  = 0.085;   // half-separation in Å
+  const r    = BOND_R * 0.60;
+  [-sep, sep].forEach(s => {
+    const s1 = p1.clone().addScaledVector(perp, s);
+    const s2 = p2.clone().addScaledVector(perp, s);
+    const len = s1.distanceTo(s2);
+    if (len < 0.001) return;
+    const geo  = new THREE.CylinderGeometry(r, r, len, getCylSegs(), 1);
+    const mesh = new THREE.Mesh(geo, DBL_BOND_MAT);
+    mesh.userData.disposeCyl = true;
+    mesh.position.copy(new THREE.Vector3().addVectors(s1, s2).multiplyScalar(.5));
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.clone());
+    group.add(mesh);
+  });
+}
+
+// ─── Sphere helper ───────────────────────────────────
+function addSphere(elem, pos, group, overrideColor) {
+  const e   = ELEM[elem] || ELEM.C;
+  const col = (overrideColor !== undefined) ? overrideColor : e.color;
+  const [ws, hs] = getSphereSegs();
+  const m   = new THREE.Mesh(sphereGeo(e.r, ws, hs), atomMat(col));
+  m.position.copy(pos);
+  group.add(m);
+}
+
+// ─── Bond cylinder helper ────────────────────────────
+function addBond(p1, p2, group, radius) {
+  radius = radius || BOND_R;
+  const dir = new THREE.Vector3().subVectors(p2, p1);
+  const len = dir.length();
+  if (len < 0.001) return;
+  const geo  = new THREE.CylinderGeometry(radius, radius, len, getCylSegs(), 1);
+  const mesh = new THREE.Mesh(geo, BOND_MAT);
+  mesh.userData.disposeCyl = true;
+  mesh.position.copy(new THREE.Vector3().addVectors(p1, p2).multiplyScalar(.5));
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.normalize());
+  group.add(mesh);
+}
+function disposeGroup(grp) {
+  grp.traverse(o => { if (o.isMesh && o.userData.disposeCyl && o.geometry) o.geometry.dispose(); });
+}
+
+// ─── Seeded pseudo-random ─────────────────────────────
+function srand(seed) {
+  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+// ─── Amorphous dihedral factory  (~55 % T, 22.5 % G+, 22.5 % G-) ───
+function amorFn(seed) {
+  return i => { const r = srand(i + seed); return r < .55 ? T : r < .775 ? Gp : Gm; };
+}
+
+// ═══════════════════════════════════════════════════
+//  NERF — Natural Extension Reference Frame
+//  phi_IUPAC = 180° → trans | 60° → gauche+ | 0° → cis/eclipsed
+// ═══════════════════════════════════════════════════
+function nerf(a, b, c, bondLen, bondAngle, phi_IUPAC) {
+  const bc = new THREE.Vector3().subVectors(c, b).normalize();
+  const ba = new THREE.Vector3().subVectors(b, a).normalize();
+  const n1 = new THREE.Vector3().crossVectors(ba, bc).normalize();
+  const n2 = new THREE.Vector3().crossVectors(bc, n1);
+  const phi = phi_IUPAC - Math.PI;
+  const cosA = Math.cos(bondAngle), sinA = Math.sin(bondAngle);
+  return new THREE.Vector3().addVectors(c,
+    new THREE.Vector3()
+      .addScaledVector(bc, -cosA)
+      .addScaledVector(n2,  sinA * Math.cos(phi))
+      .addScaledVector(n1,  sinA * Math.sin(phi))
+      .multiplyScalar(bondLen)
+  );
+}
+
+// ═══════════════════════════════════════════════════
+//  TETRAHEDRAL SIDE-GROUP GEOMETRY
+// ═══════════════════════════════════════════════════
+function sideGroupDirs(c, prev, next) {
+  const v1  = new THREE.Vector3().subVectors(prev, c).normalize();
+  const v2  = new THREE.Vector3().subVectors(next, c).normalize();
+  const sum = new THREE.Vector3().addVectors(v1, v2);
+  const m   = sum.length() > 1e-4 ? sum.clone().normalize().negate() : new THREE.Vector3(0,1,0);
+  let k = new THREE.Vector3().crossVectors(v1, v2);
+  if (k.length() < 1e-4) {
+    const ref = Math.abs(m.x) < .9 ? new THREE.Vector3(1,0,0) : new THREE.Vector3(0,1,0);
+    k.crossVectors(m, ref);
+  }
+  k.normalize();
+  const v1m = v1.dot(m);
+  let cosA = (Math.abs(v1m) > 1e-4) ? (-1/3) / v1m : 0;
+  cosA = Math.max(-1, Math.min(1, cosA));
+  const sinA = Math.sqrt(Math.max(0, 1 - cosA*cosA));
+  return [
+    m.clone().multiplyScalar(cosA).addScaledVector(k,  sinA),
+    m.clone().multiplyScalar(cosA).addScaledVector(k, -sinA),
+  ];
+}
+
+function terminalDirs(c, neighbor) {
+  const bond = new THREE.Vector3().subVectors(neighbor, c).normalize();
+  const ref  = Math.abs(bond.x) < .9 ? new THREE.Vector3(1,0,0) : new THREE.Vector3(0,1,0);
+  const p1   = new THREE.Vector3().crossVectors(bond, ref).normalize();
+  const p2   = new THREE.Vector3().crossVectors(bond, p1).normalize();
+  const cosA = -1/3, sinA = Math.sqrt(1 - cosA*cosA);
+  return [0,1,2].map(i => {
+    const ang = i * (2*Math.PI/3);
+    return new THREE.Vector3()
+      .addScaledVector(bond.clone().negate(), cosA)
+      .addScaledVector(p1, sinA*Math.cos(ang))
+      .addScaledVector(p2, sinA*Math.sin(ang));
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  PHENYL RING BUILDER
+// ═══════════════════════════════════════════════════
+function buildPhenyl(methPos, ipsoPos, bbTangent, atomGrp, hGrp, bondGrp, showH, merColor) {
+  const L    = 1.40;
+  const dirI = new THREE.Vector3().subVectors(ipsoPos, methPos).normalize();
+  let n = new THREE.Vector3().crossVectors(dirI, bbTangent).normalize();
+  if (n.length() < 0.1) n = new THREE.Vector3().crossVectors(dirI, new THREE.Vector3(0,1,0)).normalize();
+  const e2     = new THREE.Vector3().crossVectors(n, dirI).normalize();
+  const center = ipsoPos.clone().addScaledVector(e2, L);
+  const ring   = [];
+  for (let i = 0; i < 6; i++) {
+    const theta = (270 + i*60) * DEG;
+    const p = center.clone()
+      .addScaledVector(dirI, L*Math.cos(theta))
+      .addScaledVector(e2,   L*Math.sin(theta));
+    ring.push(p);
+    addSphere('C', p, atomGrp, merColor);
+  }
+  // Kekulé: bonds 0-1, 2-3, 4-5 are double; 1-2, 3-4, 5-0 are single
+  for (let i = 0; i < 6; i++) {
+    if (i % 2 === 0) addDoubleBond(ring[i], ring[(i+1)%6], bondGrp);
+    else             addBond(ring[i], ring[(i+1)%6], bondGrp);
+  }
+  addBond(methPos, ring[0], bondGrp);
+  if (showH) {
+    for (let i = 1; i < 6; i++) {
+      const dir  = ring[i].clone().sub(center).normalize();
+      const hPos = ring[i].clone().addScaledVector(dir, 1.08);
+      addSphere('H', hPos, hGrp);
+      addBond(ring[i], hPos, hGrp, BOND_R*.7);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  POLYMER DEFINITIONS
+//
+//  backbone[i].side codes:
+//    'HH'    — methylene CH₂  (2 H)
+//    'HMe'   — methine  CH(CH₃)  (methyl on dir1, H on dir2)
+//    'HCl'   — atactic CHCl  (Cl or H randomly on dir1)
+//    'HPh'   — methine  CH(Ph)   (phenyl on dir1, H on dir2)
+//    'MeEst' — PMMA quaternary C(CH₃)(COOMe): methyl dir1, ester C→O dir2
+//    'FF'    — difluoromethylene CF₂
+//    'Me'    — sp2 =C(CH₃): methyl on dir1, nothing on dir2  (polyisoprene)
+//    'H1'    — sp2 =CH:    single H on dir1                  (polyisoprene)
+//    'HN'    — backbone N: single N-H on dir1
+//    'C=O'   — backbone C=O: carbonyl O on dir1 (1.22 Å)
+//    'MeMe'  — PDMS Si(CH₃)₂: methyls on both dir1 and dir2
+//    'PhBB'  — para-phenylene ring bridging backbone atom i (C₁/ipso) and i+1 (C₄/para)
+//    'HEMASide' — pHEMA C(CH₃)(COOCH₂CH₂OH) quaternary: methyl dir1, hydroxyethyl ester dir2
+//    ''      — no side groups (backbone O, ester O, etc.)
+// ═══════════════════════════════════════════════════
+
+const POLYMERS = {
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  ADDITION POLYMERS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  aPP: {
+    name: 'Atactic Polypropylene', cat: 'addition',
+    formula: '—(CH₂—CHR)ₙ— · R = CH₃',
+    synth: 'Free-radical / Ziegler-Natta',
+    ba: '112°',
+    badge:   { crystal:'aPP · All-trans planar zigzag', amorphous:'aPP · Amorphous random coil' },
+    conf:    { crystal:'All-trans planar zigzag', amorphous:'Random coil (T / G± mixture)' },
+    backbone: [
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HMe' },
+    ],
+    dihedralFn:  i => { const r=srand(i+71); return r<.60?T:r<.82?Gp:Gm; },
+    amorphousFn: amorFn(73),
+    info: {
+      crystal:   { Tg:'~−10 °C', Tm:'— (amorphous)', density:'0.85 g/cm³',
+        desc:'The all-trans planar zigzag shows the most extended conformation of the PP backbone. Atactic PP cannot actually crystallise (random methyl chirality prevents packing), but this view lets you compare the fully extended chain with the random coil. Atactic PP is a soft, rubbery material used as an additive.' },
+      amorphous: { Tg:'~−10 °C', Tm:'— (amorphous)', density:'0.85 g/cm³',
+        desc:'The fully random coil shows gauche-plus and gauche-minus defects distributed stochastically. Compare with iPP (crystal) to see how stereoregularity enables helix formation.' },
+    },
+  },
+
+  iPP: {
+    name: 'Isotactic Polypropylene', cat: 'addition',
+    formula: '—(CH₂—CH(CH₃))ₙ—',
+    synth: 'Ziegler-Natta / metallocene',
+    ba: '112°',
+    badge:   { crystal:'iPP · All-trans planar zigzag', amorphous:'iPP · Amorphous random coil' },
+    conf:    { crystal:'All-trans planar zigzag', amorphous:'Random coil (T / G± mixture)' },
+    backbone: [
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HMe' },
+    ],
+    dihedralFn:  i => (i%2===0) ? T : Gp,
+    amorphousFn: amorFn(11),
+    info: {
+      crystal:   { Tg:'~0 °C', Tm:'~165 °C', density:'0.946 g/cm³ (xtal)',
+        desc:'All-trans backbone showing the fully extended planar zigzag. In reality iPP crystallises as a 3₁ helix (TG⁺)ₙ — switch to amorphous to see random conformations. Made with Ziegler-Natta catalysts (Natta Nobel Prize 1963). Compare methyl positions with aPP to see how isotactic regularity differs.' },
+      amorphous: { Tg:'~0 °C', Tm:'— (amorphous phase)', density:'~0.85 g/cm³',
+        desc:'Without helical order the methyl groups point randomly. About 50 % of semi-crystalline iPP is amorphous, contributing to toughness.' },
+    },
+  },
+
+  aPS: {
+    name: 'Atactic Polystyrene', cat: 'addition',
+    formula: '—(CH₂—CH(Ph))ₙ—',
+    synth: 'Free-radical polymerisation',
+    ba: '112°',
+    badge:   { crystal:'aPS · All-trans planar zigzag', amorphous:'aPS · Amorphous random coil' },
+    conf:    { crystal:'All-trans planar zigzag', amorphous:'Random coil (T / G± mixture)' },
+    backbone: [
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HPh' },
+    ],
+    dihedralFn:  i => { const r=srand(i+79); return r<.55?T:r<.775?Gp:Gm; },
+    amorphousFn: amorFn(83),
+    info: {
+      crystal:   { Tg:'~100 °C', Tm:'— (amorphous)', density:'1.04 g/cm³',
+        desc:'All-trans backbone showing the fully extended planar zigzag. Atactic PS cannot crystallise (random phenyl chirality). This view lets you see the pendant phenyl groups clearly along the extended chain. Common PS is atactic — used in foam cups, CD jewel cases, disposable cutlery.' },
+      amorphous: { Tg:'~100 °C', Tm:'— (amorphous)', density:'1.04 g/cm³',
+        desc:'Fully random coil with random phenyl orientations. Tg ≈ 100 °C — above this temperature PS flows; below it is a rigid glass. This is the standard form of commercial PS.' },
+    },
+  },
+
+  iPS: {
+    name: 'Isotactic Polystyrene', cat: 'addition',
+    formula: '—(CH₂—CH(Ph))ₙ—',
+    synth: 'Ziegler-Natta / anionic',
+    ba: '112°',
+    badge:   { crystal:'iPS · All-trans planar zigzag + phenyl', amorphous:'iPS · Amorphous random coil' },
+    conf:    { crystal:'All-trans planar zigzag', amorphous:'Random coil (T / G± mixture)' },
+    backbone: [
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HPh' },
+    ],
+    dihedralFn:  i => (i%2===0) ? T : Gp,
+    amorphousFn: amorFn(37),
+    info: {
+      crystal:   { Tg:'~100 °C', Tm:'~240 °C (iPS)', density:'1.10 g/cm³',
+        desc:'All-trans backbone with all phenyl groups visible along the extended chain. In reality, iPS crystallises as a 3₁ helix (TG⁺)ₙ. The isotactic stereoregularity means all phenyls lie on the same side of the backbone — compare with atactic PS to see the difference.' },
+      amorphous: { Tg:'~100 °C', Tm:'— (amorphous)', density:'~1.04 g/cm³',
+        desc:'Without helical order the phenyls point randomly. The high Tg of ~100 °C reflects restricted local chain motion due to the bulky aromatic side groups.' },
+    },
+  },
+
+  PVC: {
+    name: 'Poly(vinyl chloride)', cat: 'addition',
+    formula: '—(CH₂—CHCl)ₙ—',
+    synth: 'Free-radical polymerisation',
+    ba: '112°',
+    badge:   { crystal:'PVC · All-trans planar zigzag', amorphous:'PVC · Amorphous — disordered' },
+    conf:    { crystal:'All-trans planar zigzag', amorphous:'Disordered atactic chain' },
+    backbone: [
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HCl' },
+    ],
+    dihedralFn:  i => { const r=srand(i+17); return r<.60?T:r<.82?Gp:Gm; },
+    amorphousFn: i => { const r=srand(i+43); return r<.38?T:r<.69?Gp:Gm; },
+    info: {
+      crystal:   { Tg:'~82 °C', Tm:'— (no clean Tm)', density:'1.39 g/cm³',
+        desc:'All-trans backbone: the most extended conformation possible. Atactic PVC cannot crystallise (random Cl chirality), but this view clearly shows the alternating Cl positions along the zigzag. The large Cl atom raises Tg well above room temperature, making rigid PVC hard and strong.' },
+      amorphous: { Tg:'~82 °C', Tm:'— (amorphous)', density:'~1.38 g/cm³',
+        desc:'Gauche conformers dominate and the chain coils. Plasticisers (e.g., DEHP) intercalate between chains to lower Tg for flexible PVC applications (tubing, wire insulation, flooring).' },
+    },
+  },
+
+  PMMA: {
+    name: 'Poly(methyl methacrylate)', cat: 'addition',
+    formula: '—(CH₂—C(CH₃)(COOMe))ₙ—',
+    synth: 'Free-radical polymerisation',
+    ba: '112°',
+    badge:   { crystal:'PMMA · All-trans planar zigzag', amorphous:'PMMA · Amorphous random coil' },
+    conf:    { crystal:'All-trans planar zigzag', amorphous:'Random coil (T / G± mixture)' },
+    backbone: [
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'    },   // CH₂
+      { elem:'C', bl:1.54, ba:112*DEG, side:'MeEst' },   // C(CH₃)(COOMe) — quaternary
+    ],
+    dihedralFn:  i => { const r=srand(i+89); return r<.55?T:r<.775?Gp:Gm; },
+    amorphousFn: amorFn(97),
+    info: {
+      crystal:   { Tg:'~105 °C', Tm:'— (amorphous)', density:'1.18 g/cm³',
+        desc:'All-trans backbone showing the quaternary carbon (no H on backbone) clearly: each repeat bears one methyl and one ester group (-COOMe). Atactic PMMA (Plexiglas / Perspex) cannot crystallise. This extended view best illustrates the bulky ester side chain geometry.' },
+      amorphous: { Tg:'~105 °C', Tm:'— (amorphous)', density:'~1.17 g/cm³',
+        desc:'Fully random coil. PMMA is optically transparent (visible-light wavelengths exceed its feature size), impact resistant, and used for lenses, aquariums, aircraft windows, and dental prosthetics.' },
+    },
+  },
+
+  PTFE: {
+    name: 'Polytetrafluoroethylene (PTFE)', cat: 'addition',
+    formula: '—(CF₂—CF₂)ₙ—',
+    synth: 'Free-radical polymerisation',
+    ba: '112°',
+    badge:   { crystal:'PTFE · All-trans planar zigzag (CF₂)', amorphous:'PTFE · Amorphous near-trans random' },
+    conf:    { crystal:'All-trans planar zigzag', amorphous:'Random near-trans coil' },
+    backbone: [
+      { elem:'C', bl:1.54, ba:112*DEG, side:'FF' },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'FF' },
+    ],
+    dihedralFn:  i => (i%2===0) ? 165*DEG : -165*DEG,
+    amorphousFn: amorFn(53),
+    info: {
+      crystal:   { Tg:'−113 °C', Tm:'~327 °C', density:'2.20 g/cm³',
+        desc:'All-trans zigzag clearly shows the CF₂ repeat: both fluorines pointing out on each side of the backbone. In reality PTFE crystallises as a 13₆ helix (±165° dihedrals) because large F atoms force slight deviations from 180°. The F sheath gives PTFE (Teflon®) exceptional chemical inertness and the lowest kinetic friction among solids.' },
+      amorphous: { Tg:'−113 °C', Tm:'— (melt)', density:'~2.0 g/cm³',
+        desc:'Above Tm PTFE loses its regular twist. Large F atoms still strongly favour near-trans conformations, so melt viscosity is extremely high and PTFE cannot be conventionally melt-processed.' },
+    },
+  },
+
+  PI: {
+    name: 'cis-1,4-Polyisoprene (Natural Rubber)', cat: 'addition',
+    formula: '—(CH₂—C(CH₃)=CH—CH₂)ₙ—',
+    synth: 'Free-radical / Ziegler-Natta · also biosynthetic',
+    ba: '112° (sp³) / 120° (sp²)',
+    keepCrystalConf: true,   // must keep cis C=C (phi=0°); single bonds already trans
+    badge:   { crystal:'PI · cis-1,4 extended — cis C=C, trans single bonds', amorphous:'PI · Amorphous rubber' },
+    conf:    { crystal:'cis C=C · all-trans single bonds (most extended)', amorphous:'cis C=C · random single-bond dihedrals' },
+    // 4 backbone atoms per mer: CH₂ – C(CH₃)= – =CH– – CH₂
+    backbone: [
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH' },   // allylic CH₂
+      { elem:'C', bl:1.54, ba:120*DEG, side:'Me' },   // =C(CH₃)– sp2, methyl only
+      { elem:'C', bl:1.34, ba:120*DEG, side:'H1', doubleBondHere:true },   // =CH–  sp2, C=C double bond
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH' },   // allylic CH₂
+    ],
+    // cis-1,4: C=C dihedral = 0° (syn/cis), single bonds = trans
+    dihedralFn: i => {
+      const atom = (i + 3) % 4;
+      if (atom === 2) return 0;   // C=C: phi_IUPAC = 0° → cis configuration
+      return T;                    // single bonds: trans
+    },
+    amorphousFn: i => {
+      const atom = (i + 3) % 4;
+      if (atom === 2) return 0;           // C=C always cis
+      const r = srand(i + 103); return r < .55 ? T : r < .775 ? Gp : Gm;
+    },
+    info: {
+      crystal:   { Tg:'~−73 °C', Tm:'~36 °C', density:'1.00 g/cm³ (xtal)',
+        desc:'Natural rubber: cis configuration at every C=C fixes the CH₂ groups on the same side. In the crystal, single-bond dihedrals are trans, giving an extended helical structure. The cis constraint prevents the close packing possible in trans-1,4 (gutta-percha), giving a lower Tm.' },
+      amorphous: { Tg:'~−73 °C', Tm:'— (amorphous rubber)', density:'0.91 g/cm³',
+        desc:'Above Tg the single bonds rotate freely while cis configuration is maintained. The result is a highly flexible random coil — the basis of rubber elasticity. Under strain the chains extend and can crystallise (strain-induced crystallisation), reinforcing the rubber.' },
+    },
+  },
+
+  pHEMA: {
+    name: 'Poly(2-hydroxyethyl methacrylate)', cat: 'addition',
+    formula: '—(CH₂—C(CH₃)(COOCH₂CH₂OH))ₙ—',
+    synth: 'Free-radical polymerisation',
+    ba: '112°',
+    badge:   { crystal:'pHEMA · All-trans planar zigzag', amorphous:'pHEMA · Amorphous hydrogel network' },
+    conf:    { crystal:'All-trans planar zigzag', amorphous:'Random coil (T / G± mixture)' },
+    backbone: [
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'       },   // CH₂ methylene
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HEMASide' },   // C(CH₃)(COOCH₂CH₂OH) quaternary
+    ],
+    dihedralFn:  i => { const r=srand(i+157); return r<.55?T:r<.775?Gp:Gm; },
+    amorphousFn: amorFn(163),
+    info: {
+      crystal:   { Tg:'~55 °C', Tm:'— (amorphous)', density:'1.27 g/cm³',
+        desc:'All-trans backbone clearly shows the quaternary carbon repeat unit: each mer bears one methyl and one hydroxyethyl ester group (–COOCH₂CH₂OH). pHEMA is atactic and cannot crystallise, but the extended view illustrates the side-chain geometry. The pendant –OH terminus is responsible for the material\'s hydrophilicity and biocompatibility.' },
+      amorphous: { Tg:'~55 °C', Tm:'— (hydrogel)', density:'~1.20 g/cm³',
+        desc:'Cross-linked pHEMA absorbs ~38 wt% water to form a soft, compliant hydrogel. The pendant –OH groups hydrogen-bond with water, maintaining a moist, protein-resistant surface. Invented by Wichterle & Lím (1960) — pHEMA hydrogel was the first practical soft contact lens material. Also used in wound dressings, drug-delivery matrices, and tissue engineering scaffolds.' },
+    },
+  },
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  CONDENSATION / STEP-GROWTH POLYMERS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  iPLA: {
+    name: 'Isotactic Poly(lactic acid) — PLLA', cat: 'condensation',
+    formula: '—(CH(CH₃)—CO—O)ₙ—',
+    synth: 'Ring-opening polymerisation of L-lactide',
+    ba: '112° (sp³) / 116° (ester)',
+    badge:   { crystal:'iPLA · All-trans planar zigzag', amorphous:'iPLA · Amorphous random coil' },
+    conf:    { crystal:'All-trans planar zigzag', amorphous:'Random coil (T / G± mixture)' },
+    // 3 backbone atoms per mer: C(methine) – C(carbonyl) – O(ester)
+    backbone: [
+      { elem:'C', bl:1.44, ba:112*DEG, side:'HMe' },   // CH(CH₃) methine; bl = O→C bond
+      { elem:'C', bl:1.52, ba:116*DEG, side:'C=O' },   // C(=O) carbonyl;  bl = C–C bond
+      { elem:'O', bl:1.33, ba:116*DEG, side:''    },   // O ester;          bl = C=O→O bond
+    ],
+    // Approximate 10₃ helix dihedrals (T, G⁺, T per 3-bond repeat)
+    dihedralFn:  i => [T, Gp, T][i % 3],
+    amorphousFn: amorFn(61),
+    info: {
+      crystal:   { Tg:'~55 °C', Tm:'~175 °C (PLLA)', density:'1.29 g/cm³ (xtal)',
+        desc:'All-trans backbone clearly shows the 3-atom repeat unit: methine CH(CH₃) — carbonyl C=O — ester O, cycling along the zigzag. Made by ring-opening polymerisation of L-lactide (renewable: from corn starch). The ester backbone allows hydrolytic degradation, making PLA biocompatible for sutures, packaging, and 3D-printing filament.' },
+      amorphous: { Tg:'~55 °C', Tm:'— (amorphous)', density:'1.24 g/cm³',
+        desc:'Amorphous PLA is glassy below Tg (~55 °C). Used in clear food packaging, 3D printing (FDM filament), and drug-delivery matrices. Faster degradation than crystalline PLLA due to greater water accessibility.' },
+    },
+  },
+
+  Nylon66: {
+    name: 'Nylon 6,6 (polyamide)', cat: 'condensation',
+    formula: '—[NH(CH₂)₆NH·CO(CH₂)₄CO]ₙ—',
+    synth: 'Condensation of hexamethylenediamine + adipic acid',
+    ba: '112° (CH₂) / 121° (amide N)',
+    badge:   { crystal:'Nylon 6,6 · All-trans planar zigzag', amorphous:'Nylon 6,6 · Amorphous random coil' },
+    conf:    { crystal:'All-trans planar zigzag (H-bonded sheets)', amorphous:'Random coil' },
+    // 14 backbone atoms per mer: N,C,C,C,C,C,C,N,C,C,C,C,C,C
+    // N at pos 0 and 7; C=O at pos 8 and 13 (simplified: just show O side group)
+    backbone: [
+      { elem:'N', bl:1.46, ba:121*DEG, side:'HN'  },   // NH (hexamethylene diamine end)
+      { elem:'C', bl:1.53, ba:112*DEG, side:'HH'  },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
+      { elem:'N', bl:1.46, ba:121*DEG, side:'HN'  },   // NH (second amine)
+      { elem:'C', bl:1.52, ba:116*DEG, side:'C=O' },   // C=O (adipoyl carbonyl 1)
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
+      { elem:'C', bl:1.52, ba:116*DEG, side:'C=O' },   // C=O (adipoyl carbonyl 2)
+    ],
+    dihedralFn:  () => T,
+    amorphousFn: amorFn(113),
+    info: {
+      crystal:   { Tg:'~50 °C', Tm:'~265 °C', density:'1.24 g/cm³ (xtal)',
+        desc:'Nylon 6,6 crystals consist of all-trans chains in hydrogen-bonded sheets. The N–H···O=C hydrogen bonds (2.86 Å) between adjacent chains provide exceptional strength and Tm (~265 °C). Condensation of hexamethylenediamine + adipic acid, discovered by Wallace Carothers (DuPont, 1935).' },
+      amorphous: { Tg:'~50 °C', Tm:'— (amorphous phase)', density:'1.07 g/cm³',
+        desc:'The amorphous fraction absorbs water at N–H groups (moisture uptake ~8 wt%), reducing Tg and modulus. Used as engineering plastic for gears, bearings, toothbrush bristles, and tyre cord.' },
+    },
+  },
+
+  PDMS: {
+    name: 'Poly(dimethylsiloxane)', cat: 'condensation',
+    formula: '—(Si(CH₃)₂—O)ₙ—',
+    synth: 'Ring-opening (cyclic siloxanes) or condensation',
+    ba: '110° (O–Si–O) / 142° (Si–O–Si)',
+    keepCrystalConf: true,   // all-trans would curl into a circle (108° bend/mer); keep 4₁ helix
+    badge:   { crystal:'PDMS · 4₁ helix (all-gauche⁺ Si–O)', amorphous:'PDMS · Amorphous random coil' },
+    conf:    { crystal:'4₁ helix — 4 Si–O units per turn (all-gauche⁺)', amorphous:'Random coil (very flexible)' },
+    // 2 backbone atoms per mer: Si – O
+    // ba at Si used to place O: O–Si–O = 110°; ba at O used to place next Si: Si–O–Si = 142°
+    backbone: [
+      { elem:'Si', bl:1.64, ba:110*DEG, side:'MeMe' },   // Si(CH₃)₂
+      { elem:'O',  bl:1.64, ba:142*DEG, side:''     },   // bridging O
+    ],
+    dihedralFn:  () => Gp,     // 4₁ helix: all-gauche⁺ gives 4 repeat units per turn
+    amorphousFn: amorFn(121),
+    info: {
+      crystal:   { Tg:'~−127 °C', Tm:'~−40 °C', density:'1.10 g/cm³',
+        desc:'PDMS crystal adopts a 4₁ helix (all-gauche⁺): four Si–O repeat units per full turn. The extremely wide Si–O–Si angle (142°) means an all-trans chain would curl back on itself; the gauche conformation extends the chain helically instead. Note the golden Si atoms with their two methyl groups and the alternating Si–O bond lengths. PDMS has one of the most flexible backbones known — very low barrier to Si–O bond rotation.' },
+      amorphous: { Tg:'~−127 °C', Tm:'— (rubbery at RT)', density:'0.97 g/cm³',
+        desc:'At room temperature PDMS is far above Tg, giving a highly flexible elastomer. Used as silicone rubber, microfluidic devices (PDMS soft lithography), medical implants, cookware coatings, and heat-transfer fluids. Biocompatible and optically transparent.' },
+    },
+  },
+
+  PET: {
+    name: 'Poly(ethylene terephthalate)', cat: 'condensation',
+    formula: '—[OCH₂CH₂OC(=O)—Ph—C(=O)]ₙ—',
+    synth: 'Condensation of ethylene glycol + terephthalic acid',
+    ba: '112° (CH₂) / 116° (ester O) / 120° (aromatic/carbonyl)',
+    badge:   { crystal:'PET · All-trans planar zigzag (para-phenylene ester)', amorphous:'PET · Amorphous random coil' },
+    conf:    { crystal:'All-trans planar zigzag', amorphous:'Random coil (T / G± mixture)' },
+    // 8 backbone atoms per mer:
+    // O(ester-glycol) – CH₂ – CH₂ – O(ester-acid) – C(=O) – C₁(ring) – C₄(ring, skipBond) – C(=O)
+    backbone: [
+      { elem:'O', bl:1.33, ba:116*DEG, side:''    },          // ester O (glycol side)
+      { elem:'C', bl:1.44, ba:112*DEG, side:'HH'  },          // CH₂
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },          // CH₂
+      { elem:'O', bl:1.44, ba:116*DEG, side:''    },          // ester O (acid side)
+      { elem:'C', bl:1.33, ba:120*DEG, side:'C=O' },          // C(=O) carbonyl
+      { elem:'C', bl:1.48, ba:120*DEG, side:'PhBB'},          // C₁ ipso (ring A)
+      { elem:'C', bl:2.80, ba:120*DEG, side:'', skipBond:true }, // C₄ para (ring bridges here)
+      { elem:'C', bl:1.48, ba:120*DEG, side:'C=O' },          // C(=O) other carbonyl
+    ],
+    dihedralFn:  () => T,
+    amorphousFn: amorFn(131),
+    info: {
+      crystal:   { Tg:'~80 °C', Tm:'~260 °C', density:'1.46 g/cm³ (xtal)',
+        desc:'PET crystal is an all-trans planar chain: the para-phenylene ring lies flat in the backbone plane, connected by ester linkages to the ethylene glycol –OCH₂CH₂O– segments. The golden double-bond cylinders on each carbonyl and the hexagonal ring are clearly visible. PET is the most widely produced polyester — beverage bottles (#1 recyclable) and textile fibres (Dacron®, Terylene®). Made by condensation of ethylene glycol + terephthalic acid, releasing water.' },
+      amorphous: { Tg:'~80 °C', Tm:'— (amorphous)', density:'1.33 g/cm³',
+        desc:'Amorphous PET is optically clear and glassy below Tg (~80 °C). Stretch blow-moulding induces strain crystallisation, producing the strong transparent bottles used for carbonated drinks. Film-grade amorphous PET is used for packaging and photographic film base.' },
+    },
+  },
+
+  PEEK: {
+    name: 'Poly(ether ether ketone)', cat: 'condensation',
+    formula: '—[Ph–O–Ph–O–Ph–C(=O)]ₙ—',
+    synth: 'Step-growth (nucleophilic aromatic substitution)',
+    ba: '120° (all aromatic)',
+    badge:   { crystal:'PEEK · All-trans extended chain (3 rings/mer)', amorphous:'PEEK · Semi-crystalline amorphous' },
+    conf:    { crystal:'All-trans planar zigzag', amorphous:'Random coil' },
+    // 9 backbone atoms/mer: 3 para-phenylene rings + 2 ether O + 1 ketone C(=O)
+    backbone: [
+      { elem:'C', bl:1.48, ba:120*DEG, side:'PhBB'},              // C₁A ring A (ipso)
+      { elem:'C', bl:2.80, ba:120*DEG, side:'', skipBond:true },  // C₄A (para, no direct bond drawn)
+      { elem:'O', bl:1.36, ba:120*DEG, side:''    },              // ether O (1)
+      { elem:'C', bl:1.36, ba:120*DEG, side:'PhBB'},              // C₁B ring B (ipso)
+      { elem:'C', bl:2.80, ba:120*DEG, side:'', skipBond:true },  // C₄B (para)
+      { elem:'O', bl:1.36, ba:120*DEG, side:''    },              // ether O (2)
+      { elem:'C', bl:1.36, ba:120*DEG, side:'PhBB'},              // C₁C ring C (ipso)
+      { elem:'C', bl:2.80, ba:120*DEG, side:'', skipBond:true },  // C₄C (para)
+      { elem:'C', bl:1.48, ba:120*DEG, side:'C=O' },              // ketone C(=O)
+    ],
+    dihedralFn:  () => T,
+    amorphousFn: amorFn(139),
+    info: {
+      crystal:   { Tg:'~145 °C', Tm:'~343 °C', density:'1.40 g/cm³ (xtal)',
+        desc:'PEEK crystal is an extended chain with three para-phenylene rings per repeat unit, connected by two ether oxygens and a terminal ketone. The rigid all-aromatic backbone gives PEEK one of the highest Tm values (~343 °C) among thermoplastics, plus exceptional chemical and fatigue resistance. Used in aerospace brackets, implantable orthopaedic devices (spinal cages, bone screws — radiolucent), and semiconductor equipment.' },
+      amorphous: { Tg:'~145 °C', Tm:'— (amorphous)', density:'~1.30 g/cm³',
+        desc:'Amorphous PEEK is glassy and stiff above Tg ~145 °C. Typical semi-crystalline PEEK is ~35 % crystalline. The high Tg allows continuous service above 150 °C. Compared to titanium for bone implants — similar stiffness, radiolucent on X-ray, and biocompatible.' },
+    },
+  },
+
+  PEO: {
+    name: 'Poly(ethylene oxide)', cat: 'condensation',
+    formula: '—(CH₂—CH₂—O)ₙ—',
+    synth: 'Ring-opening polymerisation of ethylene oxide',
+    ba: '112°',
+    badge:   { crystal:'PEO · All-trans planar zigzag (C–C–O)', amorphous:'PEO · Amorphous random coil' },
+    conf:    { crystal:'All-trans planar zigzag', amorphous:'Random coil (T / G± mixture)' },
+    backbone: [
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH' },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH' },
+      { elem:'O', bl:1.43, ba:112*DEG, side:''   },
+    ],
+    dihedralFn:  i => [T, Gp, T][i % 3],
+    amorphousFn: amorFn(61),
+    info: {
+      crystal:   { Tg:'−67 °C', Tm:'~67 °C', density:'1.21 g/cm³ (xtal)',
+        desc:'All-trans backbone showing the 3-atom repeat unit –CH₂–CH₂–O– clearly along the zigzag. The ether O appears in red at every third position. PEO is a solid polymer electrolyte host for Li⁺ in batteries (Li⁺ coordinates to ether oxygens) and is widely used in drug-delivery PEGylation to extend protein half-lives.' },
+      amorphous: { Tg:'−67 °C', Tm:'— (amorphous / melt)', density:'~1.12 g/cm³',
+        desc:'Amorphous PEO is water-soluble. The ether oxygens form hydrogen bonds with water. Above Tm, the melt conducts Li⁺ ions efficiently, enabling all-solid-state Li batteries.' },
+    },
+  },
+
+};
+
+// ═══════════════════════════════════════════════════
+//  CHAIN BUILDER
+// ═══════════════════════════════════════════════════
+function buildChain(key, numMers, showH, colourMers, conformMode) {
+  const poly = POLYMERS[key];
+  const bk   = poly.backbone;
+  const nPM  = bk.length;
+  const N    = numMers * nPM;
+
+  // Crystal mode: always all-trans (planar zigzag) for clear, unambiguous structure,
+  // UNLESS the polymer sets keepCrystalConf:true (e.g. cis-PI where C=C must stay cis).
+  // Amorphous mode: uses the polymer's own amorphousFn (random coil).
+  const dfn = (conformMode === 'amorphous' && poly.amorphousFn)
+              ? poly.amorphousFn
+              : (poly.keepCrystalConf ? poly.dihedralFn : () => T);
+
+  const bbAtomGrp   = new THREE.Group();
+  const sideAtomGrp = new THREE.Group();
+  const hGrp        = new THREE.Group();
+  const bondGrp     = new THREE.Group();
+  const bbBondGrp   = new THREE.Group();
+
+  const BL = i => bk[i % nPM].bl;
+  const BA = i => bk[i % nPM].ba;
+
+  // ── 1. Build backbone with NERF ────────────────────
+  const bkPos  = [];
+  const bkElem = [];
+
+  bkPos[0]  = new THREE.Vector3(0, 0, 0);
+  bkElem[0] = bk[0].elem;
+
+  const bl01 = BL(1);
+  bkPos[1]   = new THREE.Vector3(bl01, 0, 0);
+  bkElem[1]  = bk[1 % nPM].elem;
+
+  if (N >= 3) {
+    const ba1 = BA(1);
+    const xC  = -Math.cos(ba1);
+    const zC  = Math.sqrt(Math.max(0, 1 - xC*xC));
+    bkPos[2]  = new THREE.Vector3(bkPos[1].x + BL(2)*xC, 0, BL(2)*zC);
+    bkElem[2] = bk[2 % nPM].elem;
+  }
+
+  for (let i = 3; i < N; i++) {
+    bkPos[i]  = nerf(bkPos[i-3], bkPos[i-2], bkPos[i-1], BL(i), BA(i-1), dfn(i-3));
+    bkElem[i] = bk[i % nPM].elem;
+  }
+
+  // Centre on centroid
+  const ctr = new THREE.Vector3();
+  bkPos.forEach(p => ctr.add(p));
+  ctr.divideScalar(N);
+  bkPos.forEach(p => p.sub(ctr));
+
+  let extent = 0;
+  bkPos.forEach(p => { const d = p.length(); if (d > extent) extent = d; });
+
+  // ── 2. Backbone atoms + bonds ─────────────────────
+  let totalAtoms = 0;
+  for (let i = 0; i < N; i++) {
+    const merIdx   = Math.floor(i / nPM);
+    const merColor = colourMers ? MER_COLORS[merIdx % 2] : undefined;
+    addSphere(bkElem[i], bkPos[i], bbAtomGrp, merColor);
+    totalAtoms++;
+    if (i > 0) {
+      const bkDef = bk[i % nPM];
+      if (!bkDef.skipBond) {
+        if (bkDef.doubleBondHere) {
+          addDoubleBond(bkPos[i-1], bkPos[i], bondGrp);
+          addDoubleBond(bkPos[i-1], bkPos[i], bbBondGrp);
+        } else {
+          addBond(bkPos[i-1], bkPos[i], bondGrp);
+          addBond(bkPos[i-1], bkPos[i], bbBondGrp);
+        }
+      }
+    }
+  }
+
+  // ── 3. Side groups ─────────────────────────────────
+  for (let i = 0; i < N; i++) {
+    const sideDef  = bk[i % nPM].side;
+    if (!sideDef) continue;
+
+    // Terminal cap
+    if (i === 0 || i === N - 1) {
+      if (showH) {
+        const nb = (i === 0) ? bkPos[1] : bkPos[N-2];
+        terminalDirs(bkPos[i], nb).forEach(d => {
+          const hp = bkPos[i].clone().addScaledVector(d, 1.09);
+          addSphere('H', hp, hGrp);
+          addBond(bkPos[i], hp, hGrp, BOND_R*.7);
+          totalAtoms++;
+        });
+      }
+      continue;
+    }
+
+    const dirs   = sideGroupDirs(bkPos[i], bkPos[i-1], bkPos[i+1]);
+    const dir1   = dirs[0], dir2 = dirs[1];
+    const merIdx   = Math.floor(i / nPM);
+    const merColor = colourMers ? MER_COLORS[merIdx % 2] : undefined;
+
+    // ── HH: methylene ─────────────────────────────────
+    if (sideDef === 'HH') {
+      if (showH) {
+        [dir1, dir2].forEach(d => {
+          const hp = bkPos[i].clone().addScaledVector(d, 1.09);
+          addSphere('H', hp, hGrp);
+          addBond(bkPos[i], hp, hGrp, BOND_R*.7);
+          totalAtoms++;
+        });
+      }
+
+    // ── HMe: methine CH(CH₃) ─────────────────────────
+    } else if (sideDef === 'HMe') {
+      const mePos = bkPos[i].clone().addScaledVector(dir1, 1.54);
+      addSphere('C', mePos, sideAtomGrp, merColor);
+      addBond(bkPos[i], mePos, bondGrp);
+      totalAtoms++;
+      if (showH) {
+        terminalDirs(mePos, bkPos[i]).forEach(d => {
+          const hp = mePos.clone().addScaledVector(d, 1.09);
+          addSphere('H', hp, hGrp);
+          addBond(mePos, hp, hGrp, BOND_R*.7);
+          totalAtoms++;
+        });
+        const hp = bkPos[i].clone().addScaledVector(dir2, 1.09);
+        addSphere('H', hp, hGrp);
+        addBond(bkPos[i], hp, hGrp, BOND_R*.7);
+        totalAtoms++;
+      }
+
+    // ── HCl: atactic CHCl ────────────────────────────
+    } else if (sideDef === 'HCl') {
+      const r    = srand(i*31+7);
+      const cDir = r < .5 ? dir1 : dir2;
+      const hDir = r < .5 ? dir2 : dir1;
+      const cPos = bkPos[i].clone().addScaledVector(cDir, 1.77);
+      addSphere('Cl', cPos, sideAtomGrp);
+      addBond(bkPos[i], cPos, bondGrp);
+      totalAtoms++;
+      if (showH) {
+        const hp = bkPos[i].clone().addScaledVector(hDir, 1.09);
+        addSphere('H', hp, hGrp);
+        addBond(bkPos[i], hp, hGrp, BOND_R*.7);
+        totalAtoms++;
+      }
+
+    // ── HPh: methine CH(Ph) ───────────────────────────
+    } else if (sideDef === 'HPh') {
+      const ipsoPos = bkPos[i].clone().addScaledVector(dir1, 1.51);
+      const bbTan   = new THREE.Vector3().subVectors(bkPos[i+1], bkPos[i-1]).normalize();
+      buildPhenyl(bkPos[i], ipsoPos, bbTan, sideAtomGrp, hGrp, bondGrp, showH, merColor);
+      totalAtoms += 6;
+      if (showH) {
+        const hp = bkPos[i].clone().addScaledVector(dir2, 1.09);
+        addSphere('H', hp, hGrp);
+        addBond(bkPos[i], hp, hGrp, BOND_R*.7);
+        totalAtoms++;
+      }
+
+    // ── MeEst: PMMA quaternary C(CH₃)(COOMe) ─────────
+    // dir1: methyl C; dir2: ester C, then ester O
+    } else if (sideDef === 'MeEst') {
+      // Methyl group (dir1)
+      const mePos = bkPos[i].clone().addScaledVector(dir1, 1.54);
+      addSphere('C', mePos, sideAtomGrp, merColor);
+      addBond(bkPos[i], mePos, bondGrp);
+      totalAtoms++;
+      if (showH) {
+        terminalDirs(mePos, bkPos[i]).forEach(d => {
+          const hp = mePos.clone().addScaledVector(d, 1.09);
+          addSphere('H', hp, hGrp);
+          addBond(mePos, hp, hGrp, BOND_R*.7);
+          totalAtoms++;
+        });
+      }
+      // Ester carbonyl C (dir2, 1.52 Å)
+      const estCPos = bkPos[i].clone().addScaledVector(dir2, 1.52);
+      addSphere('C', estCPos, sideAtomGrp, merColor);
+      addBond(bkPos[i], estCPos, bondGrp);
+      totalAtoms++;
+      // Carbonyl O (=O, 1.22 Å beyond ester C, continuing dir2)
+      const estOPos = estCPos.clone().addScaledVector(dir2, 1.22);
+      addSphere('O', estOPos, sideAtomGrp);
+      addDoubleBond(estCPos, estOPos, bondGrp);
+      totalAtoms++;
+      // Ester O-CH₃: place perpendicular to dir2 from estC
+      const perp = new THREE.Vector3().crossVectors(dir2, new THREE.Vector3(0,1,0)).normalize();
+      if (perp.length() < 0.1) perp.set(1,0,0);
+      const estOm = estCPos.clone().addScaledVector(perp, 1.36);
+      addSphere('O', estOm, sideAtomGrp);
+      addBond(estCPos, estOm, bondGrp);
+      totalAtoms++;
+      // Methyl O-CH₃
+      const omcPos = estOm.clone().addScaledVector(perp, 1.43);
+      addSphere('C', omcPos, sideAtomGrp, merColor);
+      addBond(estOm, omcPos, bondGrp);
+      totalAtoms++;
+      if (showH) {
+        terminalDirs(omcPos, estOm).forEach(d => {
+          const hp = omcPos.clone().addScaledVector(d, 1.09);
+          addSphere('H', hp, hGrp);
+          addBond(omcPos, hp, hGrp, BOND_R*.7);
+          totalAtoms++;
+        });
+      }
+
+    // ── FF: difluoromethylene CF₂ ─────────────────────
+    } else if (sideDef === 'FF') {
+      [dir1, dir2].forEach(d => {
+        const fPos = bkPos[i].clone().addScaledVector(d, 1.35);
+        addSphere('F', fPos, sideAtomGrp);
+        addBond(bkPos[i], fPos, bondGrp);
+        totalAtoms++;
+      });
+
+    // ── Me: sp2 =C(CH₃) — single methyl, no H on C ───
+    } else if (sideDef === 'Me') {
+      const mePos = bkPos[i].clone().addScaledVector(dir1, 1.51);  // sp2 C-C slightly shorter
+      addSphere('C', mePos, sideAtomGrp, merColor);
+      addBond(bkPos[i], mePos, bondGrp);
+      totalAtoms++;
+      if (showH) {
+        terminalDirs(mePos, bkPos[i]).forEach(d => {
+          const hp = mePos.clone().addScaledVector(d, 1.09);
+          addSphere('H', hp, hGrp);
+          addBond(mePos, hp, hGrp, BOND_R*.7);
+          totalAtoms++;
+        });
+      }
+
+    // ── H1: sp2 =CH— single H ─────────────────────────
+    } else if (sideDef === 'H1') {
+      if (showH) {
+        const hp = bkPos[i].clone().addScaledVector(dir1, 1.08);  // sp2 C-H shorter
+        addSphere('H', hp, hGrp);
+        addBond(bkPos[i], hp, hGrp, BOND_R*.7);
+        totalAtoms++;
+      }
+
+    // ── HN: backbone N with N-H ──────────────────────
+    } else if (sideDef === 'HN') {
+      if (showH) {
+        const hp = bkPos[i].clone().addScaledVector(dir1, 1.01);  // N-H bond length
+        addSphere('H', hp, hGrp);
+        addBond(bkPos[i], hp, hGrp, BOND_R*.65);
+        totalAtoms++;
+      }
+
+    // ── C=O: backbone carbonyl (double bond) ────────
+    } else if (sideDef === 'C=O') {
+      const oPos = bkPos[i].clone().addScaledVector(dir1, 1.22);  // C=O bond length
+      addSphere('O', oPos, sideAtomGrp);
+      addDoubleBond(bkPos[i], oPos, bondGrp);
+      totalAtoms++;
+
+    // ── MeMe: PDMS Si(CH₃)₂ ─────────────────────────
+    } else if (sideDef === 'MeMe') {
+      [dir1, dir2].forEach(d => {
+        const mePos = bkPos[i].clone().addScaledVector(d, 1.87);  // Si-C bond length
+        addSphere('C', mePos, sideAtomGrp, merColor);
+        addBond(bkPos[i], mePos, bondGrp);
+        totalAtoms++;
+        if (showH) {
+          terminalDirs(mePos, bkPos[i]).forEach(hd => {
+            const hp = mePos.clone().addScaledVector(hd, 1.09);
+            addSphere('H', hp, hGrp);
+            addBond(mePos, hp, hGrp, BOND_R*.7);
+            totalAtoms++;
+          });
+        }
+      });
+
+    // ── PhBB: backbone-bridging para-phenylene ring ───────────────────────────
+    // backbone atom i = C₁ (ipso); backbone atom i+1 = C₄ (para, skipBond:true)
+    // builds C₂,C₃,C₅,C₆ as side atoms; ring bonds in both bondGrp and bbBondGrp
+    } else if (sideDef === 'PhBB') {
+      if (i + 1 < N) {
+        const C1 = bkPos[i];
+        const C4 = bkPos[i + 1];
+        const axis   = new THREE.Vector3().subVectors(C4, C1).normalize();
+        const center = C1.clone().add(C4).multiplyScalar(0.5);
+        // perpendicular to axis, in the local plane of the backbone
+        let inDir = (i > 0)
+          ? new THREE.Vector3().subVectors(C1, bkPos[i-1]).normalize()
+          : new THREE.Vector3(0,1,0);
+        let perp = new THREE.Vector3().crossVectors(axis, inDir);
+        if (perp.length() < 0.01) {
+          const ref2 = Math.abs(axis.x) < 0.9 ? new THREE.Vector3(1,0,0) : new THREE.Vector3(0,1,0);
+          perp.crossVectors(axis, ref2);
+        }
+        perp.normalize();
+        const L = 1.40;
+        const ring = [];
+        // Starting at 180° places ring[0] near C1 and ring[3] near C4
+        for (let j = 0; j < 6; j++) {
+          const angle = (180 + j * 60) * DEG;
+          ring.push(center.clone()
+            .addScaledVector(axis, L * Math.cos(angle))
+            .addScaledVector(perp, L * Math.sin(angle)));
+        }
+        ring[0] = C1.clone();   // ipso  = actual backbone C1
+        ring[3] = C4.clone();   // para  = actual backbone C4
+        // Add the 4 ortho/meta ring carbons to bbAtomGrp (visible in backbone-only mode)
+        [ring[1], ring[2], ring[4], ring[5]].forEach(p => {
+          addSphere('C', p, bbAtomGrp, merColor);
+          totalAtoms++;
+        });
+        // Ring bonds — Kekulé alternating: 0-1, 2-3, 4-5 are double
+        for (let j = 0; j < 6; j++) {
+          const from = ring[j], to = ring[(j+1)%6];
+          if (j % 2 === 0) {
+            addDoubleBond(from, to, bondGrp);
+            addDoubleBond(from, to, bbBondGrp);
+          } else {
+            addBond(from, to, bondGrp);
+            addBond(from, to, bbBondGrp);
+          }
+        }
+        // Aromatic H on ortho/meta carbons
+        if (showH) {
+          [ring[1], ring[2], ring[4], ring[5]].forEach(p => {
+            const hDir = p.clone().sub(center).normalize();
+            const hPos = p.clone().addScaledVector(hDir, 1.08);
+            addSphere('H', hPos, hGrp);
+            addBond(p, hPos, hGrp, BOND_R * 0.7);
+            totalAtoms++;
+          });
+        }
+      }
+
+    // ── HEMASide: pHEMA quaternary C(CH₃)(COOCH₂CH₂OH) ──────────────────────
+    } else if (sideDef === 'HEMASide') {
+      // Methyl group (dir1)
+      const mePos2 = bkPos[i].clone().addScaledVector(dir1, 1.54);
+      addSphere('C', mePos2, sideAtomGrp, merColor);
+      addBond(bkPos[i], mePos2, bondGrp);
+      totalAtoms++;
+      if (showH) {
+        terminalDirs(mePos2, bkPos[i]).forEach(d => {
+          const hp = mePos2.clone().addScaledVector(d, 1.09);
+          addSphere('H', hp, hGrp); addBond(mePos2, hp, hGrp, BOND_R*.7); totalAtoms++;
+        });
+      }
+      // Ester carbonyl C (dir2, 1.52 Å)
+      const eCPos = bkPos[i].clone().addScaledVector(dir2, 1.52);
+      addSphere('C', eCPos, sideAtomGrp, merColor);
+      addBond(bkPos[i], eCPos, bondGrp); totalAtoms++;
+      // Carbonyl =O (double bond, 1.22 Å along dir2)
+      const eCO = eCPos.clone().addScaledVector(dir2, 1.22);
+      addSphere('O', eCO, sideAtomGrp);
+      addDoubleBond(eCPos, eCO, bondGrp); totalAtoms++;
+      // Ester –O– bridge (perpendicular to dir2)
+      let perp3 = new THREE.Vector3().crossVectors(dir2, new THREE.Vector3(0,1,0));
+      if (perp3.length() < 0.1) perp3 = new THREE.Vector3().crossVectors(dir2, new THREE.Vector3(1,0,0));
+      perp3.normalize();
+      const eO1 = eCPos.clone().addScaledVector(perp3, 1.36);
+      addSphere('O', eO1, sideAtomGrp);
+      addBond(eCPos, eO1, bondGrp); totalAtoms++;
+      // –CH₂– (a)
+      const eC2a = eO1.clone().addScaledVector(perp3, 1.43);
+      addSphere('C', eC2a, sideAtomGrp, merColor);
+      addBond(eO1, eC2a, bondGrp); totalAtoms++;
+      if (showH) {
+        terminalDirs(eC2a, eO1).slice(0,2).forEach(d => {
+          const hp = eC2a.clone().addScaledVector(d, 1.09);
+          addSphere('H', hp, hGrp); addBond(eC2a, hp, hGrp, BOND_R*.7); totalAtoms++;
+        });
+      }
+      // –CH₂– (b)
+      const eC2b = eC2a.clone().addScaledVector(perp3, 1.54);
+      addSphere('C', eC2b, sideAtomGrp, merColor);
+      addBond(eC2a, eC2b, bondGrp); totalAtoms++;
+      if (showH) {
+        terminalDirs(eC2b, eC2a).slice(0,2).forEach(d => {
+          const hp = eC2b.clone().addScaledVector(d, 1.09);
+          addSphere('H', hp, hGrp); addBond(eC2b, hp, hGrp, BOND_R*.7); totalAtoms++;
+        });
+      }
+      // –OH terminal
+      const eOH = eC2b.clone().addScaledVector(perp3, 1.43);
+      addSphere('O', eOH, sideAtomGrp);
+      addBond(eC2b, eOH, bondGrp); totalAtoms++;
+      if (showH) {
+        const hODir = new THREE.Vector3().crossVectors(perp3, dir2).normalize();
+        const hOPos = eOH.clone().addScaledVector(hODir, 0.96);
+        addSphere('H', hOPos, hGrp); addBond(eOH, hOPos, hGrp, BOND_R*.65); totalAtoms++;
+      }
+    }
+  }
+
+  return { bbAtomGrp, sideAtomGrp, hGrp, bondGrp, bbBondGrp, extent, totalAtoms };
+}
+
+// ═══════════════════════════════════════════════════
+//  THREE.JS SCENE
+// ═══════════════════════════════════════════════════
+const wrap     = document.getElementById('canvas-wrap');
+const scene    = new THREE.Scene();
+scene.background = new THREE.Color(0x12131a);
+scene.fog = new THREE.FogExp2(0x12131a, 0.0025);
+
+const camera   = new THREE.PerspectiveCamera(40, wrap.clientWidth/wrap.clientHeight, .05, 600);
+camera.position.set(0, 12, 45);
+
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+wrap.appendChild(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.07;
+controls.target.set(0,0,0); controls.update();
+
+scene.add(new THREE.AmbientLight(0xffffff, .42));
+const sun  = new THREE.DirectionalLight(0xffffff, .88); sun.position.set(8,12,10);  scene.add(sun);
+const fill = new THREE.DirectionalLight(0x8899ff, .20); fill.position.set(-6,-5,-9); scene.add(fill);
+const rim  = new THREE.DirectionalLight(0xffeedd, .12); rim.position.set(0,-8,-12);  scene.add(rim);
+
+// ═══════════════════════════════════════════════════
+//  APP STATE
+// ═══════════════════════════════════════════════════
+let activeKey    = 'aPP';
+let numMers      = 30;
+let showH        = false;
+let autoSpin     = false;
+let backboneOnly = false;
+let colourMers   = false;
+let conformMode  = 'crystal';
+let chainGroup   = null;
+
+function activeCat() { return POLYMERS[activeKey] ? POLYMERS[activeKey].cat : 'addition'; }
+
+function updateInfoPanel(key, mode) {
+  const p    = POLYMERS[key];
+  const info = p.info[mode] || p.info.crystal;
+  document.getElementById('inf-name').textContent    = p.name;
+  document.getElementById('inf-formula').textContent = p.formula;
+  document.getElementById('inf-synth').textContent   = p.synth;
+  document.getElementById('inf-conf').textContent    = (p.conf[mode] || p.conf.crystal);
+  document.getElementById('inf-tg').textContent      = info.Tg;
+  document.getElementById('inf-tm').textContent      = info.Tm;
+  document.getElementById('inf-density').textContent = info.density;
+  document.getElementById('inf-desc').textContent    = info.desc;
+  const badgeText = p.badge[mode] || p.badge.crystal;
+  const badgeEl   = document.getElementById('badge');
+  badgeEl.textContent = badgeText;
+  // Badge colour: cat + mode
+  const cat = p.cat;
+  badgeEl.className = 'badge'
+    + (cat === 'condensation' ? ' condensation' : '')
+    + (mode === 'amorphous'   ? ' amorphous'    : '');
+}
+
+function frameCamera(extent) {
+  const dist = Math.max(extent * 3.2, 18);
+  camera.position.set(dist*.15, dist*.45, dist);
+  controls.target.set(0,0,0);
+  controls.update();
+}
+
+function rebuildChain() {
+  const nBk       = numMers * POLYMERS[activeKey].backbone.length;
+  const hasPhenyl = POLYMERS[activeKey].backbone.some(b => b.side === 'HPh');
+  const hasMeEst  = POLYMERS[activeKey].backbone.some(b => b.side === 'MeEst' || b.side === 'HEMASide');
+  const nPhBB     = POLYMERS[activeKey].backbone.filter(b => b.side === 'PhBB').length;  // rings/mer
+  const gLoad     = nBk * (hasPhenyl ? 4 : nPhBB > 0 ? (2 + nPhBB) : hasMeEst ? 3 : 1);
+  _ql = gLoad > 400 ? 2 : gLoad > 200 ? 1 : 0;
+  document.getElementById('perf-warn').style.display = (_ql > 0) ? 'block' : 'none';
+
+  if (chainGroup) { disposeGroup(chainGroup); scene.remove(chainGroup); }
+  chainGroup = new THREE.Group();
+
+  const { bbAtomGrp, sideAtomGrp, hGrp, bondGrp, bbBondGrp, extent, totalAtoms }
+    = buildChain(activeKey, numMers, showH, colourMers, conformMode);
+
+  if (backboneOnly) {
+    chainGroup.add(bbAtomGrp); chainGroup.add(bbBondGrp);
+    disposeGroup(bondGrp);
+  } else {
+    chainGroup.add(bbAtomGrp); chainGroup.add(sideAtomGrp); chainGroup.add(bondGrp);
+    if (showH) chainGroup.add(hGrp); else disposeGroup(hGrp);
+  }
+  scene.add(chainGroup);
+  frameCamera(extent);
+
+  const nBkDisp = numMers * POLYMERS[activeKey].backbone.length;
+  document.getElementById('atom-count-badge').textContent =
+    `${numMers} mer units · ${nBkDisp} backbone atoms` +
+    (showH ? ` · ${totalAtoms} total (with H)` : '');
+}
+
+// ═══════════════════════════════════════════════════
+//  UI HANDLERS
+// ═══════════════════════════════════════════════════
+document.querySelectorAll('.poly-btn:not(.disabled)').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.poly-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeKey = btn.dataset.key;
+    updateInfoPanel(activeKey, conformMode);
+    rebuildChain();
+  });
+});
+
+document.getElementById('btn-crystal').addEventListener('click', function () {
+  conformMode = 'crystal';
+  this.classList.add('active');
+  document.getElementById('btn-amor').classList.remove('active');
+  updateInfoPanel(activeKey, conformMode);
+  rebuildChain();
+});
+document.getElementById('btn-amor').addEventListener('click', function () {
+  conformMode = 'amorphous';
+  this.classList.add('active');
+  document.getElementById('btn-crystal').classList.remove('active');
+  updateInfoPanel(activeKey, conformMode);
+  rebuildChain();
+});
+
+const merSlider = document.getElementById('mer-slider');
+const merValEl  = document.getElementById('mer-val');
+merSlider.addEventListener('input', () => {
+  numMers = parseInt(merSlider.value, 10);
+  merValEl.textContent = numMers;
+  rebuildChain();
+});
+
+document.getElementById('btn-H').addEventListener('click', function () {
+  showH = !showH; this.classList.toggle('on', showH); rebuildChain();
+});
+document.getElementById('btn-spin').addEventListener('click', function () {
+  autoSpin = !autoSpin; this.classList.toggle('on', autoSpin);
+});
+document.getElementById('btn-backbone').addEventListener('click', function () {
+  backboneOnly = !backboneOnly; this.classList.toggle('on', backboneOnly); rebuildChain();
+});
+document.getElementById('btn-mers').addEventListener('click', function () {
+  colourMers = !colourMers; this.classList.toggle('on', colourMers); rebuildChain();
+});
+
+renderer.domElement.addEventListener('dblclick', () => {
+  if (chainGroup) {
+    let maxD = 0;
+    chainGroup.traverse(o => { if (o.isMesh) { const d=o.position.length(); if(d>maxD)maxD=d; } });
+    frameCamera(maxD);
+  }
+});
+
+window.addEventListener('resize', () => {
+  camera.aspect = wrap.clientWidth / wrap.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+});
+
+// ═══════════════════════════════════════════════════
+//  ANIMATION LOOP
+// ═══════════════════════════════════════════════════
+function animate() {
+  requestAnimationFrame(animate);
+  if (autoSpin && chainGroup) chainGroup.rotation.y += 0.005;
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+updateInfoPanel(activeKey, conformMode);
+rebuildChain();
+animate();
+</script>
+</body>
+</html>

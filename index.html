@@ -370,9 +370,9 @@
 
         <div class="about-grid">
             <div class="about-photo">
-                <img src="https://wne.edu/directory/img/Gettens-400x500.jpg"
+                <img src="Pictures/headshot.jpg"
                      alt="Dr. G (Robert Gettens), Professor and Department Chair of Biomedical Engineering, WNE"
-                     onerror="this.parentElement.innerHTML='<div class=\'about-photo-placeholder\'><div class=\'initials\'>RG</div><p>Dr. G</p></div>'">
+                     onerror="if(this.src.indexOf('headshot')!==-1){this.src='https://wne.edu/directory/img/Gettens-400x500.jpg';}else{this.parentElement.innerHTML='<div class=\'about-photo-placeholder\'><div class=\'initials\'>RG</div><p>Dr. G</p></div>';}">
                 <p class="about-photo-sub">Professor &amp; Department Chair<br>Biomedical Engineering &bull; WNE</p>
             </div>
             <div class="about-text">
@@ -668,9 +668,60 @@
                         </div>
                     </div>
                 </a>
+
+                <!-- ── Polymer Chain Viewer card ── -->
+                <a href="biomaterials/polymer-viewer.html" target="_blank" style="text-decoration:none;">
+                    <div style="background:linear-gradient(135deg,#0d1a10,#142b18);
+                                border-radius:12px; padding:24px 22px; color:white;
+                                box-shadow:0 4px 18px rgba(0,100,40,0.22);
+                                border:1px solid rgba(0,180,80,0.35);
+                                transition:transform 0.2s, box-shadow 0.2s;
+                                position:relative; overflow:hidden;"
+                         onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 28px rgba(0,140,60,0.38)'"
+                         onmouseout="this.style.transform='';this.style.boxShadow='0 4px 18px rgba(0,100,40,0.22)'">
+                        <!-- decorative accent -->
+                        <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;
+                                    background:rgba(0,180,80,0.12);border-radius:50%;"></div>
+                        <div style="font-size:2.2rem; margin-bottom:10px;">🧬</div>
+                        <div style="font-size:0.65rem; font-weight:700; letter-spacing:2px;
+                                    color:#66dd99; text-transform:uppercase; margin-bottom:6px;">
+                            Polymer Science &bull; Macromolecules
+                        </div>
+                        <h4 style="font-size:1.1rem; margin-bottom:8px; color:#fff;">
+                            3D Polymer Chain Viewer
+                        </h4>
+                        <p style="font-size:0.85rem; color:rgba(255,255,255,0.75); line-height:1.6; margin-bottom:14px;">
+                            15 polymer chains (addition: aPP, iPP, aPS, iPS, PVC, PMMA, PTFE, PI, pHEMA;
+                            condensation: iPLA, Nylon&nbsp;6,6, PDMS, PEO, PET, PEEK) &mdash; built atom-by-atom
+                            using the NERF algorithm. Double bonds shown as golden paired cylinders.
+                            Crystal &amp; amorphous modes, 1&ndash;200 mer units.
+                        </p>
+                        <div style="display:flex; gap:7px; flex-wrap:wrap;">
+                            <span style="background:rgba(0,160,70,0.30); border:1px solid rgba(0,180,80,0.55);
+                                         border-radius:20px; padding:3px 10px; font-size:0.72rem; color:#99ffcc;">
+                                15 Polymers
+                            </span>
+                            <span style="background:rgba(0,160,70,0.30); border:1px solid rgba(0,180,80,0.55);
+                                         border-radius:20px; padding:3px 10px; font-size:0.72rem; color:#99ffcc;">
+                                Addition &amp; Condensation
+                            </span>
+                            <span style="background:rgba(0,160,70,0.30); border:1px solid rgba(0,180,80,0.55);
+                                         border-radius:20px; padding:3px 10px; font-size:0.72rem; color:#99ffcc;">
+                                Double Bonds &#x2550;
+                            </span>
+                            <span style="background:rgba(0,160,70,0.30); border:1px solid rgba(0,180,80,0.55);
+                                         border-radius:20px; padding:3px 10px; font-size:0.72rem; color:#99ffcc;">
+                                1&ndash;200 mer
+                            </span>
+                        </div>
+                        <div style="margin-top:16px; font-size:0.8rem; color:#66dd99; font-weight:600;">
+                            Open Viewer &rarr;
+                        </div>
+                    </div>
+                </a>
             </div>
             <p style="color:#888; font-size:0.78rem; font-family:'Courier New',monospace; margin-top:6px;">
-                &#128302; More tools coming &mdash; add yours to the collection.
+                &#128302; Crystal &amp; polymer structure tools &mdash; more coming.
             </p>
         </div>
 
