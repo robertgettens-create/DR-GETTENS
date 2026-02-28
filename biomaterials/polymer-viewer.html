@@ -141,7 +141,8 @@
   <div>
     <div class="cat-label addition">Addition / Chain-Growth</div>
     <div class="poly-grid">
-      <button class="poly-btn addition active" data-key="aPP"  data-cat="addition">Atactic<br>PP<br><small>Random coil</small></button>
+      <button class="poly-btn addition active" data-key="PE"   data-cat="addition">Poly-<br>ethylene<br><small>Simplest chain</small></button>
+      <button class="poly-btn addition"        data-key="aPP"  data-cat="addition">Atactic<br>PP<br><small>Random coil</small></button>
       <button class="poly-btn addition"        data-key="iPP"  data-cat="addition">Isotactic<br>PP<br><small>3₁ helix</small></button>
       <button class="poly-btn addition"        data-key="aPS"  data-cat="addition">Atactic<br>PS<br><small>Random coil</small></button>
       <button class="poly-btn addition"        data-key="iPS"  data-cat="addition">Isotactic<br>PS<br><small>3₁ helix</small></button>
@@ -474,6 +475,27 @@ const POLYMERS = {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   //  ADDITION POLYMERS
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  PE: {
+    name: 'Polyethylene', cat: 'addition',
+    formula: '—(CH₂—CH₂)ₙ—',
+    synth: 'Free-radical (LDPE) / Ziegler-Natta or metallocene (HDPE)',
+    ba: '112°',
+    badge:   { crystal:'PE · All-trans planar zigzag', amorphous:'PE · Amorphous random coil' },
+    conf:    { crystal:'All-trans planar zigzag', amorphous:'Random coil (T / G± mixture)' },
+    backbone: [
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH' },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH' },
+    ],
+    dihedralFn:  () => T,
+    amorphousFn: amorFn(7),
+    info: {
+      crystal:   { Tg:'~−120 °C', Tm:'~137 °C (HDPE) / 115 °C (LDPE)', density:'1.00 g/cm³ (xtal)',
+        desc:'The simplest polymer: a pure carbon backbone with two hydrogens at every carbon. In the crystal, all backbone dihedrals are trans (180°), giving the perfectly flat planar zigzag — the textbook reference conformation. HDPE (high-density PE) is ~70–90 % crystalline with few branches; LDPE has many short branches that disrupt packing. PE is the world\'s highest-volume plastic.' },
+      amorphous: { Tg:'~−120 °C', Tm:'— (amorphous / melt)', density:'0.85 g/cm³',
+        desc:'The amorphous fraction of PE is rubbery far above its Tg (−120 °C), contributing toughness and flexibility. In LDPE, the high branch content keeps crystallinity low (~40–50 %), giving a soft, flexible film material (bread bags, cling film). Compare with HDPE or the crystal mode to see how conformation drives density.' },
+    },
+  },
 
   aPP: {
     name: 'Atactic Polypropylene', cat: 'addition',
@@ -1270,7 +1292,7 @@ const rim  = new THREE.DirectionalLight(0xffeedd, .12); rim.position.set(0,-8,-1
 // ═══════════════════════════════════════════════════
 //  APP STATE
 // ═══════════════════════════════════════════════════
-let activeKey    = 'aPP';
+let activeKey    = 'PE';
 let numMers      = 30;
 let showH        = false;
 let autoSpin     = false;
