@@ -1,0 +1,1737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manufacturing Processes</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #12131a;
+      color: #dde1f0;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #sidebar {
+      width: 270px;
+      min-width: 270px;
+      background: #1a1d2e;
+      border-right: 1px solid #2a2d45;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 20px 16px;
+      overflow-y: auto;
+    }
+    #sidebar h1 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #7eb8f7;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      border-bottom: 1px solid #2a2d45;
+      padding-bottom: 12px;
+    }
+    .section-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #5a6080;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 7px;
+    }
+
+    /* 3-column category grid */
+    .cat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+    }
+    .cat-btn {
+      padding: 9px 4px;
+      background: #1e2238;
+      border: 1px solid #2e3355;
+      border-radius: 7px;
+      color: #9ba8c8;
+      cursor: pointer;
+      font-size: 0.70rem;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.35;
+      transition: background .18s, border-color .18s, color .18s;
+    }
+    .cat-btn:hover { background:#253060; border-color:#4a6bcc; color:#c8d8ff; }
+    .cat-btn.active { background:#2751b8; border-color:#4a79ff; color:#fff; }
+
+    /* Sub-process list */
+    .sub-grid { display: flex; flex-direction: column; gap: 5px; }
+    .sub-btn {
+      padding: 8px 10px;
+      background: #1e2238;
+      border: 1px solid #2e3355;
+      border-radius: 7px;
+      color: #9ba8c8;
+      cursor: pointer;
+      font-size: 0.74rem;
+      font-weight: 600;
+      text-align: left;
+      transition: background .18s, border-color .18s, color .18s;
+    }
+    .sub-btn:hover { background:#253060; border-color:#4a6bcc; color:#c8d8ff; }
+    .sub-btn.active { background:#0e4a2a; border-color:#2aaa66; color:#66ffbb; }
+
+    /* Info panel */
+    .info-panel {
+      background: #1e2238;
+      border: 1px solid #2a2d45;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.78rem;
+      line-height: 2;
+    }
+    .info-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .info-key { color: #5a6080; font-size: 0.71rem; white-space: nowrap; }
+    .info-val { color: #c8d8ff; font-weight: 600; font-size: 0.74rem; text-align: right; }
+
+    /* Controls */
+    .ctrl-row { display: flex; gap: 8px; }
+    .ctrl-btn {
+      flex: 1;
+      padding: 8px;
+      background: #1e2238;
+      border: 1px solid #2e3355;
+      border-radius: 7px;
+      color: #9ba8c8;
+      cursor: pointer;
+      font-size: 0.76rem;
+      font-weight: 600;
+      transition: background .18s, border-color .18s, color .18s;
+    }
+    .ctrl-btn:hover { background:#253060; border-color:#4a6bcc; color:#c8d8ff; }
+    .ctrl-btn.running { background:#2751b8; border-color:#4a79ff; color:#fff; }
+
+    .spd-row { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .spd-lbl { display: flex; justify-content: space-between; font-size: .73rem; }
+    .spd-lbl span:first-child { color:#6878a0; }
+    .spd-lbl span:last-child  { color:#c8d8ff; font-weight:600; }
+    input[type=range] { width:100%; accent-color:#4a79ff; }
+
+    .hint { font-size:.71rem; color:#454a65; line-height:1.85; }
+
+    /* Canvas */
+    #canvas-wrap { flex:1; position:relative; overflow:hidden; background:#0d0f1a; }
+    canvas { display:block; }
+    .stage-badge {
+      position:absolute; top:12px; right:14px;
+      background:rgba(39,81,184,.25); border:1px solid #2751b8;
+      border-radius:5px; padding:4px 12px;
+      font-size:.72rem; color:#7eb8f7; pointer-events:none;
+    }
+  </style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>Manufacturing<br>Processes</h1>
+
+  <div>
+    <div class="section-label">Category</div>
+    <div class="cat-grid">
+      <button class="cat-btn active" data-cat="casting">Casting</button>
+      <button class="cat-btn"        data-cat="forming">Forming</button>
+      <button class="cat-btn"        data-cat="molding">Molding</button>
+      <button class="cat-btn"        data-cat="machining">Machining</button>
+      <button class="cat-btn"        data-cat="joining">Joining</button>
+      <button class="cat-btn"        data-cat="additive">Additive</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">Process</div>
+    <div class="sub-grid" id="sub-grid"></div>
+  </div>
+
+  <div>
+    <div class="section-label">Info</div>
+    <div class="info-panel">
+      <div class="info-row"><span class="info-key">Process</span>    <span class="info-val" id="inf-name">Sand Casting</span></div>
+      <div class="info-row"><span class="info-key">Materials</span>   <span class="info-val" id="inf-mat">Metals, Alloys</span></div>
+      <div class="info-row"><span class="info-key">Temperature</span> <span class="info-val" id="inf-temp">700–1600 °C</span></div>
+      <div class="info-row"><span class="info-key">Stage</span>        <span class="info-val" id="inf-stage">—</span></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">Controls</div>
+    <div class="ctrl-row">
+      <button class="ctrl-btn running" id="btn-play">⏸ Pause</button>
+      <button class="ctrl-btn"          id="btn-reset">↺ Reset</button>
+    </div>
+    <div class="spd-row">
+      <div class="spd-lbl"><span>Speed</span><span id="spd-val">1×</span></div>
+      <input type="range" id="spd-slider" min="0.25" max="4" step="0.25" value="1">
+    </div>
+  </div>
+
+  <p class="hint">Animated 2D schematic cross-sections of the six main manufacturing process families, inspired by <em>The Efficient Engineer</em>.</p>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="canvas"></canvas>
+  <div class="stage-badge" id="stage-badge">Sand Casting · Filling</div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  CANVAS
+// ══════════════════════════════════════
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+let W = 0, H = 0;
+
+// Declare these here so resizeCanvas can safely reference them
+let currentSim = null, running = true, speed = 1, animId = null, lastTs = 0;
+
+function resizeCanvas() {
+  const wrap = document.getElementById('canvas-wrap');
+  W = canvas.width  = wrap.clientWidth;
+  H = canvas.height = wrap.clientHeight;
+  if (currentSim) currentSim.onResize();
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ══════════════════════════════════════
+//  UTILITIES
+// ══════════════════════════════════════
+const lerp  = (a,b,t) => a+(b-a)*t;
+const clamp = (v,lo,hi) => Math.max(lo,Math.min(hi,v));
+const sat   = t => clamp(t,0,1);
+const ease  = t => t<.5 ? 2*t*t : -1+(4-2*t)*t;
+const easeO = t => t*(2-t);
+
+function rrect(x,y,w,h,r=6){
+  r=Math.min(r,w/2,h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+
+function arrow(x1,y1,x2,y2,col='#ffc040',lw=2,hs=10){
+  const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy);
+  if(len<1) return;
+  const ux=dx/len,uy=dy/len;
+  ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=lw;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.fillStyle=col; ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-hs*(ux+uy*.45),y2-hs*(uy-ux*.45));
+  ctx.lineTo(x2-hs*(ux-uy*.45),y2-hs*(uy+ux*.45));
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+
+function lbl(text,x,y,{align='center',color='#8090b4',size=11,bold=false}={}){
+  ctx.save();
+  ctx.font=`${bold?'700 ':''}${size}px 'Segoe UI',sans-serif`;
+  ctx.fillStyle=color; ctx.textAlign=align;
+  ctx.fillText(text,x,y); ctx.restore();
+}
+
+function hatch(x,y,w,h,sp=9,col='rgba(0,0,0,.35)'){
+  ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=1;
+  ctx.beginPath();
+  const d=Math.hypot(w,h);
+  for(let i=-d;i<d*2;i+=sp){
+    ctx.moveTo(x+i, y); ctx.lineTo(x+i-h, y+h);
+  }
+  ctx.save(); ctx.beginPath(); ctx.rect(x,y,w,h); ctx.clip(); ctx.stroke();
+  ctx.restore(); ctx.restore();
+}
+
+function grid(){
+  ctx.fillStyle='#0d0f1a'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,.028)'; ctx.lineWidth=1;
+  ctx.beginPath();
+  for(let x=0;x<=W;x+=40){ctx.moveTo(x,0);ctx.lineTo(x,H);}
+  for(let y=0;y<=H;y+=40){ctx.moveTo(0,y);ctx.lineTo(W,y);}
+  ctx.stroke();
+}
+
+// Thin-line rotational motion indicator on a circle
+function spinMark(cx,cy,r,t,col='rgba(200,220,255,.4)'){
+  ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=1.5;
+  for(let i=0;i<8;i++){
+    const a=(i/8)*Math.PI*2+t*Math.PI*6;
+    ctx.beginPath();
+    ctx.moveTo(cx+(r*.55)*Math.cos(a),cy+(r*.55)*Math.sin(a));
+    ctx.lineTo(cx+r*.9*Math.cos(a),cy+r*.9*Math.sin(a));
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Molten-material color (orange→dark red as it solidifies)
+function moltCol(solid){
+  const r=lerp(255,140,solid), g=lerp(120,50,solid), b=lerp(0,20,solid);
+  return `rgb(${r|0},${g|0},${b|0})`;
+}
+
+// ══════════════════════════════════════
+//  ANIMATION FRAMEWORK
+// ══════════════════════════════════════
+// (currentSim, running, speed, animId, lastTs declared near top with canvas setup)
+
+function animate(ts){
+  const dt=Math.min((ts-lastTs)/1000,.05)*speed;
+  lastTs=ts;
+  try {
+    if(running && currentSim) currentSim.step(dt);
+    if(currentSim) currentSim.draw();
+  } catch(e) {
+    document.getElementById('stage-badge').textContent = 'ERR: ' + e.message;
+    console.error('animate error:', e);
+  }
+  animId=requestAnimationFrame(animate);
+}
+
+function loadSim(sim){
+  if(currentSim && currentSim.cleanup) currentSim.cleanup();
+  currentSim=sim;
+  sim.init();
+  document.getElementById('inf-name').textContent  = sim.meta.name;
+  document.getElementById('inf-mat').textContent   = sim.meta.mat;
+  document.getElementById('inf-temp').textContent  = sim.meta.temp;
+  document.getElementById('inf-stage').textContent = '—';
+}
+
+function setStage(stage,simName){
+  document.getElementById('inf-stage').textContent=stage;
+  document.getElementById('stage-badge').textContent=`${simName} · ${stage}`;
+}
+
+// ══════════════════════════════════════
+//  CASTING — SAND CASTING
+// ══════════════════════════════════════
+const SandCasting = {
+  meta:{name:'Sand Casting',mat:'Metals, Alloys',temp:'700–1600 °C',cat:'Casting'},
+  t:0, period:9,
+  init(){ this.t=0; },
+  onResize(){},
+  step(dt){ this.t=(this.t+dt/this.period)%1; },
+  draw(){
+    grid();
+    const cx=W/2, cy=H/2;
+    const mw=Math.min(W*.60,420), mh=Math.min(H*.60,340);
+    const mx=cx-mw/2, my=cy-mh/2;
+    const halfH=mh/2, t=this.t;
+    let phase, stageName;
+    if(t<.10){phase=0;stageName='Empty mold';}
+    else if(t<.52){phase=1;stageName='Filling cavity';}
+    else if(t<.68){phase=2;stageName='Solidifying';}
+    else if(t<.82){phase=3;stageName='Removing cope';}
+    else{phase=4;stageName='Cast part'}
+    setStage(stageName,'Sand Casting');
+
+    const copeRise=(phase>=3)?easeO(sat((t-.68)/.14))*H*.18:0;
+
+    // ── DRAG (stays put) ──
+    ctx.fillStyle='#5c4828'; rrect(mx,my+halfH,mw,halfH,5); ctx.fill();
+    hatch(mx,my+halfH,mw,halfH,10,'rgba(0,0,0,.3)');
+    ctx.strokeStyle='#3a2c10'; ctx.lineWidth=2; rrect(mx,my+halfH,mw,halfH,5); ctx.stroke();
+
+    // Drag cavity cutout (the lower half of part shape)
+    const cvW=mw*.38, cvH=halfH*.52;
+    const cvX=cx-cvW/2, cvY=my+halfH;
+    ctx.fillStyle='#0d0f1a'; ctx.fillRect(cvX,cvY,cvW,cvH);
+    // Runner from sprue to cavity
+    const spX=mx+mw*.14, spW=mw*.038;
+    const runY=my+halfH, runLen=cvX-(spX+spW*.5);
+    ctx.fillStyle='#0d0f1a'; ctx.fillRect(spX+spW*.5,runY,runLen,halfH*.07);
+    // Sprue hole in drag bottom
+    ctx.fillStyle='#0d0f1a'; ctx.fillRect(spX-spW/2,my+halfH,spW,halfH*.55);
+
+    // ── COPE (lifts in phase 3) ──
+    ctx.save(); ctx.translate(0,-copeRise);
+    ctx.fillStyle='#5c4828'; rrect(mx,my,mw,halfH,5); ctx.fill();
+    hatch(mx,my,mw,halfH,10,'rgba(0,0,0,.3)');
+    ctx.strokeStyle='#3a2c10'; ctx.lineWidth=2; rrect(mx,my,mw,halfH,5); ctx.stroke();
+    // Cope cavity cutout (upper half of part)
+    ctx.fillStyle='#0d0f1a'; ctx.fillRect(cvX,my+halfH-cvH*.5,cvW,cvH*.5);
+    // Sprue hole in cope
+    ctx.fillStyle='#0d0f1a'; ctx.fillRect(spX-spW/2,my,spW,halfH);
+    ctx.restore();
+
+    // ── PARTING LINE ──
+    ctx.setLineDash([5,4]); ctx.strokeStyle='rgba(120,140,180,.45)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(mx,my+halfH); ctx.lineTo(mx+mw,my+halfH); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // ── MOLTEN METAL ──
+    if(phase>=1){
+      const ff=sat((t-.10)/.42), solid=phase>=2?sat((t-.52)/.16):0;
+      const col=moltCol(solid);
+
+      // Ladle pour
+      if(ff<.25){
+        const ladX=spX, ladY=my-28;
+        ctx.fillStyle='#4a5a70'; ctx.beginPath();
+        ctx.ellipse(ladX,ladY-8,18,11,0,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle=col; ctx.lineWidth=5;
+        ctx.beginPath(); ctx.moveTo(ladX,ladY+3); ctx.lineTo(ladX,my+2); ctx.stroke();
+      }
+
+      // Fill sprue from top
+      const spFrac=sat(ff*3);
+      ctx.fillStyle=col;
+      ctx.fillRect(spX-spW*.5, my+halfH*(1-spFrac), spW, halfH*spFrac);
+
+      // Fill runner
+      const rFrac=sat((ff-.12)/.35);
+      ctx.fillStyle=col; ctx.fillRect(spX+spW*.5,runY,runLen*rFrac,halfH*.07);
+
+      // Fill cavity (rises from bottom)
+      const cFrac=ease(sat((ff-.28)/.72));
+      const fillH=cvH*cFrac;
+      ctx.fillStyle=col; ctx.fillRect(cvX,cvY+cvH-fillH,cvW,fillH);
+    }
+
+    // Finished part
+    if(phase>=4){
+      const a=sat((t-.82)/.10);
+      ctx.fillStyle=`rgba(140,160,180,${a})`; ctx.strokeStyle=`rgba(80,100,130,${a})`;
+      ctx.lineWidth=1.5;
+      ctx.fillRect(cvX,cvY,cvW,cvH); ctx.strokeRect(cvX,cvY,cvW,cvH);
+    }
+
+    // ── LABELS ──
+    lbl('COPE',  mx-6, my+halfH*.5+4, {align:'right',color:'#7a6840',size:10});
+    lbl('DRAG',  mx-6, my+halfH*1.5+4,{align:'right',color:'#7a6840',size:10});
+    lbl('Sprue', spX+spW+4, my+halfH*.35,{align:'left',color:'#6878a0',size:10});
+    lbl('Runner',cx-cvW*.2,  runY+halfH*.10+8,{align:'center',color:'#6878a0',size:10});
+    lbl('Cavity',cx,cvY+cvH*.5+5,{align:'center',color:'#6878a0',size:10});
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
+//  CASTING — DIE CASTING
+// ══════════════════════════════════════
+const DieCasting = {
+  meta:{name:'Die Casting',mat:'Zn, Al, Mg alloys',temp:'400–700 °C',cat:'Casting'},
+  t:0, period:7,
+  init(){ this.t=0; },
+  onResize(){},
+  step(dt){ this.t=(this.t+dt/this.period)%1; },
+  draw(){
+    grid();
+    const cx=W/2, cy=H/2, t=this.t;
+    let phase, stageName;
+    if(t<.08){phase=0;stageName='Dies open';}
+    else if(t<.22){phase=1;stageName='Dies closing';}
+    else if(t<.55){phase=2;stageName='Injection';}
+    else if(t<.72){phase=3;stageName='Solidifying';}
+    else if(t<.88){phase=4;stageName='Dies opening';}
+    else{phase=5;stageName='Part ejected';}
+    setStage(stageName,'Die Casting');
+
+    const dw=Math.min(W*.22,140), dh=Math.min(H*.54,260);
+    // Gap between die halves
+    const openGap=(phase<=1)?lerp(W*.10,2,ease(sat((t-.08)/.14))):
+                 (phase>=4)?lerp(2,W*.10,ease(sat((t-.72)/.16))):2;
+    const lx=cx-dw-openGap, rx=cx+openGap;
+
+    // Left die
+    ctx.fillStyle='#2d3d58'; rrect(lx,cy-dh/2,dw,dh,5); ctx.fill();
+    hatch(lx,cy-dh/2,dw,dh,10,'rgba(255,255,255,.05)');
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(lx,cy-dh/2,dw,dh,5); ctx.stroke();
+
+    // Right die
+    ctx.fillStyle='#2d3d58'; rrect(rx,cy-dh/2,dw,dh,5); ctx.fill();
+    hatch(rx,cy-dh/2,dw,dh,10,'rgba(255,255,255,.05)');
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(rx,cy-dh/2,dw,dh,5); ctx.stroke();
+
+    // Cavity (carved into die faces)
+    const cvW=openGap+2, cvH=dh*.45;
+    const cvX=lx+dw-.5, cvY=cy-cvH/2;
+    if(openGap<20){
+      ctx.fillStyle='#0d0f1a'; ctx.fillRect(cvX,cvY,cvW,cvH);
+    }
+
+    // Injection shot sleeve on right side
+    const slW=W*.12, slH=dh*.12;
+    const slX=rx+dw, slY=cy-slH/2;
+    ctx.fillStyle='#1e2a40'; rrect(slX,slY,slW,slH,3); ctx.fill();
+    ctx.strokeStyle='#3a5080'; ctx.lineWidth=1.5; rrect(slX,slY,slW,slH,3); ctx.stroke();
+    // Plunger
+    const plungAdv=(phase>=2)?ease(sat((t-.22)/.20)):0;
+    const plX=slX+slW-slW*.2-slW*.6*plungAdv;
+    ctx.fillStyle='#5a7aaa'; ctx.fillRect(plX,slY+2,slW*.2,slH-4);
+
+    // Gate from sleeve to cavity
+    const gateW=openGap+2, gateH=slH*.5;
+    if(openGap<20){
+      ctx.fillStyle='#0d0f1a'; ctx.fillRect(cvX,cy-gateH/2,gateW,gateH);
+    }
+
+    // Molten metal in cavity
+    if(phase>=2 && openGap<20){
+      const ff=ease(sat((t-.22)/.25));
+      const solid=phase>=3?sat((t-.55)/.17):0;
+      const col=moltCol(solid);
+      ctx.fillStyle=col; ctx.fillRect(cvX,cvY+cvH*(1-ff),cvW,cvH*ff);
+      // Also fill gate
+      ctx.fillStyle=col; ctx.fillRect(rx,cy-gateH/2,openGap+2,gateH);
+    }
+
+    // Ejection pins + part
+    if(phase>=5){
+      const a=sat((t-.88)/.08);
+      ctx.fillStyle=`rgba(140,160,180,${a})`;
+      ctx.fillRect(cx-cvW*.4,cy-cvH/2,cvW*.8,cvH);
+      // Ejector pins pushing right
+      for(let py=0;py<3;py++){
+        const pinY=cvY+cvH*.2+py*cvH*.3;
+        ctx.fillStyle=`rgba(170,190,220,${a})`;
+        ctx.fillRect(lx+dw,pinY,8,4);
+      }
+    }
+
+    // ── LABELS ──
+    lbl('Fixed Die', lx+dw*.5, cy-dh/2-12,{align:'center',color:'#5a7090',size:10});
+    lbl('Moving Die',rx+dw*.5, cy-dh/2-12,{align:'center',color:'#5a7090',size:10});
+    lbl('Shot Sleeve',slX+slW*.5,slY-10,{align:'center',color:'#5a7090',size:10});
+    lbl('Plunger',plX,slY+slH+14,{align:'center',color:'#6878a0',size:10});
+    if(openGap<30) lbl('Cavity',cx,cy+cvH/2+16,{align:'center',color:'#6878a0',size:10});
+    // closing arrow
+    if(phase===1){
+      arrow(rx+dw*.3,cy,rx+2,cy,'#ffc040',2,8);
+      arrow(lx+dw*.7,cy,lx+dw-2,cy,'#ffc040',2,8);
+    }
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
+//  FORMING — ROLLING
+// ══════════════════════════════════════
+const Rolling = {
+  meta:{name:'Rolling',mat:'Metals, Polymers',temp:'Cold–1200 °C',cat:'Forming'},
+  t:0, period:4,
+  init(){ this.t=0; },
+  onResize(){},
+  step(dt){ this.t=(this.t+dt/this.period)%1; },
+  draw(){
+    grid();
+    const cx=W/2, cy=H/2, t=this.t;
+    setStage('Under compression','Rolling');
+
+    const rollerR=Math.min(H*.2,100);
+    const gap=Math.min(H*.035,18);
+    const topY=cy-rollerR-gap/2, botY=cy+rollerR+gap/2;
+
+    // Workpiece travelling left-to-right
+    // t=0: left of rollers, t=0.5: through rollers, t=1: right of rollers
+    const pos=t; // 0→1
+    const inRollers=pos>0.2 && pos<0.8;
+    const bW=W*.45;
+    const thickIn=H*.072, thickOut=H*.042;
+
+    // Compute current thickness at cross-section
+    const cx_piece=lerp(-bW*.6, bW*.6+W, pos); // position of piece center
+    const pieceLeft=cx_piece-bW/2, pieceRight=cx_piece+bW/2;
+
+    // Roller axis positions (fixed)
+    const lRoller=cx-W*.05, rRoller=cx+W*.05; // start/end of roll zone
+
+    // Draw workpiece (tapered shape):
+    // Left of rollers: full thick; in rollers: reducing; right: reduced
+    ctx.save();
+    const entryX=cx-rollerR*.7, exitX=cx+rollerR*.7;
+    ctx.fillStyle='#5b8ab5';
+    ctx.strokeStyle='#3a6080'; ctx.lineWidth=2;
+    ctx.beginPath();
+    // We draw a polygon that is thick on the left, transitions in middle
+    const pl=pieceLeft, pr=pieceRight;
+    const segLen=exitX-entryX;
+
+    function pieceY(x){
+      if(x<entryX) return thickIn/2;
+      if(x>exitX)  return thickOut/2;
+      return lerp(thickIn/2, thickOut/2, (x-entryX)/segLen);
+    }
+    const steps=40;
+    ctx.beginPath();
+    for(let i=0;i<=steps;i++){
+      const x=pl+i/steps*(pr-pl);
+      const hh=pieceY(x);
+      if(i===0) ctx.moveTo(x, cy-hh);
+      else       ctx.lineTo(x, cy-hh);
+    }
+    for(let i=steps;i>=0;i--){
+      const x=pl+i/steps*(pr-pl);
+      const hh=pieceY(x);
+      ctx.lineTo(x, cy+hh);
+    }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
+
+    // ── ROLLERS ──
+    function drawRoller(ry,dir){
+      const grd=ctx.createRadialGradient(cx-rollerR*.2,ry-rollerR*.2,rollerR*.1,cx,ry,rollerR);
+      grd.addColorStop(0,'#4a5a70'); grd.addColorStop(1,'#1e2838');
+      ctx.beginPath(); ctx.arc(cx,ry,rollerR,0,Math.PI*2);
+      ctx.fillStyle=grd; ctx.fill();
+      ctx.strokeStyle='#5a7090'; ctx.lineWidth=2; ctx.stroke();
+      spinMark(cx,ry,rollerR,t*dir,'rgba(200,220,255,.35)');
+      // Roller shaft stubs
+      ctx.fillStyle='#3a4a60';
+      ctx.fillRect(cx+rollerR, ry-6, 20, 12);
+      ctx.fillRect(cx-rollerR-20, ry-6, 20, 12);
+    }
+    drawRoller(topY, 1);
+    drawRoller(botY,-1);
+
+    // Force arrows
+    arrow(cx-W*.22, topY-rollerR*.5, cx-W*.22, topY+rollerR*.3,'#ff6060',2,8);
+    arrow(cx-W*.22, botY+rollerR*.5, cx-W*.22, botY-rollerR*.3,'#ff6060',2,8);
+
+    // ── LABELS ──
+    lbl('Rolls', cx+rollerR+28, cy,{align:'left',color:'#5a7090',size:11});
+    lbl('↑ Reduction',cx-W*.22-6, topY-rollerR*.6,{align:'right',color:'#ff6060',size:10});
+    const redPct=Math.round((1-thickOut/thickIn)*100);
+    lbl(`${redPct}% thickness reduction`,cx,H-22,{color:'#8090b4',size:11});
+    lbl('Entry →', lerp(pl,cx-.5,0.3), cy-thickIn/2-12,{color:'#8090b4',size:10});
+    lbl('→ Exit',  lerp(cx+.5,pr,0.7), cy-thickOut/2-12,{color:'#8090b4',size:10});
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
+//  FORMING — FORGING
+// ══════════════════════════════════════
+const Forging = {
+  meta:{name:'Forging',mat:'Metals, Superalloys',temp:'700–1300 °C',cat:'Forming'},
+  t:0, period:5,
+  init(){ this.t=0; },
+  onResize(){},
+  step(dt){ this.t=(this.t+dt/this.period)%1; },
+  draw(){
+    grid();
+    const cx=W/2, cy=H/2, t=this.t;
+    let stageName;
+    let press;
+    if(t<.15){press=0; stageName='Billet placed';}
+    else if(t<.50){press=ease(sat((t-.15)/.35)); stageName='Die closing';}
+    else if(t<.65){press=1; stageName='Full compression';}
+    else if(t<.85){press=1-ease(sat((t-.65)/.20)); stageName='Die opening';}
+    else{press=0; stageName='Part removed';}
+    setStage(stageName,'Forging');
+
+    const dW=Math.min(W*.55,320), dH=Math.min(H*.14,55);
+    const clearance=Math.min(H*.22,90);
+    const topY=cy-clearance*(1-press)-dH;
+    const botY=cy+clearance*(1-press);
+
+    // Billet deformation: squishes outward as press increases
+    const bW0=dW*.42, bH0=Math.min(H*.18,75);
+    // Volume conservation (approx): bW*bH = bW0*bH0
+    const bH=bH0*(1-press*.62);
+    const bW=bW0*(bH0/bH);
+    const bR=Math.min(bW,bH)*.15;
+    const bX=cx-bW/2, bY=cy-bH/2;
+
+    // ── DIES ──
+    const dieGrad=(x,y,w,h)=>{
+      const g=ctx.createLinearGradient(x,y,x,y+h);
+      g.addColorStop(0,'#3a4a65'); g.addColorStop(1,'#1e2838'); return g;
+    };
+    // Top die
+    ctx.fillStyle=dieGrad(cx-dW/2,topY,dW,dH);
+    rrect(cx-dW/2,topY,dW,dH,4); ctx.fill();
+    ctx.strokeStyle='#5a7090'; ctx.lineWidth=2;
+    rrect(cx-dW/2,topY,dW,dH,4); ctx.stroke();
+    // Bottom die
+    ctx.fillStyle=dieGrad(cx-dW/2,botY,dW,dH);
+    rrect(cx-dW/2,botY,dW,dH,4); ctx.fill();
+    ctx.strokeStyle='#5a7090'; ctx.lineWidth=2;
+    rrect(cx-dW/2,botY,dW,dH,4); ctx.stroke();
+
+    // ── BILLET ──
+    const hot=Math.min(1,(t-.10)/.25)*0.8;
+    ctx.fillStyle=hot>0?`rgb(${lerp(90,255,hot)|0},${lerp(140,140,hot)|0},${lerp(180,0,hot)|0})`:'#5b8ab5';
+    rrect(bX,bY,bW,bH,bR); ctx.fill();
+    ctx.strokeStyle='rgba(80,120,160,.7)'; ctx.lineWidth=1.5;
+    rrect(bX,bY,bW,bH,bR); ctx.stroke();
+
+    // Flash (thin fin at die parting line)
+    if(press>.6){
+      const fl=press-.6, flashW=fl*dW*.18, flashH=Math.max(2,bH*.12);
+      ctx.fillStyle=moltCol(.3);
+      ctx.fillRect(cx-bW/2-flashW, cy-flashH/2, flashW, flashH);
+      ctx.fillRect(cx+bW/2,        cy-flashH/2, flashW, flashH);
+    }
+
+    // Force arrows
+    if(press>0){
+      const fLen=H*.12*press;
+      arrow(cx,topY-fLen,cx,topY,'#ff6060',2.5,10);
+      arrow(cx,botY+fLen,cx,botY,'#ff6060',2.5,10);
+    }
+
+    // ── LABELS ──
+    lbl('Top Die',   cx-dW/2-8, topY+dH/2+4,{align:'right',color:'#5a7090',size:10});
+    lbl('Bottom Die',cx-dW/2-8, botY+dH/2+4,{align:'right',color:'#5a7090',size:10});
+    lbl('Billet',    cx,         bY-12,       {align:'center',color:'#8090b4',size:11});
+    if(press>.65) lbl('Flash',cx+bW/2+28,cy,{align:'left',color:'#8090b4',size:10});
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
+//  FORMING — EXTRUSION
+// ══════════════════════════════════════
+const Extrusion = {
+  meta:{name:'Extrusion',mat:'Metals, Polymers',temp:'150–1300 °C',cat:'Forming'},
+  t:0, period:6,
+  init(){ this.t=0; },
+  onResize(){},
+  step(dt){ this.t=(this.t+dt/this.period)%1; },
+  draw(){
+    grid();
+    const cx=W/2, cy=H/2, t=this.t;
+    const advance=ease(sat((t-.05)/.75));
+    let stageName=(t<.05)?'Billet loaded':(t<.80)?'Extrusion':'Reset';
+    setStage(stageName,'Extrusion');
+
+    const ctnW=Math.min(W*.50,280), ctnH=Math.min(H*.20,80);
+    const ctnX=cx-ctnW*.25, ctnY=cy-ctnH/2;
+
+    // Die block on left
+    const dieW=Math.min(W*.07,36), dieH=ctnH*1.4;
+    const dieX=ctnX-dieW, dieY=cy-dieH/2;
+    ctx.fillStyle='#2d3d58'; rrect(dieX,dieY,dieW,dieH,3); ctx.fill();
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(dieX,dieY,dieW,dieH,3); ctx.stroke();
+    // Die opening
+    const dieOpenH=ctnH*.32;
+    ctx.fillStyle='#0d0f1a'; ctx.fillRect(dieX,cy-dieOpenH/2,dieW+1,dieOpenH);
+
+    // Container
+    ctx.fillStyle='#2d3d58'; rrect(ctnX,ctnY,ctnW,ctnH,3); ctx.fill();
+    hatch(ctnX,ctnY,ctnW,ctnH,10,'rgba(255,255,255,.05)');
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(ctnX,ctnY,ctnW,ctnH,3); ctx.stroke();
+    // Container bore
+    ctx.fillStyle='#0d0f1a'; ctx.fillRect(ctnX+1,ctnY+ctnH*.12,ctnW-2,ctnH*.76);
+
+    // Billet inside
+    const billetRemain=1-advance;
+    ctx.fillStyle=moltCol(.15);
+    ctx.fillRect(ctnX+ctnW*(1-billetRemain)+2, ctnY+ctnH*.12, ctnW*billetRemain-4, ctnH*.76);
+
+    // Ram (comes from right)
+    const ramW=ctnW*.22;
+    const ramX=ctnX+ctnW+ramW*(1-advance)*1.1 - ramW*1.1 + ctnW*advance*.85;
+    ctx.fillStyle='#3a5070'; rrect(ramX,ctnY+ctnH*.08,ramW,ctnH*.84,3); ctx.fill();
+    ctx.strokeStyle='#5a78a0'; ctx.lineWidth=1.5; rrect(ramX,ctnY+ctnH*.08,ramW,ctnH*.84,3); ctx.stroke();
+    // Ram rod
+    ctx.fillStyle='#2a3a50';
+    ctx.fillRect(ramX+ramW,cy-ctnH*.10,W*.15,ctnH*.20);
+
+    // Extrudate (grows from die)
+    const extLen=advance * Math.min(W*.35,180);
+    if(extLen>1){
+      ctx.fillStyle='#7aaccc';
+      ctx.fillRect(dieX-extLen, cy-dieOpenH/2, extLen, dieOpenH);
+      ctx.strokeStyle='#4a7a9a'; ctx.lineWidth=1.5;
+      ctx.strokeRect(dieX-extLen, cy-dieOpenH/2, extLen, dieOpenH);
+    }
+
+    // Ram motion arrow
+    if(advance<.9){
+      arrow(ramX+ramW*.5+W*.04, cy, ramX+ramW*.5, cy, '#ffc040',2,8);
+    }
+
+    // ── LABELS ──
+    lbl('Container', ctnX+ctnW*.5, ctnY-12,{align:'center',color:'#5a7090',size:10});
+    lbl('Ram',       ramX+ramW*.5, ctnY+ctnH+16,{align:'center',color:'#6878a0',size:10});
+    lbl('Die',       dieX+dieW*.5, dieY-12,{align:'center',color:'#5a7090',size:10});
+    if(extLen>20) lbl('Extrudate', dieX-extLen*.5, cy-dieOpenH/2-12,{align:'center',color:'#7aaccc',size:10});
+    // die opening cross-section marker
+    ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(100,140,180,.4)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(dieX-2,cy-dieOpenH/2); ctx.lineTo(dieX-12,cy-dieOpenH/2);
+    ctx.moveTo(dieX-2,cy+dieOpenH/2); ctx.lineTo(dieX-12,cy+dieOpenH/2); ctx.stroke();
+    ctx.setLineDash([]);
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
+//  MOLDING — INJECTION MOLDING
+// ══════════════════════════════════════
+const InjectionMolding = {
+  meta:{name:'Injection Molding',mat:'Thermoplastics, Thermosets',temp:'180–320 °C',cat:'Molding'},
+  t:0, period:9,
+  init(){ this.t=0; },
+  onResize(){},
+  step(dt){ this.t=(this.t+dt/this.period)%1; },
+  draw(){
+    grid();
+    const cx=W/2, cy=H/2, t=this.t;
+    let phase, stageName;
+    if(t<.10){phase=0;stageName='Mold closed';}
+    else if(t<.38){phase=1;stageName='Injection';}
+    else if(t<.58){phase=2;stageName='Packing / cooling';}
+    else if(t<.72){phase=3;stageName='Mold opening';}
+    else if(t<.88){phase=4;stageName='Ejection';}
+    else{phase=5;stageName='Mold closing';}
+    setStage(stageName,'Injection Molding');
+
+    // Barrel on left side
+    const barH=Math.min(H*.14,58), barW=Math.min(W*.38,210);
+    const barX=Math.min(W*.05,30), barY=cy-barH/2;
+
+    ctx.fillStyle='#2d3d58'; rrect(barX,barY,barW,barH,3); ctx.fill();
+    hatch(barX,barY,barW,barH,8,'rgba(255,255,255,.06)');
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(barX,barY,barW,barH,3); ctx.stroke();
+    // Barrel bore
+    ctx.fillStyle='rgba(80,40,10,.7)';
+    ctx.fillRect(barX+barW*.05,barY+barH*.14,barW*.9,barH*.72);
+
+    // Heater bands (orange glows)
+    for(let i=0;i<4;i++){
+      const hx=barX+barW*.15+i*barW*.18;
+      const grd=ctx.createLinearGradient(hx,barY,hx,barY+barH);
+      grd.addColorStop(0,'rgba(255,120,0,.0)');
+      grd.addColorStop(.5,'rgba(255,120,0,.18)');
+      grd.addColorStop(1,'rgba(255,120,0,.0)');
+      ctx.fillStyle=grd; ctx.fillRect(hx,barY,barW*.08,barH);
+    }
+
+    // Screw
+    const screwAdv=(phase>=1&&phase<=2)?ease(sat((t-.10)/.15))*.35:0;
+    for(let i=0;i<16;i++){
+      const sx=barX+barW*.06+i*barW*.055+screwAdv*barW*.3;
+      if(sx>barX+barW*.95) break;
+      ctx.strokeStyle='rgba(140,180,220,.5)'; ctx.lineWidth=1;
+      ctx.beginPath();
+      ctx.moveTo(sx,barY+barH*.15); ctx.lineTo(sx-barW*.03,barY+barH*.85); ctx.stroke();
+    }
+
+    // Hopper
+    const hopX=barX+barW*.8, hopW=barW*.14;
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; ctx.fillStyle='#1e2838';
+    ctx.beginPath();
+    ctx.moveTo(hopX,barY); ctx.lineTo(hopX-hopW*.5,barY-barH*.9);
+    ctx.lineTo(hopX+hopW*.5,barY-barH*.9); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    // Pellets in hopper
+    for(let i=0;i<6;i++){
+      const px=hopX-hopW*.3+i%3*hopW*.3+(i>2?hopW*.15:0);
+      const py=barY-barH*.5-(i>2?barH*.25:0);
+      ctx.beginPath(); ctx.arc(px,py,3,0,Math.PI*2);
+      ctx.fillStyle='#44aa66'; ctx.fill();
+    }
+
+    // Nozzle
+    ctx.fillStyle='#3a5070'; ctx.beginPath();
+    ctx.moveTo(barX+barW,barY+barH*.15);
+    ctx.lineTo(barX+barW+barW*.04,barY+barH*.35);
+    ctx.lineTo(barX+barW+barW*.04,barY+barH*.65);
+    ctx.lineTo(barX+barW,barY+barH*.85);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#5a7090'; ctx.lineWidth=1.5; ctx.stroke();
+
+    // ── MOLD HALVES ──
+    const moldW=Math.min(W*.18,100), moldH=Math.min(H*.58,260);
+    const moldY=cy-moldH/2;
+    const moldOpenDist=(phase>=3)?easeO(sat((t-.58)/.14))*W*.10:
+                       (phase>=5)?W*.10*(1-ease(sat((t-.88)/.12))):0;
+    const fixX=barX+barW+barW*.04;   // fixed half (left)
+    const movX=fixX+moldW+moldOpenDist; // moving half (right)
+
+    // Fixed mold (left)
+    ctx.fillStyle='#2d3d58'; rrect(fixX,moldY,moldW,moldH,3); ctx.fill();
+    hatch(fixX,moldY,moldW,moldH,10,'rgba(255,255,255,.05)');
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(fixX,moldY,moldW,moldH,3); ctx.stroke();
+
+    // Moving mold (right)
+    ctx.fillStyle='#2d3d58'; rrect(movX,moldY,moldW,moldH,3); ctx.fill();
+    hatch(movX,moldY,moldW,moldH,10,'rgba(255,255,255,.05)');
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(movX,moldY,moldW,moldH,3); ctx.stroke();
+
+    // Cavity gap between halves
+    const cavGap=moldOpenDist>1?moldOpenDist:0;
+    const cavH=moldH*.45;
+    const cavX=fixX+moldW, cavY=cy-cavH/2;
+    if(cavGap<5){
+      ctx.fillStyle='#0d0f1a'; ctx.fillRect(cavX,cavY,moldW*2,cavH);
+    }
+
+    // Sprue channel in fixed mold
+    const spH=cavH*.15, spX=fixX, spY=cy-spH/2;
+    ctx.fillStyle='#0d0f1a'; ctx.fillRect(spX,spY,moldW+1,spH);
+
+    // Polymer fill
+    if(phase>=1){
+      const ff=ease(sat((t-.10)/.22));
+      const solid=phase>=2?sat((t-.38)/.20):0;
+      // Sprue fill
+      ctx.fillStyle=`rgb(${lerp(70,180,solid)|0},${lerp(180,180,solid)|0},${lerp(80,80,solid)|0})`;
+      ctx.fillRect(spX,spY,moldW*ff+1,spH);
+      // Cavity fill (from sprue side, left to right)
+      if(ff>.3 && cavGap<5){
+        const cff=ease(sat((ff-.3)/.7));
+        ctx.fillStyle=`rgb(${lerp(70,180,solid)|0},${lerp(180,180,solid)|0},${lerp(80,80,solid)|0})`;
+        ctx.fillRect(cavX,cavY,moldW*cff*2,cavH);
+      }
+    }
+
+    // Ejector pins
+    if(phase>=4){
+      const pinAdv=ease(sat((t-.72)/.10))*moldW*.45;
+      for(let i=0;i<3;i++){
+        const pinY=cavY+cavH*.15+i*cavH*.35;
+        ctx.fillStyle='rgba(180,200,230,.8)';
+        ctx.fillRect(movX+moldW*.5,pinY,pinAdv,4);
+      }
+    }
+
+    // ── LABELS ──
+    lbl('Barrel',   barX+barW*.4, barY-12,  {align:'center',color:'#5a7090',size:10});
+    lbl('Hopper',   hopX,         barY-barH*.9-14,{align:'center',color:'#6878a0',size:10});
+    lbl('Fixed Half',  fixX+moldW*.5, moldY-12,{align:'center',color:'#5a7090',size:10});
+    lbl('Moving Half', movX+moldW*.5, moldY-12,{align:'center',color:'#5a7090',size:10});
+    lbl('Cavity',      fixX+moldW+moldOpenDist*.5+moldW, cy,{align:'center',color:'#6878a0',size:9});
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
+//  MOLDING — BLOW MOLDING
+// ══════════════════════════════════════
+const BlowMolding = {
+  meta:{name:'Blow Molding',mat:'HDPE, PET, PP',temp:'180–250 °C',cat:'Molding'},
+  t:0, period:8,
+  init(){ this.t=0; },
+  onResize(){},
+  step(dt){ this.t=(this.t+dt/this.period)%1; },
+  draw(){
+    grid();
+    const cx=W/2, cy=H/2, t=this.t;
+    let phase, stageName;
+    if(t<.12){phase=0;stageName='Parison extrusion';}
+    else if(t<.28){phase=1;stageName='Mold closing';}
+    else if(t<.55){phase=2;stageName='Blow inflation';}
+    else if(t<.70){phase=3;stageName='Cooling';}
+    else if(t<.85){phase=4;stageName='Mold opening';}
+    else{phase=5;stageName='Part removal';}
+    setStage(stageName,'Blow Molding');
+
+    const mH=Math.min(H*.62,280), mW=Math.min(W*.20,96);
+    const mY=cy-mH/2+mH*.10; // shift slightly down (pinch at bottom)
+
+    // Parison (hollow tube extruded from top)
+    const parH=(phase<1)?easeO(t/.12)*mH*.80 : mH*.80;
+    const parW=mW*.20;
+    const parX=cx-parW/2, parY=cy-mH*.35;
+    // Extrusion nozzle at top
+    ctx.fillStyle='#3a5070';
+    rrect(cx-mW*.15,parY-28,mW*.30,28,3); ctx.fill();
+    ctx.strokeStyle='#5a7090'; ctx.lineWidth=1.5;
+    rrect(cx-mW*.15,parY-28,mW*.30,28,3); ctx.stroke();
+
+    // Blow air inlet
+    ctx.fillStyle='#2a3a50';
+    ctx.fillRect(cx-4,parY-28-18,8,18);
+
+    // Mold halves
+    const moldClose=(phase>=1&&phase<4)?ease(sat((t-.12)/.16)):
+                    (phase>=4)?1-ease(sat((t-.70)/.15)):1;
+    const moldGap=lerp(mW*.65,0,moldClose);
+    // Left mold
+    ctx.fillStyle='#2d3d58'; rrect(cx-mW*.5-moldGap,mY,mW*.5,mH,5); ctx.fill();
+    hatch(cx-mW*.5-moldGap,mY,mW*.5,mH,10,'rgba(255,255,255,.05)');
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(cx-mW*.5-moldGap,mY,mW*.5,mH,5); ctx.stroke();
+    // Right mold
+    ctx.fillStyle='#2d3d58'; rrect(cx+moldGap,mY,mW*.5,mH,5); ctx.fill();
+    hatch(cx+moldGap,mY,mW*.5,mH,10,'rgba(255,255,255,.05)');
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(cx+moldGap,mY,mW*.5,mH,5); ctx.stroke();
+
+    // Mold inner cavity shape (bottle-like oval cutout)
+    if(moldClose>.5){
+      const cavW=mW*.48*(2-moldClose), cavH=mH*.82;
+      ctx.fillStyle='#0d0f1a';
+      ctx.beginPath();
+      ctx.ellipse(cx,mY+cavH*.52,cavW*.5,cavH*.5,0,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    // Parison tube
+    if(phase<2){
+      ctx.strokeStyle='rgba(70,180,100,.85)'; ctx.lineWidth=parW;
+      ctx.beginPath(); ctx.moveTo(cx,parY); ctx.lineTo(cx,parY+parH); ctx.stroke();
+    }
+
+    // Inflated part
+    if(phase>=2){
+      const inflate=ease(sat((t-.28)/.20));
+      const bottleW=mW*.44*inflate, bottleH=mH*.78*Math.min(inflate*1.2,1);
+      const solid=(phase>=3)?sat((t-.55)/.15):0;
+      // Bottle body
+      const grd=ctx.createRadialGradient(cx-bottleW*.2,mY+bottleH*.35,1,cx,mY+bottleH*.5,bottleW);
+      grd.addColorStop(0,`rgba(100,210,130,${.7+solid*.2})`);
+      grd.addColorStop(1,`rgba(30,120,60,${.7+solid*.2})`);
+      ctx.beginPath();
+      ctx.ellipse(cx, mY+mH*.52, bottleW*.5, bottleH*.5, 0, 0, Math.PI*2);
+      ctx.fillStyle=grd; ctx.fill();
+      ctx.strokeStyle='rgba(50,160,80,.6)'; ctx.lineWidth=1.5; ctx.stroke();
+    }
+
+    // Air blow arrows
+    if(phase===2){
+      const bFrac=sat((t-.28)/.10);
+      arrow(cx,parY-8,cx,parY+20,'#88ccff',2,7);
+      lbl('Air pressure',cx+16,parY+8,{align:'left',color:'#88ccff',size:10});
+    }
+
+    // ── LABELS ──
+    lbl('Extrusion head',cx,parY-46,{align:'center',color:'#5a7090',size:10});
+    lbl('Parison',cx+parW+8,parY+parH*.4,{align:'left',color:'#5aaa70',size:10});
+    lbl('Mold',cx-mW*.5-moldGap-6,mY+mH*.5,{align:'right',color:'#5a7090',size:10});
+    if(moldClose>.7) lbl('Cavity',cx,mY+mH*.88,{align:'center',color:'#6878a0',size:10});
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
+//  MACHINING — TURNING
+// ══════════════════════════════════════
+const Turning = {
+  meta:{name:'Turning (Lathe)',mat:'Metals, Plastics',temp:'Cold – 600 °C',cat:'Machining'},
+  t:0, period:6,
+  init(){ this.t=0; },
+  onResize(){},
+  step(dt){ this.t=(this.t+dt/this.period)%1; },
+  draw(){
+    grid();
+    const cx=W/2, cy=H/2, t=this.t;
+    const cut=sat(t/.85); // 0→1 as tool advances
+    setStage('Turning','Turning');
+
+    const wpR0=Math.min(H*.22,95);   // original radius
+    const finalCut=wpR0*.28;
+    const r=(x)=>wpR0-finalCut*sat((x-wpStart)/wpLen)*cut; // radius at position x
+    const wpLen=Math.min(W*.50,260), wpStart=cx-wpLen*.5;
+
+    // Workpiece body (left to right, radius varies)
+    // Draw as filled shape
+    ctx.fillStyle='#5b8ab5';
+    ctx.strokeStyle='#3a6080'; ctx.lineWidth=2;
+    ctx.beginPath();
+    const steps=60;
+    for(let i=0;i<=steps;i++){
+      const x=wpStart+i/steps*wpLen;
+      const rad=r(x);
+      if(i===0) ctx.moveTo(x,cy-rad);
+      else       ctx.lineTo(x,cy-rad);
+    }
+    for(let i=steps;i>=0;i--){
+      const x=wpStart+i/steps*wpLen;
+      ctx.lineTo(x,cy+r(x));
+    }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // Rotation marks
+    spinMark(wpStart+wpLen*.5, cy, wpR0*.75, t*8, 'rgba(200,220,255,.3)');
+
+    // Chuck (left) simplified as hatched block
+    const chuckW=Math.min(W*.07,36);
+    ctx.fillStyle='#3a4a60';
+    rrect(wpStart-chuckW,cy-wpR0*.6,chuckW,wpR0*1.2,3); ctx.fill();
+    ctx.strokeStyle='#5a7090'; ctx.lineWidth=1.5;
+    rrect(wpStart-chuckW,cy-wpR0*.6,chuckW,wpR0*1.2,3); ctx.stroke();
+
+    // Tool (approaches from right, cutting upper surface)
+    const toolX=wpStart+wpLen*cut;
+    const toolTipY=cy-r(toolX);
+    const toolW=22, toolH=16;
+    ctx.fillStyle='#c8a040'; // carbide insert color
+    ctx.beginPath();
+    ctx.moveTo(toolX,      toolTipY);
+    ctx.lineTo(toolX+toolW,toolTipY-toolH*.5);
+    ctx.lineTo(toolX+toolW,toolTipY-toolH*2.5);
+    ctx.lineTo(toolX-toolW*.3,toolTipY-toolH*2.5);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#a08030'; ctx.lineWidth=1.5; ctx.stroke();
+    // Tool holder
+    ctx.fillStyle='#3a4a60';
+    ctx.fillRect(toolX-toolW*.3,toolTipY-toolH*3.5,toolW*1.3,toolH);
+    ctx.strokeStyle='#5a7090'; ctx.lineWidth=1; ctx.strokeRect(toolX-toolW*.3,toolTipY-toolH*3.5,toolW*1.3,toolH);
+
+    // Chip (curled)
+    if(cut>.05){
+      ctx.save();
+      ctx.strokeStyle='#8a9a60'; ctx.lineWidth=2; ctx.lineCap='round';
+      ctx.beginPath();
+      for(let a=0;a<Math.PI*2;a+=.15){
+        const cr=6+a*2;
+        const px=toolX+4+cr*Math.cos(a-Math.PI*.5);
+        const py=toolTipY-4-cr*Math.sin(a-Math.PI*.5);
+        if(a<.01) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+      }
+      ctx.stroke(); ctx.restore();
+    }
+
+    // Depth-of-cut arrow
+    if(cut>.1){
+      const midX=wpStart+wpLen*.5;
+      arrow(midX,cy-wpR0+2,midX,cy-r(midX)+2,'#ffc040',1.5,7);
+      lbl(`${(finalCut*cut).toFixed(1)} mm`,midX+8,cy-wpR0+14,{align:'left',color:'#ffc040',size:10});
+    }
+
+    // ── LABELS ──
+    lbl('Chuck',   wpStart-chuckW*.5,cy-wpR0*.6-14,{align:'center',color:'#5a7090',size:10});
+    lbl('Workpiece',cx,cy-wpR0-14,{align:'center',color:'#8090b4',size:11});
+    lbl('Cutting Tool',toolX,toolTipY-toolH*4.5,{align:'center',color:'#c8a040',size:10});
+    lbl('⟲ Rotation',cx,cy+wpR0+16,{align:'center',color:'rgba(200,220,255,.5)',size:11});
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
+//  MACHINING — MILLING
+// ══════════════════════════════════════
+const Milling = {
+  meta:{name:'Milling',mat:'Metals, Plastics, Composites',temp:'Cold – 500 °C',cat:'Machining'},
+  t:0, period:5,
+  init(){ this.t=0; },
+  onResize(){},
+  step(dt){ this.t=(this.t+dt/this.period)%1; },
+  draw(){
+    grid();
+    const cx=W/2, cy=H/2, t=this.t;
+    const pos=t; // cutter position 0→1 left-to-right
+    setStage('Peripheral milling','Milling');
+
+    const wpW=Math.min(W*.68,380), wpH=Math.min(H*.22,80);
+    const wpX=cx-wpW/2, wpY=cy+Math.min(H*.05,20);
+
+    // Surface profile: cutter has already removed material on left
+    const cutDepth=wpH*.42;
+    const cutterX=lerp(wpX-wpW*.08,wpX+wpW*1.08,pos);
+    const doneX=cutterX;
+
+    // Workpiece (draw as two regions: cut and uncut)
+    ctx.fillStyle='#5b8ab5'; ctx.strokeStyle='#3a6080'; ctx.lineWidth=2;
+    // Uncut portion
+    ctx.fillRect(Math.max(wpX,doneX),wpY,Math.max(0,wpX+wpW-doneX),wpH);
+    ctx.strokeRect(Math.max(wpX,doneX),wpY,Math.max(0,wpX+wpW-doneX),wpH);
+    // Cut (machined) portion
+    if(doneX>wpX){
+      ctx.fillStyle='#7aadd0';
+      ctx.fillRect(wpX,wpY+cutDepth,Math.min(doneX-wpX,wpW),wpH-cutDepth);
+      ctx.strokeStyle='#4a8090'; ctx.lineWidth=1.5;
+      ctx.strokeRect(wpX,wpY+cutDepth,Math.min(doneX-wpX,wpW),wpH-cutDepth);
+    }
+    // Workpiece base
+    ctx.fillStyle='#3a4a60'; ctx.fillRect(wpX,wpY+wpH,wpW,wpH*.22);
+    ctx.strokeStyle='#2a3a50'; ctx.lineWidth=1; ctx.strokeRect(wpX,wpY+wpH,wpW,wpH*.22);
+
+    // ── MILLING CUTTER ──
+    const cutterR=Math.min(H*.18,70);
+    const cutterCY=wpY-cutterR+cutDepth;
+    // Body
+    const grd=ctx.createRadialGradient(cutterX-cutterR*.3,cutterCY-cutterR*.3,3,cutterX,cutterCY,cutterR);
+    grd.addColorStop(0,'#5a6a80'); grd.addColorStop(1,'#1e2838');
+    ctx.beginPath(); ctx.arc(cutterX,cutterCY,cutterR,0,Math.PI*2);
+    ctx.fillStyle=grd; ctx.fill();
+    ctx.strokeStyle='#5a7090'; ctx.lineWidth=2; ctx.stroke();
+    // Flute marks (spinning)
+    spinMark(cutterX,cutterCY,cutterR,t*10,'rgba(180,210,255,.4)');
+    // Cutting edge inserts
+    for(let i=0;i<4;i++){
+      const a=i/4*Math.PI*2+t*Math.PI*8;
+      const tx=cutterX+cutterR*Math.cos(a), ty=cutterCY+cutterR*Math.sin(a);
+      ctx.beginPath(); ctx.arc(tx,ty,4,0,Math.PI*2);
+      ctx.fillStyle='#c8a040'; ctx.fill();
+    }
+    // Arbor
+    ctx.fillStyle='#2a3a50';
+    ctx.fillRect(cutterX-6, wpY-cutterR*2.2-H*.15, 12, H*.15);
+
+    // Chips flying
+    const chipCount=5;
+    for(let i=0;i<chipCount;i++){
+      const ca=((t*8+i*.6)%1)*Math.PI+Math.PI*.8;
+      const cr=cutterR*lerp(.8,1.3,(t*3+i*.4)%1);
+      const cpx=cutterX+cr*Math.cos(ca), cpy=cutterCY+cr*Math.sin(ca);
+      if(cpy>wpY-5 && cpy<cutterCY+cutterR*.6){
+        ctx.beginPath(); ctx.arc(cpx,cpy,2.5,0,Math.PI*2);
+        ctx.fillStyle='rgba(160,180,100,.8)'; ctx.fill();
+      }
+    }
+
+    // Feed direction arrow
+    arrow(wpX,wpY-12,wpX+wpW*.15,wpY-12,'#ffc040',2,8);
+    lbl('Feed direction',wpX+wpW*.18,wpY-8,{align:'left',color:'#ffc040',size:10});
+    lbl('⟲',cutterX,cutterCY,{align:'center',color:'rgba(200,220,255,.5)',size:22});
+    lbl('Cutter',cutterX,cutterCY-cutterR-16,{align:'center',color:'#8090b4',size:11});
+    lbl('Workpiece',cx,wpY+wpH+30,{align:'center',color:'#8090b4',size:11});
+    lbl('Machined surface',wpX+wpW*.3,wpY+cutDepth-10,{align:'center',color:'#7aadd0',size:10});
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
+//  JOINING — ARC WELDING
+// ══════════════════════════════════════
+const ArcWelding = {
+  meta:{name:'Arc Welding (SMAW)',mat:'Structural steel, Stainless',temp:'1400–3500 °C',cat:'Joining'},
+  t:0, period:8,
+  init(){ this.t=0; },
+  onResize(){},
+  step(dt){ this.t=(this.t+dt/this.period)%1; },
+  draw(){
+    grid();
+    const cx=W/2, cy=H/2, t=this.t;
+    const weldAdv=sat(t/.80); // 0→1 weld progresses left-to-right
+    setStage(weldAdv<.05?'Arc struck':weldAdv<.95?'Welding':'Bead complete','Arc Welding');
+
+    const plateW=Math.min(W*.68,360), plateH=Math.min(H*.16,56);
+    const plateX=cx-plateW/2;
+    const gapY=cy, gapW=plateW*.015;
+
+    // ── WORKPIECE PLATES ──
+    // Left plate
+    ctx.fillStyle='#5b8ab5';
+    rrect(plateX,gapY-plateH,plateX+plateW*.5-gapW/2-plateX,plateH,3); ctx.fill();
+    ctx.strokeStyle='#3a6080'; ctx.lineWidth=2;
+    rrect(plateX,gapY-plateH,plateX+plateW*.5-gapW/2-plateX,plateH,3); ctx.stroke();
+    // Right plate
+    ctx.fillStyle='#5b8ab5';
+    rrect(cx+gapW/2,gapY-plateH,plateW*.5-gapW/2,plateH,3); ctx.fill();
+    ctx.strokeStyle='#3a6080'; ctx.lineWidth=2;
+    rrect(cx+gapW/2,gapY-plateH,plateW*.5-gapW/2,plateH,3); ctx.stroke();
+    // Heat affected zone gradient (around weld region)
+    const weldX=plateX+weldAdv*plateW;
+    const hazW=plateW*.14;
+    const hazGrd=ctx.createRadialGradient(weldX,gapY,1,weldX,gapY,hazW);
+    hazGrd.addColorStop(0,'rgba(255,100,0,.22)');
+    hazGrd.addColorStop(1,'rgba(255,100,0,.0)');
+    ctx.fillStyle=hazGrd; ctx.fillRect(weldX-hazW,gapY-plateH,hazW*2,plateH);
+
+    // ── SOLIDIFIED WELD BEAD ──
+    if(weldAdv>0.03){
+      const beadX=plateX, beadLen=(weldAdv-.03)*plateW;
+      ctx.fillStyle='#8a4020';
+      ctx.beginPath();
+      ctx.ellipse(beadX+beadLen*.5, gapY, beadLen*.5, plateH*.28, 0, 0, Math.PI);
+      ctx.fill();
+      ctx.strokeStyle='#6a3015'; ctx.lineWidth=1; ctx.stroke();
+    }
+
+    // Weld pool (glowing orange at current position)
+    const poolW=plateH*.60, poolH=plateH*.35;
+    const poolGrd=ctx.createRadialGradient(weldX,gapY-poolH*.2,1,weldX,gapY,poolW);
+    poolGrd.addColorStop(0,'rgba(255,220,80,.95)');
+    poolGrd.addColorStop(.4,'rgba(255,120,0,.85)');
+    poolGrd.addColorStop(1,'rgba(255,60,0,.0)');
+    ctx.beginPath(); ctx.ellipse(weldX,gapY-poolH*.2,poolW,poolH,0,0,Math.PI);
+    ctx.fillStyle=poolGrd; ctx.fill();
+
+    // ── ELECTRODE ──
+    const elecLen=Math.min(H*.28,120);
+    const elecX=weldX+6, elecTipY=gapY-plateH-Math.min(H*.06,22);
+    ctx.save();
+    ctx.strokeStyle='#d0c090'; ctx.lineWidth=5;
+    ctx.beginPath(); ctx.moveTo(elecX,elecTipY-elecLen); ctx.lineTo(elecX,elecTipY); ctx.stroke();
+    // Flux coating
+    ctx.strokeStyle='#8a7050'; ctx.lineWidth=9;
+    ctx.beginPath(); ctx.moveTo(elecX,elecTipY-elecLen); ctx.lineTo(elecX,elecTipY+4); ctx.stroke();
+    ctx.strokeStyle='#d0c090'; ctx.lineWidth=5;
+    ctx.beginPath(); ctx.moveTo(elecX,elecTipY-elecLen); ctx.lineTo(elecX,elecTipY); ctx.stroke();
+    ctx.restore();
+
+    // ── ARC ──
+    const arcFlicker=.9+.1*Math.sin(Date.now()*.04);
+    for(let i=0;i<3;i++){
+      const ax=elecX+Math.sin(Date.now()*.01+i*2)*4;
+      ctx.strokeStyle=`rgba(180,220,255,${(.5+i*.15)*arcFlicker})`;
+      ctx.lineWidth=2-i*.5;
+      ctx.beginPath(); ctx.moveTo(ax,elecTipY); ctx.lineTo(weldX+Math.sin(Date.now()*.015)*3,gapY-2); ctx.stroke();
+    }
+    // Arc glow
+    const arcGrd=ctx.createRadialGradient(weldX,elecTipY+8,1,weldX,elecTipY+8,28);
+    arcGrd.addColorStop(0,'rgba(200,230,255,.35)');
+    arcGrd.addColorStop(1,'rgba(200,230,255,0)');
+    ctx.fillStyle=arcGrd; ctx.beginPath(); ctx.arc(weldX,elecTipY+8,28,0,Math.PI*2); ctx.fill();
+
+    // Slag layer on bead
+    if(weldAdv>.1){
+      const slagLen=(weldAdv-.1)*plateW;
+      ctx.fillStyle='rgba(60,40,20,.75)';
+      ctx.beginPath();
+      ctx.ellipse(plateX+slagLen*.5, gapY, slagLen*.5, plateH*.18, 0, 0, Math.PI);
+      ctx.fill();
+    }
+
+    // ── LABELS ──
+    lbl('Electrode',   elecX+10, elecTipY-elecLen*.6,{align:'left',color:'#d0c090',size:10});
+    lbl('Arc',         weldX+24, elecTipY+10,         {align:'left',color:'#aacfff',size:10});
+    lbl('Weld pool',   weldX+28, gapY-8,              {align:'left',color:'#ff9040',size:10});
+    lbl('Slag',        plateX+weldAdv*plateW*.4,gapY+14,{align:'center',color:'#806040',size:10});
+    lbl('HAZ',         weldX-hazW*.6,gapY-plateH*.55, {align:'center',color:'rgba(255,100,0,.6)',size:9});
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
+//  JOINING — RESISTANCE SPOT WELDING
+// ══════════════════════════════════════
+const SpotWelding = {
+  meta:{name:'Resistance Spot Welding',mat:'Sheet steel, Al alloys',temp:'1000–1500 °C',cat:'Joining'},
+  t:0, period:5,
+  init(){ this.t=0; },
+  onResize(){},
+  step(dt){ this.t=(this.t+dt/this.period)%1; },
+  draw(){
+    grid();
+    const cx=W/2, cy=H/2, t=this.t;
+    let phase, stageName;
+    if(t<.12){phase=0;stageName='Electrodes positioned';}
+    else if(t<.28){phase=1;stageName='Squeeze force applied';}
+    else if(t<.55){phase=2;stageName='Current flowing';}
+    else if(t<.72){phase=3;stageName='Nugget forming';}
+    else if(t<.85){phase=4;stageName='Current off / hold';}
+    else{phase=5;stageName='Electrodes retract';}
+    setStage(stageName,'Spot Welding');
+
+    const sheetW=Math.min(W*.60,320), sheetH=Math.min(H*.07,24);
+    const sheetX=cx-sheetW/2;
+
+    // Electrode dimensions
+    const eW=Math.min(W*.07,34), eH=Math.min(H*.22,80);
+
+    // Squeeze: electrodes move inward
+    const squeeze=(phase>=1&&phase<5)?ease(sat((t-.12)/.16)):
+                  (phase>=5)?1-ease(sat((t-.85)/.15)):0;
+
+    const gapBase=sheetH*.3;
+    const topElecY=cy-sheetH-eH-gapBase+gapBase*squeeze;
+    const botElecY=cy+sheetH+gapBase-gapBase*squeeze;
+
+    // ── METAL SHEETS ──
+    ctx.fillStyle='#5b8ab5';
+    ctx.fillRect(sheetX,cy-sheetH,sheetW,sheetH);   // top sheet
+    ctx.fillRect(sheetX,cy,       sheetW,sheetH);   // bottom sheet
+    ctx.strokeStyle='#3a6080'; ctx.lineWidth=1.5;
+    ctx.strokeRect(sheetX,cy-sheetH,sheetW,sheetH);
+    ctx.strokeRect(sheetX,cy,       sheetW,sheetH);
+
+    // Faying surface gap line
+    ctx.setLineDash([4,4]); ctx.strokeStyle='rgba(120,140,180,.4)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(sheetX,cy); ctx.lineTo(sheetX+sheetW,cy); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Weld nugget (forms during current phase)
+    if(phase>=2){
+      const nugGrow=ease(sat((t-.28)/.25));
+      const nugR=sheetH*.85*nugGrow;
+      const grd=ctx.createRadialGradient(cx,cy,0,cx,cy,nugR);
+      grd.addColorStop(0,'rgba(255,200,0,.9)');
+      grd.addColorStop(.5,'rgba(255,80,0,.7)');
+      grd.addColorStop(1,'rgba(200,60,0,0)');
+      ctx.beginPath(); ctx.arc(cx,cy,nugR,0,Math.PI*2);
+      ctx.fillStyle=grd; ctx.fill();
+    }
+
+    // Solidified nugget (after current off)
+    if(phase>=4){
+      const solid=sat((t-.55)/.17);
+      ctx.beginPath(); ctx.arc(cx,cy,sheetH*.8,0,Math.PI*2);
+      ctx.fillStyle=`rgba(160,80,30,${.7*solid})`; ctx.fill();
+      ctx.strokeStyle=`rgba(200,100,40,${solid})`; ctx.lineWidth=1.5; ctx.stroke();
+    }
+
+    // ── ELECTRODES ──
+    function drawElec(ex,ey,flip){
+      const tipH=eH*.22;
+      ctx.fillStyle='#c0a040';
+      ctx.beginPath();
+      if(!flip){
+        ctx.moveTo(ex-eW*.5,ey); ctx.lineTo(ex+eW*.5,ey);
+        ctx.lineTo(ex+eW*.35,ey+tipH); ctx.lineTo(ex-eW*.35,ey+tipH);
+      } else {
+        ctx.moveTo(ex-eW*.5,ey+eH); ctx.lineTo(ex+eW*.5,ey+eH);
+        ctx.lineTo(ex+eW*.35,ey+eH-tipH); ctx.lineTo(ex-eW*.35,ey+eH-tipH);
+      }
+      ctx.closePath(); ctx.fillStyle='#c0a040'; ctx.fill();
+      ctx.strokeStyle='#906020'; ctx.lineWidth=1.5; ctx.stroke();
+      // Body
+      ctx.fillStyle='#8a7030';
+      ctx.fillRect(ex-eW*.35,flip?ey:ey+tipH,eW*.7,eH-tipH);
+      ctx.strokeStyle='#5a4820'; ctx.lineWidth=1;
+      ctx.strokeRect(ex-eW*.35,flip?ey:ey+tipH,eW*.7,eH-tipH);
+      // Cooling water fitting
+      ctx.beginPath(); ctx.arc(ex,flip?ey+eH*.8:ey+eH*.2,eW*.12,0,Math.PI*2);
+      ctx.fillStyle='#3a6090'; ctx.fill();
+    }
+    drawElec(cx,topElecY,false);
+    drawElec(cx,botElecY,true);
+
+    // Electrode arms
+    ctx.fillStyle='#4a5a70';
+    ctx.fillRect(cx+eW*.35,topElecY+eH*.35,W*.15,eH*.14);
+    ctx.fillRect(cx+eW*.35,botElecY+eH*.51,W*.15,eH*.14);
+
+    // Current flow indicator
+    if(phase===2||phase===3){
+      const cf=sat((t-.28)/.10);
+      for(let i=0;i<5;i++){
+        const py=topElecY+eH+(i+.5)/5*(sheetH*2)-1;
+        const alpha=(.3+.7*(i===2?.8:.3))*cf;
+        ctx.strokeStyle=`rgba(255,220,80,${alpha})`; ctx.lineWidth=2*(i===2?2:1);
+        ctx.beginPath(); ctx.moveTo(cx-eW*.15,py); ctx.lineTo(cx+eW*.15,py); ctx.stroke();
+      }
+      // Down arrow for current
+      arrow(cx+eW*.35,topElecY+eH*.5,cx+eW*.35,botElecY+eH*.5,'rgba(255,220,80,.5)',1.5,7);
+      lbl('I',cx+eW*.35+12,cy,{align:'left',color:'rgba(255,220,80,.7)',size:12,bold:true});
+    }
+
+    // Force arrows
+    if(phase>=1&&phase<5){
+      const fa=ease(sat((t-.12)/.10));
+      arrow(cx,topElecY-18,cx,topElecY,'#ff6060',2,8);
+      arrow(cx,botElecY+eH+18,cx,botElecY+eH,'#ff6060',2,8);
+    }
+
+    // ── LABELS ──
+    lbl('Upper electrode',cx+eW*.6,topElecY+eH*.4,{align:'left',color:'#c0a040',size:10});
+    lbl('Lower electrode',cx+eW*.6,botElecY+eH*.6,{align:'left',color:'#c0a040',size:10});
+    lbl('Sheet 1',sheetX-6,cy-sheetH*.5+4,{align:'right',color:'#8090b4',size:10});
+    lbl('Sheet 2',sheetX-6,cy+sheetH*.5+4, {align:'right',color:'#8090b4',size:10});
+    if(phase>=3) lbl('Nugget',cx+sheetH+8,cy+4,{align:'left',color:'#ff9040',size:10});
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
+//  ADDITIVE — FDM
+// ══════════════════════════════════════
+const FDM = {
+  meta:{name:'FDM (Fused Deposition)',mat:'PLA, ABS, PETG, Nylon',temp:'180–260 °C',cat:'Additive'},
+  t:0, period:10, layers:[], curLayer:0,
+  init(){
+    this.t=0; this.layers=[]; this.curLayer=0;
+  },
+  onResize(){ this.init(); },
+  step(dt){
+    this.t=(this.t+dt/this.period)%1;
+    const totalLayers=10;
+    const layerFrac=this.t*totalLayers;
+    this.curLayer=Math.floor(layerFrac);
+    this.layerProg=layerFrac-this.curLayer;
+    setStage(`Layer ${this.curLayer+1} / ${totalLayers}`,'FDM');
+  },
+  draw(){
+    grid();
+    const cx=W/2, cy=H/2, t=this.t;
+    const totalLayers=10;
+    const partW=Math.min(W*.38,200), partH0=Math.min(H*.40,160);
+    const bedW=Math.min(W*.60,320), bedH=Math.min(H*.06,18);
+    const bedX=cx-bedW/2, bedY=cy+partH0*.55;
+
+    // Print bed
+    ctx.fillStyle='#2d3d58';
+    rrect(bedX,bedY,bedW,bedH,3); ctx.fill();
+    hatch(bedX,bedY,bedW,bedH,6,'rgba(255,255,255,.07)');
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(bedX,bedY,bedW,bedH,3); ctx.stroke();
+    // Bed surface
+    ctx.fillStyle='#3a5070'; ctx.fillRect(bedX,bedY,bedW,bedH*.3);
+
+    // ── PRINTED LAYERS ──
+    const layerH=partH0/totalLayers;
+    const completeLayers=this.curLayer;
+    const layProg=this.layerProg;
+
+    // Part colors per layer (alternating slightly for visual interest)
+    const layerColors=['#e85c30','#e86430','#dd5828','#d54e22','#cc4820',
+                       '#c84220','#c03c1e','#b8381c','#b0341a','#a83018'];
+
+    for(let l=0;l<completeLayers;l++){
+      const ly=bedY-layerH*(l+1);
+      // Full layer
+      ctx.fillStyle=layerColors[l%layerColors.length];
+      ctx.fillRect(cx-partW/2,ly,partW,layerH);
+      ctx.strokeStyle='rgba(60,20,10,.4)'; ctx.lineWidth=.5;
+      ctx.strokeRect(cx-partW/2,ly,partW,layerH);
+      // Perimeter lines
+      ctx.strokeStyle='rgba(0,0,0,.25)'; ctx.lineWidth=1;
+      ctx.strokeRect(cx-partW/2+1.5,ly,partW-3,layerH);
+    }
+
+    // Current layer (partial — nozzle sweeping)
+    if(completeLayers<totalLayers){
+      const ly=bedY-layerH*(completeLayers+1);
+      const curW=partW*layProg;
+      ctx.fillStyle=layerColors[completeLayers%layerColors.length];
+      ctx.fillRect(cx-partW/2,ly,curW,layerH);
+    }
+
+    // ── NOZZLE ──
+    const nozzX=cx-partW/2+partW*layProg;
+    const nozzY=bedY-layerH*(completeLayers+1)-2;
+
+    // Gantry rod
+    ctx.fillStyle='#3a4a60';
+    ctx.fillRect(bedX,nozzY-Math.min(H*.12,48),bedW,8);
+    ctx.strokeStyle='#5a7090'; ctx.lineWidth=1; ctx.strokeRect(bedX,nozzY-Math.min(H*.12,48),bedW,8);
+
+    // Hot-end body
+    ctx.fillStyle='#4a5a70';
+    rrect(nozzX-10,nozzY-Math.min(H*.09,36),20,Math.min(H*.09,36)-10,3); ctx.fill();
+    ctx.strokeStyle='#6878a0'; ctx.lineWidth=1.5;
+    rrect(nozzX-10,nozzY-Math.min(H*.09,36),20,Math.min(H*.09,36)-10,3); ctx.stroke();
+    // Heater block (orange glow)
+    const hbH=12;
+    ctx.fillStyle='#c04010';
+    ctx.fillRect(nozzX-8,nozzY-hbH,16,hbH);
+    ctx.strokeStyle='#e05020'; ctx.lineWidth=1; ctx.strokeRect(nozzX-8,nozzY-hbH,16,hbH);
+    // Nozzle tip
+    ctx.fillStyle='#8a9aaa';
+    ctx.beginPath();
+    ctx.moveTo(nozzX-6,nozzY); ctx.lineTo(nozzX+6,nozzY);
+    ctx.lineTo(nozzX+2,nozzY+10); ctx.lineTo(nozzX-2,nozzY+10);
+    ctx.closePath(); ctx.fill();
+
+    // Filament exiting nozzle
+    if(completeLayers<totalLayers){
+      ctx.strokeStyle='rgba(200,80,30,.8)'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(nozzX,nozzY+10); ctx.lineTo(nozzX,nozzY+14); ctx.stroke();
+    }
+
+    // Filament spool (right side)
+    const spoolCX=bedX+bedW+Math.min(W*.08,38), spoolCY=cy-partH0*.2;
+    const spoolR=Math.min(H*.09,32);
+    const grd=ctx.createRadialGradient(spoolCX,spoolCY,spoolR*.3,spoolCX,spoolCY,spoolR);
+    grd.addColorStop(0,'#4a5a70'); grd.addColorStop(1,'#1e2838');
+    ctx.beginPath(); ctx.arc(spoolCX,spoolCY,spoolR,0,Math.PI*2);
+    ctx.fillStyle=grd; ctx.fill(); ctx.strokeStyle='#5a7090'; ctx.lineWidth=2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(spoolCX,spoolCY,spoolR*.35,0,Math.PI*2);
+    ctx.fillStyle='#0d0f1a'; ctx.fill();
+    // Filament path to nozzle
+    ctx.strokeStyle='rgba(200,80,30,.5)'; ctx.lineWidth=2; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(spoolCX,spoolCY-spoolR); ctx.lineTo(nozzX,nozzY-Math.min(H*.09,36)); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // ── LABELS ──
+    lbl('Print Head', nozzX,nozzY-Math.min(H*.09,36)-14,{align:'center',color:'#8090b4',size:10});
+    lbl('Filament',   spoolCX,spoolCY+spoolR+14,        {align:'center',color:'#8090b4',size:10});
+    lbl('Print Bed',  bedX+bedW*.5,bedY+bedH+14,        {align:'center',color:'#5a7090',size:10});
+    lbl(`Height: ${(completeLayers*layerH).toFixed(0)} px`,cx,bedY-partH0-22,{color:'#6878a0',size:10});
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
+//  ADDITIVE — SLA (Stereolithography)
+// ══════════════════════════════════════
+const SLA = {
+  meta:{name:'SLA (Stereolithography)',mat:'UV-curable photopolymer',temp:'Room temperature',cat:'Additive'},
+  t:0, period:10, totalLayers:12,
+  init(){ this.t=0; },
+  onResize(){},
+  step(dt){
+    this.t=(this.t+dt/this.period)%1;
+    const lf=this.t*this.totalLayers;
+    this.curLayer=Math.floor(lf); this.layerProg=lf-this.curLayer;
+    setStage(`Layer ${this.curLayer+1} / ${this.totalLayers}`,'SLA');
+  },
+  draw(){
+    grid();
+    const cx=W/2, cy=H/2;
+    const vatW=Math.min(W*.52,280), vatH=Math.min(H*.56,240);
+    const vatX=cx-vatW/2, vatY=cy-vatH*.35;
+    const totalLayers=this.totalLayers;
+    const layerH=vatH*.65/totalLayers;
+    const partW=vatW*.55;
+
+    // ── RESIN VAT ──
+    // Back wall + bottom
+    ctx.fillStyle='rgba(30,50,80,.5)';
+    rrect(vatX,vatY,vatW,vatH,5); ctx.fill();
+    ctx.strokeStyle='#3a5a88'; ctx.lineWidth=2; rrect(vatX,vatY,vatW,vatH,5); ctx.stroke();
+    // Resin liquid (semi-transparent blue)
+    const resinTop=vatY+vatH*.10;
+    const resinBot=vatY+vatH*.92;
+    ctx.fillStyle='rgba(20,60,120,.55)';
+    ctx.fillRect(vatX+2,resinTop,vatW-4,resinBot-resinTop);
+    // Resin surface shimmer
+    ctx.strokeStyle='rgba(100,180,255,.25)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(vatX+2,resinTop); ctx.lineTo(vatX+vatW-2,resinTop); ctx.stroke();
+
+    // ── BUILD PLATFORM (rises each layer) ──
+    const doneH=layerH*(this.curLayer+this.layerProg);
+    const platW=vatW*.80, platH=8;
+    const platX=cx-platW/2;
+    const platY=resinBot-doneH-platH;
+    // Platform support rod
+    ctx.fillStyle='#3a4a60';
+    ctx.fillRect(cx-4,vatY-Math.min(H*.12,50),8,platY-(vatY-Math.min(H*.12,50))+2);
+    ctx.strokeStyle='#5a7090'; ctx.lineWidth=1;
+    ctx.strokeRect(cx-4,vatY-Math.min(H*.12,50),8,platY-(vatY-Math.min(H*.12,50))+2);
+    // Motor/linear rail at top
+    ctx.fillStyle='#2d3d58';
+    rrect(cx-Math.min(W*.08,40),vatY-Math.min(H*.14,58),Math.min(W*.16,80),Math.min(H*.07,24),4); ctx.fill();
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=1.5;
+    rrect(cx-Math.min(W*.08,40),vatY-Math.min(H*.14,58),Math.min(W*.16,80),Math.min(H*.07,24),4); ctx.stroke();
+    lbl('Z axis motor',cx,vatY-Math.min(H*.14,58)-10,{align:'center',color:'#5a7090',size:9});
+
+    // Platform
+    ctx.fillStyle='#4a5a70';
+    ctx.fillRect(platX,platY,platW,platH);
+    ctx.strokeStyle='#6878a0'; ctx.lineWidth=1.5;
+    ctx.strokeRect(platX,platY,platW,platH);
+
+    // ── PRINTED LAYERS ──
+    for(let l=0;l<this.curLayer;l++){
+      const ly=platY+platH+l*layerH;
+      const a=lerp(.5,.85,l/totalLayers);
+      ctx.fillStyle=`rgba(180,80,220,${a})`;
+      ctx.fillRect(cx-partW/2,ly,partW,layerH);
+      ctx.strokeStyle='rgba(100,40,140,.4)'; ctx.lineWidth=.5;
+      ctx.strokeRect(cx-partW/2,ly,partW,layerH);
+    }
+    // Partial current layer (UV curing flash)
+    const curLayY=platY+platH+this.curLayer*layerH;
+    const cureW=partW*this.layerProg;
+    ctx.fillStyle='rgba(210,100,255,.65)';
+    ctx.fillRect(cx-partW/2,curLayY,cureW,layerH);
+
+    // ── UV LASER ──
+    const laserX=cx-partW/2+partW*this.layerProg;
+    const laserSrcY=vatY-Math.min(H*.25,100);
+    // Laser source
+    ctx.fillStyle='#5a3080';
+    rrect(laserX-14,laserSrcY-16,28,16,3); ctx.fill();
+    ctx.strokeStyle='#8a50cc'; ctx.lineWidth=1.5;
+    rrect(laserX-14,laserSrcY-16,28,16,3); ctx.stroke();
+    lbl('UV Laser',laserX,laserSrcY-28,{align:'center',color:'#aa70ee',size:10});
+
+    // Laser beam
+    const beamGrd=ctx.createLinearGradient(laserX,laserSrcY,laserX,curLayY+layerH);
+    beamGrd.addColorStop(0,'rgba(180,80,255,.6)');
+    beamGrd.addColorStop(1,'rgba(180,80,255,.15)');
+    ctx.strokeStyle=beamGrd; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(laserX,laserSrcY); ctx.lineTo(laserX,curLayY+layerH*.5); ctx.stroke();
+    // Beam spot glow
+    const spotGrd=ctx.createRadialGradient(laserX,curLayY+layerH*.5,0,laserX,curLayY+layerH*.5,10);
+    spotGrd.addColorStop(0,'rgba(220,150,255,.9)');
+    spotGrd.addColorStop(1,'rgba(220,150,255,0)');
+    ctx.fillStyle=spotGrd; ctx.beginPath(); ctx.arc(laserX,curLayY+layerH*.5,10,0,Math.PI*2); ctx.fill();
+
+    // Up-arrow (platform rising)
+    arrow(platX-16,platY+platH*2,platX-16,platY,'#ffc040',1.5,7);
+    lbl('↑ Rise',platX-28,platY+platH,'#ffc040',{align:'right',size:10});
+
+    // ── LABELS ──
+    lbl('Build Platform',cx,platY-10,{align:'center',color:'#6878a0',size:10});
+    lbl('Resin Vat',vatX+vatW+10,vatY+vatH*.5,{align:'left',color:'#4a7aaa',size:10});
+    lbl('Cured polymer',cx,curLayY-10,{align:'center',color:'#cc80ff',size:10});
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
+//  REGISTRY
+// ══════════════════════════════════════
+const CATEGORIES = {
+  casting:  { label:'Casting',    subs:['sandCasting','dieCasting'] },
+  forming:  { label:'Forming',    subs:['rolling','forging','extrusion'] },
+  molding:  { label:'Molding',    subs:['injectionMolding','blowMolding'] },
+  machining:{ label:'Machining',  subs:['turning','milling'] },
+  joining:  { label:'Joining',    subs:['arcWelding','spotWelding'] },
+  additive: { label:'Additive',   subs:['fdm','sla'] },
+};
+
+const SIMS = {
+  sandCasting:    { label:'Sand Casting',    sim:SandCasting },
+  dieCasting:     { label:'Die Casting',     sim:DieCasting },
+  rolling:        { label:'Rolling',         sim:Rolling },
+  forging:        { label:'Forging',         sim:Forging },
+  extrusion:      { label:'Extrusion',       sim:Extrusion },
+  injectionMolding:{ label:'Injection Molding', sim:InjectionMolding },
+  blowMolding:    { label:'Blow Molding',    sim:BlowMolding },
+  turning:        { label:'Turning (Lathe)', sim:Turning },
+  milling:        { label:'Milling',         sim:Milling },
+  arcWelding:     { label:'Arc Welding',     sim:ArcWelding },
+  spotWelding:    { label:'Resistance Spot Welding', sim:SpotWelding },
+  fdm:            { label:'FDM 3D Printing', sim:FDM },
+  sla:            { label:'SLA / Resin',     sim:SLA },
+};
+
+// ══════════════════════════════════════
+//  UI LOGIC
+// ══════════════════════════════════════
+let currentCat='casting', currentSubKey='sandCasting';
+
+function selectCategory(cat){
+  currentCat=cat;
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
+  buildSubMenu(cat);
+  const firstSub=CATEGORIES[cat].subs[0];
+  selectSub(firstSub);
+}
+
+function buildSubMenu(cat){
+  const grid=document.getElementById('sub-grid');
+  grid.innerHTML='';
+  CATEGORIES[cat].subs.forEach(key=>{
+    const btn=document.createElement('button');
+    btn.className='sub-btn';
+    btn.textContent=SIMS[key].label;
+    btn.dataset.sub=key;
+    btn.addEventListener('click',()=>selectSub(key));
+    grid.appendChild(btn);
+  });
+}
+
+function selectSub(key){
+  currentSubKey=key;
+  document.querySelectorAll('.sub-btn').forEach(b=>b.classList.toggle('active',b.dataset.sub===key));
+  const entry=SIMS[key];
+  loadSim(entry.sim);
+}
+
+// ── BUTTON EVENTS ──
+document.querySelectorAll('.cat-btn').forEach(b=>{
+  b.addEventListener('click',()=>selectCategory(b.dataset.cat));
+});
+
+document.getElementById('btn-play').addEventListener('click',function(){
+  running=!running;
+  this.textContent=running?'⏸ Pause':'▶ Play';
+  this.classList.toggle('running',running);
+});
+
+document.getElementById('btn-reset').addEventListener('click',()=>{
+  if(currentSim) currentSim.init();
+});
+
+document.getElementById('spd-slider').addEventListener('input',function(){
+  speed=parseFloat(this.value);
+  document.getElementById('spd-val').textContent=`${speed}×`;
+});
+
+// ── INIT ──
+selectCategory('casting');
+lastTs=performance.now();
+animId=requestAnimationFrame(animate);
+</script>
+</body>
+</html>
