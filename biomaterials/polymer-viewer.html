@@ -1586,7 +1586,7 @@ function build2DSVG(key, nMers) {
   for (let i = 0; i < N; i++) {
     const bkDef = bk[i % nPM];
     const side  = bkDef.side;
-    const x = ax(i), sdir = sd(i);
+    const x = ax(i), sdir = bkDef.randomize ? (srand(i*31+13) < 0.5 ? 1 : -1) : sd(i);
     const sy  = backY + sdir * SL;
     const oy  = backY - sdir * SL;   // opposite direction
 
