@@ -108,6 +108,31 @@
     .info-key { color: #5a6080; font-size: 0.71rem; white-space: nowrap; }
     .info-val { color: #c8d8ff; font-weight: 600; font-size: 0.74rem; text-align: right; }
 
+    /* Details panel */
+    .details-panel {
+      background: #161828; border: 1px solid #2a2d45;
+      border-radius: 8px; padding: 10px 12px;
+      display: flex; flex-direction: column; gap: 7px;
+      font-size: 0.72rem;
+    }
+    .det-hrow { display:flex; justify-content:space-between; align-items:center; }
+    .det-key  { color:#5a6080; font-size:0.63rem; font-weight:700; text-transform:uppercase; letter-spacing:.8px; }
+    .det-complexity { font-weight:700; font-size:0.68rem; padding:2px 7px; border-radius:3px; }
+    .det-complexity.low       { color:#66cc88; background:rgba(100,200,120,.13); }
+    .det-complexity.moderate  { color:#e0c040; background:rgba(220,190,60,.13); }
+    .det-complexity.high      { color:#f09040; background:rgba(240,140,60,.13); }
+    .det-complexity.very-high { color:#e06060; background:rgba(220,80,80,.13); }
+    .det-complexity-sub { color:#5a6888; font-size:0.65rem; line-height:1.4; font-style:italic; }
+    .det-group-lbl { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.8px; margin-bottom:3px; }
+    .det-group-lbl.pro { color:#3a8a54; }
+    .det-group-lbl.con { color:#8a3a3a; }
+    .det-item { display:flex; gap:5px; font-size:0.68rem; line-height:1.4; margin-bottom:2px; }
+    .det-item .dot { flex-shrink:0; margin-top:1px; font-size:0.7rem; }
+    .det-item.pro { color:#90c8a8; } .det-item.pro .dot { color:#55bb77; }
+    .det-item.con { color:#c89090; } .det-item.con .dot { color:#bb5555; }
+    .det-tol-row { display:flex; justify-content:space-between; align-items:center; padding-top:5px; border-top:1px solid #1e2238; }
+    .det-val { color:#8898b8; font-size:0.70rem; }
+
     /* Controls */
     .ctrl-row { display: flex; gap: 8px; }
     .ctrl-btn {
@@ -199,6 +224,29 @@
       <div class="info-row"><span class="info-key">Materials</span>   <span class="info-val" id="inf-mat">Metals, Alloys</span></div>
       <div class="info-row"><span class="info-key">Temperature</span> <span class="info-val" id="inf-temp">700–1600 °C</span></div>
       <div class="info-row"><span class="info-key">Stage</span>        <span class="info-val" id="inf-stage">—</span></div>
+    </div>
+  </div>
+
+  <div id="details-section" style="display:none">
+    <div class="section-label">Details</div>
+    <div class="details-panel">
+      <div class="det-hrow">
+        <span class="det-key">Complexity</span>
+        <span class="det-complexity" id="det-complexity">—</span>
+      </div>
+      <div class="det-complexity-sub" id="det-complexity-sub"></div>
+      <div>
+        <div class="det-group-lbl pro">Benefits</div>
+        <div id="det-pros"></div>
+      </div>
+      <div>
+        <div class="det-group-lbl con">Drawbacks</div>
+        <div id="det-cons"></div>
+      </div>
+      <div class="det-tol-row">
+        <span class="det-key">Typical Tolerance</span>
+        <span class="det-val" id="det-tolerance">—</span>
+      </div>
     </div>
   </div>
 
@@ -348,6 +396,37 @@ function loadSim(sim){
   document.getElementById('inf-temp').textContent  = sim.meta.temp;
   document.getElementById('inf-stage').textContent = '—';
   buildStepMenu(sim);
+  buildDetails(sim);
+}
+
+function buildDetails(sim){
+  const key=Object.keys(SIMS).find(k=>SIMS[k].sim===sim);
+  const d=key?DETAILS[key]:null;
+  const section=document.getElementById('details-section');
+  if(!d){ section.style.display='none'; return; }
+  section.style.display='';
+
+  // Complexity badge
+  const ct=d.complexity;
+  let level,label;
+  if(ct.startsWith('Very High'))        { level='very-high'; label='Very High'; }
+  else if(ct.startsWith('High'))         { level='high';      label='High'; }
+  else if(ct.startsWith('Moderate–High')){ level='high';      label='Moderate–High'; }
+  else if(ct.startsWith('Low–Moderate')) { level='moderate';  label='Low–Moderate'; }
+  else if(ct.startsWith('Moderate'))     { level='moderate';  label='Moderate'; }
+  else                                   { level='low';       label='Low'; }
+  const ce=document.getElementById('det-complexity');
+  ce.className='det-complexity '+level; ce.textContent=label;
+  document.getElementById('det-complexity-sub').textContent=ct.split('—').slice(1).join('—').trim();
+
+  // Pros / cons
+  document.getElementById('det-pros').innerHTML=
+    d.pros.map(p=>`<div class="det-item pro"><span class="dot">✓</span><span>${p}</span></div>`).join('');
+  document.getElementById('det-cons').innerHTML=
+    d.cons.map(c=>`<div class="det-item con"><span class="dot">✗</span><span>${c}</span></div>`).join('');
+
+  // Tolerance
+  document.getElementById('det-tolerance').textContent=d.tolerance||'—';
 }
 
 function buildStepMenu(sim){
@@ -2342,6 +2421,152 @@ const SLA = {
     lbl('Cured polymer',cx,curLayY-10,{align:'center',color:'#cc80ff',size:10});
   },
   cleanup(){}
+};
+
+// ══════════════════════════════════════
+//  PROCESS DETAILS  (pros / cons / complexity / tolerance)
+// ══════════════════════════════════════
+const DETAILS = {
+  sandCasting: {
+    pros:['Low tooling cost — ideal for prototypes and short runs',
+          'Very large and highly complex shapes possible',
+          'Widest material range — nearly any metal or alloy'],
+    cons:['Rough surface finish (~Ra 12–25 µm) needs machining',
+          'Loose tolerances (±1–3 mm) compared to other processes',
+          'Slow cycle time — one mold consumed per casting'],
+    complexity:'High — complex 3D shapes including internal cavities via cores',
+    tolerance:'±1–3 mm',
+  },
+  investmentCasting: {
+    pros:['Near-net shape — excellent dimensional accuracy',
+          'Very smooth surface finish (~Ra 1.5–3 µm)',
+          'Intricate geometries, thin walls, undercuts possible'],
+    cons:['High tooling and per-part cost',
+          'Part size limited (typically < 25 kg)',
+          'Longer lead time than sand or die casting'],
+    complexity:'Very High — intricate 3D geometries, thin walls, undercuts',
+    tolerance:'±0.1–0.5 mm',
+  },
+  dieCasting: {
+    pros:['High production rate — short cycle times',
+          'Good surface finish and consistent tolerances',
+          'Excellent for thin-walled, lightweight parts'],
+    cons:['High die cost — only economical at high volumes',
+          'Limited to low-melting alloys (Zn, Al, Mg)',
+          'Porosity risk from trapped air during injection'],
+    complexity:'Moderate–High — complex shapes; undercuts require side actions',
+    tolerance:'±0.1–0.3 mm',
+  },
+  rolling: {
+    pros:['Very high production rate — continuous process',
+          'Improves mechanical properties via work hardening',
+          'Low cost per unit at volume'],
+    cons:['Limited to uniform cross-sections (sheet, plate, rod)',
+          'Residual stresses may cause warping after forming',
+          'Large capital investment for rolling mill equipment'],
+    complexity:'Low — flat/sheet or simple prismatic profiles only',
+    tolerance:'±0.1–0.5 mm (sheet thickness)',
+  },
+  forging: {
+    pros:['Superior mechanical properties — refined grain flow',
+          'High strength-to-weight ratio',
+          'Excellent fatigue and impact resistance'],
+    cons:['High tooling cost for closed-die forging',
+          'Limited to relatively simple solid shapes',
+          'Not all alloys are easily forgeable'],
+    complexity:'Moderate — solid shapes without undercuts; open-die is more flexible',
+    tolerance:'±0.5–2 mm',
+  },
+  extrusion: {
+    pros:['Long continuous parts with constant cross-section',
+          'Wide range of profile shapes achievable',
+          'Good surface finish and work-hardened properties'],
+    cons:['Cross-section must remain constant along the length',
+          'Part length limited by press and billet capacity',
+          'Complex profiles require expensive tooling'],
+    complexity:'Low — constant cross-section profiles only; no length-wise variation',
+    tolerance:'±0.1–0.5 mm',
+  },
+  injectionMolding: {
+    pros:['Extremely high production rate — short cycle times',
+          'Excellent surface finish and tight repeatability',
+          'Complex 3D geometries achievable in one shot'],
+    cons:['Very high mold cost — needs high volume to justify',
+          'Limited mainly to polymers and composites',
+          'Uniform wall thickness required for quality parts'],
+    complexity:'High — complex 3D shapes; undercuts possible with side actions',
+    tolerance:'±0.05–0.2 mm',
+  },
+  blowMolding: {
+    pros:['Efficient for hollow thin-walled containers',
+          'High production rate with low cost per part',
+          'Lightweight parts with seamless construction'],
+    cons:['Restricted to hollow shapes only',
+          'Wall thickness difficult to control uniformly',
+          'Limited to thermoplastic materials'],
+    complexity:'Low–Moderate — hollow shapes only; no solid or open sections',
+    tolerance:'±0.3–1 mm',
+  },
+  turning: {
+    pros:['High dimensional accuracy and surface finish',
+          'Versatile — wide range of materials',
+          'Precise control of diameters, shoulders, threads'],
+    cons:['Limited to rotationally symmetric geometries',
+          'Significant material waste (subtractive process)',
+          'Asymmetric features require additional milling'],
+    complexity:'Moderate — rotationally symmetric shapes; asymmetric features need milling',
+    tolerance:'±0.01–0.05 mm',
+  },
+  milling: {
+    pros:['Complex 3D surfaces, pockets, and contours',
+          'Wide material range including metals, ceramics, composites',
+          'Excellent dimensional accuracy and surface finish'],
+    cons:['Slow compared to forming or casting at high volumes',
+          'High material waste (subtractive process)',
+          'Complex toolpaths require skilled programming (CAM)'],
+    complexity:'High — complex 3D surfaces, pockets, slots, contours',
+    tolerance:'±0.01–0.05 mm',
+  },
+  arcWelding: {
+    pros:['Strong permanent joints — can match base material strength',
+          'Versatile — various alloys and joint geometries',
+          'Portable, relatively low equipment cost'],
+    cons:['Heat-affected zone (HAZ) alters material properties',
+          'Distortion and residual stresses from thermal cycling',
+          'Quality depends heavily on operator skill'],
+    complexity:'Moderate — joins complex assemblies; limited by access and fit-up',
+    tolerance:'±0.5–2 mm (joint position)',
+  },
+  spotWelding: {
+    pros:['Very fast — easily automated for high production',
+          'No filler material needed, clean process',
+          'Repeatable and consistent for sheet metal assembly'],
+    cons:['Limited to sheet metal in an overlap joint configuration',
+          'Cannot weld all material combinations',
+          'Access to both sides of the joint required'],
+    complexity:'Low — sheet metal overlap joints only',
+    tolerance:'±0.5–1 mm',
+  },
+  fdm: {
+    pros:['Any geometry — no tooling or dies required',
+          'Low cost for prototypes and short production runs',
+          'Wide material range (PLA, ABS, PEEK, TPU, etc.)'],
+    cons:['Anisotropic properties — weaker between layers',
+          'Visible layer lines; post-processing often needed',
+          'Slow build speed compared to subtractive methods'],
+    complexity:'Very High — any geometry including internal channels and lattices',
+    tolerance:'±0.1–0.3 mm',
+  },
+  sla: {
+    pros:['Excellent surface finish — smooth and detailed',
+          'Very high feature resolution and accuracy',
+          'Complex overhanging geometries with support structures'],
+    cons:['Limited to photopolymer resins (often brittle)',
+          'Parts degrade with UV exposure over time',
+          'Build volume limited; resin is expensive'],
+    complexity:'Very High — intricate geometries, fine features, thin walls',
+    tolerance:'±0.05–0.15 mm',
+  },
 };
 
 // ══════════════════════════════════════
