@@ -44,12 +44,24 @@
       margin-bottom: 7px;
     }
 
-    /* 3-column category grid */
+    /* 2-column category grid */
     .cat-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr;
       gap: 6px;
     }
+    .class-group { margin-bottom: 6px; }
+    .class-header {
+      font-size: 0.60rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 3px 7px;
+      margin-bottom: 5px;
+      border-radius: 4px;
+    }
+    .class-header.primary   { color:#5ab0f0; border-left:2px solid #5ab0f0; background:rgba(90,176,240,.08); }
+    .class-header.secondary { color:#f07850; border-left:2px solid #f07850; background:rgba(240,120,80,.08); }
     .cat-btn {
       padding: 9px 4px;
       background: #1e2238;
@@ -152,13 +164,21 @@
 
   <div>
     <div class="section-label">Category</div>
-    <div class="cat-grid">
-      <button class="cat-btn active" data-cat="casting">Casting</button>
-      <button class="cat-btn"        data-cat="forming">Forming</button>
-      <button class="cat-btn"        data-cat="molding">Molding</button>
-      <button class="cat-btn"        data-cat="machining">Machining</button>
-      <button class="cat-btn"        data-cat="joining">Joining</button>
-      <button class="cat-btn"        data-cat="additive">Additive</button>
+    <div class="class-group">
+      <div class="class-header primary">Primary Shaping</div>
+      <div class="cat-grid">
+        <button class="cat-btn active" data-cat="casting">Casting</button>
+        <button class="cat-btn"        data-cat="forming">Forming</button>
+        <button class="cat-btn"        data-cat="molding">Molding</button>
+        <button class="cat-btn"        data-cat="additive">Additive</button>
+      </div>
+    </div>
+    <div class="class-group">
+      <div class="class-header secondary">Secondary Shaping</div>
+      <div class="cat-grid">
+        <button class="cat-btn"        data-cat="machining">Machining</button>
+        <button class="cat-btn"        data-cat="joining">Joining</button>
+      </div>
     </div>
   </div>
 
