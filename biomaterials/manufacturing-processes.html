@@ -121,6 +121,19 @@
 
     .hint { font-size:.71rem; color:#454a65; line-height:1.85; }
 
+    /* Step buttons */
+    .step-section { display:none; }
+    .step-section.visible { display:block; }
+    .step-grid { display:flex; flex-direction:column; gap:5px; }
+    .step-btn {
+      padding:7px 10px;
+      background:#1e2238; border:1px solid #2e3355; border-radius:7px;
+      color:#9ba8c8; cursor:pointer; font-size:.73rem; font-weight:600;
+      text-align:left; transition:background .18s, border-color .18s, color .18s;
+    }
+    .step-btn:hover  { background:#253060; border-color:#4a6bcc; color:#c8d8ff; }
+    .step-btn.active { background:#2a1808; border-color:#c07030; color:#ffcc88; }
+
     /* Canvas */
     #canvas-wrap { flex:1; position:relative; overflow:hidden; background:#0d0f1a; }
     canvas { display:block; }
@@ -152,6 +165,11 @@
   <div>
     <div class="section-label">Process</div>
     <div class="sub-grid" id="sub-grid"></div>
+  </div>
+
+  <div class="step-section" id="step-section">
+    <div class="section-label">Steps</div>
+    <div class="step-grid" id="step-grid"></div>
   </div>
 
   <div>
@@ -303,11 +321,34 @@ function animate(ts){
 function loadSim(sim){
   if(currentSim && currentSim.cleanup) currentSim.cleanup();
   currentSim=sim;
+  if(sim.steps){ sim.currentStep=0; }
   sim.init();
   document.getElementById('inf-name').textContent  = sim.meta.name;
   document.getElementById('inf-mat').textContent   = sim.meta.mat;
   document.getElementById('inf-temp').textContent  = sim.meta.temp;
   document.getElementById('inf-stage').textContent = '—';
+  buildStepMenu(sim);
+}
+
+function buildStepMenu(sim){
+  const section=document.getElementById('step-section');
+  const grid=document.getElementById('step-grid');
+  grid.innerHTML='';
+  if(!sim.steps||!sim.steps.length){ section.classList.remove('visible'); return; }
+  section.classList.add('visible');
+  sim.steps.forEach((step,i)=>{
+    const btn=document.createElement('button');
+    btn.className='step-btn'+(i===0?' active':'');
+    btn.textContent=`${i+1}. ${step.label}`;
+    btn.dataset.step=i;
+    btn.addEventListener('click',()=>selectStep(i));
+    grid.appendChild(btn);
+  });
+}
+
+function selectStep(n){
+  document.querySelectorAll('.step-btn').forEach(b=>b.classList.toggle('active',+b.dataset.step===n));
+  if(currentSim){ currentSim.currentStep=n; currentSim.init(); }
 }
 
 function setStage(stage,simName){
@@ -320,101 +361,385 @@ function setStage(stage,simName){
 // ══════════════════════════════════════
 const SandCasting = {
   meta:{name:'Sand Casting',mat:'Metals, Alloys',temp:'700–1600 °C',cat:'Casting'},
-  t:0, period:9,
+  steps:[
+    {label:'Pattern & Mold Making', period:9},
+    {label:'Gating System',         period:8},
+    {label:'Pouring',               period:11},
+    {label:'Solidification',        period:12},
+  ],
+  currentStep:0, t:0,
   init(){ this.t=0; },
   onResize(){},
-  step(dt){ this.t=(this.t+dt/this.period)%1; },
+  step(dt){ this.t=(this.t+dt/(this.steps[this.currentStep]?.period||9))%1; },
   draw(){
     grid();
-    const cx=W/2, cy=H/2;
-    const mw=Math.min(W*.60,420), mh=Math.min(H*.60,340);
-    const mx=cx-mw/2, my=cy-mh/2;
-    const halfH=mh/2, t=this.t;
-    let phase, stageName;
-    if(t<.10){phase=0;stageName='Empty mold';}
-    else if(t<.52){phase=1;stageName='Filling cavity';}
-    else if(t<.68){phase=2;stageName='Solidifying';}
-    else if(t<.82){phase=3;stageName='Removing cope';}
-    else{phase=4;stageName='Cast part'}
-    setStage(stageName,'Sand Casting');
+    switch(this.currentStep){
+      case 0: this.s0(); break;
+      case 1: this.s1(); break;
+      case 2: this.s2(); break;
+      default:this.s3(); break;
+    }
+  },
+  // ── Shared geometry ────────────────────────────────
+  _geom(){
+    const cx=W/2, cy=H*.47;
+    const mw=Math.min(W*.60,440), mh=Math.min(H*.52,300);
+    const mx=cx-mw/2, my=cy-mh/2, hH=mh/2;
+    const cvW=mw*.28, cvH=mh*.44;
+    const cvX=cx-cvW/2, cvTop=cy-cvH/2;
+    const spW=18, spX=mx+mw*.18;   // sprue centre-x
+    const rsW=14, rsX=mx+mw*.82;   // riser centre-x
+    const runH=13;
+    return {cx,cy,mw,mh,mx,my,hH,cvW,cvH,cvX,cvTop,spW,spX,rsW,rsX,runH};
+  },
+  // ── Draw a sand block ──────────────────────────────
+  _sand(x,y,w,h){
+    ctx.fillStyle='#5c4828'; rrect(x,y,w,h,5); ctx.fill();
+    hatch(x,y,w,h,10,'rgba(0,0,0,.30)');
+    ctx.strokeStyle='#3a2c10'; ctx.lineWidth=2; rrect(x,y,w,h,5); ctx.stroke();
+  },
+  // ── Draw pouring cup above sprue ───────────────────
+  _cup(spX,spW,topY){
+    const cw=30;
+    ctx.fillStyle='#3a3020';
+    ctx.beginPath();
+    ctx.moveTo(spX-cw,topY-22); ctx.lineTo(spX+cw,topY-22);
+    ctx.lineTo(spX+spW/2,topY); ctx.lineTo(spX-spW/2,topY);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#8a7240'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle='#0d0f1a';
+    ctx.beginPath();
+    ctx.moveTo(spX-cw+5,topY-20); ctx.lineTo(spX+cw-5,topY-20);
+    ctx.lineTo(spX+spW/2-1,topY-1); ctx.lineTo(spX-spW/2+1,topY-1);
+    ctx.closePath(); ctx.fill();
+  },
+  // ── STEP 0 : Pattern & Mold Making ────────────────
+  s0(){
+    const {cx,cy,mw,mh,mx,my,hH,cvW,cvH,cvX,cvTop}=this._geom();
+    const t=this.t;
+    let stage;
+    if(t<.15)      stage='Pattern in flask';
+    else if(t<.42) stage='Packing sand';
+    else if(t<.60) stage='Removing pattern';
+    else if(t<.82) stage='Cavity formed';
+    else           stage='Mold assembled';
+    setStage(stage,'Sand Casting');
 
-    const copeRise=(phase>=3)?easeO(sat((t-.68)/.14))*H*.18:0;
+    // Cope separation: opens .60→.72, holds .72→.85, closes .85→1.0
+    let copeOff=0;
+    if(t>=.60&&t<.72)      copeOff=easeO(sat((t-.60)/.12))*H*.20;
+    else if(t>=.72&&t<.85) copeOff=H*.20;
+    else if(t>=.85)        copeOff=(1-easeO(sat((t-.85)/.15)))*H*.20;
 
-    // ── DRAG (stays put) ──
-    ctx.fillStyle='#5c4828'; rrect(mx,my+halfH,mw,halfH,5); ctx.fill();
-    hatch(mx,my+halfH,mw,halfH,10,'rgba(0,0,0,.3)');
-    ctx.strokeStyle='#3a2c10'; ctx.lineWidth=2; rrect(mx,my+halfH,mw,halfH,5); ctx.stroke();
+    const patA=t<.42?1:1-sat((t-.42)/.18);
 
-    // Drag cavity cutout (the lower half of part shape)
-    const cvW=mw*.38, cvH=halfH*.52;
-    const cvX=cx-cvW/2, cvY=my+halfH;
-    ctx.fillStyle='#0d0f1a'; ctx.fillRect(cvX,cvY,cvW,cvH);
-    // Runner from sprue to cavity
-    const spX=mx+mw*.14, spW=mw*.038;
-    const runY=my+halfH, runLen=cvX-(spX+spW*.5);
-    ctx.fillStyle='#0d0f1a'; ctx.fillRect(spX+spW*.5,runY,runLen,halfH*.07);
-    // Sprue hole in drag bottom
-    ctx.fillStyle='#0d0f1a'; ctx.fillRect(spX-spW/2,my+halfH,spW,halfH*.55);
+    // DRAG
+    this._sand(mx,cy,mw,hH);
+    ctx.fillStyle='#0d0f1a'; ctx.fillRect(cvX,cy,cvW,cvH/2);
+    if(patA>0){
+      ctx.save(); ctx.globalAlpha=patA;
+      ctx.fillStyle='#7a5c28'; ctx.fillRect(cvX+1,cy,cvW-2,cvH/2-1);
+      ctx.strokeStyle='#c09030'; ctx.lineWidth=1.5; ctx.strokeRect(cvX+1,cy,cvW-2,cvH/2-1);
+      for(let i=1;i<4;i++){
+        ctx.strokeStyle='rgba(160,120,40,.30)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(cvX+cvW*i/4,cy+3); ctx.lineTo(cvX+cvW*i/4,cy+cvH/2-3); ctx.stroke();
+      }
+      ctx.restore();
+    }
 
-    // ── COPE (lifts in phase 3) ──
-    ctx.save(); ctx.translate(0,-copeRise);
-    ctx.fillStyle='#5c4828'; rrect(mx,my,mw,halfH,5); ctx.fill();
-    hatch(mx,my,mw,halfH,10,'rgba(0,0,0,.3)');
-    ctx.strokeStyle='#3a2c10'; ctx.lineWidth=2; rrect(mx,my,mw,halfH,5); ctx.stroke();
-    // Cope cavity cutout (upper half of part)
-    ctx.fillStyle='#0d0f1a'; ctx.fillRect(cvX,my+halfH-cvH*.5,cvW,cvH*.5);
-    // Sprue hole in cope
-    ctx.fillStyle='#0d0f1a'; ctx.fillRect(spX-spW/2,my,spW,halfH);
+    // COPE (lifted)
+    ctx.save(); ctx.translate(0,-copeOff);
+    this._sand(mx,my,mw,hH);
+    ctx.fillStyle='#0d0f1a'; ctx.fillRect(cvX,cvTop,cvW,cvH/2);
+    if(patA>0){
+      ctx.save(); ctx.globalAlpha=patA;
+      ctx.fillStyle='#7a5c28'; ctx.fillRect(cvX+1,cvTop,cvW-2,cvH/2-1);
+      ctx.strokeStyle='#c09030'; ctx.lineWidth=1.5; ctx.strokeRect(cvX+1,cvTop,cvW-2,cvH/2-1);
+      for(let i=1;i<4;i++){
+        ctx.strokeStyle='rgba(160,120,40,.30)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(cvX+cvW*i/4,cvTop+3); ctx.lineTo(cvX+cvW*i/4,cvTop+cvH/2-3); ctx.stroke();
+      }
+      ctx.restore();
+    }
     ctx.restore();
 
-    // ── PARTING LINE ──
+    // Parting line
     ctx.setLineDash([5,4]); ctx.strokeStyle='rgba(120,140,180,.45)'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(mx,my+halfH); ctx.lineTo(mx+mw,my+halfH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(mx,cy); ctx.lineTo(mx+mw,cy); ctx.stroke();
     ctx.setLineDash([]);
 
-    // ── MOLTEN METAL ──
-    if(phase>=1){
-      const ff=sat((t-.10)/.42), solid=phase>=2?sat((t-.52)/.16):0;
+    lbl('COPE',mx-6,my+hH*.5+4,{align:'right',color:'#7a6840',size:10});
+    lbl('DRAG',mx-6,cy+hH*.5+4, {align:'right',color:'#7a6840',size:10});
+    if(patA>0.05) lbl('Pattern (wood)',cx,cy+cvH*.25,{align:'center',color:`rgba(192,144,48,${patA})`,size:10,bold:true});
+    if(t>=.60){ const ca=sat((t-.60)/.15); lbl('Cavity',cx,cy+cvH*.25,{align:'center',color:`rgba(100,120,180,${ca})`,size:10}); }
+    lbl('Parting line',mx+mw+6,cy,{align:'left',color:'rgba(120,140,180,.5)',size:9});
+  },
+  // ── STEP 1 : Gating System ─────────────────────────
+  s1(){
+    const {cx,cy,mw,mh,mx,my,hH,cvW,cvH,cvX,cvTop,spW,spX,rsW,rsX,runH}=this._geom();
+    const t=this.t;
+    const tCup=.10,tSp=.22,tRun=.38,tGate=.54,tRis=.68,tDone=.82;
+    const fi=tr=>sat((t-tr)/.09);
+
+    let stage='Assembled mold';
+    if(t>tDone)      stage='Gating system complete';
+    else if(t>tRis)  stage='Riser – overflow vent';
+    else if(t>tGate) stage='Gate – cavity entry';
+    else if(t>tRun)  stage='Runner – horizontal channel';
+    else if(t>tSp)   stage='Sprue – vertical channel';
+    else if(t>tCup)  stage='Pouring cup';
+    setStage(stage,'Sand Casting');
+
+    // Base mold
+    this._sand(mx,cy,mw,hH);
+    ctx.fillStyle='#0d0f1a'; ctx.fillRect(cvX,cy,cvW,cvH/2);
+    this._sand(mx,my,mw,hH);
+    ctx.fillStyle='#0d0f1a'; ctx.fillRect(cvX,cvTop,cvW,cvH/2);
+    ctx.setLineDash([5,4]); ctx.strokeStyle='rgba(120,140,180,.45)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(mx,cy); ctx.lineTo(mx+mw,cy); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Sprue void (cope)
+    if(t>tSp){
+      ctx.save(); ctx.globalAlpha=fi(tSp);
+      ctx.fillStyle='#0d0f1a'; ctx.fillRect(spX-spW/2,my,spW,hH);
+      lbl('Sprue',spX+spW/2+5,my+hH*.35,{align:'left',color:'#8898c0',size:10});
+      ctx.restore();
+    }
+    // Pouring cup
+    if(t>tCup){
+      ctx.save(); ctx.globalAlpha=fi(tCup);
+      this._cup(spX,spW,my);
+      lbl('Pouring cup',spX,my-30,{align:'center',color:'#aaa060',size:10});
+      ctx.restore();
+    }
+    // Runner (just below parting line, in drag surface)
+    if(t>tRun){
+      ctx.save(); ctx.globalAlpha=fi(tRun);
+      ctx.fillStyle='#0d0f1a';
+      ctx.fillRect(spX-spW/2,cy,cvX-(spX-spW/2),runH);
+      lbl('Runner',(spX-spW/2+cvX)/2,cy-18,{align:'center',color:'#8898c0',size:10});
+      ctx.restore();
+    }
+    // Gate highlight at cavity entry
+    if(t>tGate){
+      ctx.save(); ctx.globalAlpha=fi(tGate);
+      ctx.fillStyle='rgba(255,160,40,.50)';
+      ctx.fillRect(cvX-3,cy,4,runH+cvH*.10);
+      arrow(cvX-22,cy+runH/2,cvX-4,cy+runH/2,'#ffaa40',2,7);
+      lbl('Gate',cvX-28,cy+runH+12,{align:'right',color:'#ffaa40',size:10});
+      ctx.restore();
+    }
+    // Riser (cope) + right runner
+    if(t>tRis){
+      ctx.save(); ctx.globalAlpha=fi(tRis);
+      ctx.fillStyle='#0d0f1a';
+      ctx.fillRect(rsX-rsW/2,my,rsW,hH);
+      ctx.fillRect(cvX+cvW,cy,rsX+rsW/2-(cvX+cvW),runH);
+      lbl('Riser',rsX,my+hH*.30,{align:'center',color:'#8898c0',size:10});
+      ctx.restore();
+    }
+
+    lbl('COPE',mx-6,my+hH*.5+4,{align:'right',color:'#7a6840',size:10});
+    lbl('DRAG',mx-6,cy+hH*.5+4, {align:'right',color:'#7a6840',size:10});
+    lbl('Cavity',cx,cy+cvH*.25,  {align:'center',color:'#4a5878',size:9});
+  },
+  // ── STEP 2 : Pouring ───────────────────────────────
+  s2(){
+    const {cx,cy,mw,mh,mx,my,hH,cvW,cvH,cvX,cvTop,spW,spX,rsW,rsX,runH}=this._geom();
+    const t=this.t;
+    let stage;
+    if(t<.08)      stage='Ready to pour';
+    else if(t<.28) stage='Sprue filling';
+    else if(t<.62) stage='Cavity filling';
+    else if(t<.82) stage='Metal reaching riser';
+    else           stage='Mold filled';
+    setStage(stage,'Sand Casting');
+
+    // Mold
+    this._sand(mx,cy,mw,hH);
+    ctx.fillStyle='#0d0f1a'; ctx.fillRect(cvX,cy,cvW,cvH/2);
+    this._sand(mx,my,mw,hH);
+    ctx.fillStyle='#0d0f1a'; ctx.fillRect(cvX,cvTop,cvW,cvH/2);
+    // Gating voids
+    ctx.fillStyle='#0d0f1a';
+    ctx.fillRect(spX-spW/2,my,spW,hH);                          // sprue
+    ctx.fillRect(spX-spW/2,cy,cvX-(spX-spW/2),runH);            // left runner
+    ctx.fillRect(rsX-rsW/2,my,rsW,hH);                          // riser
+    ctx.fillRect(cvX+cvW,cy,rsX+rsW/2-(cvX+cvW),runH);        // right runner
+    // Parting line
+    ctx.setLineDash([5,4]); ctx.strokeStyle='rgba(120,140,180,.28)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(mx,cy); ctx.lineTo(mx+mw,cy); ctx.stroke();
+    ctx.setLineDash([]);
+    // Cup always shown
+    this._cup(spX,spW,my);
+
+    if(t>.08){
+      const ff=sat((t-.08)/.84);
+      const solid=t>.82?sat((t-.82)/.18)*.35:0;
       const col=moltCol(solid);
 
-      // Ladle pour
-      if(ff<.25){
-        const ladX=spX, ladY=my-28;
-        ctx.fillStyle='#4a5a70'; ctx.beginPath();
-        ctx.ellipse(ladX,ladY-8,18,11,0,0,Math.PI*2); ctx.fill();
-        ctx.strokeStyle=col; ctx.lineWidth=5;
-        ctx.beginPath(); ctx.moveTo(ladX,ladY+3); ctx.lineTo(ladX,my+2); ctx.stroke();
+      // Pour stream into cup
+      if(ff<.15){
+        ctx.save(); ctx.globalAlpha=1-ff/.15;
+        ctx.strokeStyle=col; ctx.lineWidth=6;
+        ctx.beginPath(); ctx.moveTo(spX,my-22); ctx.lineTo(spX,my-2); ctx.stroke();
+        ctx.restore();
       }
+      // Metal in cup
+      if(ff>.0){
+        ctx.save(); ctx.globalAlpha=Math.min(sat(ff/.05),.95);
+        ctx.fillStyle=col;
+        ctx.beginPath();
+        ctx.moveTo(spX-24,my-20); ctx.lineTo(spX+24,my-20);
+        ctx.lineTo(spX+spW/2-1,my-1); ctx.lineTo(spX-spW/2+1,my-1);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+      // Sprue fill top→bottom
+      const spF=sat(ff/.20);
+      if(spF>0){ ctx.fillStyle=col; ctx.fillRect(spX-spW/2,my,spW,hH*spF); }
+      // Left runner left→right
+      const rF=sat((ff-.18)/.18);
+      if(rF>0){ ctx.fillStyle=col; ctx.fillRect(spX-spW/2,cy,(cvX-(spX-spW/2))*rF,runH); }
+      // Cavity fill BOTTOM→TOP
+      const cF=ease(sat((ff-.32)/.52));
+      if(cF>0){ ctx.fillStyle=col; ctx.fillRect(cvX,cvTop+cvH*(1-cF),cvW,cvH*cF); }
+      // Right runner
+      const rrF=sat((ff-.78)/.14);
+      if(rrF>0){ ctx.fillStyle=col; ctx.fillRect(cvX+cvW,cy,(rsX+rsW/2-(cvX+cvW))*rrF,runH); }
+      // Riser fill bottom→top
+      const risF=sat((ff-.88)/.12);
+      if(risF>0){ ctx.fillStyle=col; ctx.fillRect(rsX-rsW/2,cy-hH*risF,rsW,hH*risF); }
+    }
 
-      // Fill sprue from top
-      const spFrac=sat(ff*3);
+    // Fill-direction arrow
+    if(t>.38&&t<.78){
+      const fa=Math.min(sat((t-.38)/.08),1-sat((t-.72)/.06));
+      ctx.save(); ctx.globalAlpha=fa;
+      arrow(cx+cvW*.25,cvTop+cvH*.78,cx+cvW*.25,cvTop+cvH*.14,'#ffd060',1.5,8);
+      ctx.restore();
+    }
+
+    lbl('Pouring cup',spX,my-32,{align:'center',color:'#aaa060',size:9});
+    lbl('Sprue',spX+spW/2+4,my+hH*.35,{align:'left',color:'#6878a0',size:9});
+    lbl('Runner',(spX-spW/2+cvX)/2,cy-18,{align:'center',color:'#6878a0',size:9});
+    lbl('Cavity',cx,cy+cvH*.25,{align:'center',color:'rgba(100,120,160,.55)',size:9});
+    lbl('Riser',rsX,my+hH*.28,{align:'center',color:'#6878a0',size:9});
+    lbl('COPE',mx-6,my+hH*.5+4,{align:'right',color:'#7a6840',size:10});
+    lbl('DRAG',mx-6,cy+hH*.5+4, {align:'right',color:'#7a6840',size:10});
+  },
+  // ── STEP 3 : Solidification & Shakeout ────────────
+  s3(){
+    const {cx,cy,mw,mh,mx,my,hH,cvW,cvH,cvX,cvTop,spW,spX,rsW,rsX,runH}=this._geom();
+    const t=this.t;
+    let stage;
+    if(t<.22)      stage='Solidifying';
+    else if(t<.45) stage='Removing cope';
+    else if(t<.68) stage='Shakeout';
+    else if(t<.80) stage='Casting complete';
+    else if(t<.93) stage='Trimming gating system';
+    else           stage='Finished casting';
+    setStage(stage,'Sand Casting');
+
+    const solid=sat(t/.22);
+    const col=moltCol(solid);
+    const copeRise=t>.22?easeO(sat((t-.22)/.23))*H*.24:0;
+    const sandA=t>.45?Math.max(0,1-sat((t-.45)/.23)):1;
+
+    // Trim-phase progress (0→1 over t=0.80–0.93)
+    const trimP=t>.80?sat((t-.80)/.13):0;
+    const trimA=1-trimP;          // gating opacity: 1→0 as pieces fly off
+    const dist=trimP*90;          // travel distance in px (max 90)
+
+    // DRAG (fades during shakeout)
+    ctx.save(); ctx.globalAlpha=sandA;
+    this._sand(mx,cy,mw,hH);
+    ctx.fillStyle='#0d0f1a'; ctx.fillRect(cvX,cy,cvW,cvH/2);
+    ctx.restore();
+
+    // COPE (lifts then fades)
+    ctx.save(); ctx.translate(0,-copeRise); ctx.globalAlpha=sandA;
+    this._sand(mx,my,mw,hH);
+    ctx.fillStyle='#0d0f1a';
+    ctx.fillRect(cvX,cvTop,cvW,cvH/2);
+    ctx.fillRect(spX-spW/2,my,spW,hH);
+    ctx.fillRect(rsX-rsW/2,my,rsW,hH);
+    ctx.restore();
+
+    // METAL casting body (always visible)
+    ctx.fillStyle=col;
+    ctx.fillRect(cvX,cvTop,cvW,cvH);
+    if(solid>.5){
+      ctx.strokeStyle='#606880'; ctx.lineWidth=1;
+      ctx.strokeRect(cvX,cvTop,cvW,cvH);
+    }
+
+    // GATING pieces — static until trim phase, then fly off at 45°
+    if(trimA>0){
       ctx.fillStyle=col;
-      ctx.fillRect(spX-spW*.5, my+halfH*(1-spFrac), spW, halfH*spFrac);
-
-      // Fill runner
-      const rFrac=sat((ff-.12)/.35);
-      ctx.fillStyle=col; ctx.fillRect(spX+spW*.5,runY,runLen*rFrac,halfH*.07);
-
-      // Fill cavity (rises from bottom)
-      const cFrac=ease(sat((ff-.28)/.72));
-      const fillH=cvH*cFrac;
-      ctx.fillStyle=col; ctx.fillRect(cvX,cvY+cvH-fillH,cvW,fillH);
+      // Sprue stub → NW (left + up)
+      ctx.save(); ctx.translate(-dist,-dist); ctx.globalAlpha=trimA;
+      ctx.fillRect(spX-spW/2,my+hH*.08,spW,hH*.92);
+      ctx.restore();
+      // Left runner → SW (left + down)
+      ctx.save(); ctx.translate(-dist,+dist); ctx.globalAlpha=trimA;
+      ctx.fillRect(spX-spW/2,cy,cvX-(spX-spW/2),runH);
+      ctx.restore();
+      // Riser stub → NE (right + up)
+      ctx.save(); ctx.translate(+dist,-dist); ctx.globalAlpha=trimA;
+      ctx.fillRect(rsX-rsW/2,my+hH*.08,rsW,hH*.92);
+      ctx.restore();
+      // Right runner → SE (right + down)
+      ctx.save(); ctx.translate(+dist,+dist); ctx.globalAlpha=trimA;
+      ctx.fillRect(cvX+cvW,cy,rsX+rsW/2-(cvX+cvW),runH);
+      ctx.restore();
     }
 
-    // Finished part
-    if(phase>=4){
-      const a=sat((t-.82)/.10);
-      ctx.fillStyle=`rgba(140,160,180,${a})`; ctx.strokeStyle=`rgba(80,100,130,${a})`;
-      ctx.lineWidth=1.5;
-      ctx.fillRect(cvX,cvY,cvW,cvH); ctx.strokeRect(cvX,cvY,cvW,cvH);
+    // Parting line + COPE/DRAG labels (while sand visible)
+    ctx.save(); ctx.globalAlpha=sandA;
+    ctx.setLineDash([5,4]); ctx.strokeStyle='rgba(120,140,180,.45)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(mx,cy); ctx.lineTo(mx+mw,cy); ctx.stroke();
+    ctx.setLineDash([]);
+    lbl('COPE',mx-6,my+hH*.5+4,{align:'right',color:`rgba(122,104,64,${sandA})`,size:10});
+    lbl('DRAG',mx-6,cy+hH*.5+4, {align:'right',color:`rgba(122,104,64,${sandA})`,size:10});
+    ctx.restore();
+
+    // Post-shakeout labels
+    if(t>.68){
+      const la=sat((t-.68)/.12);
+      // "Casting" label — persists throughout
+      ctx.save(); ctx.globalAlpha=la;
+      lbl('Casting',cx,cy+4,{align:'center',color:'#a0b8d8',size:13,bold:true});
+      ctx.restore();
+      // Stub + hint labels — fade away with the gating pieces
+      const stubA=la*trimA;
+      if(stubA>0.01){
+        ctx.save(); ctx.globalAlpha=stubA;
+        lbl('Sprue stub',spX,my+hH*.5,    {align:'center',color:'#7080a0',size:9});
+        lbl('Riser stub',rsX,my+hH*.5,    {align:'center',color:'#7080a0',size:9});
+        lbl('← cut off after casting →',cx,cvTop+cvH+20,{align:'center',color:'#485868',size:9});
+        ctx.restore();
+      }
     }
 
-    // ── LABELS ──
-    lbl('COPE',  mx-6, my+halfH*.5+4, {align:'right',color:'#7a6840',size:10});
-    lbl('DRAG',  mx-6, my+halfH*1.5+4,{align:'right',color:'#7a6840',size:10});
-    lbl('Sprue', spX+spW+4, my+halfH*.35,{align:'left',color:'#6878a0',size:10});
-    lbl('Runner',cx-cvW*.2,  runY+halfH*.10+8,{align:'center',color:'#6878a0',size:10});
-    lbl('Cavity',cx,cvY+cvH*.5+5,{align:'center',color:'#6878a0',size:10});
+    // Trimming comment — fades in then out during trim phase
+    if(t>.80&&t<.93){
+      const ta=Math.min(sat((t-.80)/.06), 1-sat((t-.87)/.06));
+      ctx.save(); ctx.globalAlpha=ta;
+      lbl('Removing sprue, runners & riser…',cx,cvTop-24,
+          {align:'center',color:'#c09050',size:11,bold:true});
+      ctx.restore();
+    }
+
+    // Finished casting label — fades in at the end
+    if(t>=.93){
+      const fa=sat((t-.93)/.07);
+      ctx.save(); ctx.globalAlpha=fa;
+      lbl('Finished casting — ready for post-processing',cx,cvTop-24,
+          {align:'center',color:'#70d890',size:11,bold:true});
+      ctx.restore();
+    }
   },
   cleanup(){}
 };
