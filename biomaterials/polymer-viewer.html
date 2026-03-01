@@ -158,6 +158,27 @@
       display:flex; align-items:center; justify-content:center; padding:8px 16px;
     }
     #panel2d-scroll svg { display:block; flex-shrink:0; }
+    /* ── Property Chart Panel ── */
+    #panel-chart {
+      position:absolute; inset:0; background:#12131a;
+      display:none; flex-direction:column; align-items:stretch;
+      z-index:11; overflow:hidden;
+    }
+    #panel-chart.show { display:flex; }
+    #panel-chart-header {
+      display:flex; align-items:center; justify-content:center; gap:14px;
+      padding:9px 20px 7px; border-bottom:1px solid #1e2540; flex-shrink:0;
+    }
+    #panel-chart-title {
+      font-size:.65rem; color:#3a4a6a; letter-spacing:1.2px;
+      font-family:'Segoe UI',sans-serif; text-transform:uppercase; white-space:nowrap;
+    }
+    #panel-chart-scroll {
+      flex:1; overflow-x:auto; overflow-y:auto;
+      display:flex; align-items:center; justify-content:center; padding:8px 16px;
+    }
+    #panel-chart-scroll svg { display:block; flex-shrink:0; }
+    .chart-pt:hover > circle, .chart-pt:hover > polygon { opacity:0.65; }
   </style>
 </head>
 <body>
@@ -232,6 +253,9 @@
         <button class="tgl-btn rose"  id="btn-spacefill">⬤ Spacefill</button>
         <button class="tgl-btn" id="btn-2d" style="background:#1a2040;border-color:#3a5080;color:#7090c0;">⬡ 2D Structure</button>
       </div>
+      <div class="btn-row">
+        <button class="tgl-btn" id="btn-chart" style="background:#1a2830;border-color:#2a4850;color:#60a8b0;">📊 Property Chart</button>
+      </div>
     </div>
   </div>
 
@@ -289,6 +313,16 @@
     </div>
     <div id="panel2d-scroll">
       <svg id="svg2d" viewBox="0 0 560 270" width="560" height="270"></svg>
+    </div>
+  </div>
+  <!-- Property chart overlay -->
+  <div id="panel-chart">
+    <div id="panel-chart-header">
+      <div id="panel-chart-title">Thermal Properties — Tg vs Tm</div>
+      <button class="view-btn" id="btn-chart-close">✕ Close</button>
+    </div>
+    <div id="panel-chart-scroll">
+      <svg id="svg-chart" viewBox="0 0 600 400" width="600" height="400"></svg>
     </div>
   </div>
 </div>
@@ -1720,6 +1754,171 @@ function build2DSVG(key, nMers) {
   ft.textContent=poly.name+'  —  '+poly.formula; svg.appendChild(ft);
 }
 
+// ── Property Chart ────────────────────────────────────────────
+function parseC(s) {
+  if (!s || s[0] === '\u2014' || s[0] === '\u2013') return null;
+  const m = s.replace(/\u2212/g, '-').replace(/~/g, '').match(/-?\d+(\.\d+)?/);
+  return m ? parseFloat(m[0]) : null;
+}
+
+let chartVisible = false;
+const panelChart = document.getElementById('panel-chart');
+
+function closeChart() {
+  chartVisible = false;
+  panelChart.classList.remove('show');
+  const btn = document.getElementById('btn-chart');
+  btn.classList.remove('on');
+  btn.style.cssText = 'background:#1a2830;border-color:#2a4850;color:#60a8b0;';
+}
+
+function buildChart() {
+  const W=600, H=400, ML=72, MR=24, MT=34, PW=504, PH=258;
+  const TGN=-145, TGX=165, TMN=-65, TMX=385;
+  const STRIP_Y=MT+PH+16, STRIP_H=46;
+
+  const px = tg => ML + (tg - TGN) / (TGX - TGN) * PW;
+  const py = tm => MT + PH - (tm - TMN) / (TMX - TMN) * PH;
+  const catCol = { addition:'#5588ff', condensation:'#44dd88', inorganic:'#ffaa44' };
+
+  const semicryst = [], amorphs = [];
+  Object.entries(POLYMERS).forEach(([k, p]) => {
+    const inf = p.info && (p.info.crystal || p.info.amorphous);
+    if (!inf) return;
+    const tg = parseC(inf.Tg), tm = parseC(inf.Tm);
+    const col = catCol[p.cat] || '#aaaaaa';
+    if (tg !== null && tm !== null) semicryst.push({k, tg, tm, col});
+    else if (tg !== null)           amorphs.push({k, tg, col});
+  });
+  amorphs.sort((a, b) => a.tg - b.tg);
+
+  let s = '';
+  s += `<rect width="${W}" height="${H}" fill="#12131a"/>`;
+  s += `<rect x="${ML}" y="${MT}" width="${PW}" height="${PH}" fill="#0d0f1e" rx="2"/>`;
+
+  // Tg grid lines (span both plot and amorphous strip)
+  [-120,-80,-40,0,40,80,120,160].forEach(t => {
+    if (t < TGN || t > TGX) return;
+    const x = px(t);
+    s += `<line x1="${x.toFixed(1)}" y1="${MT}" x2="${x.toFixed(1)}" y2="${STRIP_Y+STRIP_H}" stroke="#1b2238" stroke-width="1"/>`;
+    s += `<text x="${x.toFixed(1)}" y="${STRIP_Y+STRIP_H+13}" fill="#3d5070" font-size="10" text-anchor="middle" font-family="monospace">${t}</text>`;
+  });
+  // Tm grid lines
+  [-40,0,50,100,150,200,250,300,350].forEach(t => {
+    if (t < TMN || t > TMX) return;
+    const y = py(t);
+    s += `<line x1="${ML}" y1="${y.toFixed(1)}" x2="${ML+PW}" y2="${y.toFixed(1)}" stroke="#1b2238" stroke-width="1"/>`;
+    s += `<text x="${ML-5}" y="${(y+4).toFixed(0)}" fill="#3d5070" font-size="10" text-anchor="end" font-family="monospace">${t}</text>`;
+  });
+
+  // Zero reference lines
+  const x0 = px(0), y0 = py(0);
+  s += `<line x1="${x0.toFixed(1)}" y1="${MT}" x2="${x0.toFixed(1)}" y2="${MT+PH}" stroke="#232848" stroke-width="1.5" stroke-dasharray="3,3"/>`;
+  if (y0 >= MT && y0 <= MT+PH)
+    s += `<line x1="${ML}" y1="${y0.toFixed(1)}" x2="${ML+PW}" y2="${y0.toFixed(1)}" stroke="#232848" stroke-width="1.5" stroke-dasharray="3,3"/>`;
+
+  // Boyer rule line: Tm(°C) = 1.5 × Tg(°C) + 136.6
+  {
+    const bt1 = Math.max(TGN, (TMN-136.6)/1.5);
+    const bt2 = Math.min(TGX, (TMX-136.6)/1.5);
+    const bx1=px(bt1), by1=py(1.5*bt1+136.6);
+    const bx2=px(bt2), by2=py(1.5*bt2+136.6);
+    s += `<line x1="${bx1.toFixed(1)}" y1="${by1.toFixed(1)}" x2="${bx2.toFixed(1)}" y2="${by2.toFixed(1)}" stroke="#1e4060" stroke-width="1.5" stroke-dasharray="7,4"/>`;
+    const blx=(bx1+(bx2-bx1)*0.32).toFixed(0), bly=(by1+(by2-by1)*0.32-7).toFixed(0);
+    s += `<text x="${blx}" y="${bly}" fill="#2a5880" font-size="9" font-style="italic" font-family="sans-serif" transform="rotate(-28,${blx},${bly})">Boyer rule</text>`;
+  }
+
+  // Plot border
+  s += `<rect x="${ML}" y="${MT}" width="${PW}" height="${PH}" fill="none" stroke="#232840" stroke-width="1.5"/>`;
+
+  // Axis labels & title
+  s += `<text x="${(ML+PW/2).toFixed(0)}" y="${STRIP_Y+STRIP_H+28}" fill="#5a7090" font-size="11" text-anchor="middle" font-family="sans-serif">Tg (°C)</text>`;
+  s += `<text x="${ML-52}" y="${(MT+PH/2).toFixed(0)}" fill="#5a7090" font-size="11" text-anchor="middle" font-family="sans-serif" transform="rotate(-90,${ML-52},${(MT+PH/2).toFixed(0)})">Tm (°C)</text>`;
+  s += `<text x="${(ML+PW/2).toFixed(0)}" y="22" fill="#5a7898" font-size="12" text-anchor="middle" font-family="sans-serif" font-weight="600">Tg vs. Tm — Polymer Thermal Properties</text>`;
+  s += `<text x="${(ML+PW/2).toFixed(0)}" y="29" fill="#30405a" font-size="8" text-anchor="middle" font-family="sans-serif">Click any point to load that polymer</text>`;
+
+  // Amorphous strip
+  s += `<rect x="${ML}" y="${STRIP_Y}" width="${PW}" height="${STRIP_H}" fill="#0d0f1e" rx="2"/>`;
+  s += `<rect x="${ML}" y="${STRIP_Y}" width="${PW}" height="${STRIP_H}" fill="none" stroke="#232840" stroke-width="1.5"/>`;
+  s += `<text x="${ML-5}" y="${STRIP_Y+21}" fill="#3a5060" font-size="9" text-anchor="end" font-family="sans-serif">Amor-</text>`;
+  s += `<text x="${ML-5}" y="${STRIP_Y+32}" fill="#3a5060" font-size="9" text-anchor="end" font-family="sans-serif">phous</text>`;
+
+  // Semicrystalline scatter points
+  semicryst.forEach(p => {
+    const x=px(p.tg), y=py(p.tm);
+    const isAct = p.k === activeKey;
+    const r=isAct?7:5, sw=isAct?2:0, sk=isAct?'#fff':'none';
+    const ldx = x > ML+PW-82 ? -9 : 8;
+    const ldy = y < MT+18 ? 14 : -7;
+    s += `<g class="chart-pt" data-key="${p.k}" style="cursor:pointer">`;
+    s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="${p.col}" stroke="${sk}" stroke-width="${sw}" opacity="0.9"/>`;
+    s += `<text x="${(x+ldx).toFixed(0)}" y="${(y+ldy).toFixed(0)}" fill="${p.col}" font-size="9" font-family="sans-serif" text-anchor="${ldx<0?'end':'start'}" pointer-events="none" opacity="0.85">${p.k}</text>`;
+    s += `</g>`;
+  });
+
+  // Amorphous diamonds in strip (alternating label above/below to avoid overlap)
+  amorphs.forEach((p, i) => {
+    const x=px(p.tg), cy=STRIP_Y+STRIP_H/2;
+    const isAct = p.k === activeKey;
+    const hw=isAct?7:5, sw=isAct?2:0, sk=isAct?'#fff':'none';
+    const labelY = cy + (i%2===0 ? -(hw+5) : (hw+12));
+    s += `<g class="chart-pt" data-key="${p.k}" style="cursor:pointer">`;
+    s += `<polygon points="${x},${cy-hw} ${x+hw},${cy} ${x},${cy+hw} ${x-hw},${cy}" fill="${p.col}" stroke="${sk}" stroke-width="${sw}" opacity="0.9"/>`;
+    s += `<text x="${x.toFixed(0)}" y="${labelY.toFixed(0)}" fill="${p.col}" font-size="9" font-family="sans-serif" text-anchor="middle" pointer-events="none" opacity="0.85">${p.k}</text>`;
+    s += `</g>`;
+  });
+
+  // Legend
+  const lx=ML+PW-150, ly=MT+10;
+  s += `<rect x="${lx-4}" y="${ly-4}" width="154" height="58" fill="#0d1020" rx="3" stroke="#1e2840" stroke-width="1" opacity="0.92"/>`;
+  [{col:catCol.addition,label:'Addition / vinyl'},
+   {col:catCol.condensation,label:'Condensation'},
+   {col:catCol.inorganic,label:'Inorganic (PDMS)'}].forEach((e, i) => {
+    const cy2 = ly+10+i*17;
+    s += `<circle cx="${lx+10}" cy="${cy2}" r="5" fill="${e.col}" opacity="0.9"/>`;
+    s += `<text x="${lx+20}" y="${cy2+4}" fill="#8aa0b8" font-size="9" font-family="sans-serif">${e.label}</text>`;
+  });
+
+  document.getElementById('svg-chart').innerHTML = s;
+
+  // Click handlers
+  document.querySelectorAll('#svg-chart .chart-pt').forEach(g => {
+    g.addEventListener('click', () => {
+      const k = g.dataset.key;
+      if (!k || !POLYMERS[k]) return;
+      document.querySelectorAll('.poly-btn').forEach(b => b.classList.remove('active'));
+      const pb = document.querySelector(`.poly-btn[data-key="${k}"]`);
+      if (pb) pb.classList.add('active');
+      activeKey = k;
+      updateInfoPanel(activeKey, conformMode);
+      rebuildChain();
+      if (show2D) render2D();
+      closeChart();
+    });
+  });
+}
+
+document.getElementById('btn-chart-close').addEventListener('click', closeChart);
+
+document.getElementById('btn-chart').addEventListener('click', function () {
+  if (show2D) {
+    show2D = false;
+    panel2d.classList.remove('show');
+    const btn2d = document.getElementById('btn-2d');
+    btn2d.classList.remove('on');
+    btn2d.style.cssText = 'background:#1a2040;border-color:#3a5080;color:#7090c0;';
+  }
+  chartVisible = !chartVisible;
+  panelChart.classList.toggle('show', chartVisible);
+  this.classList.toggle('on', chartVisible);
+  if (chartVisible) {
+    this.style.cssText = 'background:#0a2820;border-color:#22aa66;color:#66ffaa;';
+    buildChart();
+  } else {
+    this.style.cssText = 'background:#1a2830;border-color:#2a4850;color:#60a8b0;';
+  }
+});
+
 // ── 2D panel state ───────────────────────────────────────────
 let show2D     = false;
 let curr2DMers = 1;
@@ -1732,6 +1931,7 @@ document.getElementById('btn-2d').addEventListener('click', function () {
   panel2d.classList.toggle('show', show2D);
   this.classList.toggle('on', show2D);
   if (show2D) {
+    if (chartVisible) closeChart();
     this.style.cssText = 'background:#0a3a5a;border-color:#2288cc;color:#66ccff;';
     render2D();
   } else {
