@@ -129,6 +129,34 @@
       font-size:.63rem; color:#3a4060; text-align:center;
       border-top:1px solid #242840; padding-top:6px; line-height:1.6;
     }
+    /* ── 2D Structure Panel ── */
+    #panel2d {
+      position:absolute; inset:0; background:#12131a;
+      display:none; flex-direction:column; align-items:stretch;
+      z-index:10; overflow:hidden;
+    }
+    #panel2d.show { display:flex; }
+    #panel2d-header {
+      display:flex; align-items:center; justify-content:center; gap:14px;
+      padding:9px 20px 7px; border-bottom:1px solid #1e2540; flex-shrink:0;
+    }
+    #panel2d-title {
+      font-size:.65rem; color:#3a4a6a; letter-spacing:1.2px;
+      font-family:'Segoe UI',sans-serif; text-transform:uppercase; white-space:nowrap;
+    }
+    .view-btn {
+      padding:4px 11px; background:#1a2240; border:1px solid #2e3a60;
+      border-radius:5px; color:#5070a0; cursor:pointer;
+      font-size:.62rem; font-weight:700; font-family:'Segoe UI',sans-serif;
+      transition:all .15s; white-space:nowrap;
+    }
+    .view-btn:hover { background:#253060; color:#9ab8d8; border-color:#4a6a9a; }
+    .view-btn.active { background:#0e3060; border-color:#4488cc; color:#88ccff; }
+    #panel2d-scroll {
+      flex:1; overflow-x:auto; overflow-y:auto;
+      display:flex; align-items:center; justify-content:center; padding:8px 16px;
+    }
+    #panel2d-scroll svg { display:block; flex-shrink:0; }
   </style>
 </head>
 <body>
@@ -198,6 +226,7 @@
         <button class="tgl-btn teal"  id="btn-backbone">Backbone Only</button>
         <button class="tgl-btn amber" id="btn-mers">Colour Mers</button>
       </div>
+      <button class="tgl-btn" id="btn-2d" style="background:#1a2040;border-color:#3a5080;color:#7090c0;">⬡ 2D Structure</button>
     </div>
   </div>
 
@@ -238,14 +267,25 @@
     </div>
   </div>
 
-  <div class="chunk-note">2D structural formula view — coming soon</div>
+  <div class="chunk-note">Toggle ⬡ 2D Structure above to view structural formulas</div>
 </div>
 
 <!-- ═══════════════════ CANVAS ═══════════════════ -->
 <div id="canvas-wrap">
-  <div class="badge" id="badge">aPP · Atactic</div>
+  <div class="badge" id="badge">PE · All-trans planar zigzag</div>
   <div class="perf-warn" id="perf-warn">⚠ Large chain — reduced render quality</div>
   <div class="atom-count-badge" id="atom-count-badge"></div>
+  <!-- 2D structural formula overlay -->
+  <div id="panel2d">
+    <div id="panel2d-header">
+      <div id="panel2d-title">Structural Formula</div>
+      <button class="view-btn active" id="btn-view-1mer">1 Repeat Unit</button>
+      <button class="view-btn"        id="btn-view-chain">Chain (10 mers)</button>
+    </div>
+    <div id="panel2d-scroll">
+      <svg id="svg2d" viewBox="0 0 560 270" width="560" height="270"></svg>
+    </div>
+  </div>
 </div>
 
 <!-- Three.js r128 + OrbitControls -->
@@ -502,11 +542,11 @@ const POLYMERS = {
     formula: '—(CH₂—CHR)ₙ— · R = CH₃',
     synth: 'Free-radical / Ziegler-Natta',
     ba: '112°',
-    badge:   { crystal:'aPP · All-trans planar zigzag', amorphous:'aPP · Amorphous random coil' },
-    conf:    { crystal:'All-trans planar zigzag', amorphous:'Random coil (T / G± mixture)' },
+    badge:   { crystal:'aPP · All-trans zigzag — random methyl chirality', amorphous:'aPP · Amorphous random coil' },
+    conf:    { crystal:'All-trans zigzag, atactic (random methyl placement)', amorphous:'Random coil (T / G± mixture)' },
     backbone: [
       { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
-      { elem:'C', bl:1.54, ba:112*DEG, side:'HMe' },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HMe', randomize:true },  // atactic: random methyl side
     ],
     dihedralFn:  i => { const r=srand(i+71); return r<.60?T:r<.82?Gp:Gm; },
     amorphousFn: amorFn(73),
@@ -544,11 +584,11 @@ const POLYMERS = {
     formula: '—(CH₂—CH(Ph))ₙ—',
     synth: 'Free-radical polymerisation',
     ba: '112°',
-    badge:   { crystal:'aPS · All-trans planar zigzag', amorphous:'aPS · Amorphous random coil' },
-    conf:    { crystal:'All-trans planar zigzag', amorphous:'Random coil (T / G± mixture)' },
+    badge:   { crystal:'aPS · All-trans zigzag — random phenyl chirality', amorphous:'aPS · Amorphous random coil' },
+    conf:    { crystal:'All-trans zigzag, atactic (random phenyl placement)', amorphous:'Random coil (T / G± mixture)' },
     backbone: [
       { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
-      { elem:'C', bl:1.54, ba:112*DEG, side:'HPh' },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HPh', randomize:true },  // atactic: random phenyl side
     ],
     dihedralFn:  i => { const r=srand(i+79); return r<.55?T:r<.775?Gp:Gm; },
     amorphousFn: amorFn(83),
@@ -983,8 +1023,12 @@ function buildChain(key, numMers, showH, colourMers, conformMode) {
       }
 
     // ── HMe: methine CH(CH₃) ─────────────────────────
+    // If backbone atom has randomize:true (atactic), randomly flip methyl side
     } else if (sideDef === 'HMe') {
-      const mePos = bkPos[i].clone().addScaledVector(dir1, 1.54);
+      const flipMe = bk[i % nPM].randomize && srand(i*31+13) < .5;
+      const dMe1   = flipMe ? dir2 : dir1;
+      const dMe2   = flipMe ? dir1 : dir2;
+      const mePos = bkPos[i].clone().addScaledVector(dMe1, 1.54);
       addSphere('C', mePos, sideAtomGrp, merColor);
       addBond(bkPos[i], mePos, bondGrp);
       totalAtoms++;
@@ -995,7 +1039,7 @@ function buildChain(key, numMers, showH, colourMers, conformMode) {
           addBond(mePos, hp, hGrp, BOND_R*.7);
           totalAtoms++;
         });
-        const hp = bkPos[i].clone().addScaledVector(dir2, 1.09);
+        const hp = bkPos[i].clone().addScaledVector(dMe2, 1.09);
         addSphere('H', hp, hGrp);
         addBond(bkPos[i], hp, hGrp, BOND_R*.7);
         totalAtoms++;
@@ -1018,13 +1062,17 @@ function buildChain(key, numMers, showH, colourMers, conformMode) {
       }
 
     // ── HPh: methine CH(Ph) ───────────────────────────
+    // If backbone atom has randomize:true (atactic), randomly flip phenyl side
     } else if (sideDef === 'HPh') {
-      const ipsoPos = bkPos[i].clone().addScaledVector(dir1, 1.51);
+      const flipPh = bk[i % nPM].randomize && srand(i*31+17) < .5;
+      const dPh1   = flipPh ? dir2 : dir1;
+      const dPh2   = flipPh ? dir1 : dir2;
+      const ipsoPos = bkPos[i].clone().addScaledVector(dPh1, 1.51);
       const bbTan   = new THREE.Vector3().subVectors(bkPos[i+1], bkPos[i-1]).normalize();
       buildPhenyl(bkPos[i], ipsoPos, bbTan, sideAtomGrp, hGrp, bondGrp, showH, merColor);
       totalAtoms += 6;
       if (showH) {
-        const hp = bkPos[i].clone().addScaledVector(dir2, 1.09);
+        const hp = bkPos[i].clone().addScaledVector(dPh2, 1.09);
         addSphere('H', hp, hGrp);
         addBond(bkPos[i], hp, hGrp, BOND_R*.7);
         totalAtoms++;
@@ -1372,6 +1420,7 @@ document.querySelectorAll('.poly-btn:not(.disabled)').forEach(btn => {
     activeKey = btn.dataset.key;
     updateInfoPanel(activeKey, conformMode);
     rebuildChain();
+    if (show2D) render2D();
   });
 });
 
@@ -1424,6 +1473,246 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(wrap.clientWidth, wrap.clientHeight);
 });
+
+// ═══════════════════════════════════════════════════
+//  2D STRUCTURAL FORMULA RENDERER  (horizontal backbone)
+// ═══════════════════════════════════════════════════
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const DC2 = '#ddaa22';   // double-bond / ring gold
+const SC2 = '#5a7a9a';   // backbone bond colour
+const TC2 = '#c8d8ff';   // atom label text colour
+const BG2 = '#12131a';   // background
+
+function svgEl(tag, attrs) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [k,v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+  return el;
+}
+
+// Atom label with background rect
+function drawLbl(svg, x, y, text, color, fs) {
+  fs = fs || 11;
+  const bgW = Math.max(24, text.length * fs * 0.62 + 4);
+  const bgH = fs * 1.75;
+  svg.appendChild(svgEl('rect',{x:x-bgW/2,y:y-bgH/2,width:bgW,height:bgH,fill:BG2,rx:2}));
+  const t = svgEl('text',{x,y,fill:color||TC2,
+    'font-family':"'Segoe UI',Consolas,monospace",
+    'font-size':fs,'text-anchor':'middle','dominant-baseline':'central','font-weight':'600'});
+  t.textContent = text;
+  svg.appendChild(t);
+}
+
+// Pendant phenyl hexagon hanging from (ancX,ancY) in direction sdir (+1=down,-1=up)
+function drawPendantHex(svg, ancX, ancY, sdir, R) {
+  const cy = ancY + sdir * 2 * R;
+  const a0 = sdir > 0 ? -Math.PI/2 : Math.PI/2;
+  const pts = [];
+  for (let j=0;j<6;j++){const a=a0+j*(Math.PI/3);pts.push({x:ancX+R*Math.cos(a),y:cy+R*Math.sin(a)});}
+  svg.appendChild(svgEl('line',{x1:ancX,y1:ancY,x2:pts[0].x,y2:pts[0].y,stroke:SC2,'stroke-width':'1.6'}));
+  for (let j=0;j<6;j++){
+    const p1=pts[j],p2=pts[(j+1)%6];
+    if(j%2===0){
+      const ex=-(p2.y-p1.y),ey=p2.x-p1.x,e2=Math.hypot(ex,ey)||1,ox=ex/e2*2.2,oy=ey/e2*2.2;
+      svg.appendChild(svgEl('line',{x1:p1.x+ox,y1:p1.y+oy,x2:p2.x+ox,y2:p2.y+oy,stroke:DC2,'stroke-width':'1.4'}));
+      svg.appendChild(svgEl('line',{x1:p1.x-ox,y1:p1.y-oy,x2:p2.x-ox,y2:p2.y-oy,stroke:DC2,'stroke-width':'1.4'}));
+    }else{svg.appendChild(svgEl('line',{x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,stroke:SC2,'stroke-width':'1.6'}));}
+  }
+}
+
+// Backbone para-phenylene ring: C1 at (x1,bY), C4 at (x4,bY) — flat-sided hexagon
+function drawBackboneHex(svg, x1, bY, x4) {
+  const cx=(x1+x4)/2, R=(x4-x1)/2;
+  const pts=[];
+  for(let j=0;j<6;j++){const a=j*Math.PI/3;pts.push({x:cx+R*Math.cos(a),y:bY+R*Math.sin(a)});}
+  pts[3]={x:x1,y:bY}; pts[0]={x:x4,y:bY};   // pin C1 (180°) and C4 (0°)
+  for(let j=0;j<6;j++){
+    const p1=pts[j],p2=pts[(j+1)%6];
+    if(j%2===1){
+      const ex=-(p2.y-p1.y),ey=p2.x-p1.x,e2=Math.hypot(ex,ey)||1,ox=ex/e2*2.2,oy=ey/e2*2.2;
+      svg.appendChild(svgEl('line',{x1:p1.x+ox,y1:p1.y+oy,x2:p2.x+ox,y2:p2.y+oy,stroke:DC2,'stroke-width':'1.4'}));
+      svg.appendChild(svgEl('line',{x1:p1.x-ox,y1:p1.y-oy,x2:p2.x-ox,y2:p2.y-oy,stroke:DC2,'stroke-width':'1.4'}));
+    }else{svg.appendChild(svgEl('line',{x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,stroke:SC2,'stroke-width':'1.6'}));}
+  }
+}
+
+function build2DSVG(key, nMers) {
+  nMers = nMers || 1;
+  const poly = POLYMERS[key];
+  const bk   = poly.backbone;
+  const nPM  = bk.length;
+  nMers = Math.min(nMers, Math.max(1, Math.floor(60 / nPM)));
+  const N      = nMers * nPM;
+  const ATOM_W = nMers === 1 ? 68 : 52;
+  const backY  = 135;
+  const SL     = 44;
+  const R_PH   = 17;
+
+  const rawW  = N * ATOM_W;
+  const margin = nMers === 1 ? Math.max(44, (560 - rawW) / 2) : 38;
+  const svgW  = rawW + margin * 2;
+  const svgH  = 270;
+
+  const svg = document.getElementById('svg2d');
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+  svg.setAttribute('width',  svgW);
+  svg.setAttribute('height', svgH);
+  svg.appendChild(svgEl('rect',{x:0,y:0,width:svgW,height:svgH,fill:BG2}));
+
+  const ax  = i => margin + (i + 0.5) * ATOM_W;
+  const sd  = i => (i % 2 === 0) ? 1 : -1;
+
+  // ── Pass 1: backbone bonds ──────────────────────────────────
+  for (let i = 1; i < N; i++) {
+    const bkDef = bk[i % nPM];
+    if (bkDef.skipBond) continue;
+    const x1 = ax(i-1), x2 = ax(i);
+    if (bkDef.doubleBondHere) {
+      svg.appendChild(svgEl('line',{x1,y1:backY-2.5,x2,y2:backY-2.5,stroke:DC2,'stroke-width':'1.8'}));
+      svg.appendChild(svgEl('line',{x1,y1:backY+2.5,x2,y2:backY+2.5,stroke:DC2,'stroke-width':'1.8'}));
+    } else {
+      svg.appendChild(svgEl('line',{x1,y1:backY,x2,y2:backY,stroke:SC2,'stroke-width':'2.0'}));
+    }
+  }
+  if (nMers === 1) {
+    const ds = {stroke:'#2a3860','stroke-width':'1.4','stroke-dasharray':'5,3'};
+    svg.appendChild(svgEl('line',{x1:ax(0)-ATOM_W*0.42,y1:backY,x2:ax(0),y2:backY,...ds}));
+    svg.appendChild(svgEl('line',{x1:ax(N-1),y1:backY,x2:ax(N-1)+ATOM_W*0.42,y2:backY,...ds}));
+  }
+
+  // ── Pass 2: side groups + atom labels ──────────────────────
+  const phbbPairs = [];
+  for (let i = 0; i < N; i++) {
+    const bkDef = bk[i % nPM];
+    const side  = bkDef.side;
+    const x = ax(i), sdir = sd(i);
+    const sy  = backY + sdir * SL;
+    const oy  = backY - sdir * SL;   // opposite direction
+
+    const vstub = (col,y2) => svg.appendChild(svgEl('line',{x1:x,y1:backY,x2:x,y2:y2!=null?y2:sy,stroke:col||SC2,'stroke-width':'1.6'}));
+    const dbl   = (y2) => { svg.appendChild(svgEl('line',{x1:x-2.3,y1:backY,x2:x-2.3,y2:y2!=null?y2:sy,stroke:DC2,'stroke-width':'1.5'}));
+                             svg.appendChild(svgEl('line',{x1:x+2.3,y1:backY,x2:x+2.3,y2:y2!=null?y2:sy,stroke:DC2,'stroke-width':'1.5'})); };
+    const lbl   = (y2,text,col,fs) => drawLbl(svg,x,y2,text,col,fs);
+
+    if (side === 'HH') {
+      lbl(backY,'CH\u2082',TC2);
+
+    } else if (side === 'HMe') {
+      lbl(backY,'CH',TC2);
+      vstub(); lbl(sy+sdir*11,'CH\u2083','#aabbdd',10);
+
+    } else if (side === 'HCl') {
+      lbl(backY,'CH',TC2);
+      vstub('#44cc66'); lbl(sy+sdir*11,'Cl','#44cc66',10.5);
+
+    } else if (side === 'HPh') {
+      lbl(backY,'CH',TC2);
+      drawPendantHex(svg,x,backY,sdir,R_PH);
+
+    } else if (side === 'FF') {
+      lbl(backY,'CF\u2082',TC2);
+
+    } else if (side === 'Me') {
+      lbl(backY,'C',TC2);
+      vstub(); lbl(sy+sdir*11,'CH\u2083','#aabbdd',10);
+
+    } else if (side === 'H1') {
+      lbl(backY,'CH',TC2);
+
+    } else if (side === 'HN') {
+      lbl(backY,'NH','#7799ff');
+
+    } else if (side === 'C=O') {
+      lbl(backY,'C',TC2);
+      dbl(); lbl(sy+sdir*11,'O','#ff7777',12);
+
+    } else if (side === 'MeMe') {
+      lbl(backY,'Si','#c8a050');
+      vstub(); lbl(sy+sdir*11,'CH\u2083','#aabbdd',10);
+      vstub(SC2,oy); lbl(oy-sdir*11,'CH\u2083','#aabbdd',10);
+
+    } else if (side === '') {
+      const col=bkDef.elem==='O'?'#ff7777':bkDef.elem==='N'?'#7799ff':bkDef.elem==='Si'?'#c8a050':TC2;
+      lbl(backY,bkDef.elem,col);
+
+    } else if (side === 'MeEst') {
+      lbl(backY,'C',TC2);
+      vstub(SC2,oy); lbl(oy-sdir*11,'CH\u2083','#aabbdd',10);
+      vstub(); lbl(sy+sdir*13,'COOCH\u2083','#ffaa88',9.5);
+
+    } else if (side === 'HEMASide') {
+      lbl(backY,'C',TC2);
+      vstub(SC2,oy); lbl(oy-sdir*11,'CH\u2083','#aabbdd',10);
+      vstub(); lbl(sy+sdir*13,'COOCH\u2082CH\u2082OH','#ffaa88',8.5);
+
+    } else if (side === 'PhBB') {
+      if (i + 1 < N) phbbPairs.push({x1:x, x4:ax(i+1)});
+    }
+  }
+
+  // ── Pass 3: backbone para-phenylene rings ───────────────────
+  for (const {x1,x4} of phbbPairs) drawBackboneHex(svg,x1,backY,x4);
+
+  // ── Brackets (1-mer mode) ────────────────────────────────────
+  if (nMers === 1) {
+    const bx1=ax(0)-ATOM_W*0.54, bx2=ax(N-1)+ATOM_W*0.54;
+    const bTop=16, bBot=svgH-16, arm=9;
+    const bs={stroke:'#6080a0','stroke-width':'2.2',fill:'none','stroke-linecap':'round','stroke-linejoin':'round'};
+    svg.appendChild(svgEl('path',{d:`M ${bx1+arm},${bTop} L ${bx1},${bTop} L ${bx1},${bBot} L ${bx1+arm},${bBot}`,...bs}));
+    svg.appendChild(svgEl('path',{d:`M ${bx2-arm},${bTop} L ${bx2},${bTop} L ${bx2},${bBot} L ${bx2-arm},${bBot}`,...bs}));
+    const nt=svgEl('text',{x:bx2+10,y:bBot,fill:'#6080a0','font-family':"'Segoe UI',monospace",'font-size':'16','font-weight':'700'});
+    nt.textContent='n'; svg.appendChild(nt);
+  }
+
+  // ── Repeat-unit dividers (multi-mer mode) ────────────────────
+  if (nMers > 1) {
+    for (let m=1;m<nMers;m++) {
+      const sx=margin+m*nPM*ATOM_W;
+      svg.appendChild(svgEl('line',{x1:sx,y1:38,x2:sx,y2:svgH-26,stroke:'#252e54','stroke-width':'1','stroke-dasharray':'3,5'}));
+    }
+    const ct=svgEl('text',{x:svgW-4,y:18,fill:'#3a5070','font-family':"'Segoe UI',sans-serif",'font-size':'11','text-anchor':'end'});
+    ct.textContent=`×${nMers}`; svg.appendChild(ct);
+  }
+
+  // ── Polymer name footer ──────────────────────────────────────
+  const ft=svgEl('text',{x:svgW/2,y:svgH-6,fill:'#2c3e58','font-family':"'Segoe UI',sans-serif",'font-size':'10','text-anchor':'middle'});
+  ft.textContent=poly.name+'  —  '+poly.formula; svg.appendChild(ft);
+}
+
+// ── 2D panel state ───────────────────────────────────────────
+let show2D     = false;
+let curr2DMers = 1;
+const panel2d  = document.getElementById('panel2d');
+
+function render2D() { if (show2D) build2DSVG(activeKey, curr2DMers); }
+
+document.getElementById('btn-2d').addEventListener('click', function () {
+  show2D = !show2D;
+  panel2d.classList.toggle('show', show2D);
+  this.classList.toggle('on', show2D);
+  if (show2D) {
+    this.style.cssText = 'background:#0a3a5a;border-color:#2288cc;color:#66ccff;';
+    render2D();
+  } else {
+    this.style.cssText = 'background:#1a2040;border-color:#3a5080;color:#7090c0;';
+  }
+});
+
+document.getElementById('btn-view-1mer').addEventListener('click', function () {
+  curr2DMers = 1;
+  this.classList.add('active');
+  document.getElementById('btn-view-chain').classList.remove('active');
+  render2D();
+});
+
+document.getElementById('btn-view-chain').addEventListener('click', function () {
+  curr2DMers = 10;
+  this.classList.add('active');
+  document.getElementById('btn-view-1mer').classList.remove('active');
+  render2D();
+});
+
 
 // ═══════════════════════════════════════════════════
 //  ANIMATION LOOP
