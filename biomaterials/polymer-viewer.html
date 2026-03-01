@@ -79,6 +79,7 @@
     .tgl-btn.on.teal   { background:#0a4a3a; border-color:#00ddaa; color:#99ffee; }
     .tgl-btn.on.violet { background:#3a0a5a; border-color:#cc66ff; color:#eeccff; }
     .tgl-btn.on.amber  { background:#5a4000; border-color:#ffaa00; color:#ffe080; }
+    .tgl-btn.on.rose   { background:#4a0030; border-color:#ff44aa; color:#ffaadd; }
     .btn-row { display:flex; gap:5px; }
     .btn-row .tgl-btn { flex:1; }
     /* ── info panel ── */
@@ -227,7 +228,10 @@
         <button class="tgl-btn teal"  id="btn-backbone">Backbone Only</button>
         <button class="tgl-btn amber" id="btn-mers">Colour Mers</button>
       </div>
-      <button class="tgl-btn" id="btn-2d" style="background:#1a2040;border-color:#3a5080;color:#7090c0;">⬡ 2D Structure</button>
+      <div class="btn-row">
+        <button class="tgl-btn rose"  id="btn-spacefill">⬤ Spacefill</button>
+        <button class="tgl-btn" id="btn-2d" style="background:#1a2040;border-color:#3a5080;color:#7090c0;">⬡ 2D Structure</button>
+      </div>
     </div>
   </div>
 
@@ -304,15 +308,15 @@ const T   = 180 * DEG;   // trans / anti     (IUPAC ω = 180°)
 const Gp  =  60 * DEG;   // gauche-plus       (IUPAC ω = +60°)
 const Gm  = -60 * DEG;   // gauche-minus      (IUPAC ω = −60°)
 
-// CPK element colours and ball-and-stick radii (Å)
+// CPK element colours, ball-and-stick radii (r, Å), and van der Waals radii (vdw, Å)
 const ELEM = {
-  C:  { color: 0x909090, r: 0.37 },
-  H:  { color: 0xe0e0e0, r: 0.24 },
-  O:  { color: 0xff4444, r: 0.34 },
-  N:  { color: 0x4477ff, r: 0.35 },
-  Cl: { color: 0x00cc00, r: 0.48 },
-  F:  { color: 0x80ffff, r: 0.29 },
-  Si: { color: 0xc8a050, r: 0.51 },   // golden-tan
+  C:  { color: 0x909090, r: 0.37, vdw: 1.70 },
+  H:  { color: 0xe0e0e0, r: 0.24, vdw: 1.20 },
+  O:  { color: 0xff4444, r: 0.34, vdw: 1.52 },
+  N:  { color: 0x4477ff, r: 0.35, vdw: 1.55 },
+  Cl: { color: 0x00cc00, r: 0.48, vdw: 1.75 },
+  F:  { color: 0x80ffff, r: 0.29, vdw: 1.47 },
+  Si: { color: 0xc8a050, r: 0.51, vdw: 2.10 },   // golden-tan
 };
 
 const MER_COLORS = [0x5588cc, 0xe07744];
@@ -340,6 +344,7 @@ const BOND_R   = 0.10;
 
 // ─── Double-bond cylinder helper  (two parallel thin cylinders, golden) ──────
 function addDoubleBond(p1, p2, group) {
+  if (spacefillMode) return;
   const dir  = new THREE.Vector3().subVectors(p2, p1).normalize();
   const ref  = Math.abs(dir.y) < 0.9 ? new THREE.Vector3(0,1,0) : new THREE.Vector3(1,0,0);
   const perp = new THREE.Vector3().crossVectors(dir, ref).normalize();
@@ -362,15 +367,17 @@ function addDoubleBond(p1, p2, group) {
 // ─── Sphere helper ───────────────────────────────────
 function addSphere(elem, pos, group, overrideColor) {
   const e   = ELEM[elem] || ELEM.C;
-  const col = (overrideColor !== undefined) ? overrideColor : e.color;
+  const col = (overrideColor !== undefined && !spacefillMode) ? overrideColor : e.color;
   const [ws, hs] = getSphereSegs();
-  const m   = new THREE.Mesh(sphereGeo(e.r, ws, hs), atomMat(col));
+  const r   = spacefillMode ? e.vdw : e.r;
+  const m   = new THREE.Mesh(sphereGeo(r, ws, hs), atomMat(col));
   m.position.copy(pos);
   group.add(m);
 }
 
 // ─── Bond cylinder helper ────────────────────────────
 function addBond(p1, p2, group, radius) {
+  if (spacefillMode) return;
   radius = radius || BOND_R;
   const dir = new THREE.Vector3().subVectors(p2, p1);
   const len = dir.length();
@@ -1369,6 +1376,7 @@ let showH        = false;
 let autoSpin     = false;
 let backboneOnly = false;
 let colourMers   = false;
+let spacefillMode = false;
 let conformMode  = 'crystal';
 let chainGroup   = null;
 
@@ -1396,9 +1404,13 @@ function updateInfoPanel(key, mode) {
 }
 
 function frameCamera(extent) {
-  const dist = Math.max(extent * 3.2, 18);
-  camera.position.set(dist*.15, dist*.45, dist);
-  controls.target.set(0,0,0);
+  // In spacefill mode cap distance so VDW spheres remain at least ~6 px wide
+  const rawDist = Math.max(extent * 3.2, 18);
+  const dist    = spacefillMode ? Math.min(rawDist, 290) : rawDist;
+  camera.position.set(dist * 0.15, dist * 0.45, dist);
+  camera.far = Math.max(rawDist * 4, dist * 4);
+  camera.updateProjectionMatrix();
+  controls.target.set(0, 0, 0);
   controls.update();
 }
 
@@ -1481,6 +1493,9 @@ document.getElementById('btn-backbone').addEventListener('click', function () {
 });
 document.getElementById('btn-mers').addEventListener('click', function () {
   colourMers = !colourMers; this.classList.toggle('on', colourMers); rebuildChain();
+});
+document.getElementById('btn-spacefill').addEventListener('click', function () {
+  spacefillMode = !spacefillMode; this.classList.toggle('on', spacefillMode); rebuildChain();
 });
 
 renderer.domElement.addEventListener('dblclick', () => {
