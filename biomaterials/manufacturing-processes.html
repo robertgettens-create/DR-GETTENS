@@ -1475,22 +1475,24 @@ const Extrusion = {
     // Container bore
     ctx.fillStyle='#0d0f1a'; ctx.fillRect(ctnX+1,ctnY+ctnH*.12,ctnW-2,ctnH*.76);
 
-    // Billet inside
-    const billetRemain=1-advance;
-    ctx.fillStyle=moltCol(.15);
-    ctx.fillRect(ctnX+ctnW*(1-billetRemain)+2, ctnY+ctnH*.12, ctnW*billetRemain-4, ctnH*.76);
-
-    // Ram (comes from right)
+    // Ram: starts at container right edge, moves LEFT as advance increases
     const ramW=ctnW*.22;
-    const ramX=ctnX+ctnW+ramW*(1-advance)*1.1 - ramW*1.1 + ctnW*advance*.85;
+    const ramX=ctnX+ctnW - advance*ctnW*.88;
+
+    // Billet fills gap between die face (left) and ram face (right); shrinks as ram advances
+    const billetWidth=Math.max(0, ramX-(ctnX+2));
+    ctx.fillStyle=moltCol(.15);
+    if(billetWidth>1) ctx.fillRect(ctnX+2, ctnY+ctnH*.12, billetWidth, ctnH*.76);
+
+    // Ram body
     ctx.fillStyle='#3a5070'; rrect(ramX,ctnY+ctnH*.08,ramW,ctnH*.84,3); ctx.fill();
     ctx.strokeStyle='#5a78a0'; ctx.lineWidth=1.5; rrect(ramX,ctnY+ctnH*.08,ramW,ctnH*.84,3); ctx.stroke();
-    // Ram rod
+    // Ram rod: extends rightward from ram back (grows longer as ram moves left)
     ctx.fillStyle='#2a3a50';
-    ctx.fillRect(ramX+ramW,cy-ctnH*.10,W*.15,ctnH*.20);
+    ctx.fillRect(ramX+ramW, cy-ctnH*.10, Math.max(0,W-4-(ramX+ramW)), ctnH*.20);
 
-    // Extrudate (grows from die)
-    const extLen=advance * Math.min(W*.35,180);
+    // Extrudate grows leftward from die opening
+    const extLen=advance * Math.min(W*.30, dieX-10);
     if(extLen>1){
       ctx.fillStyle='#7aaccc';
       ctx.fillRect(dieX-extLen, cy-dieOpenH/2, extLen, dieOpenH);
@@ -1498,16 +1500,18 @@ const Extrusion = {
       ctx.strokeRect(dieX-extLen, cy-dieOpenH/2, extLen, dieOpenH);
     }
 
-    // Ram motion arrow
+    // Force arrow on rod pointing LEFT (showing ram push direction)
     if(advance<.9){
-      arrow(ramX+ramW*.5+W*.04, cy, ramX+ramW*.5, cy, '#ffc040',2,8);
+      const arrowTail=Math.min(W-6, ramX+ramW+28);
+      const arrowHead=ramX+ramW+6;
+      if(arrowTail>arrowHead+6) arrow(arrowTail, cy, arrowHead, cy, '#ffc040',2,8);
     }
 
     // ── LABELS ──
     lbl('Container', ctnX+ctnW*.5, ctnY-12,{align:'center',color:'#5a7090',size:10});
     lbl('Ram',       ramX+ramW*.5, ctnY+ctnH+16,{align:'center',color:'#6878a0',size:10});
     lbl('Die',       dieX+dieW*.5, dieY-12,{align:'center',color:'#5a7090',size:10});
-    if(extLen>20) lbl('Extrudate', dieX-extLen*.5, cy-dieOpenH/2-12,{align:'center',color:'#7aaccc',size:10});
+    if(extLen>24) lbl('Extrudate', dieX-extLen*.5, cy-dieOpenH/2-12,{align:'center',color:'#7aaccc',size:10});
     // die opening cross-section marker
     ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(100,140,180,.4)'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(dieX-2,cy-dieOpenH/2); ctx.lineTo(dieX-12,cy-dieOpenH/2);
