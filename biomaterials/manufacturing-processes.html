@@ -131,6 +131,22 @@
     .det-item.pro { color:#90c8a8; } .det-item.pro .dot { color:#55bb77; }
     .det-item.con { color:#c89090; } .det-item.con .dot { color:#bb5555; }
     .det-tol-row { display:flex; justify-content:space-between; align-items:center; padding-top:5px; border-top:1px solid #1e2238; }
+
+    /* Category contextual note (e.g. hot/cold working for Forming) */
+    .cat-note {
+      background:#1a1e30; border:1px solid #2a3050;
+      border-radius:8px; padding:10px 12px;
+      display:flex; flex-direction:column; gap:8px;
+    }
+    .cat-note-row { display:flex; gap:8px; align-items:flex-start; }
+    .cat-note-badge {
+      font-size:0.62rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.6px; padding:2px 7px; border-radius:3px;
+      flex-shrink:0; margin-top:1px;
+    }
+    .cat-note-badge.hot  { color:#ff9040; background:rgba(255,140,60,.15); border:1px solid rgba(255,140,60,.28); }
+    .cat-note-badge.cold { color:#60c0ff; background:rgba(60,160,255,.15); border:1px solid rgba(60,160,255,.28); }
+    .cat-note-text { color:#7888a8; font-size:0.68rem; line-height:1.45; }
     .det-val { color:#8898b8; font-size:0.70rem; }
 
     /* Controls */
@@ -203,6 +219,20 @@
       <div class="cat-grid">
         <button class="cat-btn"        data-cat="machining">Machining</button>
         <button class="cat-btn"        data-cat="joining">Joining</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="forming-note" style="display:none">
+    <div class="section-label">Working Temperature</div>
+    <div class="cat-note">
+      <div class="cat-note-row">
+        <span class="cat-note-badge hot">Hot</span>
+        <span class="cat-note-text">Above recrystallization temp (~0.6 T<sub>melt</sub>) — large deformation, no work hardening, grain refinement</span>
+      </div>
+      <div class="cat-note-row">
+        <span class="cat-note-badge cold">Cold</span>
+        <span class="cat-note-text">Below recrystallization temp — strain hardening increases strength &amp; hardness, reduces ductility</span>
       </div>
     </div>
   </div>
@@ -2581,6 +2611,7 @@ let currentCat='casting', currentSubKey='sandCasting';
 function selectCategory(cat){
   currentCat=cat;
   document.querySelectorAll('.cat-btn').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
+  document.getElementById('forming-note').style.display = cat==='forming' ? '' : 'none';
   buildSubMenu(cat);
   const firstSub=CATEGORIES[cat].subs[0];
   selectSub(firstSub);
