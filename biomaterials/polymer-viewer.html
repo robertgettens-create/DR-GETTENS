@@ -172,6 +172,7 @@
       <button class="poly-btn addition active" data-key="PE"   data-cat="addition">Poly-<br>ethylene<br><small>Simplest chain</small></button>
       <button class="poly-btn addition"        data-key="aPP"  data-cat="addition">Atactic<br>PP<br><small>Random coil</small></button>
       <button class="poly-btn addition"        data-key="iPP"  data-cat="addition">Isotactic<br>PP<br><small>3₁ helix</small></button>
+      <button class="poly-btn addition"        data-key="sPP"  data-cat="addition">Syndiotactic<br>PP<br><small>TTGG helix</small></button>
       <button class="poly-btn addition"        data-key="aPS"  data-cat="addition">Atactic<br>PS<br><small>Random coil</small></button>
       <button class="poly-btn addition"        data-key="iPS"  data-cat="addition">Isotactic<br>PS<br><small>3₁ helix</small></button>
       <button class="poly-btn addition"        data-key="PVC"  data-cat="addition">PVC<br><small>Atactic</small></button>
@@ -576,6 +577,27 @@ const POLYMERS = {
         desc:'All-trans backbone showing the fully extended planar zigzag. In reality iPP crystallises as a 3₁ helix (TG⁺)ₙ — switch to amorphous to see random conformations. Made with Ziegler-Natta catalysts (Natta Nobel Prize 1963). Compare methyl positions with aPP to see how isotactic regularity differs.' },
       amorphous: { Tg:'~0 °C', Tm:'— (amorphous phase)', density:'~0.85 g/cm³',
         desc:'Without helical order the methyl groups point randomly. About 50 % of semi-crystalline iPP is amorphous, contributing to toughness.' },
+    },
+  },
+
+  sPP: {
+    name: 'Syndiotactic Polypropylene', cat: 'addition',
+    formula: '—(CH₂—CH(CH₃))ₙ—',
+    synth: 'Metallocene catalyst (Cs-symmetric)',
+    ba: '112°',
+    badge:   { crystal:'sPP · TTGG helix', amorphous:'sPP · Amorphous random coil' },
+    conf:    { crystal:'TTGG helix — methyl groups alternate sides', amorphous:'Random coil (T / G± mixture)' },
+    backbone: [
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HH'  },
+      { elem:'C', bl:1.54, ba:112*DEG, side:'HMe', syndio:true },
+    ],
+    dihedralFn:  i => [T, T, Gp, Gm][i%4],   // TTGG repeat
+    amorphousFn: amorFn(53),
+    info: {
+      crystal:   { Tg:'~−5 °C', Tm:'~130 °C', density:'0.90 g/cm³ (xtal)',
+        desc:'sPP crystallises as a TTGG helix: each pair of backbone bonds alternates trans–trans then gauche+–gauche−, giving a 2₁ helical path with methyl groups strictly alternating above and below. Requires metallocene catalysts (Nobel Prize 2005). Compare methyl placement with iPP (all one side) and aPP (random) to see all three tacticities.' },
+      amorphous: { Tg:'~−5 °C', Tm:'— (amorphous phase)', density:'~0.85 g/cm³',
+        desc:'In the amorphous phase the TTGG order is lost. sPP has a lower Tm (~130 °C) than iPP (~165 °C) because the longer TTGG repeat unit gives a less tightly packed helix. Its stereoregularity can still be detected by NMR even in solution.' },
     },
   },
 
@@ -1025,7 +1047,8 @@ function buildChain(key, numMers, showH, colourMers, conformMode) {
     // ── HMe: methine CH(CH₃) ─────────────────────────
     // If backbone atom has randomize:true (atactic), randomly flip methyl side
     } else if (sideDef === 'HMe') {
-      const flipMe = bk[i % nPM].randomize && srand(i*31+13) < .5;
+      const _bkMe  = bk[i % nPM];
+      const flipMe = _bkMe.randomize ? srand(i*31+13) < .5 : _bkMe.syndio ? merIdx % 2 === 1 : false;
       const dMe1   = flipMe ? dir2 : dir1;
       const dMe2   = flipMe ? dir1 : dir2;
       const mePos = bkPos[i].clone().addScaledVector(dMe1, 1.54);
@@ -1586,7 +1609,9 @@ function build2DSVG(key, nMers) {
   for (let i = 0; i < N; i++) {
     const bkDef = bk[i % nPM];
     const side  = bkDef.side;
-    const x = ax(i), sdir = bkDef.randomize ? (srand(i*31+13) < 0.5 ? 1 : -1) : sd(i);
+    const x = ax(i), sdir = bkDef.randomize ? (srand(i*31+13) < 0.5 ? 1 : -1)
+                           : bkDef.syndio   ? (Math.floor(i/nPM) % 2 === 0 ? -1 : 1)
+                           : sd(i);
     const sy  = backY + sdir * SL;
     const oy  = backY - sdir * SL;   // opposite direction
 
