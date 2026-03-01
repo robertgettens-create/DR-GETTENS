@@ -1377,13 +1377,18 @@ const Forging = {
 
     const dW=Math.min(W*.55,320), dH=Math.min(H*.14,55);
     const clearance=Math.min(H*.22,90);
+    // Die positions unchanged from original (same visual travel)
     const topY=cy-clearance*(1-press)-dH;
     const botY=cy+clearance*(1-press);
 
-    // Billet deformation: squishes outward as press increases
     const bW0=dW*.42, bH0=Math.min(H*.18,75);
-    // Volume conservation (approx): bW*bH = bW0*bH0
-    const bH=bH0*(1-press*.62);
+    // Contact when die face reaches billet: clearance*(1-pressContact) = bH0/2
+    const pressContact=Math.max(0, 1-bH0/(2*clearance));
+    const touching=press>=pressContact;
+    // Map post-contact press onto 0→1 so compression only begins at contact
+    const effectivePress=touching ? sat((press-pressContact)/(1-pressContact)) : 0;
+    // Original compression formula, now gated behind contact
+    const bH=bH0*(1-effectivePress*.62);
     const bW=bW0*(bH0/bH);
     const bR=Math.min(bW,bH)*.15;
     const bX=cx-bW/2, bY=cy-bH/2;
@@ -1411,9 +1416,9 @@ const Forging = {
     ctx.strokeStyle='rgba(80,120,160,.7)'; ctx.lineWidth=1.5;
     rrect(bX,bY,bW,bH,bR); ctx.stroke();
 
-    // Flash (thin fin at die parting line)
-    if(press>.6){
-      const fl=press-.6, flashW=fl*dW*.18, flashH=Math.max(2,bH*.12);
+    // Flash (thin fin at die parting line) — only after die makes contact
+    if(touching && effectivePress>.3){
+      const fl=effectivePress-.3, flashW=fl*dW*.26, flashH=Math.max(2,bH*.12);
       ctx.fillStyle=moltCol(.3);
       ctx.fillRect(cx-bW/2-flashW, cy-flashH/2, flashW, flashH);
       ctx.fillRect(cx+bW/2,        cy-flashH/2, flashW, flashH);
@@ -1430,7 +1435,7 @@ const Forging = {
     lbl('Top Die',   cx-dW/2-8, topY+dH/2+4,{align:'right',color:'#5a7090',size:10});
     lbl('Bottom Die',cx-dW/2-8, botY+dH/2+4,{align:'right',color:'#5a7090',size:10});
     lbl('Billet',    cx,         bY-12,       {align:'center',color:'#8090b4',size:11});
-    if(press>.65) lbl('Flash',cx+bW/2+28,cy,{align:'left',color:'#8090b4',size:10});
+    if(touching && effectivePress>.45) lbl('Flash',cx+bW/2+28,cy,{align:'left',color:'#8090b4',size:10});
   },
   cleanup(){}
 };
