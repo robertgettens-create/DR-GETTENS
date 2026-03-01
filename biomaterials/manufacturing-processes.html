@@ -843,6 +843,358 @@ const DieCasting = {
 };
 
 // ══════════════════════════════════════
+//  CASTING — INVESTMENT CASTING
+// ══════════════════════════════════════
+const InvestmentCasting = {
+  meta:{name:'Investment Casting',mat:'Metals, Superalloys',temp:'1000–1700 °C',cat:'Casting'},
+  steps:[
+    {label:'Wax Pattern',    period:8},
+    {label:'Shell Building', period:10},
+    {label:'Dewaxing',       period:8},
+    {label:'Pouring',        period:9},
+    {label:'Breakout',       period:10},
+  ],
+  currentStep:0, t:0,
+  init(){ this.t=0; },
+  onResize(){},
+  step(dt){ this.t=(this.t+dt/(this.steps[this.currentStep]?.period||9))%1; },
+  draw(){
+    grid();
+    switch(this.currentStep){
+      case 0:this.s0();break;
+      case 1:this.s1();break;
+      case 2:this.s2();break;
+      case 3:this.s3();break;
+      default:this.s4();break;
+    }
+  },
+  _geom(){
+    const bW=Math.min(W*.22,120), bH=Math.min(H*.36,200);
+    const cx=W/2, cy=H*.54;
+    const sT=14;
+    const spW=20, spH=Math.min(H*.13,72);
+    const spTop=cy-bH/2-spH;
+    const cupW=56, cupH=18;
+    const cupTop=spTop-cupH;
+    return {cx,cy,bW,bH,sT,spW,spH,spTop,cupW,cupH,cupTop};
+  },
+
+  // ── STEP 0 : Wax Pattern ──────────────────────────────
+  s0(){
+    const {cx,cy,bW,bH}=this._geom();
+    const t=this.t;
+    setStage(
+      t<.35?'Closing die':t<.62?'Injecting wax':t<.82?'Opening die':'Wax pattern ready',
+      'Investment Casting'
+    );
+    const dieW=Math.min(W*.15,88), dieH=bH+32;
+    const closeP=t<.35?ease(sat(t/.35)):1;
+    const openP =t>.62?ease(sat((t-.62)/.20)):0;
+    const gap=(1-closeP+openP)*66;
+
+    // Die halves
+    ctx.fillStyle='#1e3048';
+    ctx.fillRect(cx-bW/2-dieW-gap, cy-dieH/2, dieW, dieH);
+    ctx.fillRect(cx+bW/2+gap,       cy-dieH/2, dieW, dieH);
+    ctx.strokeStyle='#3d5880'; ctx.lineWidth=1;
+    ctx.strokeRect(cx-bW/2-dieW-gap, cy-dieH/2, dieW, dieH);
+    ctx.strokeRect(cx+bW/2+gap,       cy-dieH/2, dieW, dieH);
+    lbl('Die half',cx-bW/2-dieW/2-gap,cy-dieH/2-13,{align:'center',color:'#4a6090',size:9});
+    lbl('Die half',cx+bW/2+dieW/2+gap,cy-dieH/2-13,{align:'center',color:'#4a6090',size:9});
+
+    // Cavity void when closed
+    if(gap<2){ ctx.fillStyle='#0d0f1a'; ctx.fillRect(cx-bW/2,cy-bH/2,bW,bH); }
+
+    // Wax fills bottom-up after closing
+    const waxF=t>.35&&t<.82?ease(sat((t-.35)/.27)):t>=.82?1:0;
+    if(waxF>0){
+      ctx.fillStyle='#d8c44a';
+      ctx.fillRect(cx-bW/2, cy+bH/2-bH*waxF, bW, bH*waxF);
+    }
+
+    // Post-open: floating wax pattern with stub
+    if(t>.82){
+      const wa=ease(sat((t-.82)/.18));
+      ctx.save(); ctx.globalAlpha=wa;
+      ctx.fillStyle='#d8c44a'; ctx.fillRect(cx-8,cy-bH/2-20,16,20);
+      ctx.strokeStyle='#c0a830'; ctx.lineWidth=1.5;
+      ctx.strokeRect(cx-bW/2,cy-bH/2,bW,bH);
+      lbl('Wax pattern',cx,cy,{align:'center',color:'#d4b830',size:12,bold:true});
+      lbl('(precision replica of final part)',cx,cy+20,{align:'center',color:'#8a7820',size:9});
+      ctx.restore();
+    }
+  },
+
+  // ── STEP 1 : Shell Building ───────────────────────────
+  s1(){
+    const {cx,cy,bW,bH,sT,spW,spH,spTop}=this._geom();
+    const t=this.t;
+    const numCoats=6;
+    const coatP=ease(sat(t/.78));
+    const shellThick=Math.max(0,sT*coatP);
+    const coatNum=Math.max(1,Math.ceil(coatP*numCoats));
+    setStage(
+      t<.78?`Applying coat ${coatNum} of ${numCoats} — dip & stucco`:'Shell complete — air drying',
+      'Investment Casting'
+    );
+
+    // Slight dip animation (pattern enters slurry vat)
+    const dipCycle=t<.78?Math.sin(t*numCoats*Math.PI)*.5+.5:0;
+    const dipOff=dipCycle*18;
+
+    // Slurry vat (visible while building)
+    if(t<.78){
+      ctx.fillStyle='#1e3050';
+      ctx.fillRect(cx-bW-36, cy+bH/2+28, bW*2+72, 28);
+      lbl('Ceramic slurry vat',cx,cy+bH/2+44,{align:'center',color:'#3a5878',size:9});
+    }
+
+    ctx.save(); ctx.translate(0,dipOff);
+
+    // Wax sprue stub
+    ctx.fillStyle='#d8c44a';
+    ctx.fillRect(cx-spW/2,spTop+spH*.3,spW,spH*.7);
+
+    // Ceramic shell grows around pattern
+    if(shellThick>0.5){
+      ctx.fillStyle='#5a6272';
+      ctx.fillRect(cx-bW/2-shellThick, cy-bH/2-shellThick, bW+shellThick*2, bH+shellThick*2);
+      ctx.fillRect(cx-spW/2-shellThick, spTop+spH*.3-shellThick, spW+shellThick*2, spH*.7+shellThick);
+    }
+
+    // Wax pattern inside
+    ctx.fillStyle='#d8c44a';
+    ctx.fillRect(cx-bW/2,cy-bH/2,bW,bH);
+    ctx.restore();
+
+    // Labels
+    if(t<.78){
+      lbl(`${coatNum} / ${numCoats} coats`,cx,cy,{align:'center',color:'rgba(200,220,255,.5)',size:10,bold:true});
+    } else {
+      const fa=sat((t-.78)/.22);
+      ctx.save(); ctx.globalAlpha=fa;
+      lbl('Ceramic shell complete',cx,cy-bH*.30,{align:'center',color:'#a0c0e0',size:11,bold:true});
+      lbl('Wax pattern inside',cx,cy+4,{align:'center',color:'#c0a830',size:10});
+      ctx.restore();
+    }
+  },
+
+  // ── STEP 2 : Dewaxing ────────────────────────────────
+  s2(){
+    const {cx,cy,bW,bH,sT,spW,spH,spTop}=this._geom();
+    const t=this.t;
+    const waxDrain=t>.20?ease(sat((t-.20)/.45)):0;
+    setStage(
+      t<.20?'Autoclave heating':t<.65?'Wax melting & draining':t<.85?'Flash firing furnace':'Empty ceramic shell',
+      'Investment Casting'
+    );
+
+    // Furnace glow
+    if(t<.85){
+      const gA=sat(t/.15)*Math.max(0,1-sat((t-.78)/.08));
+      if(gA>0){
+        const grad=ctx.createRadialGradient(cx,cy,0,cx,cy,bW+50);
+        grad.addColorStop(0,`rgba(255,120,20,${gA*.35})`);
+        grad.addColorStop(1,'rgba(255,60,0,0)');
+        ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+      }
+    }
+
+    // Ceramic shell
+    ctx.fillStyle='#5a6272';
+    ctx.fillRect(cx-bW/2-sT, cy-bH/2-sT, bW+sT*2, bH+sT*2);
+    ctx.fillRect(cx-spW/2-sT, spTop-sT, spW+sT*2, spH+sT);
+
+    // Empty (dark) upper cavity — grows as wax drains
+    const emptyH=bH*waxDrain;
+    ctx.fillStyle='#0d0f1a';
+    ctx.fillRect(cx-bW/2,cy-bH/2,bW,emptyH);
+    ctx.fillRect(cx-spW/2,spTop,spW,spH);   // sprue = drain path, always dark
+
+    // Remaining wax at bottom
+    const waxH=bH*(1-waxDrain);
+    if(waxH>1){
+      ctx.fillStyle='#d4b830';
+      ctx.fillRect(cx-bW/2,cy+bH/2-waxH,bW,waxH);
+    }
+
+    // Wax drips exiting below shell
+    if(waxDrain>0.05&&waxDrain<0.92){
+      const dBase=cy+bH/2+sT+2;
+      ctx.fillStyle='rgba(210,175,45,.75)';
+      for(let i=0;i<4;i++){
+        ctx.beginPath();
+        ctx.arc(cx+(i-1.5)*9, dBase+waxDrain*22+i*10, 2.5, 0, Math.PI*2);
+        ctx.fill();
+      }
+      lbl('Wax exits via gravity',cx,dBase+waxDrain*22+44,{align:'center',color:'#7a6820',size:9});
+    }
+
+    // Done label
+    if(t>.85){
+      const fa=sat((t-.85)/.15);
+      ctx.save(); ctx.globalAlpha=fa;
+      lbl('Empty ceramic shell',cx,cy,{align:'center',color:'#80a0c8',size:11,bold:true});
+      lbl('Ready for metal pour',cx,cy+18,{align:'center',color:'#4a6888',size:9});
+      ctx.restore();
+    }
+  },
+
+  // ── STEP 3 : Pouring ─────────────────────────────────
+  s3(){
+    const {cx,cy,bW,bH,sT,spW,spH,spTop,cupW,cupH,cupTop}=this._geom();
+    const t=this.t;
+    const ff=t>.12?ease(sat((t-.12)/.76)):0;
+    const solid=t>.88?sat((t-.88)/.12):0;
+    const col=moltCol(solid);
+    setStage(
+      t<.12?'Preheated shell ready':t<.90?'Pouring molten metal':'Solidifying in shell',
+      'Investment Casting'
+    );
+
+    // Ceramic shell
+    ctx.fillStyle='#5a6272';
+    ctx.fillRect(cx-bW/2-sT, cy-bH/2-sT, bW+sT*2, bH+sT*2);
+    ctx.fillRect(cx-spW/2-sT, spTop-sT, spW+sT*2, spH+sT);
+
+    // Pouring cup (trapezoid)
+    ctx.fillStyle='#2a3550';
+    ctx.beginPath();
+    ctx.moveTo(cx-cupW/2,cupTop); ctx.lineTo(cx+cupW/2,cupTop);
+    ctx.lineTo(cx+spW/2,cupTop+cupH); ctx.lineTo(cx-spW/2,cupTop+cupH);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#4a5878'; ctx.lineWidth=1; ctx.stroke();
+
+    // Empty cavity
+    ctx.fillStyle='#0d0f1a';
+    ctx.fillRect(cx-bW/2,cy-bH/2,bW,bH);
+    ctx.fillRect(cx-spW/2,spTop,spW,spH);
+
+    // Metal fill: sprue top→down, then cavity bottom→up
+    if(ff>0){
+      ctx.fillStyle=col;
+      const spF=sat(ff/.22);
+      if(spF>0) ctx.fillRect(cx-spW/2,spTop,spW,spH*spF);
+      const cvF=sat((ff-.22)/.78);
+      if(cvF>0) ctx.fillRect(cx-bW/2,cy+bH/2-bH*cvF,bW,bH*cvF);
+    }
+
+    // Molten stream from cup
+    if(t>.08&&t<.88){
+      const sa=Math.min(sat((t-.08)/.08), 1-sat((t-.82)/.06));
+      ctx.save(); ctx.globalAlpha=sa;
+      ctx.fillStyle='#ff9040';
+      ctx.fillRect(cx-3,cupTop+cupH,6,spTop-(cupTop+cupH)+3);
+      ctx.restore();
+    }
+
+    // Molten pool in cup
+    if(t<.88){
+      const pa=Math.min(sat(t/.10), 1-sat((t-.82)/.06));
+      ctx.save(); ctx.globalAlpha=pa;
+      ctx.fillStyle='#ff8020';
+      ctx.fillRect(cx-cupW/2+3,cupTop+3,cupW-6,cupH-5);
+      ctx.restore();
+    }
+
+    lbl('Pouring cup',cx,cupTop-12,{align:'center',color:'#6878a0',size:9});
+    lbl('Ceramic shell',cx+bW/2+sT+6,cy,{align:'left',color:'#5a6878',size:9});
+    if(solid>.3){
+      const fa=sat((solid-.3)/.7);
+      ctx.save(); ctx.globalAlpha=fa;
+      lbl('Solidifying…',cx,cy,{align:'center',color:'#8090c0',size:10,bold:true});
+      ctx.restore();
+    }
+  },
+
+  // ── STEP 4 : Breakout ────────────────────────────────
+  s4(){
+    const {cx,cy,bW,bH,sT,spW,spH}=this._geom();
+    const t=this.t;
+    const breakP=ease(sat(t/.38));
+    const shellA=Math.max(0,1-breakP);
+    const sprueA=t<.62?1:Math.max(0,1-sat((t-.62)/.20));
+    setStage(
+      t<.38?'Breaking ceramic shell':t<.62?'Casting revealed':t<.82?'Cutting sprue':'Finished casting',
+      'Investment Casting'
+    );
+    const col=moltCol(1);
+
+    // Shell fragments scatter radially
+    if(shellA>0.01){
+      ctx.fillStyle='#5a6272';
+      const numFrag=10;
+      for(let i=0;i<numFrag;i++){
+        const ang=i/numFrag*Math.PI*2;
+        const rx=bW/2+sT, ry=bH/2+sT;
+        const dist=breakP*85;
+        const fx=cx+Math.cos(ang)*rx+Math.cos(ang)*dist;
+        const fy=cy+Math.sin(ang)*ry+Math.sin(ang)*dist;
+        ctx.save();
+        ctx.translate(fx,fy);
+        ctx.rotate(breakP*ang*2.5);
+        ctx.globalAlpha=shellA*.9;
+        ctx.fillRect(-sT*.75,-sT*.6,sT*1.5,sT*1.2);
+        ctx.restore();
+      }
+    }
+
+    // Casting body
+    ctx.fillStyle=col;
+    ctx.fillRect(cx-bW/2,cy-bH/2,bW,bH);
+    ctx.strokeStyle='#606880'; ctx.lineWidth=1;
+    ctx.strokeRect(cx-bW/2,cy-bH/2,bW,bH);
+
+    // Sprue stub (fades when cut)
+    if(sprueA>0.01){
+      ctx.save(); ctx.globalAlpha=sprueA;
+      ctx.fillStyle=col;
+      ctx.fillRect(cx-spW/2,cy-bH/2-spH,spW,spH);
+      lbl('Sprue stub',cx,cy-bH/2-spH*.5,{align:'center',color:'#6070a0',size:9});
+      ctx.restore();
+    }
+
+    // Cutoff wheel + sparks during sprue removal
+    if(t>.62&&t<.82){
+      const ca=Math.min(sat((t-.62)/.10), 1-sat((t-.75)/.07));
+      const wheelR=14, wheelX=cx+bW/2+18, wheelY=cy-bH/2;
+      ctx.save(); ctx.globalAlpha=ca;
+      ctx.fillStyle='#909090';
+      ctx.beginPath(); ctx.arc(wheelX,wheelY,wheelR,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#2a2a2a';
+      ctx.beginPath(); ctx.arc(wheelX,wheelY,wheelR*.35,0,Math.PI*2); ctx.fill();
+      for(let i=0;i<6;i++){
+        const ang=Math.PI+i/6*Math.PI;
+        ctx.strokeStyle='#ffcc20'; ctx.lineWidth=1.2;
+        ctx.beginPath();
+        ctx.moveTo(wheelX+Math.cos(ang)*wheelR, wheelY+Math.sin(ang)*wheelR);
+        ctx.lineTo(wheelX+Math.cos(ang)*(wheelR+10+i*3), wheelY+Math.sin(ang)*(wheelR+10+i*3));
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Casting label (appears after shell removed)
+    if(t>.38){
+      const la=sat((t-.38)/.15);
+      ctx.save(); ctx.globalAlpha=la;
+      lbl('Investment casting',cx,cy,{align:'center',color:'#a0b8d8',size:13,bold:true});
+      ctx.restore();
+    }
+
+    // Finished label (after sprue cut)
+    if(t>.82){
+      const fa=sat((t-.82)/.18);
+      ctx.save(); ctx.globalAlpha=fa;
+      lbl('Near-net shape — minimal machining required',cx,cy+bH*.4+20,
+          {align:'center',color:'#70d890',size:10,bold:true});
+      ctx.restore();
+    }
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
 //  FORMING — ROLLING
 // ══════════════════════════════════════
 const Rolling = {
@@ -1976,7 +2328,7 @@ const SLA = {
 //  REGISTRY
 // ══════════════════════════════════════
 const CATEGORIES = {
-  casting:  { label:'Casting',    subs:['sandCasting','dieCasting'] },
+  casting:  { label:'Casting',    subs:['sandCasting','investmentCasting','dieCasting'] },
   forming:  { label:'Forming',    subs:['rolling','forging','extrusion'] },
   molding:  { label:'Molding',    subs:['injectionMolding','blowMolding'] },
   machining:{ label:'Machining',  subs:['turning','milling'] },
@@ -1985,8 +2337,9 @@ const CATEGORIES = {
 };
 
 const SIMS = {
-  sandCasting:    { label:'Sand Casting',    sim:SandCasting },
-  dieCasting:     { label:'Die Casting',     sim:DieCasting },
+  sandCasting:       { label:'Sand Casting',       sim:SandCasting },
+  investmentCasting: { label:'Investment Casting', sim:InvestmentCasting },
+  dieCasting:        { label:'Die Casting',        sim:DieCasting },
   rolling:        { label:'Rolling',         sim:Rolling },
   forging:        { label:'Forging',         sim:Forging },
   extrusion:      { label:'Extrusion',       sim:Extrusion },
