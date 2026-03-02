@@ -1837,94 +1837,242 @@ const InjectionMolding = {
 // ══════════════════════════════════════
 const BlowMolding = {
   meta:{name:'Blow Molding',mat:'HDPE, PET, PP',temp:'180–250 °C',cat:'Molding'},
-  t:0, period:8,
+  t:0, period:12,
   init(){ this.t=0; },
   onResize(){},
   step(dt){ this.t=(this.t+dt/this.period)%1; },
   draw(){
     grid();
     const cx=W/2, cy=H/2, t=this.t;
+
+    // ── PHASES ──
     let phase, stageName;
-    if(t<.12){phase=0;stageName='Parison extrusion';}
-    else if(t<.28){phase=1;stageName='Mold closing';}
-    else if(t<.55){phase=2;stageName='Blow inflation';}
-    else if(t<.70){phase=3;stageName='Cooling';}
-    else if(t<.85){phase=4;stageName='Mold opening';}
-    else{phase=5;stageName='Part removal';}
+    if(t<.12)      {phase=0; stageName='Preform';}
+    else if(t<.26) {phase=1; stageName='Heating';}
+    else if(t<.40) {phase=2; stageName='Loading into mold';}
+    else if(t<.54) {phase=3; stageName='Mold closing';}
+    else if(t<.74) {phase=4; stageName='Blow inflation';}
+    else if(t<.86) {phase=5; stageName='Cooling';}
+    else           {phase=6; stageName='Part ejection';}
     setStage(stageName,'Blow Molding');
 
-    const mH=Math.min(H*.62,280), mW=Math.min(W*.20,96);
-    const mY=cy-mH/2+mH*.10; // shift slightly down (pinch at bottom)
+    // ── GEOMETRY ──
+    // Mold positioned slightly right of center (leaves room for preform on left)
+    const moldCX = cx + Math.min(W*.04,14);
+    const mW = Math.min(W*.30,108);    // total mold width (both halves)
+    const mH = Math.min(H*.62,265);    // mold height
+    const mTop = cy - mH*.47;
 
-    // Parison (hollow tube extruded from top)
-    const parH=(phase<1)?easeO(t/.12)*mH*.80 : mH*.80;
-    const parW=mW*.20;
-    const parX=cx-parW/2, parY=cy-mH*.35;
-    // Extrusion nozzle at top
-    ctx.fillStyle='#3a5070';
-    rrect(cx-mW*.15,parY-28,mW*.30,28,3); ctx.fill();
-    ctx.strokeStyle='#5a7090'; ctx.lineWidth=1.5;
-    rrect(cx-mW*.15,parY-28,mW*.30,28,3); ctx.stroke();
+    // Bottle cavity dimensions (SAME shape used for void AND inflated bottle)
+    const botH   = mH*.84;
+    const botMaxW= mW*.72;
+    const botTop = mTop + (mH-botH)*.5;
 
-    // Blow air inlet
-    ctx.fillStyle='#2a3a50';
-    ctx.fillRect(cx-4,parY-28-18,8,18);
+    // Preform dimensions: ~50% of bottle height, ~26% of bottle width
+    const pfH = botH*.50;
+    const pfW = botMaxW*.27;
 
-    // Mold halves
-    const moldClose=(phase>=1&&phase<4)?ease(sat((t-.12)/.16)):
-                    (phase>=4)?1-ease(sat((t-.70)/.15)):1;
-    const moldGap=lerp(mW*.65,0,moldClose);
-    // Left mold
-    ctx.fillStyle='#2d3d58'; rrect(cx-mW*.5-moldGap,mY,mW*.5,mH,5); ctx.fill();
-    hatch(cx-mW*.5-moldGap,mY,mW*.5,mH,10,'rgba(255,255,255,.05)');
-    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(cx-mW*.5-moldGap,mY,mW*.5,mH,5); ctx.stroke();
-    // Right mold
-    ctx.fillStyle='#2d3d58'; rrect(cx+moldGap,mY,mW*.5,mH,5); ctx.fill();
-    hatch(cx+moldGap,mY,mW*.5,mH,10,'rgba(255,255,255,.05)');
-    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(cx+moldGap,mY,mW*.5,mH,5); ctx.stroke();
+    // Mold open/close gap
+    const maxOpen = Math.min(W*.10,38);
+    let moldGap = maxOpen;
+    if(phase<=2)       moldGap = maxOpen;
+    else if(phase===3) moldGap = maxOpen*(1-ease(sat((t-.40)/.14)));
+    else if(phase<=5)  moldGap = 0;
+    else               moldGap = maxOpen*ease(sat((t-.86)/.12));
 
-    // Mold inner cavity shape (bottle-like oval cutout)
-    if(moldClose>.5){
-      const cavW=mW*.48*(2-moldClose), cavH=mH*.82;
-      ctx.fillStyle='#0d0f1a';
+    const lMoldR = moldCX-moldGap;   // right face of left mold half
+    const lMoldL = lMoldR-mW/2;     // left face of left mold half
+    const rMoldL = moldCX+moldGap;   // left face of right mold half
+    const rMoldR = rMoldL+mW/2;     // right face of right mold half
+
+    // ── BOTTLE PATH HELPER ──
+    // Proper bottle shape: narrow neck → shoulder taper → cylindrical body → rounded bottom
+    const bpath=(bx,btop,bH,bMaxW)=>{
+      const nW=bMaxW*.26;            // neck width
+      const sh =btop+bH*.20;        // shoulder top
+      const bs =btop+bH*.38;        // body start
+      const be =btop+bH*.87;        // body end
       ctx.beginPath();
-      ctx.ellipse(cx,mY+cavH*.52,cavW*.5,cavH*.5,0,0,Math.PI*2);
-      ctx.fill();
+      ctx.moveTo(bx-nW/2, btop);
+      ctx.lineTo(bx-nW/2, sh);
+      // left shoulder (neck widens to body)
+      ctx.bezierCurveTo(bx-nW/2,btop+bH*.31, bx-bMaxW/2,btop+bH*.33, bx-bMaxW/2,bs);
+      ctx.lineTo(bx-bMaxW/2, be);
+      // bottom-left curve
+      ctx.quadraticCurveTo(bx-bMaxW/2, btop+bH, bx, btop+bH);
+      // bottom-right curve
+      ctx.quadraticCurveTo(bx+bMaxW/2, btop+bH, bx+bMaxW/2, be);
+      ctx.lineTo(bx+bMaxW/2, bs);
+      // right shoulder (body narrows to neck)
+      ctx.bezierCurveTo(bx+bMaxW/2,btop+bH*.33, bx+nW/2,btop+bH*.31, bx+nW/2,sh);
+      ctx.lineTo(bx+nW/2, btop);
+      ctx.closePath();
+    };
+
+    // ── PREFORM PATH HELPER ──
+    // Short thick-walled tube: wider neck relative to body, short, rounded bottom
+    const ppath=(bx,btop,pH,pW)=>{
+      const nW=pW*.82;
+      const sh=btop+pH*.18;
+      const bs=btop+pH*.30;
+      const be=btop+pH*.86;
+      ctx.beginPath();
+      ctx.moveTo(bx-nW/2, btop);
+      ctx.lineTo(bx-nW/2, sh);
+      ctx.bezierCurveTo(bx-nW/2,btop+pH*.26, bx-pW/2,btop+pH*.27, bx-pW/2,bs);
+      ctx.lineTo(bx-pW/2, be);
+      ctx.quadraticCurveTo(bx-pW/2, btop+pH, bx, btop+pH);
+      ctx.quadraticCurveTo(bx+pW/2, btop+pH, bx+pW/2, be);
+      ctx.lineTo(bx+pW/2, bs);
+      ctx.bezierCurveTo(bx+pW/2,btop+pH*.27, bx+nW/2,btop+pH*.26, bx+nW/2,sh);
+      ctx.lineTo(bx+nW/2, btop);
+      ctx.closePath();
+    };
+
+    // ── DRAW LEFT MOLD HALF ──
+    ctx.fillStyle='#2d3d58';
+    rrect(lMoldL,mTop,mW/2,mH,5); ctx.fill();
+    hatch(lMoldL,mTop,mW/2,mH,12,'rgba(255,255,255,.05)');
+    // Cavity void: bottle path centered on this half's inner face, overdraw dark
+    bpath(lMoldR, botTop, botH, botMaxW);
+    ctx.fillStyle='#0d0f1a'; ctx.fill();
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2;
+    rrect(lMoldL,mTop,mW/2,mH,5); ctx.stroke();
+
+    // ── DRAW RIGHT MOLD HALF ──
+    ctx.fillStyle='#2d3d58';
+    rrect(rMoldL,mTop,mW/2,mH,5); ctx.fill();
+    hatch(rMoldL,mTop,mW/2,mH,12,'rgba(255,255,255,.05)');
+    // Cavity void: centered on right mold's inner face
+    bpath(rMoldL, botTop, botH, botMaxW);
+    ctx.fillStyle='#0d0f1a'; ctx.fill();
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2;
+    rrect(rMoldL,mTop,mW/2,mH,5); ctx.stroke();
+
+    // ── PREFORM POSITION ──
+    const pfStagedX = Math.max(pfW*.7+6, lMoldL-46);
+    const pfLoadF   = ease(sat((t-.26)/.14));
+    const pfX = (phase<2) ? pfStagedX
+              : (phase===2) ? lerp(pfStagedX, moldCX, pfLoadF)
+              : moldCX;
+
+    // ── DRAW PREFORM (phases 0, 1, 2, and early phase 3) ──
+    const pfVisible = phase<=2 || (phase===3 && moldGap>4);
+    if(pfVisible){
+      const heatF = (phase===1) ? sat((t-.12)/.14) : (phase>=2 ? 1 : 0);
+      const pfR = lerp(210,255,heatF)|0;
+      const pfG = lerp(210,105,heatF)|0;
+      const pfB = lerp(225, 45,heatF)|0;
+
+      // Outer preform shape
+      ppath(pfX, botTop, pfH, pfW);
+      ctx.fillStyle=`rgba(${pfR},${pfG},${pfB},.90)`; ctx.fill();
+      ctx.strokeStyle=`rgba(${Math.min(255,pfR+30)},${pfG},${pfB},.90)`;
+      ctx.lineWidth=1.5; ctx.stroke();
+
+      // Inner bore — thick-walled tube appearance
+      // Bore starts ~30% down from top (neck is solid), fills lower 70%
+      ppath(pfX, botTop+pfH*.30, pfH*.66, pfW*.54);
+      ctx.fillStyle='rgba(10,14,24,.82)'; ctx.fill();
+
+      // Neck ring (threaded collar, always white-ish / cold)
+      const nkW=pfW*.82, nkH=pfH*.12;
+      rrect(pfX-nkW/2, botTop, nkW, nkH, 2);
+      ctx.fillStyle='rgba(220,225,235,.75)'; ctx.fill();
+      ctx.strokeStyle='rgba(180,185,200,.5)'; ctx.lineWidth=1; ctx.stroke();
+
+      // Heat glow
+      if(heatF>0.05){
+        ppath(pfX, botTop, pfH, pfW);
+        ctx.fillStyle=`rgba(255,130,0,${heatF*.22})`; ctx.fill();
+      }
+
+      // IR heater wavy lines radiating horizontally (phase 1)
+      if(phase===1){
+        const gF = sat((t-.12)/.14);
+        ctx.strokeStyle=`rgba(255,100,0,${gF*.40})`;
+        ctx.lineWidth=1.5;
+        for(let i=0;i<3;i++){
+          const ly = botTop + pfH*(.28+i*.24);
+          ctx.beginPath();
+          ctx.moveTo(pfX-pfW*.9,ly);
+          ctx.lineTo(pfX+pfW*.9,ly);
+          ctx.stroke();
+        }
+        lbl('Heating',pfX,botTop-14,{align:'center',color:'#ff9040',size:10});
+      }
     }
 
-    // Parison tube
-    if(phase<2){
-      ctx.strokeStyle='rgba(70,180,100,.85)'; ctx.lineWidth=parW;
-      ctx.beginPath(); ctx.moveTo(cx,parY); ctx.lineTo(cx,parY+parH); ctx.stroke();
-    }
+    // ── INFLATING BOTTLE (phases 4, 5, 6) ──
+    if(phase>=4){
+      const inflate  = ease(sat((t-.54)/.18));  // 0→1 as bottle expands
+      const solid    = (phase>=5) ? sat((t-.74)/.12) : 0;
+      // Shape morphs from preform → full bottle (both use same bpath)
+      const curH   = lerp(pfH,  botH,   inflate);
+      const curMaxW= lerp(pfW,  botMaxW,inflate);
 
-    // Inflated part
-    if(phase>=2){
-      const inflate=ease(sat((t-.28)/.20));
-      const bottleW=mW*.44*inflate, bottleH=mH*.78*Math.min(inflate*1.2,1);
-      const solid=(phase>=3)?sat((t-.55)/.15):0;
-      // Bottle body
-      const grd=ctx.createRadialGradient(cx-bottleW*.2,mY+bottleH*.35,1,cx,mY+bottleH*.5,bottleW);
-      grd.addColorStop(0,`rgba(100,210,130,${.7+solid*.2})`);
-      grd.addColorStop(1,`rgba(30,120,60,${.7+solid*.2})`);
-      ctx.beginPath();
-      ctx.ellipse(cx, mY+mH*.52, bottleW*.5, bottleH*.5, 0, 0, Math.PI*2);
+      // Phase 6: bottle drops after mold fully open
+      const dropF   = (phase===6) ? ease(sat((t-.93)/.07)) : 0;
+      const bottleTop = botTop + dropF*(H - botTop - botH + 15);
+
+      // Color: warm translucent clear → cooler solid plastic
+      const rC = lerp(150,25, solid)|0;
+      const gC = lerp(210,155,solid)|0;
+      const bC = lerp(255,215,solid)|0;
+      const al = lerp(0.72,0.92,solid);
+
+      const grd = ctx.createRadialGradient(
+        moldCX-curMaxW*.25, bottleTop+curH*.30, 2,
+        moldCX,             bottleTop+curH*.52, curMaxW*.60
+      );
+      grd.addColorStop(0,`rgba(${Math.min(255,rC+90)},${Math.min(255,gC+55)},${Math.min(255,bC+10)},${al})`);
+      grd.addColorStop(0.65,`rgba(${rC},${gC},${bC},${al})`);
+      grd.addColorStop(1,`rgba(${Math.max(0,rC-40)},${Math.max(0,gC-25)},${Math.max(0,bC-45)},${al*.75})`);
+
+      bpath(moldCX, bottleTop, curH, curMaxW);
       ctx.fillStyle=grd; ctx.fill();
-      ctx.strokeStyle='rgba(50,160,80,.6)'; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.strokeStyle=`rgba(${Math.max(0,rC-20)},${Math.min(255,gC+30)},${Math.min(255,bC+55)},.80)`;
+      ctx.lineWidth=1.5; ctx.stroke();
     }
 
-    // Air blow arrows
-    if(phase===2){
-      const bFrac=sat((t-.28)/.10);
-      arrow(cx,parY-8,cx,parY+20,'#88ccff',2,7);
-      lbl('Air pressure',cx+16,parY+8,{align:'left',color:'#88ccff',size:10});
+    // ── BLOW PIN + AIR ARROWS (phase 4) ──
+    if(phase===4){
+      const blowF = ease(sat((t-.54)/.10));
+      const pinTop = mTop-22, pinBot = botTop+pfH*.12;
+      // Pin rod entering through neck
+      ctx.fillStyle='#7090b8';
+      ctx.fillRect(moldCX-3, pinTop, 6, pinBot-pinTop);
+      ctx.strokeStyle='#90b0d8'; ctx.lineWidth=1;
+      ctx.strokeRect(moldCX-3, pinTop, 6, pinBot-pinTop);
+      // Air flow arrow above pin
+      arrow(moldCX, pinTop-14, moldCX, pinTop, '#88ccff', 2, 7);
+      lbl('Air',moldCX+9,pinTop-5,{align:'left',color:'#88ccff',size:10});
+      // Radial expansion arrows in mold body area
+      if(blowF>0.25){
+        const midY = botTop + botH*.60;
+        const arW  = lerp(pfW,botMaxW,ease(sat((t-.54)/.18)))*.42;
+        arrow(moldCX,midY,moldCX+arW,midY,'#88ccff',1.5,5);
+        arrow(moldCX,midY,moldCX-arW,midY,'#88ccff',1.5,5);
+      }
     }
 
     // ── LABELS ──
-    lbl('Extrusion head',cx,parY-46,{align:'center',color:'#5a7090',size:10});
-    lbl('Parison',cx+parW+8,parY+parH*.4,{align:'left',color:'#5aaa70',size:10});
-    lbl('Mold',cx-mW*.5-moldGap-6,mY+mH*.5,{align:'right',color:'#5a7090',size:10});
-    if(moldClose>.7) lbl('Cavity',cx,mY+mH*.88,{align:'center',color:'#6878a0',size:10});
+    lbl('Mold', lMoldL-6, mTop+mH*.45, {align:'right',color:'#5a7090',size:10});
+    if(phase<=1){
+      lbl('Preform', pfX, botTop+pfH+16, {align:'center',color:'#8898b8',size:10});
+    }
+    if(phase===2){
+      lbl('Loading →', pfStagedX+Math.min((moldCX-pfStagedX)*pfLoadF*.5,30), botTop+pfH+16,
+        {align:'center',color:'#88aacc',size:10});
+    }
+    if(moldGap<20 && phase>=3){
+      lbl('Cavity', moldCX, mTop+mH+14, {align:'center',color:'#6878a0',size:10});
+    }
+    // Mold-closing arrows
+    if(phase===3){
+      arrow(rMoldL+mW*.4, cy, rMoldL+5, cy, '#ffc040',2,8);
+      arrow(lMoldR-mW*.4, cy, lMoldR-5, cy, '#ffc040',2,8);
+    }
   },
   cleanup(){}
 };
