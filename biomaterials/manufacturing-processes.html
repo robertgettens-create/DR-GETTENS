@@ -885,87 +885,183 @@ const DieCasting = {
   draw(){
     grid();
     const cx=W/2, cy=H/2, t=this.t;
+    // ── PHASES ──
     let phase, stageName;
-    if(t<.08){phase=0;stageName='Dies open';}
-    else if(t<.22){phase=1;stageName='Dies closing';}
-    else if(t<.55){phase=2;stageName='Injection';}
-    else if(t<.72){phase=3;stageName='Solidifying';}
-    else if(t<.88){phase=4;stageName='Dies opening';}
-    else{phase=5;stageName='Part ejected';}
+    if(t<.08)      {phase=0;stageName='Dies open';}
+    else if(t<.22) {phase=1;stageName='Dies closing';}
+    else if(t<.55) {phase=2;stageName='Injection';}
+    else if(t<.72) {phase=3;stageName='Solidifying';}
+    else if(t<.88) {phase=4;stageName='Dies opening';}
+    else           {phase=5;stageName='Ejection';}
     setStage(stageName,'Die Casting');
 
-    const dw=Math.min(W*.22,140), dh=Math.min(H*.54,260);
-    // Gap between die halves
-    const openGap=(phase<=1)?lerp(W*.10,2,ease(sat((t-.08)/.14))):
-                 (phase>=4)?lerp(2,W*.10,ease(sat((t-.72)/.16))):2;
-    const lx=cx-dw-openGap, rx=cx+openGap;
+    // ── GEOMETRY ──
+    const dw=Math.min(W*.22,128), dh=Math.min(H*.56,265);
+    const maxOpen=Math.min(W*.14,78);
+    const dieTop=cy-dh/2;
 
-    // Left die
-    ctx.fillStyle='#2d3d58'; rrect(lx,cy-dh/2,dw,dh,5); ctx.fill();
-    hatch(lx,cy-dh/2,dw,dh,10,'rgba(255,255,255,.05)');
-    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(lx,cy-dh/2,dw,dh,5); ctx.stroke();
+    // Only the MOVING die (right) slides; fixed die stays put
+    let openGap=0;
+    if(phase===0)      openGap=maxOpen;
+    else if(phase===1) openGap=maxOpen*(1-ease(sat((t-.08)/.14)));
+    else if(phase<=3)  openGap=0;
+    else if(phase===4) openGap=maxOpen*ease(sat((t-.72)/.16));
+    else               openGap=maxOpen;
 
-    // Right die
-    ctx.fillStyle='#2d3d58'; rrect(rx,cy-dh/2,dw,dh,5); ctx.fill();
-    hatch(rx,cy-dh/2,dw,dh,10,'rgba(255,255,255,.05)');
-    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(rx,cy-dh/2,dw,dh,5); ctx.stroke();
+    // Fixed die (left) — parting line at fixR
+    const fixL=cx-1-dw, fixR=cx-1;
+    // Moving die (right) — parting line at movL
+    const movL=cx+1+openGap, movR=movL+dw;
 
-    // Cavity (carved into die faces)
-    const cvW=openGap+2, cvH=dh*.45;
-    const cvX=lx+dw-.5, cvY=cy-cvH/2;
-    if(openGap<20){
-      ctx.fillStyle='#0d0f1a'; ctx.fillRect(cvX,cvY,cvW,cvH);
+    // Cavity dimensions — SAME for cavity voids AND part shape
+    const cavW=Math.min(dw*.48,62), cavH=Math.min(dh*.42,110);
+    const cavY=cy-cavH/2;
+
+    // Runner channel inside fixed die (horizontal, connects sleeve to cavity)
+    const runH=Math.min(cavH*.17,20), runY=cy-runH/2;
+    const runLen=dw-cavW/2; // from fixL to left edge of fixed-half cavity
+
+    // Shot sleeve (horizontal, attached to left face of fixed die)
+    const slW=Math.min(W*.13,82), slH=Math.min(cavH*.22,26);
+    const slX=fixL-slW, slY=cy-slH/2;
+
+    // Plunger: tip moves rightward through sleeve
+    const plungAdv=(phase>=2)?ease(sat((t-.22)/.22)):0;
+    const plW=slW*.24;
+    const plTip=slX+plW+plungAdv*(slW-plW); // right face (tip) moves toward fixL
+    const plLeft=plTip-plW;
+
+    // ── DRAW DIES ──
+    // Fixed die
+    ctx.fillStyle='#2d3d58';
+    rrect(fixL,dieTop,dw,dh,5); ctx.fill();
+    hatch(fixL,dieTop,dw,dh,12,'rgba(255,255,255,.05)');
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2;
+    rrect(fixL,dieTop,dw,dh,5); ctx.stroke();
+
+    // Moving die
+    ctx.fillStyle='#2d3d58';
+    rrect(movL,dieTop,dw,dh,5); ctx.fill();
+    hatch(movL,dieTop,dw,dh,12,'rgba(255,255,255,.05)');
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2;
+    rrect(movL,dieTop,dw,dh,5); ctx.stroke();
+
+    // ── CAVITY VOIDS (carved into die faces) ──
+    ctx.fillStyle='#0d0f1a';
+    ctx.fillRect(fixR-cavW/2, cavY, cavW/2+1, cavH);   // fixed-half cavity
+    ctx.fillRect(fixL, runY, runLen, runH);              // runner channel
+    ctx.fillRect(movL-1, cavY, cavW/2+2, cavH);         // moving-half cavity
+
+    // Ejector pin holes visible in moving-half cavity back wall
+    for(let i=0;i<3;i++){
+      const phY=cavY+cavH*(.15+i*.35);
+      ctx.fillStyle='#141828';
+      ctx.fillRect(movL+cavW*.22, phY-2, 7, 4);
     }
 
-    // Injection shot sleeve on right side
-    const slW=W*.12, slH=dh*.12;
-    const slX=rx+dw, slY=cy-slH/2;
-    ctx.fillStyle='#1e2a40'; rrect(slX,slY,slW,slH,3); ctx.fill();
-    ctx.strokeStyle='#3a5080'; ctx.lineWidth=1.5; rrect(slX,slY,slW,slH,3); ctx.stroke();
-    // Plunger
-    const plungAdv=(phase>=2)?ease(sat((t-.22)/.20)):0;
-    const plX=slX+slW-slW*.2-slW*.6*plungAdv;
-    ctx.fillStyle='#5a7aaa'; ctx.fillRect(plX,slY+2,slW*.2,slH-4);
+    // ── SHOT SLEEVE ──
+    ctx.fillStyle='#1e2a40';
+    rrect(slX,slY,slW,slH,3); ctx.fill();
+    ctx.strokeStyle='#3a5080'; ctx.lineWidth=1.5;
+    rrect(slX,slY,slW,slH,3); ctx.stroke();
 
-    // Gate from sleeve to cavity
-    const gateW=openGap+2, gateH=slH*.5;
-    if(openGap<20){
-      ctx.fillStyle='#0d0f1a'; ctx.fillRect(cvX,cy-gateH/2,gateW,gateH);
+    // Metal in sleeve (present phases 0–2, consumed as plunger advances)
+    if(phase<=2 && plTip<fixL-1){
+      ctx.fillStyle=moltCol(0);
+      ctx.fillRect(plTip, slY+3, fixL-plTip, slH-6);
     }
 
-    // Molten metal in cavity
-    if(phase>=2 && openGap<20){
+    // Plunger block
+    ctx.fillStyle='#5a7aaa';
+    ctx.fillRect(plLeft, slY+2, plW, slH-4);
+    ctx.strokeStyle='#7898c8'; ctx.lineWidth=1;
+    ctx.strokeRect(plLeft, slY+2, plW, slH-4);
+    // Plunger rod extending left of block
+    if(plLeft>slX){
+      ctx.fillStyle='#3a5070';
+      ctx.fillRect(slX, cy-3, plLeft-slX, 6);
+    }
+
+    // ── METAL FLOW (injection phase) ──
+    if(phase===2){
       const ff=ease(sat((t-.22)/.25));
-      const solid=phase>=3?sat((t-.55)/.17):0;
-      const col=moltCol(solid);
-      ctx.fillStyle=col; ctx.fillRect(cvX,cvY+cvH*(1-ff),cvW,cvH*ff);
-      // Also fill gate
-      ctx.fillStyle=col; ctx.fillRect(rx,cy-gateH/2,openGap+2,gateH);
-    }
-
-    // Ejection pins + part
-    if(phase>=5){
-      const a=sat((t-.88)/.08);
-      ctx.fillStyle=`rgba(140,160,180,${a})`;
-      ctx.fillRect(cx-cvW*.4,cy-cvH/2,cvW*.8,cvH);
-      // Ejector pins pushing right
-      for(let py=0;py<3;py++){
-        const pinY=cvY+cvH*.2+py*cvH*.3;
-        ctx.fillStyle=`rgba(170,190,220,${a})`;
-        ctx.fillRect(lx+dw,pinY,8,4);
+      const col=moltCol(0);
+      const runF=sat(ff/.30);                  // runner fills in first 30%
+      const cavF=ease(sat((ff-.30)/.70));      // cavity fills in last 70%
+      if(runF>0){
+        ctx.fillStyle=col;
+        ctx.fillRect(fixL, runY, runLen*runF, runH);
+      }
+      if(cavF>0){
+        ctx.fillStyle=col;
+        ctx.fillRect(fixL, runY, runLen, runH); // keep runner full
+        const fillH=cavH*cavF;
+        ctx.fillRect(fixR-cavW/2, cavY+cavH-fillH, cavW, fillH); // cavity fills bottom-up
       }
     }
 
+    // ── SOLIDIFIED PART (drawn in phases 3, 4, 5 — no gaps) ──
+    if(phase===3){
+      // Full part in closed cavity, color transitions molten → solid
+      const solid=sat((t-.55)/.17);
+      ctx.fillStyle=moltCol(solid);
+      ctx.fillRect(fixR-cavW/2, cavY, cavW+2, cavH); // +2 spans parting-line gap
+      ctx.fillRect(fixL, runY, runLen, runH);          // solidified runner
+    }
+
+    if(phase===4){
+      // Part stays with moving die, center tracks movL
+      ctx.fillStyle=moltCol(1);
+      ctx.fillRect(movL-cavW/2, cavY, cavW, cavH);
+    }
+
+    if(phase===5){
+      const ejF=ease(sat((t-.88)/.10));           // 0→1 over first 10% of phase: pins extend
+      const dropP=ease(sat((t-.94)/.06));         // 0→1 over last 6%: part falls
+      const maxPin=cavW*.80;
+      const pinLen=ejF*maxPin;
+
+      // Ejector pins: 3 rods extending leftward from cavity back wall (movL+cavW/2)
+      if(dropP<0.05){
+        for(let i=0;i<3;i++){
+          const pinCY=cavY+cavH*(.15+i*.35);
+          const pinRight=movL+cavW/2;
+          const pinTip=pinRight-pinLen;
+          ctx.fillStyle='#a8c0dc';
+          ctx.fillRect(pinTip, pinCY-2, pinLen, 4);
+          if(pinLen>3){
+            ctx.beginPath(); ctx.arc(pinTip,pinCY,4.5,0,Math.PI*2);
+            ctx.fillStyle='#c8daf0'; ctx.fill();
+          }
+        }
+      }
+
+      // Part: pushed leftward by pins (center = movL − pinLen), then arcs down with tumble
+      const partCX = movL - pinLen;
+      const fallX  = partCX - dropP*maxPin*.20;
+      const fallY  = cavY   + dropP*(H - cavY - cavH + 20);
+      const rot    = dropP*.40;
+      ctx.save();
+      ctx.translate(fallX, fallY+cavH/2);
+      ctx.rotate(rot);
+      ctx.fillStyle=moltCol(1);
+      rrect(-cavW/2,-cavH/2,cavW,cavH,3); ctx.fill();
+      ctx.strokeStyle='rgba(200,200,120,.4)'; ctx.lineWidth=1;
+      rrect(-cavW/2,-cavH/2,cavW,cavH,3); ctx.stroke();
+      ctx.restore();
+    }
+
     // ── LABELS ──
-    lbl('Fixed Die', lx+dw*.5, cy-dh/2-12,{align:'center',color:'#5a7090',size:10});
-    lbl('Moving Die',rx+dw*.5, cy-dh/2-12,{align:'center',color:'#5a7090',size:10});
-    lbl('Shot Sleeve',slX+slW*.5,slY-10,{align:'center',color:'#5a7090',size:10});
-    lbl('Plunger',plX,slY+slH+14,{align:'center',color:'#6878a0',size:10});
-    if(openGap<30) lbl('Cavity',cx,cy+cvH/2+16,{align:'center',color:'#6878a0',size:10});
-    // closing arrow
+    lbl('Fixed Die',  fixL+dw*.5,    dieTop-12, {align:'center',color:'#5a7090',size:10});
+    lbl('Moving Die', movL+dw*.5,    dieTop-12, {align:'center',color:'#5a7090',size:10});
+    lbl('Shot Sleeve',slX+slW*.5,    slY-10,    {align:'center',color:'#5a7090',size:10});
+    lbl('Plunger',    plLeft+plW*.5, slY+slH+14,{align:'center',color:'#6878a0',size:10});
+    if(openGap<25){
+      lbl('Cavity', cx, cavY+cavH+16, {align:'center',color:'#6878a0',size:10});
+      lbl('Runner', fixL+runLen*.5, runY+runH+14, {align:'center',color:'#6878a0',size:10});
+    }
     if(phase===1){
-      arrow(rx+dw*.3,cy,rx+2,cy,'#ffc040',2,8);
-      arrow(lx+dw*.7,cy,lx+dw-2,cy,'#ffc040',2,8);
+      arrow(movL+dw*.5, cy, movL+6, cy, '#ffc040', 2, 8);
     }
   },
   cleanup(){}
