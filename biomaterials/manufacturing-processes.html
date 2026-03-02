@@ -1572,18 +1572,16 @@ const InjectionMolding = {
     else{phase=5;stageName='Mold closing';}
     setStage(stageName,'Injection Molding');
 
-    // Barrel on left side
+    // ── BARREL ──
     const barH=Math.min(H*.14,58), barW=Math.min(W*.38,210);
     const barX=Math.min(W*.05,30), barY=cy-barH/2;
-
     ctx.fillStyle='#2d3d58'; rrect(barX,barY,barW,barH,3); ctx.fill();
     hatch(barX,barY,barW,barH,8,'rgba(255,255,255,.06)');
     ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(barX,barY,barW,barH,3); ctx.stroke();
-    // Barrel bore
     ctx.fillStyle='rgba(80,40,10,.7)';
     ctx.fillRect(barX+barW*.05,barY+barH*.14,barW*.9,barH*.72);
 
-    // Heater bands (orange glows)
+    // Heater bands
     for(let i=0;i<4;i++){
       const hx=barX+barW*.15+i*barW*.18;
       const grd=ctx.createLinearGradient(hx,barY,hx,barY+barH);
@@ -1593,7 +1591,7 @@ const InjectionMolding = {
       ctx.fillStyle=grd; ctx.fillRect(hx,barY,barW*.08,barH);
     }
 
-    // Screw
+    // Screw (advances toward nozzle during injection)
     const screwAdv=(phase>=1&&phase<=2)?ease(sat((t-.10)/.15))*.35:0;
     for(let i=0;i<16;i++){
       const sx=barX+barW*.06+i*barW*.055+screwAdv*barW*.3;
@@ -1603,14 +1601,13 @@ const InjectionMolding = {
       ctx.moveTo(sx,barY+barH*.15); ctx.lineTo(sx-barW*.03,barY+barH*.85); ctx.stroke();
     }
 
-    // Hopper
-    const hopX=barX+barW*.8, hopW=barW*.14;
+    // Hopper — at REAR (left/feed) end of barrel, opposite the nozzle
+    const hopX=barX+barW*.20, hopW=barW*.14;
     ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; ctx.fillStyle='#1e2838';
     ctx.beginPath();
     ctx.moveTo(hopX,barY); ctx.lineTo(hopX-hopW*.5,barY-barH*.9);
     ctx.lineTo(hopX+hopW*.5,barY-barH*.9); ctx.closePath();
     ctx.fill(); ctx.stroke();
-    // Pellets in hopper
     for(let i=0;i<6;i++){
       const px=hopX-hopW*.3+i%3*hopW*.3+(i>2?hopW*.15:0);
       const py=barY-barH*.5-(i>2?barH*.25:0);
@@ -1618,7 +1615,7 @@ const InjectionMolding = {
       ctx.fillStyle='#44aa66'; ctx.fill();
     }
 
-    // Nozzle
+    // Nozzle (right/front end of barrel)
     ctx.fillStyle='#3a5070'; ctx.beginPath();
     ctx.moveTo(barX+barW,barY+barH*.15);
     ctx.lineTo(barX+barW+barW*.04,barY+barH*.35);
@@ -1630,64 +1627,111 @@ const InjectionMolding = {
     // ── MOLD HALVES ──
     const moldW=Math.min(W*.18,100), moldH=Math.min(H*.58,260);
     const moldY=cy-moldH/2;
-    const moldOpenDist=(phase>=3)?easeO(sat((t-.58)/.14))*W*.10:
-                       (phase>=5)?W*.10*(1-ease(sat((t-.88)/.12))):0;
-    const fixX=barX+barW+barW*.04;   // fixed half (left)
-    const movX=fixX+moldW+moldOpenDist; // moving half (right)
+    const maxOpen=W*.10;
+    // Fix: separate phase conditions so mold closes correctly in phase 5
+    let moldOpenDist=0;
+    if(phase===3)      moldOpenDist=easeO(sat((t-.58)/.14))*maxOpen;
+    else if(phase===4) moldOpenDist=maxOpen;
+    else if(phase===5) moldOpenDist=maxOpen*(1-ease(sat((t-.88)/.12)));
+
+    const fixX=barX+barW+barW*.04;
+    const movX=fixX+moldW+moldOpenDist;
+    const moldClosed=moldOpenDist<4;
 
     // Fixed mold (left)
     ctx.fillStyle='#2d3d58'; rrect(fixX,moldY,moldW,moldH,3); ctx.fill();
     hatch(fixX,moldY,moldW,moldH,10,'rgba(255,255,255,.05)');
     ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(fixX,moldY,moldW,moldH,3); ctx.stroke();
-
-    // Moving mold (right)
+    // Moving mold (right) — tracks moldOpenDist
     ctx.fillStyle='#2d3d58'; rrect(movX,moldY,moldW,moldH,3); ctx.fill();
     hatch(movX,moldY,moldW,moldH,10,'rgba(255,255,255,.05)');
     ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(movX,moldY,moldW,moldH,3); ctx.stroke();
 
-    // Cavity gap between halves
-    const cavGap=moldOpenDist>1?moldOpenDist:0;
-    const cavH=moldH*.45;
-    const cavX=fixX+moldW, cavY=cy-cavH/2;
-    if(cavGap<5){
-      ctx.fillStyle='#0d0f1a'; ctx.fillRect(cavX,cavY,moldW*2,cavH);
-    }
-
-    // Sprue channel in fixed mold
-    const spH=cavH*.15, spX=fixX, spY=cy-spH/2;
+    // Sprue channel through fixed half (nozzle → parting line)
+    const spH=Math.min(barH*.25,14), spX=fixX, spY=cy-spH/2;
     ctx.fillStyle='#0d0f1a'; ctx.fillRect(spX,spY,moldW+1,spH);
 
-    // Polymer fill
-    if(phase>=1){
-      const ff=ease(sat((t-.10)/.22));
-      const solid=phase>=2?sat((t-.38)/.20):0;
-      // Sprue fill
-      ctx.fillStyle=`rgb(${lerp(70,180,solid)|0},${lerp(180,180,solid)|0},${lerp(80,80,solid)|0})`;
-      ctx.fillRect(spX,spY,moldW*ff+1,spH);
-      // Cavity fill (from sprue side, left to right)
-      if(ff>.3 && cavGap<5){
-        const cff=ease(sat((ff-.3)/.7));
-        ctx.fillStyle=`rgb(${lerp(70,180,solid)|0},${lerp(180,180,solid)|0},${lerp(80,80,solid)|0})`;
-        ctx.fillRect(cavX,cavY,moldW*cff*2,cavH);
-      }
+    // Cavity — inside moving half; gate at left (parting line), back wall at right
+    // Tracks movX so part stays with moving half during mold opening
+    const cavW=moldW*.68, cavH=moldH*.40, cavY=cy-cavH/2;
+    if(moldClosed){
+      ctx.fillStyle='#0d0f1a'; ctx.fillRect(movX,cavY,cavW,cavH);
     }
 
-    // Ejector pins
-    if(phase>=4){
-      const pinAdv=ease(sat((t-.72)/.10))*moldW*.45;
-      for(let i=0;i<3;i++){
-        const pinY=cavY+cavH*.15+i*cavH*.35;
-        ctx.fillStyle='rgba(180,200,230,.8)';
-        ctx.fillRect(movX+moldW*.5,pinY,pinAdv,4);
+    // ── POLYMER ──
+    const solid=phase>=2?sat((t-.38)/.20):0;
+    const polyCol=`rgb(${lerp(70,180,solid)|0},${lerp(180,180,solid)|0},${lerp(80,80,solid)|0})`;
+
+    if(phase===1){
+      // Sprue fills left→right, then cavity fills left→right (gate to back wall)
+      const ff=ease(sat((t-.10)/.22));
+      ctx.fillStyle=polyCol;
+      ctx.fillRect(spX,spY,Math.min(moldW,moldW*ff*3),spH);
+      if(ff>.3 && moldClosed){
+        const cff=ease(sat((ff-.3)/.7));
+        ctx.fillStyle=polyCol;
+        ctx.fillRect(movX,cavY,cavW*cff,cavH);
       }
+    }
+    if(phase===2){
+      // Fully packed; solidifying
+      ctx.fillStyle=polyCol;
+      ctx.fillRect(spX,spY,moldW,spH);
+      ctx.fillRect(movX,cavY,cavW,cavH);
+    }
+    if(phase===3){
+      // Solid part stays with moving half as mold opens
+      ctx.fillStyle=polyCol;
+      ctx.fillRect(movX,cavY,cavW,cavH);
+    }
+    if(phase===4){
+      // Phase 4 split: first half = pins extend & push part left; second half = part arcs down
+      const phaseF=sat((t-.72)/.16);
+      const pinP=ease(sat(phaseF/.50));              // 0→1 in first half: pins extend
+      const dropP=ease(sat((phaseF-.52)/.48));       // 0→1 in second half: part falls
+      const pinLen=pinP*cavW;                        // how far pins have pushed into cavity
+
+      // Redraw cavity as empty dark void (part is leaving)
+      ctx.fillStyle='#0d0f1a';
+      ctx.fillRect(movX,cavY,cavW,cavH);
+
+      // Ejector pins — 3 rods extending leftward from back wall, retract when part falls
+      if(dropP<0.05){
+        for(let i=0;i<3;i++){
+          const pinCY=cavY+cavH*(0.18+i*0.32);
+          // Pin rod (silver)
+          ctx.fillStyle='#a8c0dc';
+          ctx.fillRect(movX+cavW-pinLen, pinCY-2, pinLen, 4);
+          // Pin tip circle
+          if(pinLen>2){
+            ctx.beginPath(); ctx.arc(movX+cavW-pinLen, pinCY, 4, 0, Math.PI*2);
+            ctx.fillStyle='#c8daf0'; ctx.fill();
+          }
+        }
+      }
+
+      // Part: slides left while pushed, then arcs down with slight rotation
+      const partX=movX-pinLen;                        // left edge tracks pin extension
+      const fallX=partX - dropP*cavW*.40;             // leftward arc during fall
+      const fallY=cavY + dropP*(moldY+moldH+cavH-cavY+30); // drops below mold
+      const rot=dropP*.40;                            // slight clockwise tumble
+
+      ctx.save();
+      ctx.translate(fallX+cavW/2, fallY+cavH/2);
+      ctx.rotate(rot);
+      ctx.fillStyle=polyCol;
+      rrect(-cavW/2,-cavH/2,cavW,cavH,3); ctx.fill();
+      ctx.strokeStyle='rgba(200,200,120,.4)'; ctx.lineWidth=1;
+      rrect(-cavW/2,-cavH/2,cavW,cavH,3); ctx.stroke();
+      ctx.restore();
     }
 
     // ── LABELS ──
-    lbl('Barrel',   barX+barW*.4, barY-12,  {align:'center',color:'#5a7090',size:10});
-    lbl('Hopper',   hopX,         barY-barH*.9-14,{align:'center',color:'#6878a0',size:10});
-    lbl('Fixed Half',  fixX+moldW*.5, moldY-12,{align:'center',color:'#5a7090',size:10});
-    lbl('Moving Half', movX+moldW*.5, moldY-12,{align:'center',color:'#5a7090',size:10});
-    lbl('Cavity',      fixX+moldW+moldOpenDist*.5+moldW, cy,{align:'center',color:'#6878a0',size:9});
+    lbl('Barrel',      barX+barW*.5,  barY-12,         {align:'center',color:'#5a7090',size:10});
+    lbl('Hopper',      hopX,          barY-barH*.9-14, {align:'center',color:'#6878a0',size:10});
+    lbl('Fixed Half',  fixX+moldW*.5, moldY-12,        {align:'center',color:'#5a7090',size:10});
+    lbl('Moving Half', movX+moldW*.5, moldY-12,        {align:'center',color:'#5a7090',size:10});
+    if(moldClosed) lbl('Cavity', movX+cavW*.5, cavY-11,{align:'center',color:'#6878a0',size:9});
   },
   cleanup(){}
 };
