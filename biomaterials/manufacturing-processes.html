@@ -2228,11 +2228,14 @@ const CompressionMolding = {
     }
 
     // ── CHARGE / CURED PART ──
+    // Contact: platen bottom reaches blob top when openGap*(1-upClose) = cavH*0.65
+    const upCloseContact=Math.max(0,1-cavH*.65/openGap);
+    const touching=upClose>=upCloseContact;
+    const effectiveSquish=touching?sat((upClose-upCloseContact)/(1-upCloseContact)):0;
     if(phase<=1){
-      // Squishing blob charge
-      const squish=upClose;
-      const chW=lerp(cavW*.40,cavW*.93,squish);
-      const chH=lerp(cavH*1.65,cavH,squish);
+      // Squishing blob charge — only deforms after platen makes contact
+      const chW=lerp(cavW*.40,cavW*.93,effectiveSquish);
+      const chH=lerp(cavH*1.65,cavH,effectiveSquish);
       const chX=cx-chW/2;
       const chTopY=loY+cavH-chH;
       rrect(chX,chTopY,chW,chH,3);
