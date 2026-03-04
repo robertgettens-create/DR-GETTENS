@@ -217,6 +217,12 @@
       </div>
     </div>
     <div class="class-group">
+      <div class="class-header powder">Powder Processing</div>
+      <div class="cat-grid">
+        <button class="cat-btn" data-cat="powderProcessing">Sintering</button>
+      </div>
+    </div>
+    <div class="class-group">
       <div class="class-header secondary">Secondary Shaping</div>
       <div class="cat-grid">
         <button class="cat-btn"        data-cat="machining">Machining</button>
@@ -229,12 +235,6 @@
         <button class="cat-btn" data-cat="annealing">Annealing</button>
         <button class="cat-btn" data-cat="quenching">Quenching</button>
         <button class="cat-btn" data-cat="tempering">Tempering</button>
-      </div>
-    </div>
-    <div class="class-group">
-      <div class="class-header powder">Powder Processing</div>
-      <div class="cat-grid">
-        <button class="cat-btn" data-cat="powderProcessing">Sintering</button>
       </div>
     </div>
   </div>
@@ -3547,6 +3547,38 @@ const Sintering = {
     }
     ctx.strokeStyle='rgba(60,50,30,.6)'; ctx.lineWidth=1; rrect(barX,barY,partW,partH,3); ctx.stroke();
     lbl('Compact',cx,barY+partH/2+4,{align:'center',color:'rgba(80,70,50,.5)',size:9});
+    // ─ Pressure punches (Hot Pressing — phases 2–3) ─
+    const pF=phase<2?0:phase===2?ease(sat((t-.30)/.20)):phase===3?1:1-ease(sat((t-.80)/.10));
+    if(pF>.01){
+      const punchW=partW*.54,punchH=Math.max(8,Math.min(fH*.13,16));
+      const rodW=Math.max(4,punchW*.15),pA=pF;
+      const sCl=`rgba(120,136,160,${pA.toFixed(2)})`;
+      const sEd=`rgba(68,80,100,${pA.toFixed(2)})`;
+      const rCl=`rgba(105,118,140,${pA.toFixed(2)})`;
+      const rodExt=18;
+      // Upper rod + punch
+      const upTop=barY-punchH;
+      ctx.fillStyle=rCl; ctx.fillRect(cx-rodW/2,fY-rodExt,rodW,rodExt+(upTop-fY));
+      rrect(cx-punchW/2,upTop,punchW,punchH,2); ctx.fillStyle=sCl; ctx.fill();
+      ctx.fillStyle=`rgba(210,220,235,${(pA*.28).toFixed(2)})`;
+      ctx.fillRect(cx-punchW/2+1,upTop+1,punchW-2,punchH*.4);
+      ctx.strokeStyle=sEd; ctx.lineWidth=1; rrect(cx-punchW/2,upTop,punchW,punchH,2); ctx.stroke();
+      // Lower punch + rod
+      const loTop=barY+partH;
+      rrect(cx-punchW/2,loTop,punchW,punchH,2); ctx.fillStyle=sCl; ctx.fill();
+      ctx.fillStyle=`rgba(210,220,235,${(pA*.28).toFixed(2)})`;
+      ctx.fillRect(cx-punchW/2+1,loTop+1,punchW-2,punchH*.4);
+      ctx.strokeStyle=sEd; ctx.lineWidth=1; rrect(cx-punchW/2,loTop,punchW,punchH,2); ctx.stroke();
+      ctx.fillStyle=rCl; ctx.fillRect(cx-rodW/2,loTop+punchH,rodW,(fY+fH)-(loTop+punchH)+rodExt);
+      // Force arrows + label outside furnace
+      ctx.fillStyle=`rgba(185,208,255,${(pA*.88).toFixed(2)})`;
+      const aW=Math.min(15,rodW*3.2),aH=8;
+      const upTip=fY-rodExt-2;
+      ctx.beginPath(); ctx.moveTo(cx,upTip+aH); ctx.lineTo(cx-aW/2,upTip); ctx.lineTo(cx+aW/2,upTip); ctx.closePath(); ctx.fill();
+      const loTip=fY+fH+rodExt+2;
+      ctx.beginPath(); ctx.moveTo(cx,loTip-aH); ctx.lineTo(cx-aW/2,loTip); ctx.lineTo(cx+aW/2,loTip); ctx.closePath(); ctx.fill();
+      lbl('Applied Pressure',cx,upTip-9,{align:'center',color:`rgba(168,192,245,${pA.toFixed(2)})`,size:9});
+    }
     // Temp gauge
     const tbX=fX+fW+10;
     rrect(tbX,fY,10,fH,3); ctx.fillStyle='#161620'; ctx.fill();
