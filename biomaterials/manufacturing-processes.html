@@ -2149,6 +2149,155 @@ const BlowMolding = {
 };
 
 // ══════════════════════════════════════
+//  MOLDING — COMPRESSION MOLDING
+// ══════════════════════════════════════
+const CompressionMolding = {
+  meta:{name:'Compression Molding',mat:'BMC, SMC, Rubber, CFRP prepregs',temp:'130–200 °C',cat:'Molding'},
+  t:0, period:11,
+  init(){ this.t=0; },
+  onResize(){},
+  step(dt){ this.t=(this.t+dt/this.period)%1; },
+  draw(){
+    grid(); const cx=W/2, t=this.t;
+    const phase=t<.10?0:t<.30?1:t<.60?2:t<.76?3:t<.90?4:5;
+    const pLabels=['Charge Loading','Mold Closing','Compression / Cure','Mold Opening','Part Ejection','Reset'];
+    setStage(pLabels[phase],'Compression Molding');
+
+    // ── GEOMETRY ──
+    const platW=Math.min(W*.65,300),platH=Math.min(H*.18,84);
+    const platX=cx-platW/2;
+    const cavW=platW*.68,cavH=Math.min(H*.10,44),cavX=cx-cavW/2;
+    const loY=H*.50;  // top of lower platen (fixed)
+
+    // Upper platen travel
+    const openGap=Math.min(H*.26,118);
+    const upClose=phase===0?0:phase===1?ease(sat((t-.10)/.20)):phase===2?1:phase===3?1-ease(sat((t-.60)/.16)):0;
+    const upBottomY=loY-lerp(openGap,0,upClose);
+    const upTopY=upBottomY-platH;
+
+    // Heat: active phases 1-3
+    const hF=phase===0||phase>=4?0:phase===1?ease(sat((t-.10)/.20)):phase===2?1:1-ease(sat((t-.60)/.12));
+
+    // Cure fraction (during phase 2)
+    const cureF=phase<2?0:phase===2?sat((t-.30)/.30):1;
+
+    // Charge color (uncured warm brown-green → cured darker)
+    const rC=lerp(145,100,cureF)|0;
+    const gC=lerp(185,155,cureF)|0;
+    const bC=lerp(78,70,cureF)|0;
+
+    // ── LOWER PLATEN ──
+    rrect(platX,loY,platW,platH,4); ctx.fillStyle='#2d3d58'; ctx.fill();
+    hatch(platX,loY,platW,platH,10,'rgba(255,255,255,.05)');
+    // Lower heating elements
+    if(hF>.05){
+      ctx.lineWidth=2;
+      ctx.strokeStyle=`rgba(255,${(90+hF*100)|0},0,${(hF*.65).toFixed(2)})`;
+      for(let i=0;i<5;i++){
+        const ex=platX+18+(platW-36)*(i/4);
+        ctx.beginPath(); ctx.moveTo(ex,loY+platH*.68); ctx.lineTo(ex,loY+platH*.88); ctx.stroke();
+      }
+    }
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(platX,loY,platW,platH,4); ctx.stroke();
+    // Cavity cutout
+    ctx.fillStyle='#0d0f1a'; ctx.fillRect(cavX,loY,cavW,cavH);
+
+    // ── UPPER PLATEN ──
+    rrect(platX,upTopY,platW,platH,4); ctx.fillStyle='#2d3d58'; ctx.fill();
+    hatch(platX,upTopY,platW,platH,10,'rgba(255,255,255,.05)');
+    // Upper heating elements
+    if(hF>.05){
+      ctx.lineWidth=2;
+      ctx.strokeStyle=`rgba(255,${(90+hF*100)|0},0,${(hF*.65).toFixed(2)})`;
+      for(let i=0;i<5;i++){
+        const ex=platX+18+(platW-36)*(i/4);
+        ctx.beginPath(); ctx.moveTo(ex,upTopY+platH*.12); ctx.lineTo(ex,upTopY+platH*.32); ctx.stroke();
+      }
+    }
+    ctx.strokeStyle='#4a6088'; ctx.lineWidth=2; rrect(platX,upTopY,platW,platH,4); ctx.stroke();
+
+    // Interior glow (in the gap between platens while heating)
+    if(hF>.05){
+      const gapTop=upBottomY,gapH=loY-upBottomY;
+      if(gapH>2){
+        const gr=ctx.createRadialGradient(cx,gapTop+gapH/2,0,cx,gapTop+gapH/2,platW*.44);
+        gr.addColorStop(0,`rgba(255,140,0,${(hF*.10).toFixed(2)})`);
+        gr.addColorStop(1,'rgba(255,80,0,0)');
+        ctx.fillStyle=gr; ctx.fillRect(platX,gapTop,platW,gapH);
+      }
+    }
+
+    // ── CHARGE / CURED PART ──
+    if(phase<=1){
+      // Squishing blob charge
+      const squish=upClose;
+      const chW=lerp(cavW*.40,cavW*.93,squish);
+      const chH=lerp(cavH*1.65,cavH,squish);
+      const chX=cx-chW/2;
+      const chTopY=loY+cavH-chH;
+      rrect(chX,chTopY,chW,chH,3);
+      ctx.fillStyle=`rgba(${rC},${gC},${bC},.88)`; ctx.fill();
+      ctx.strokeStyle=`rgba(${Math.min(255,rC+30)},${Math.min(255,gC+20)},${bC},.45)`;
+      ctx.lineWidth=1; rrect(chX,chTopY,chW,chH,3); ctx.stroke();
+    } else if(phase===2||phase===3){
+      // Rigid cured part in cavity
+      const partW=cavW*.93,partX=cx-cavW*.93/2;
+      rrect(partX,loY,partW,cavH,3);
+      ctx.fillStyle=`rgba(${rC},${gC},${bC},.90)`; ctx.fill();
+      ctx.strokeStyle=`rgba(${Math.min(255,rC+40)},${Math.min(255,gC+30)},${bC},.55)`;
+      ctx.lineWidth=1; rrect(partX,loY,partW,cavH,3); ctx.stroke();
+      // Flash lines at parting line edges (phase 2 when curing)
+      if(phase===2&&cureF>.3){
+        ctx.strokeStyle=`rgba(${rC},${gC},${bC},.42)`;
+        ctx.lineWidth=2.5;
+        ctx.beginPath(); ctx.moveTo(cavX-10,loY); ctx.lineTo(cavX-1,loY); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cavX+cavW+1,loY); ctx.lineTo(cavX+cavW+10,loY); ctx.stroke();
+      }
+    } else if(phase===4){
+      // Ejection: part lifts, pins extend
+      const ejF=ease(sat((t-.76)/.10));
+      const partW=cavW*.93,partX=cx-cavW*.93/2;
+      const partTopY=lerp(loY,loY-cavH*1.15,ejF);
+      rrect(partX,partTopY,partW,cavH,3);
+      ctx.fillStyle=`rgba(${rC},${gC},${bC},.90)`; ctx.fill();
+      ctx.strokeStyle=`rgba(${Math.min(255,rC+40)},${Math.min(255,gC+30)},${bC},.55)`;
+      ctx.lineWidth=1; rrect(partX,partTopY,partW,cavH,3); ctx.stroke();
+      // Ejector pins
+      if(ejF>0.02){
+        const pinH=cavH*ejF;
+        ctx.fillStyle='#a8c0dc';
+        for(let i=0;i<3;i++){
+          const px=cavX+cavW*(0.18+i*0.32);
+          ctx.fillRect(px-2,loY+cavH-pinH,4,pinH);
+        }
+      }
+    }
+
+    // Closing force arrow (phase 1)
+    if(phase===1&&upClose>.08){
+      arrow(cx,upTopY-22,cx,upTopY-4,'#ffc040',2,8);
+    }
+
+    // ── TEMP GAUGE ──
+    const tbX=platX-16;
+    rrect(tbX-4,loY,8,platH,3); ctx.fillStyle='#161620'; ctx.fill();
+    if(hF>.02){
+      const fg=ctx.createLinearGradient(0,loY+platH,0,loY+platH*(1-hF));
+      fg.addColorStop(0,'#ff5500'); fg.addColorStop(1,'#ffee00');
+      rrect(tbX-2,loY+platH*(1-hF),4,platH*hF,2); ctx.fillStyle=fg; ctx.fill();
+    }
+    lbl('T',tbX,loY-8,{align:'center',color:'#8090b4',size:9});
+
+    // ── LABELS ──
+    lbl('Upper Platen',cx,upTopY-12,{align:'center',color:'#5a7090',size:10});
+    lbl('Lower Platen',cx,loY+platH+14,{align:'center',color:'#5a7090',size:10});
+    if(phase>=1&&phase<=3) lbl('Cavity',cx,loY+cavH/2+4,{align:'center',color:'rgba(100,120,180,.35)',size:9});
+    lbl(pLabels[phase],cx,loY+platH+30,{align:'center',color:'#c0ceff',size:12,bold:true});
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
 //  MACHINING — TURNING
 // ══════════════════════════════════════
 const Turning = {
@@ -3363,6 +3512,16 @@ const DETAILS = {
     complexity:'Low–Moderate — hollow shapes only; no solid or open sections',
     tolerance:'±0.3–1 mm',
   },
+  compressionMolding: {
+    pros:['Lower tooling cost than injection molding — suitable for medium volumes',
+          'Ideal for large flat or shallow parts (panels, gaskets, composites)',
+          'Minimal material waste — charge is pre-measured to part weight'],
+    cons:['Slower cycle times than injection molding',
+          'Flash at the parting line requires trimming post-process',
+          'Limited to thermosets and rubbers; complex geometries difficult'],
+    complexity:'Moderate — limited to relatively simple shapes without deep draws or undercuts',
+    tolerance:'±0.2–0.8 mm',
+  },
   turning: {
     pros:['High dimensional accuracy and surface finish',
           'Versatile — wide range of materials',
@@ -3461,7 +3620,7 @@ const DETAILS = {
 const CATEGORIES = {
   casting:      { label:'Casting',       subs:['sandCasting','investmentCasting','dieCasting'] },
   forming:      { label:'Forming',       subs:['rolling','forging','extrusion'] },
-  molding:      { label:'Molding',       subs:['injectionMolding','blowMolding'] },
+  molding:      { label:'Molding',       subs:['injectionMolding','blowMolding','compressionMolding'] },
   machining:    { label:'Machining',     subs:['turning','milling'] },
   joining:      { label:'Joining',       subs:['arcWelding','spotWelding'] },
   additive:     { label:'Additive',      subs:['fdm','sla'] },
@@ -3478,7 +3637,8 @@ const SIMS = {
   forging:        { label:'Forging',         sim:Forging },
   extrusion:      { label:'Extrusion',       sim:Extrusion },
   injectionMolding:{ label:'Injection Molding', sim:InjectionMolding },
-  blowMolding:    { label:'Blow Molding',    sim:BlowMolding },
+  blowMolding:        { label:'Blow Molding',         sim:BlowMolding },
+  compressionMolding: { label:'Compression Molding',  sim:CompressionMolding },
   turning:        { label:'Turning (Lathe)', sim:Turning },
   milling:        { label:'Milling',         sim:Milling },
   arcWelding:     { label:'Arc Welding',     sim:ArcWelding },
