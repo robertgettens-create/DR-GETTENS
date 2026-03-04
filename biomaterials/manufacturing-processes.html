@@ -62,6 +62,7 @@
     }
     .class-header.primary   { color:#5ab0f0; border-left:2px solid #5ab0f0; background:rgba(90,176,240,.08); }
     .class-header.secondary { color:#f07850; border-left:2px solid #f07850; background:rgba(240,120,80,.08); }
+    .class-header.post      { color:#cc8840; border-left:2px solid #cc8840; background:rgba(200,136,64,.08); }
     .cat-btn {
       padding: 9px 4px;
       background: #1e2238;
@@ -221,6 +222,12 @@
         <button class="cat-btn"        data-cat="joining">Joining</button>
       </div>
     </div>
+    <div class="class-group">
+      <div class="class-header post">Post Processing</div>
+      <div class="cat-grid">
+        <button class="cat-btn"        data-cat="heatTreatment">Heat Trtmt.</button>
+      </div>
+    </div>
   </div>
 
   <div id="forming-note" style="display:none">
@@ -233,6 +240,32 @@
       <div class="cat-note-row">
         <span class="cat-note-badge cold">Cold</span>
         <span class="cat-note-text">Below recrystallization temp — strain hardening increases strength &amp; hardness, reduces ductility</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="annealing-note" style="display:none">
+    <div class="section-label">Annealing Types</div>
+    <div class="cat-note">
+      <div class="cat-note-row">
+        <span class="cat-note-badge" style="color:#cc8040;background:rgba(200,120,40,.15);border:1px solid rgba(200,120,40,.28)">Process</span>
+        <span class="cat-note-text">Heat below Ac₁ — partial recrystallization of cold-worked steel; restores ductility without full softening</span>
+      </div>
+      <div class="cat-note-row">
+        <span class="cat-note-badge" style="color:#a0b0cc;background:rgba(120,150,200,.12);border:1px solid rgba(120,150,200,.25)">Stress Relief</span>
+        <span class="cat-note-text">Low temp, no phase change — removes residual stresses from welding, casting, or machining</span>
+      </div>
+      <div class="cat-note-row">
+        <span class="cat-note-badge" style="color:#80c0a0;background:rgba(80,180,120,.12);border:1px solid rgba(80,180,120,.25)">Normalize</span>
+        <span class="cat-note-text">Heat above Ac₃, air cool — refines grain size and homogenizes microstructure; improves machinability</span>
+      </div>
+      <div class="cat-note-row">
+        <span class="cat-note-badge" style="color:#c0a060;background:rgba(180,150,60,.12);border:1px solid rgba(180,150,60,.25)">Spheroidize</span>
+        <span class="cat-note-text">Long hold near Ac₁ — forms spherical cementite; maximum softness for high-carbon steels</span>
+      </div>
+      <div class="cat-note-row">
+        <span class="cat-note-badge" style="color:#8090c8;background:rgba(100,120,200,.12);border:1px solid rgba(100,120,200,.25)">Full</span>
+        <span class="cat-note-text">Heat above Ac₃, furnace cool — maximum softening; used before hardening or heavy forming</span>
       </div>
     </div>
   </div>
@@ -2717,6 +2750,174 @@ const SLA = {
 };
 
 // ══════════════════════════════════════
+//  ANNEALING
+// ══════════════════════════════════════
+const Annealing = {
+  meta:{name:'Annealing',mat:'Steel, Al alloys, Cu alloys',temp:'200–900 °C',cat:'Heat Treatment'},
+  t:0, period:14, gW:120, gH:78,
+  oCvs:null, nCvs:null, _tmp:null,
+  oA:null, nA:null, nDs:null,
+  oSeeds:null, nSeeds:null, oCols:null, nCols:null,
+  init(){ this.t=0; this._build(); },
+  onResize(){ this._build(); },
+  step(dt){ this.t=(this.t+dt/this.period)%1; },
+  _prng(seed){ let s=seed>>>0; return ()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;}; },
+  _hsl(H,S,L){
+    const a=S*Math.min(L,1-L);
+    const f=n=>{const k=(n+H/30)%12;return L-a*Math.max(-1,Math.min(k-3,9-k,1));};
+    return [f(0)*255|0,f(8)*255|0,f(4)*255|0];
+  },
+  _build(){
+    const {gW,gH}=this, r=this._prng(42);
+    this.oSeeds=Array.from({length:9},()=>({x:r()*gW,y:r()*gH}));
+    this.nSeeds=Array.from({length:32},()=>({x:r()*gW,y:r()*gH,ts:r()*0.45}));
+    this.oCols=this.oSeeds.map((_,i)=>this._hsl((i*51+190)%360,.45,.36));
+    this.nCols=this.nSeeds.map((_,i)=>this._hsl((i*47+30)%360,.56,.42));
+    this.oA=new Uint8Array(gW*gH); this.nA=new Uint8Array(gW*gH);
+    this.nDs=new Float32Array(gW*gH);
+    const {oSeeds,nSeeds,oA,nA,nDs}=this;
+    for(let py=0;py<gH;py++){
+      for(let px=0;px<gW;px++){
+        const idx=py*gW+px;
+        let bd=Infinity,bg=0;
+        for(let i=0;i<oSeeds.length;i++){
+          const dx=px-oSeeds[i].x,dy=(py-oSeeds[i].y)*1.8;
+          const d=dx*dx+dy*dy; if(d<bd){bd=d;bg=i;}
+        }
+        oA[idx]=bg; bd=Infinity; bg=0;
+        for(let i=0;i<nSeeds.length;i++){
+          const dx=px-nSeeds[i].x,dy=py-nSeeds[i].y;
+          const d=dx*dx+dy*dy; if(d<bd){bd=d;bg=i;}
+        }
+        nA[idx]=bg; nDs[idx]=bd;
+      }
+    }
+    this.oCvs=this._makeCvs(oA,this.oCols,gW,gH);
+    this.nCvs=this._makeCvs(nA,this.nCols,gW,gH);
+    this._tmp=document.createElement('canvas');
+    this._tmp.width=gW; this._tmp.height=gH;
+  },
+  _makeCvs(assign,colors,W,H){
+    const cvs=document.createElement('canvas'); cvs.width=W; cvs.height=H;
+    const tc=cvs.getContext('2d'),id=tc.createImageData(W,H),d=id.data;
+    for(let py=0;py<H;py++){
+      for(let px=0;px<W;px++){
+        const idx=py*W+px,gi=assign[idx];
+        const bnd=(px>0&&assign[idx-1]!==gi)||(px<W-1&&assign[idx+1]!==gi)||
+                  (py>0&&assign[idx-W]!==gi)||(py<H-1&&assign[idx+W]!==gi);
+        const p=idx*4;
+        if(bnd){d[p]=18;d[p+1]=18;d[p+2]=26;d[p+3]=255;}
+        else{const[r,g,b]=colors[gi];d[p]=r;d[p+1]=g;d[p+2]=b;d[p+3]=255;}
+      }
+    }
+    tc.putImageData(id,0,0); return cvs;
+  },
+  draw(){
+    grid(); const cx=W/2,t=this.t;
+    const phase=t<.12?0:t<.28?1:t<.42?2:t<.72?3:4;
+    const pLabels=['Initial Structure','Heating','Recovery','Recrystallization','Grain Growth / Cooling'];
+    // ─ Furnace ─
+    const fW=Math.min(W*.55,270),fH=Math.min(H*.26,128);
+    const fX=cx-fW/2,fY=H*.06;
+    const barW=fW*.58,barH=fH*.34,barX=cx-barW/2,barY=fY+(fH-barH)/2;
+    const hF=phase===0?0:phase===1?ease(sat((t-.12)/.16)):phase<=3?1:1-ease(sat((t-.72)/.28));
+    // Body
+    rrect(fX,fY,fW,fH,8); ctx.fillStyle='rgba(28,22,18,.95)'; ctx.fill();
+    ctx.strokeStyle='#4a3820'; ctx.lineWidth=2; ctx.stroke();
+    // Heating elements
+    ctx.lineWidth=2.5;
+    ctx.strokeStyle=`rgba(${lerp(70,255,hF)|0},${lerp(30,155,hF)|0},0,${lerp(.12,.88,hF).toFixed(2)})`;
+    for(let i=0;i<6;i++){
+      const ex=fX+14+(fW-28)*(i/5);
+      ctx.beginPath(); ctx.moveTo(ex,fY+7); ctx.lineTo(ex,fY+16);
+      ctx.moveTo(ex,fY+fH-7); ctx.lineTo(ex,fY+fH-16); ctx.stroke();
+    }
+    // Interior glow
+    if(hF>.05){
+      const gr=ctx.createRadialGradient(cx,fY+fH/2,0,cx,fY+fH/2,fW*.42);
+      gr.addColorStop(0,`rgba(255,${(110+hF*90)|0},0,${(hF*.2).toFixed(2)})`);
+      gr.addColorStop(1,'rgba(255,70,0,0)');
+      ctx.fillStyle=gr; ctx.fillRect(fX+3,fY+3,fW-6,fH-6);
+    }
+    // Metal bar
+    const hh=sat((hF-.3)/.7);
+    rrect(barX,barY,barW,barH,4);
+    ctx.fillStyle=hF<.3?'#6a7080':`rgb(${lerp(106,255,hh)|0},${lerp(112,145,hh)|0},${lerp(128,25,hh)|0})`;
+    ctx.fill();
+    if(hh>.02){
+      const hl=ctx.createLinearGradient(barX,barY,barX,barY+barH);
+      hl.addColorStop(0,`rgba(255,255,200,${(hh*.28).toFixed(2)})`); hl.addColorStop(1,'rgba(255,100,0,0)');
+      ctx.fillStyle=hl; rrect(barX,barY,barW,barH,4); ctx.fill();
+    }
+    ctx.strokeStyle='#201812'; ctx.lineWidth=1; rrect(barX,barY,barW,barH,4); ctx.stroke();
+    lbl('Metal',cx,barY+barH/2+4,{align:'center',color:'rgba(200,180,120,.4)',size:9});
+    // Temp gauge
+    const tbX=fX+fW+10;
+    rrect(tbX,fY,10,fH,3); ctx.fillStyle='#161620'; ctx.fill();
+    if(hF>.02){
+      const fg=ctx.createLinearGradient(0,fY+fH,0,fY+fH*(1-hF));
+      fg.addColorStop(0,'#ff5500'); fg.addColorStop(1,'#ffee00');
+      rrect(tbX+2,fY+fH*(1-hF),6,fH*hF,2); ctx.fillStyle=fg; ctx.fill();
+    }
+    lbl('T',tbX+5,fY-6,{align:'center',color:'#8090b4',size:9});
+    lbl('Furnace',cx,fY-10,{align:'center',color:'#8090b4',size:10});
+    // ─ Grain view ─
+    const gDW=Math.min(W-60,320,barW*2.2),gDH=Math.min(H*.32,160);
+    const gX=cx-gDW/2,gapY=fY+fH,gY=gapY+(H-gapY-gDH-30)*.45;
+    // Zoom connectors
+    ctx.save(); ctx.setLineDash([4,5]); ctx.strokeStyle='rgba(90,130,190,.3)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(barX,barY+barH); ctx.lineTo(gX,gY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(barX+barW,barY+barH); ctx.lineTo(gX+gDW,gY); ctx.stroke();
+    ctx.restore();
+    lbl('Grain Microstructure',cx,gY-9,{align:'center',color:'rgba(90,130,190,.45)',size:9});
+    this._grainDraw(gX,gY,gDW,gDH,phase,t);
+    ctx.strokeStyle='rgba(70,90,150,.5)'; ctx.lineWidth=1; ctx.strokeRect(gX,gY,gDW,gDH);
+    lbl(pLabels[phase],cx,gY+gDH+18,{align:'center',color:'#c0ceff',size:12,bold:true});
+    setStage(pLabels[phase],'Annealing');
+  },
+  _grainDraw(gX,gY,gDW,gDH,phase,t){
+    const {gW,gH,oCvs,nCvs,_tmp,oA,nA,nDs,nSeeds,nCols,oCols}=this;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(gX,gY,gDW,gDH); ctx.clip();
+    ctx.imageSmoothingEnabled=false;
+    if(phase<=1){
+      ctx.drawImage(oCvs,gX,gY,gDW,gDH);
+      if(phase===1){
+        const hf=ease(sat((t-.12)/.16));
+        ctx.fillStyle=`rgba(255,120,20,${(hf*.1).toFixed(2)})`; ctx.fillRect(gX,gY,gDW,gDH);
+      }
+    } else if(phase===2){
+      ctx.drawImage(oCvs,gX,gY,gDW,gDH);
+      ctx.fillStyle='rgba(255,110,20,.09)'; ctx.fillRect(gX,gY,gDW,gDH);
+    } else if(phase===3){
+      const growF=ease(sat((t-.42)/.30));
+      const maxR=Math.hypot(gW,gH)*1.15;
+      const nRSq=nSeeds.map(({ts})=>{if(growF<=ts)return-1;const r=(growF-ts)*maxR;return r*r;});
+      const n=gW*gH, eff=new Uint16Array(n);
+      for(let i=0;i<n;i++) eff[i]=nRSq[nA[i]]>=nDs[i]?nA[i]+100:oA[i];
+      const tc=_tmp.getContext('2d'),id=tc.createImageData(gW,gH),d=id.data;
+      for(let py=0;py<gH;py++){
+        for(let px=0;px<gW;px++){
+          const idx=py*gW+px,myE=eff[idx];
+          const bnd=(px>0&&eff[idx-1]!==myE)||(px<gW-1&&eff[idx+1]!==myE)||
+                    (py>0&&eff[idx-gW]!==myE)||(py<gH-1&&eff[idx+gW]!==myE);
+          const p=idx*4;
+          if(bnd){d[p]=18;d[p+1]=18;d[p+2]=26;}
+          else if(myE>=100){const[r,g,b]=nCols[myE-100];d[p]=r;d[p+1]=g;d[p+2]=b;}
+          else{const[r,g,b]=oCols[myE];d[p]=r;d[p+1]=g;d[p+2]=b;}
+          d[p+3]=255;
+        }
+      }
+      tc.putImageData(id,0,0); ctx.drawImage(_tmp,gX,gY,gDW,gDH);
+    } else {
+      ctx.drawImage(nCvs,gX,gY,gDW,gDH);
+    }
+    ctx.restore();
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
 //  PROCESS DETAILS  (pros / cons / complexity / tolerance)
 // ══════════════════════════════════════
 const DETAILS = {
@@ -2860,18 +3061,29 @@ const DETAILS = {
     complexity:'Very High — intricate geometries, fine features, thin walls',
     tolerance:'±0.05–0.15 mm',
   },
+  annealing: {
+    pros:['Relieves internal stresses from cold working, casting, or machining',
+          'Restores ductility and toughness for further forming operations',
+          'Refines microstructure — improves fatigue life and uniformity'],
+    cons:['Long cycle times — hours to days per heat-treat cycle',
+          'May soften material below the required strength level',
+          'Requires controlled atmosphere furnace to prevent oxidation'],
+    complexity:'Low–Moderate — careful temperature, time, and atmosphere control required',
+    tolerance:'N/A (post-process treatment)',
+  },
 };
 
 // ══════════════════════════════════════
 //  REGISTRY
 // ══════════════════════════════════════
 const CATEGORIES = {
-  casting:  { label:'Casting',    subs:['sandCasting','investmentCasting','dieCasting'] },
-  forming:  { label:'Forming',    subs:['rolling','forging','extrusion'] },
-  molding:  { label:'Molding',    subs:['injectionMolding','blowMolding'] },
-  machining:{ label:'Machining',  subs:['turning','milling'] },
-  joining:  { label:'Joining',    subs:['arcWelding','spotWelding'] },
-  additive: { label:'Additive',   subs:['fdm','sla'] },
+  casting:      { label:'Casting',       subs:['sandCasting','investmentCasting','dieCasting'] },
+  forming:      { label:'Forming',       subs:['rolling','forging','extrusion'] },
+  molding:      { label:'Molding',       subs:['injectionMolding','blowMolding'] },
+  machining:    { label:'Machining',     subs:['turning','milling'] },
+  joining:      { label:'Joining',       subs:['arcWelding','spotWelding'] },
+  additive:     { label:'Additive',      subs:['fdm','sla'] },
+  heatTreatment:{ label:'Heat Treatment',subs:['annealing'] },
 };
 
 const SIMS = {
@@ -2889,6 +3101,7 @@ const SIMS = {
   spotWelding:    { label:'Resistance Spot Welding', sim:SpotWelding },
   fdm:            { label:'FDM 3D Printing', sim:FDM },
   sla:            { label:'SLA / Resin',     sim:SLA },
+  annealing:      { label:'Annealing',       sim:Annealing },
 };
 
 // ══════════════════════════════════════
@@ -2899,7 +3112,8 @@ let currentCat='casting', currentSubKey='sandCasting';
 function selectCategory(cat){
   currentCat=cat;
   document.querySelectorAll('.cat-btn').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
-  document.getElementById('forming-note').style.display = cat==='forming' ? '' : 'none';
+  document.getElementById('forming-note').style.display    = cat==='forming'       ? '' : 'none';
+  document.getElementById('annealing-note').style.display  = cat==='heatTreatment' ? '' : 'none';
   buildSubMenu(cat);
   const firstSub=CATEGORIES[cat].subs[0];
   selectSub(firstSub);
