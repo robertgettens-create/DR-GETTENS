@@ -63,6 +63,7 @@
     .class-header.primary   { color:#5ab0f0; border-left:2px solid #5ab0f0; background:rgba(90,176,240,.08); }
     .class-header.secondary { color:#f07850; border-left:2px solid #f07850; background:rgba(240,120,80,.08); }
     .class-header.post      { color:#cc8840; border-left:2px solid #cc8840; background:rgba(200,136,64,.08); }
+    .class-header.powder    { color:#50c0a0; border-left:2px solid #50c0a0; background:rgba(60,180,150,.08); }
     .cat-btn {
       padding: 9px 4px;
       background: #1e2238;
@@ -230,6 +231,12 @@
         <button class="cat-btn" data-cat="tempering">Tempering</button>
       </div>
     </div>
+    <div class="class-group">
+      <div class="class-header powder">Powder Processing</div>
+      <div class="cat-grid">
+        <button class="cat-btn" data-cat="powderProcessing">Sintering</button>
+      </div>
+    </div>
   </div>
 
   <div id="forming-note" style="display:none">
@@ -304,6 +311,28 @@
       <div class="cat-note-row">
         <span class="cat-note-badge" style="color:#80b0c0;background:rgba(80,150,180,.12);border:1px solid rgba(80,150,180,.28)">High 500–650 °C</span>
         <span class="cat-note-text">Maximum toughness — gears, shafts, crankshafts; significant hardness reduction</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="sintering-note" style="display:none">
+    <div class="section-label">Common Materials</div>
+    <div class="cat-note">
+      <div class="cat-note-row">
+        <span class="cat-note-badge" style="color:#50c0a0;background:rgba(60,180,150,.12);border:1px solid rgba(60,180,150,.28)">Al₂O₃</span>
+        <span class="cat-note-text">Alumina — high hardness, wear resistance; orthopedic and dental implants</span>
+      </div>
+      <div class="cat-note-row">
+        <span class="cat-note-badge" style="color:#78b8e0;background:rgba(80,150,210,.12);border:1px solid rgba(80,150,210,.28)">ZrO₂</span>
+        <span class="cat-note-text">Zirconia — high toughness, white color; dental crowns and femoral heads</span>
+      </div>
+      <div class="cat-note-row">
+        <span class="cat-note-badge" style="color:#c0a880;background:rgba(180,155,90,.12);border:1px solid rgba(180,155,90,.28)">HA</span>
+        <span class="cat-note-text">Hydroxyapatite — bioactive, bone-like mineral; coatings and bone graft scaffolds</span>
+      </div>
+      <div class="cat-note-row">
+        <span class="cat-note-badge" style="color:#a090b8;background:rgba(140,120,180,.12);border:1px solid rgba(140,120,180,.28)">Metal PM</span>
+        <span class="cat-note-text">Ti, Co-Cr, stainless — powder metallurgy route for complex porous implants</span>
       </div>
     </div>
   </div>
@@ -3432,6 +3461,148 @@ const Tempering = {
 };
 
 // ══════════════════════════════════════
+//  SINTERING
+// ══════════════════════════════════════
+const Sintering = {
+  meta:{name:'Sintering',mat:'Ceramics (Al₂O₃, ZrO₂, HA), Metal powders',temp:'800–1600 °C',cat:'Powder Processing'},
+  t:0, period:14, gW:120, gH:78,
+  pA:null, pDist:null, partCols:null, _tmp:null,
+  R_min:5.5, R_max:12.0,
+  init(){ this.t=0; this._build(); },
+  onResize(){ this._build(); },
+  step(dt){ this.t=(this.t+dt/this.period)%1; },
+  _build(){
+    const {gW,gH}=this;
+    const r=_ht.prng(77);
+    const cols=8,rows=7,N=55;
+    const seeds=[];
+    for(let row=0;row<rows;row++){
+      for(let col=0;col<cols;col++){
+        if(seeds.length>=N) break;
+        seeds.push({
+          x:(col+0.5+(r()-0.5)*0.65)*(gW/cols),
+          y:(row+0.5+(r()-0.5)*0.65)*(gH/rows)
+        });
+      }
+    }
+    this.pA=new Uint8Array(gW*gH);
+    this.pDist=new Float32Array(gW*gH);
+    for(let py=0;py<gH;py++){
+      for(let px=0;px<gW;px++){
+        const idx=py*gW+px;
+        let bd=Infinity,bg=0;
+        for(let i=0;i<seeds.length;i++){
+          const dx=px-seeds[i].x,dy=py-seeds[i].y;
+          const d=Math.sqrt(dx*dx+dy*dy);
+          if(d<bd){bd=d;bg=i;}
+        }
+        this.pA[idx]=bg;
+        this.pDist[idx]=bd;
+      }
+    }
+    this.partCols=Array.from({length:N},(_,i)=>_ht.hsl(30+(i%5)*14,.10+(i%3)*.04,.64+(i%4)*.04));
+    this._tmp=document.createElement('canvas');
+    this._tmp.width=gW; this._tmp.height=gH;
+  },
+  draw(){
+    grid(); const cx=W/2,t=this.t;
+    const phase=t<.10?0:t<.25?1:t<.55?2:t<.80?3:4;
+    const pLabels=['Green Body','Heating','Neck Formation','Densification','Dense Ceramic / Cooling'];
+    const sinterF=t<.25?0:t>.80?1:ease(sat((t-.25)/.55));
+    const hF=phase===0?0:phase===1?ease(sat((t-.10)/.15)):phase<=3?1:1-ease(sat((t-.80)/.20));
+    // ─ Furnace ─
+    const fW=Math.min(W*.55,270),fH=Math.min(H*.26,128);
+    const fX=cx-fW/2,fY=H*.06;
+    const barW=fW*.58,barH=fH*.34;
+    const shrink=sinterF*.08;
+    const partW=barW*(1-shrink),partH=barH*(1-shrink);
+    const barX=cx-partW/2,barY=fY+(fH-partH)/2;
+    // Body
+    rrect(fX,fY,fW,fH,8); ctx.fillStyle='rgba(28,22,18,.95)'; ctx.fill();
+    ctx.strokeStyle='#4a3820'; ctx.lineWidth=2; ctx.stroke();
+    // Heating elements
+    ctx.lineWidth=2.5;
+    ctx.strokeStyle=`rgba(${lerp(70,255,hF)|0},${lerp(30,155,hF)|0},0,${lerp(.12,.88,hF).toFixed(2)})`;
+    for(let i=0;i<6;i++){
+      const ex=fX+14+(fW-28)*(i/5);
+      ctx.beginPath(); ctx.moveTo(ex,fY+7); ctx.lineTo(ex,fY+16);
+      ctx.moveTo(ex,fY+fH-7); ctx.lineTo(ex,fY+fH-16); ctx.stroke();
+    }
+    // Interior glow
+    if(hF>.05){
+      const gr=ctx.createRadialGradient(cx,fY+fH/2,0,cx,fY+fH/2,fW*.42);
+      gr.addColorStop(0,`rgba(255,${(110+hF*90)|0},0,${(hF*.2).toFixed(2)})`);
+      gr.addColorStop(1,'rgba(255,70,0,0)');
+      ctx.fillStyle=gr; ctx.fillRect(fX+3,fY+3,fW-6,fH-6);
+    }
+    // Ceramic compact (shrinks as sintering proceeds)
+    const ch=sat((hF-.3)/.7);
+    const cR=lerp(180,235,sinterF),cG=lerp(172,232,sinterF),cB=lerp(148,228,sinterF);
+    rrect(barX,barY,partW,partH,3);
+    ctx.fillStyle=`rgb(${cR|0},${cG|0},${cB|0})`; ctx.fill();
+    if(ch>.02){
+      const hl=ctx.createLinearGradient(barX,barY,barX,barY+partH);
+      hl.addColorStop(0,`rgba(255,255,220,${(ch*.25).toFixed(2)})`); hl.addColorStop(1,'rgba(255,100,0,0)');
+      ctx.fillStyle=hl; rrect(barX,barY,partW,partH,3); ctx.fill();
+    }
+    ctx.strokeStyle='rgba(60,50,30,.6)'; ctx.lineWidth=1; rrect(barX,barY,partW,partH,3); ctx.stroke();
+    lbl('Compact',cx,barY+partH/2+4,{align:'center',color:'rgba(80,70,50,.5)',size:9});
+    // Temp gauge
+    const tbX=fX+fW+10;
+    rrect(tbX,fY,10,fH,3); ctx.fillStyle='#161620'; ctx.fill();
+    if(hF>.02){
+      const fg=ctx.createLinearGradient(0,fY+fH,0,fY+fH*(1-hF));
+      fg.addColorStop(0,'#ff5500'); fg.addColorStop(1,'#ffee00');
+      rrect(tbX+2,fY+fH*(1-hF),6,fH*hF,2); ctx.fillStyle=fg; ctx.fill();
+    }
+    lbl('T',tbX+5,fY-6,{align:'center',color:'#8090b4',size:9});
+    lbl('Furnace',cx,fY-10,{align:'center',color:'#8090b4',size:10});
+    // ─ Particle microstructure view ─
+    const gDW=Math.min(W-60,320,barW*2.2),gDH=Math.min(H*.32,160);
+    const gX=cx-gDW/2,gapY=fY+fH,gY=gapY+(H-gapY-gDH-30)*.45;
+    ctx.save(); ctx.setLineDash([4,5]); ctx.strokeStyle='rgba(90,130,190,.3)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(barX,barY+partH); ctx.lineTo(gX,gY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(barX+partW,barY+partH); ctx.lineTo(gX+gDW,gY); ctx.stroke();
+    ctx.restore();
+    lbl('Particle Microstructure',cx,gY-9,{align:'center',color:'rgba(90,130,190,.45)',size:9});
+    this._grainDraw(gX,gY,gDW,gDH,sinterF);
+    ctx.strokeStyle='rgba(70,90,150,.5)'; ctx.lineWidth=1; ctx.strokeRect(gX,gY,gDW,gDH);
+    lbl(pLabels[phase],cx,gY+gDH+18,{align:'center',color:'#c0ceff',size:12,bold:true});
+    setStage(pLabels[phase],'Sintering');
+  },
+  _grainDraw(gX,gY,gDW,gDH,sinterF){
+    const {gW,gH,pA,pDist,partCols,_tmp,R_min,R_max}=this;
+    const threshold=lerp(R_min,R_max,sinterF);
+    const tc=_tmp.getContext('2d'),id=tc.createImageData(gW,gH),d=id.data;
+    for(let py=0;py<gH;py++){
+      for(let px=0;px<gW;px++){
+        const idx=py*gW+px;
+        const solid=pDist[idx]<threshold;
+        const p=idx*4;
+        if(!solid){
+          d[p]=8;d[p+1]=8;d[p+2]=12;d[p+3]=255;
+        } else {
+          const myG=pA[idx];
+          const bnd=sinterF>.25&&(
+            (px>0&&pA[idx-1]!==myG&&pDist[idx-1]<threshold)||
+            (px<gW-1&&pA[idx+1]!==myG&&pDist[idx+1]<threshold)||
+            (py>0&&pA[idx-gW]!==myG&&pDist[idx-gW]<threshold)||
+            (py<gH-1&&pA[idx+gW]!==myG&&pDist[idx+gW]<threshold)
+          );
+          if(bnd){d[p]=28;d[p+1]=26;d[p+2]=22;d[p+3]=255;}
+          else{const[r,g,b]=partCols[myG];d[p]=r;d[p+1]=g;d[p+2]=b;d[p+3]=255;}
+        }
+      }
+    }
+    tc.putImageData(id,0,0);
+    ctx.save(); ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(_tmp,gX,gY,gDW,gDH);
+    ctx.restore();
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
 //  PROCESS DETAILS  (pros / cons / complexity / tolerance)
 // ══════════════════════════════════════
 const DETAILS = {
@@ -3615,6 +3786,16 @@ const DETAILS = {
     complexity:'Low–Moderate — precise temperature control critical for desired properties',
     tolerance:'N/A (post-process treatment)',
   },
+  sintering: {
+    pros:['Achieves near-net-shape dense ceramics and metals without melting',
+          'Compatible with high-melting-point materials (Al₂O₃, ZrO₂, HA, W)',
+          'Tailorable porosity for biomedical scaffolds and filters'],
+    cons:['Dimensional shrinkage (5–20%) requires careful compensation in green body',
+          'Long cycle times (hours) and high furnace temperatures increase cost',
+          'Anisotropic shrinkage can warp complex shapes'],
+    complexity:'Moderate–High — temperature, time, atmosphere, and particle size all affect density',
+    tolerance:'±0.1–0.5 mm (after post-sinter grinding)',
+  },
 };
 
 // ══════════════════════════════════════
@@ -3627,9 +3808,10 @@ const CATEGORIES = {
   machining:    { label:'Machining',     subs:['turning','milling'] },
   joining:      { label:'Joining',       subs:['arcWelding','spotWelding'] },
   additive:     { label:'Additive',      subs:['fdm','sla'] },
-  annealing: { label:'Annealing', subs:['annealing'] },
-  quenching:  { label:'Quenching', subs:['quenching'] },
-  tempering:  { label:'Tempering', subs:['tempering'] },
+  annealing:        { label:'Annealing',         subs:['annealing'] },
+  quenching:        { label:'Quenching',         subs:['quenching'] },
+  tempering:        { label:'Tempering',         subs:['tempering'] },
+  powderProcessing: { label:'Powder Processing', subs:['sintering'] },
 };
 
 const SIMS = {
@@ -3651,6 +3833,7 @@ const SIMS = {
   annealing:      { label:'Annealing',       sim:Annealing },
   quenching:      { label:'Quenching',       sim:Quenching },
   tempering:      { label:'Tempering',       sim:Tempering },
+  sintering:      { label:'Sintering',       sim:Sintering },
 };
 
 // ══════════════════════════════════════
@@ -3661,10 +3844,11 @@ let currentCat='casting', currentSubKey='sandCasting';
 function selectCategory(cat){
   currentCat=cat;
   document.querySelectorAll('.cat-btn').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
-  document.getElementById('forming-note').style.display    = cat==='forming'    ? '' : 'none';
-  document.getElementById('annealing-note').style.display  = cat==='annealing'  ? '' : 'none';
-  document.getElementById('quenching-note').style.display  = cat==='quenching'  ? '' : 'none';
-  document.getElementById('tempering-note').style.display  = cat==='tempering'  ? '' : 'none';
+  document.getElementById('forming-note').style.display          = cat==='forming'          ? '' : 'none';
+  document.getElementById('annealing-note').style.display        = cat==='annealing'        ? '' : 'none';
+  document.getElementById('quenching-note').style.display        = cat==='quenching'        ? '' : 'none';
+  document.getElementById('tempering-note').style.display        = cat==='tempering'        ? '' : 'none';
+  document.getElementById('sintering-note').style.display        = cat==='powderProcessing' ? '' : 'none';
   buildSubMenu(cat);
   const firstSub=CATEGORIES[cat].subs[0];
   selectSub(firstSub);
