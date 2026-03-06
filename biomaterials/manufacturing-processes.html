@@ -337,6 +337,24 @@
     </div>
   </div>
 
+  <div id="additive-note" style="display:none">
+    <div class="section-label">Biomaterials Relevance</div>
+    <div class="cat-note">
+      <div class="cat-note-row">
+        <span class="cat-note-badge" style="color:#78b0e8;background:rgba(80,140,220,.12);border:1px solid rgba(80,140,220,.28)">LPBF / SLM</span>
+        <span class="cat-note-text">Ti-6Al-4V and Co-Cr-Mo implants with porous lattice structures tuned for osseointegration and bone stiffness matching</span>
+      </div>
+      <div class="cat-note-row">
+        <span class="cat-note-badge" style="color:#80c890;background:rgba(80,180,110,.12);border:1px solid rgba(80,180,110,.28)">FDM / SLA</span>
+        <span class="cat-note-text">Polymer scaffolds, anatomical models, and surgical guides — PEEK, PCL, and bioresorbable polymers</span>
+      </div>
+      <div class="cat-note-row">
+        <span class="cat-note-badge" style="color:#c0a860;background:rgba(180,150,60,.12);border:1px solid rgba(180,150,60,.28)">Patient-Specific</span>
+        <span class="cat-note-text">All AM routes allow patient-matched geometries from CT/MRI scan data — no extra tooling required</span>
+      </div>
+    </div>
+  </div>
+
   <div>
     <div class="section-label">Process</div>
     <div class="sub-grid" id="sub-grid"></div>
@@ -3635,6 +3653,173 @@ const Sintering = {
 };
 
 // ══════════════════════════════════════
+//  LPBF / SLM
+// ══════════════════════════════════════
+const LPBF = {
+  meta:{name:'LPBF / SLM',mat:'Ti-6Al-4V, Co-Cr-Mo, 316L SS',temp:'~1650 °C (melt pool)',cat:'Additive'},
+  t:0, period:14, gW:120, gH:78,
+  grainA:null, grainCols:null, _tmp:null,
+  numLayers:8,
+  init(){ this.t=0; this._build(); },
+  onResize(){ this._build(); },
+  step(dt){ this.t=(this.t+dt/this.period)%1; },
+  _build(){
+    const {gW,gH}=this;
+    const r=_ht.prng(91);
+    const nS=22;
+    const seeds=Array.from({length:nS},(_,i)=>({
+      x:(i+0.5+(r()-0.5)*.4)*(gW/nS),
+      y:r()*gH
+    }));
+    this.grainA=new Uint8Array(gW*gH);
+    for(let py=0;py<gH;py++){
+      for(let px=0;px<gW;px++){
+        const idx=py*gW+px;
+        let bd=Infinity,bg=0;
+        for(let i=0;i<seeds.length;i++){
+          const dx=(px-seeds[i].x)*4.0,dy=py-seeds[i].y;
+          const d=dx*dx+dy*dy; if(d<bd){bd=d;bg=i;}
+        }
+        this.grainA[idx]=bg;
+      }
+    }
+    this.grainCols=seeds.map((_,i)=>_ht.hsl(210+(i%5)*9,.20+(i%4)*.05,.36+(i%6)*.04));
+    this._tmp=document.createElement('canvas');
+    this._tmp.width=gW; this._tmp.height=gH;
+  },
+  draw(){
+    grid(); const cx=W/2,t=this.t;
+    const {numLayers}=this;
+    const done=t>=0.97;
+    const globalL=t*numLayers;
+    const curL=Math.min(Math.floor(globalL),numLayers-1);
+    const lP=globalL%1;
+    const spreading=!done&&lP<0.28;
+    const scanProg=(!done&&!spreading)?(lP-0.28)/0.72:0;
+    const buildF=Math.min((curL+(done?1:spreading?0:scanProg))/numLayers,1);
+    const pLabel=done?'Part Complete':spreading?'Powder Spreading':`Laser Scanning — Layer ${curL+1}/${numLayers}`;
+    // ─ Chamber ─
+    const chamW=Math.min(W*.52,260),chamH=Math.min(H*.40,200);
+    const chamX=cx-chamW/2,chamY=H*.05;
+    rrect(chamX,chamY,chamW,chamH,5); ctx.fillStyle='rgba(20,22,30,.97)'; ctx.fill();
+    ctx.strokeStyle='#2a3850'; ctx.lineWidth=2; ctx.stroke();
+    const iX=chamX+8,iW=chamW-16;
+    const platH=8,platTopY=chamY+chamH-platH-8;
+    const buildH=platTopY-chamY-18;
+    const layerH=buildH/numLayers;
+    // Build plate
+    ctx.fillStyle='#3a4858'; ctx.fillRect(iX,platTopY,iW,platH);
+    ctx.strokeStyle='#506070'; ctx.lineWidth=1; ctx.strokeRect(iX,platTopY,iW,platH);
+    // Solidified part
+    const solidH=buildF*buildH;
+    const solidTopY=platTopY-solidH;
+    if(solidH>0.5){
+      const mg=ctx.createLinearGradient(iX,0,iX+iW,0);
+      mg.addColorStop(0,'#2e3d55'); mg.addColorStop(.5,'#3c4e6a'); mg.addColorStop(1,'#2e3d55');
+      ctx.fillStyle=mg; ctx.fillRect(iX,solidTopY,iW,solidH);
+      ctx.strokeStyle='rgba(90,130,200,.18)'; ctx.lineWidth=.6;
+      for(let l=1;l<=Math.ceil(buildF*numLayers);l++){
+        const ly=platTopY-l*layerH;
+        if(ly>=solidTopY-.5){ctx.beginPath();ctx.moveTo(iX,ly);ctx.lineTo(iX+iW,ly);ctx.stroke();}
+      }
+    }
+    // Current powder layer
+    if(!done){
+      const spd=spreading?ease(sat(lP/.28)):1;
+      ctx.fillStyle='rgba(165,168,178,.80)';
+      ctx.fillRect(iX,solidTopY-layerH,iW*spd,layerH);
+    }
+    // Loose powder above
+    if(!done){
+      const looseTop=chamY+16,looseH=Math.max(0,solidTopY-layerH-looseTop);
+      if(looseH>0){ctx.fillStyle='rgba(130,132,140,.16)';ctx.fillRect(iX,looseTop,iW,looseH);}
+    }
+    // ─ Recoater blade ─
+    if(spreading&&!done){
+      const bX=iX+iW*ease(sat(lP/.28));
+      ctx.fillStyle='rgba(200,185,140,.88)'; ctx.fillRect(bX-2,chamY+12,4,platTopY-chamY-12);
+      ctx.strokeStyle='rgba(155,140,100,.75)'; ctx.lineWidth=1; ctx.strokeRect(bX-2,chamY+12,4,platTopY-chamY-12);
+      lbl('Recoater',bX+10,chamY+chamH*.28,{color:'rgba(200,185,140,.58)',size:8});
+    }
+    // ─ Laser scanning ─
+    if(!spreading&&!done){
+      const numP=4,pIdx=Math.floor(scanProg*numP),pProg=(scanProg*numP)%1;
+      const l2r=pIdx%2===0;
+      const lX=iX+iW*(l2r?pProg:1-pProg);
+      const mY=solidTopY-layerH*.5;
+      // Beam
+      const bG=ctx.createLinearGradient(lX,chamY,lX,mY);
+      bG.addColorStop(0,'rgba(255,80,60,0)'); bG.addColorStop(.65,'rgba(255,100,50,.10)'); bG.addColorStop(1,'rgba(255,160,60,.45)');
+      ctx.strokeStyle=bG; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(lX,chamY); ctx.lineTo(lX,mY); ctx.stroke();
+      // Melt pool
+      const mpG=ctx.createRadialGradient(lX,mY,0,lX,mY,9);
+      mpG.addColorStop(0,'rgba(255,255,200,.98)'); mpG.addColorStop(.25,'rgba(255,210,80,.85)');
+      mpG.addColorStop(.6,'rgba(255,110,20,.35)'); mpG.addColorStop(1,'rgba(255,50,0,0)');
+      ctx.fillStyle=mpG; ctx.beginPath(); ctx.arc(lX,mY,9,0,Math.PI*2); ctx.fill();
+      // Solidifying trail
+      const tLen=iW/numP*.28,tX=lX+(l2r?-tLen:tLen);
+      const tG=ctx.createLinearGradient(tX,mY,lX,mY);
+      tG.addColorStop(0,'rgba(60,100,200,0)'); tG.addColorStop(1,'rgba(120,180,255,.20)');
+      ctx.strokeStyle=tG; ctx.lineWidth=2.5;
+      ctx.beginPath(); ctx.moveTo(tX,mY); ctx.lineTo(lX,mY); ctx.stroke();
+    }
+    // ─ Laser optics housing ─
+    const optW=Math.min(iW*.22,52);
+    ctx.fillStyle='#2a3858'; ctx.fillRect(cx-optW/2,chamY-12,optW,12);
+    ctx.strokeStyle='#4a6090'; ctx.lineWidth=1; ctx.strokeRect(cx-optW/2,chamY-12,optW,12);
+    ctx.fillStyle='rgba(100,160,255,.28)'; ctx.fillRect(cx-optW/2+2,chamY-9,optW-4,5);
+    lbl('Laser Optics',cx,chamY-16,{align:'center',color:'#8090b4',size:9});
+    lbl('Build Plate',cx,platTopY+platH/2+4,{align:'center',color:'rgba(90,120,160,.55)',size:8});
+    if(done) lbl('Net-Shape Part',cx,solidTopY-9,{align:'center',color:'rgba(110,200,140,.72)',size:9});
+    // ─ Grain microstructure view ─
+    const gDW=Math.min(W-60,300,chamW*1.1),gDH=Math.min(H*.26,130);
+    const gX=cx-gDW/2,gapY=chamY+chamH,gY=gapY+(H-gapY-gDH-28)*.5;
+    ctx.save(); ctx.setLineDash([4,5]); ctx.strokeStyle='rgba(90,130,190,.3)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(iX+iW*.15,platTopY); ctx.lineTo(gX,gY+gDH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(iX+iW*.85,platTopY); ctx.lineTo(gX+gDW,gY+gDH); ctx.stroke();
+    ctx.restore();
+    lbl('Prior-β Grain Structure',cx,gY-9,{align:'center',color:'rgba(90,130,190,.45)',size:9});
+    this._grainDraw(gX,gY,gDW,gDH,buildF);
+    ctx.strokeStyle='rgba(70,90,150,.5)'; ctx.lineWidth=1; ctx.strokeRect(gX,gY,gDW,gDH);
+    lbl(pLabel,cx,gY+gDH+18,{align:'center',color:'#c0ceff',size:12,bold:true});
+    setStage(pLabel,'LPBF');
+  },
+  _grainDraw(gX,gY,gDW,gDH,buildF){
+    const {gW,gH,grainA,grainCols,_tmp,numLayers}=this;
+    const revealRows=Math.floor(gH*buildF);
+    const tc=_tmp.getContext('2d'),id=tc.createImageData(gW,gH),d=id.data;
+    for(let py=0;py<gH;py++){
+      for(let px=0;px<gW;px++){
+        const idx=py*gW+px;
+        const p=idx*4;
+        const revealed=(gH-1-py)<revealRows;
+        if(!revealed){d[p]=10;d[p+1]=10;d[p+2]=16;d[p+3]=190;}
+        else{
+          const gi=grainA[idx];
+          const bnd=(px>0&&grainA[idx-1]!==gi)||(px<gW-1&&grainA[idx+1]!==gi)||
+                    (py>0&&grainA[idx-gW]!==gi)||(py<gH-1&&grainA[idx+gW]!==gi);
+          if(bnd){d[p]=22;d[p+1]=26;d[p+2]=38;d[p+3]=255;}
+          else{const[r,g,b]=grainCols[gi];d[p]=r;d[p+1]=g;d[p+2]=b;d[p+3]=255;}
+        }
+      }
+    }
+    tc.putImageData(id,0,0);
+    ctx.save(); ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(_tmp,gX,gY,gDW,gDH);
+    ctx.restore();
+    if(buildF>0){
+      ctx.strokeStyle='rgba(100,140,220,.28)'; ctx.lineWidth=.7;
+      for(let l=1;l<Math.ceil(buildF*numLayers);l++){
+        const ly=gY+gDH*(1-l/numLayers);
+        ctx.beginPath(); ctx.moveTo(gX,ly); ctx.lineTo(gX+gDW,ly); ctx.stroke();
+      }
+    }
+  },
+  cleanup(){}
+};
+
+// ══════════════════════════════════════
 //  PROCESS DETAILS  (pros / cons / complexity / tolerance)
 // ══════════════════════════════════════
 const DETAILS = {
@@ -3828,6 +4013,16 @@ const DETAILS = {
     complexity:'Moderate–High — temperature, time, atmosphere, and particle size all affect density',
     tolerance:'±0.1–0.5 mm (after post-sinter grinding)',
   },
+  lpbf: {
+    pros:['Full design freedom — patient-specific lattice structures for stiffness matching and osseointegration',
+          'No tooling required; complex internal channels and overhangs achievable directly from CT/MRI data',
+          'High-performance biomedical alloys (Ti-6Al-4V, Co-Cr-Mo) processed without custom dies'],
+    cons:['High equipment and feedstock cost — powder handling requires inert atmosphere',
+          'Columnar grain texture and residual stresses require post-process HIP or heat treatment',
+          'Slow build rate; surface roughness requires machining for load-bearing mating surfaces'],
+    complexity:'Very High — laser power, scan speed, hatch spacing, and layer thickness must all be optimised',
+    tolerance:'±0.1–0.3 mm (as-built); ±0.02–0.05 mm after finish machining',
+  },
 };
 
 // ══════════════════════════════════════
@@ -3839,7 +4034,7 @@ const CATEGORIES = {
   molding:      { label:'Molding',       subs:['injectionMolding','blowMolding','compressionMolding'] },
   machining:    { label:'Machining',     subs:['turning','milling'] },
   joining:      { label:'Joining',       subs:['arcWelding','spotWelding'] },
-  additive:     { label:'Additive',      subs:['fdm','sla'] },
+  additive:     { label:'Additive',      subs:['fdm','sla','lpbf'] },
   annealing:        { label:'Annealing',         subs:['annealing'] },
   quenching:        { label:'Quenching',         subs:['quenching'] },
   tempering:        { label:'Tempering',         subs:['tempering'] },
@@ -3862,6 +4057,7 @@ const SIMS = {
   spotWelding:    { label:'Resistance Spot Welding', sim:SpotWelding },
   fdm:            { label:'FDM 3D Printing', sim:FDM },
   sla:            { label:'SLA / Resin',     sim:SLA },
+  lpbf:           { label:'LPBF / SLM',      sim:LPBF },
   annealing:      { label:'Annealing',       sim:Annealing },
   quenching:      { label:'Quenching',       sim:Quenching },
   tempering:      { label:'Tempering',       sim:Tempering },
@@ -3881,6 +4077,7 @@ function selectCategory(cat){
   document.getElementById('quenching-note').style.display        = cat==='quenching'        ? '' : 'none';
   document.getElementById('tempering-note').style.display        = cat==='tempering'        ? '' : 'none';
   document.getElementById('sintering-note').style.display        = cat==='powderProcessing' ? '' : 'none';
+  document.getElementById('additive-note').style.display         = cat==='additive'         ? '' : 'none';
   buildSubMenu(cat);
   const firstSub=CATEGORIES[cat].subs[0];
   selectSub(firstSub);
