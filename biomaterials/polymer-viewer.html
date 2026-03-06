@@ -224,35 +224,40 @@
     }
     .mech-stat { color:#5a7090; }
     .mech-stat span { color:#8ab8d8; font-weight:600; }
+    .mech-tab-btn {
+      background:#0e1428; border:1px solid #1e2840; color:#3a5878;
+      border-radius:20px; padding:4px 14px; font-size:.72rem; font-weight:700;
+      cursor:pointer; font-family:'Segoe UI',sans-serif; transition:all .15s;
+      letter-spacing:.6px; white-space:nowrap;
+    }
+    .mech-tab-btn:hover { background:#162040; color:#5a88b8; border-color:#2a4060; }
+    .mech-tab-btn.active { background:#1e3860; color:#88c0e0; border-color:#4a80c0; }
     .mech-anim-wrap {
       background:#080a14; border:1px solid #1e2840; border-radius:6px;
-      overflow:hidden; width:100%; max-width:580px; flex-shrink:0;
+      overflow:hidden; width:100%; max-width:700px; flex-shrink:0;
     }
-    .mech-anim-wrap svg { display:block; }
-    .mech-anim-controls {
-      display:flex; align-items:center; gap:8px; padding:6px 10px;
-      border-top:1px solid #1e2840; background:#0a0c18;
+    .mech-anim-wrap svg { display:block; max-width:100%; }
+    .mech-prop-controls {
+      display:none; align-items:center; gap:8px; padding:6px 10px;
+      border-top:1px solid #1e2840; background:#0a0c18; flex-wrap:wrap;
     }
+    .mech-prop-controls.show { display:flex; }
     .mech-ctrl-btn {
       background:#1a2840; border:1px solid #2a3860; color:#6090b8;
       border-radius:4px; padding:3px 12px; font-size:.75rem;
       cursor:pointer; font-family:'Segoe UI',sans-serif; transition:all .15s;
     }
     .mech-ctrl-btn:hover { background:#1e3860; color:#88c0e0; }
-    .mech-anim-label { flex:1; color:#2a4060; font-size:.72rem; font-family:monospace; }
-    .mech-steps {
-      display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;
-      width:100%; max-width:580px;
+    #mech-prop-counter { color:#3a5878; font-size:.75rem; font-family:monospace; min-width:80px; text-align:center; }
+    .mech-step-ann {
+      max-width:700px; width:100%; padding:10px 14px;
+      background:#0a0e1c; border:1px solid #1a2540; border-radius:6px;
+      font-size:.78rem; color:#6888a8; line-height:1.6;
+      font-family:'Segoe UI',sans-serif;
     }
-    .mech-step-card {
-      background:#0e1020; border:1px solid #1e2840; border-radius:6px;
-      padding:10px 12px;
-    }
-    .mech-step-num  { font-size:.65rem; color:#3a5070; font-family:monospace; margin-bottom:3px; text-transform:uppercase; letter-spacing:.8px; }
-    .mech-step-title{ font-size:.8rem; font-weight:700; color:#88c0e0; margin-bottom:5px; }
-    .mech-step-text { font-size:.72rem; color:#6888a8; line-height:1.55; }
+    .mech-step-ann strong { color:#88c0e0; }
     .mech-desc {
-      max-width:580px; font-size:.78rem; color:#5a7890; line-height:1.7;
+      max-width:700px; font-size:.78rem; color:#5a7890; line-height:1.7;
       font-family:'Segoe UI',sans-serif; text-align:center;
     }
   </style>
@@ -410,21 +415,26 @@
   <!-- Polymerization mechanism overlay -->
   <div id="panel-mech">
     <div id="panel-mech-header">
-      <div id="panel-mech-title">Polymerization Mechanism</div>
+      <div id="panel-mech-title">⚗ Mechanism</div>
+      <button class="mech-tab-btn active" data-step="0">1 · Initiation</button>
+      <button class="mech-tab-btn" data-step="1">2 · Propagation</button>
+      <button class="mech-tab-btn" data-step="2">3 · Termination</button>
       <button class="view-btn" id="btn-mech-close">✕ Close</button>
     </div>
     <div id="panel-mech-scroll">
       <div id="mech-type-row"></div>
       <div class="mech-stats" id="mech-stats-row"></div>
       <div class="mech-anim-wrap">
-        <svg id="svg-mech-anim" viewBox="0 0 580 100" width="580" height="100"></svg>
-        <div class="mech-anim-controls">
-          <button class="mech-ctrl-btn" id="btn-mech-play">▶ Play</button>
+        <svg id="svg-mech-anim" viewBox="0 0 700 200" width="700" height="200"></svg>
+        <div class="mech-prop-controls" id="mech-prop-ctrl">
+          <button class="mech-ctrl-btn" id="btn-mech-prev">◀ Prev</button>
+          <span id="mech-prop-counter">0 / 10 units</span>
+          <button class="mech-ctrl-btn" id="btn-mech-next">▶ Next</button>
+          <button class="mech-ctrl-btn" id="btn-mech-play">▶ Animate</button>
           <button class="mech-ctrl-btn" id="btn-mech-reset">↺ Reset</button>
-          <span class="mech-anim-label" id="mech-anim-label"></span>
         </div>
       </div>
-      <div class="mech-steps" id="mech-steps-row"></div>
+      <div class="mech-step-ann" id="mech-step-ann"></div>
       <div class="mech-desc"  id="mech-desc-row"></div>
     </div>
   </div>
@@ -1820,6 +1830,7 @@ document.querySelectorAll('.poly-btn:not(.disabled)').forEach(btn => {
     updateInfoPanel(activeKey, conformMode);
     rebuildChain();
     if (show2D) render2D();
+    if (mechVisible) buildMechPanel();
   });
 });
 
@@ -2252,11 +2263,13 @@ document.getElementById('btn-chart').addEventListener('click', function () {
 // ── Polymerization Mechanism Panel ───────────────────────────
 let mechVisible  = false;
 let mechAnimTimer = null;
-let mechAnimStep  = 0;
+let mechStep      = 0;   // 0=Initiation, 1=Propagation, 2=Termination
+let mechPropN     = 0;   // 0-10 for propagation animation frame
 const panelMech  = document.getElementById('panel-mech');
 
 function closeMech() {
   mechVisible = false;
+  mechStep = 0; mechPropN = 0;
   clearInterval(mechAnimTimer); mechAnimTimer = null;
   panelMech.classList.remove('show');
   const btn = document.getElementById('btn-mech');
@@ -2274,185 +2287,567 @@ function hexPoly(cx, cy, r) {
   return pts.join(' ');
 }
 
-// Chain-growth: return SVG string for given mer count
-function chainGrowthSVG(count, col, maxMers) {
-  const W=580, H=100, mw=28, mh=28, gap=3;
-  let s = `<rect width="${W}" height="${H}" fill="#080a14"/>`;
-  for (let i = 0; i < count; i++) {
-    const x = 12 + i * (mw + gap), y = (H - mh) / 2;
-    const fresh = i === count - 1;
-    s += `<rect x="${x}" y="${y}" width="${mw}" height="${mh}" fill="${col}" rx="3" opacity="${fresh ? 1 : 0.72}"/>`;
-    if (fresh) s += `<rect x="${x}" y="${y}" width="${mw}" height="${mh}" fill="none" stroke="#fff" stroke-width="1.5" rx="3" opacity="0.5"/>`;
-    if (i > 0) s += `<line x1="${x}" y1="${H/2}" x2="${x - gap}" y2="${H/2}" stroke="${col}" stroke-width="3"/>`;
+// ═══════════════════════════════════════════════════════════════
+//  SVG DRAWING PRIMITIVES
+// ═══════════════════════════════════════════════════════════════
+function sa(x,y,text,col='#cce8ff',sz=10,anchor='middle'){
+  return `<text x="${+x}" y="${+y}" fill="${col}" font-size="${sz}" font-family="monospace" text-anchor="${anchor}" dominant-baseline="middle">${text}</text>`;
+}
+function sb(x1,y1,x2,y2,col='#6a8aaa',w=1.5){
+  return `<line x1="${+x1}" y1="${+y1}" x2="${+x2}" y2="${+y2}" stroke="${col}" stroke-width="${w}"/>`;
+}
+function sdb(x1,y1,x2,y2,col='#6a8aaa'){
+  const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy)||1;
+  const ox=-dy/len*2.8,oy=dx/len*2.8;
+  return sb(x1+ox,y1+oy,x2+ox,y2+oy,col)+sb(x1-ox,y1-oy,x2-ox,y2-oy,col);
+}
+function sDot(x,y,col='#ff5555',r=4){
+  return `<circle cx="${+x}" cy="${+y}" r="${r}" fill="${col}"/>`;
+}
+function sArr(x1,y1,x2,y2,col='#5a7a9a'){
+  const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy)||1;
+  const ux=dx/len,uy=dy/len,bx=x2-ux*9,by=y2-uy*9;
+  return sb(x1,y1,bx,by,col)+`<polygon points="${x2},${y2} ${bx-uy*5},${by+ux*5} ${bx+uy*5},${by-ux*5}" fill="${col}"/>`;
+}
+function sPhenyl(cx,cy,r=12,col='#aabbd0'){
+  const pts=[];
+  for(let i=0;i<6;i++){const a=(i*60-90)*Math.PI/180;pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}
+  let s='';
+  for(let i=0;i<6;i++){const[x1,y1]=pts[i],[x2,y2]=pts[(i+1)%6];s+=sb(x1,y1,x2,y2,col,1.2);}
+  for(let i=0;i<6;i+=2){
+    const[x1,y1]=pts[i],[x2,y2]=pts[(i+1)%6];
+    const off=r*0.24,mx=(x1+x2)/2,my=(y1+y2)/2;
+    const ddx=(cx-mx)*off/r,ddy=(cy-my)*off/r;
+    const ln=Math.sqrt((x2-x1)**2+(y2-y1)**2),ux=(x2-x1)/ln,uy=(y2-y1)/ln,sh=r*0.28;
+    s+=sb(x1+ux*sh+ddx,y1+uy*sh+ddy,x2-ux*sh+ddx,y2-uy*sh+ddy,col,1.0);
   }
-  if (count > 0) {
-    const ex = 12 + count * (mw + gap);
-    s += `<text x="${ex+2}" y="${H/2+5}" fill="#ff5555" font-size="15" font-weight="bold" font-family="monospace">·</text>`;
-  }
-  const rem = maxMers - count;
-  const label = rem > 0 ? `${rem} monomers in feed` : '⛓ High MW achieved rapidly';
-  s += `<text x="${W-8}" y="${H-7}" fill="#2a4060" font-size="9" text-anchor="end" font-family="monospace">n = ${count}  |  ${label}</text>`;
   return s;
 }
 
-// Step-growth: pre-computed layout states (monomers → dimers → tetramers → octamer)
-function stepGrowthSVG(state, colA, colB, byproduct) {
-  const W=580, H=100, mw=24, mh=24, gap=2, y=(H-mh)/2;
-  let s = `<rect width="${W}" height="${H}" fill="#080a14"/>`;
-  // state 0 = 8 monomers, state 1 = 4 dimers, state 2 = 2 tetramers, state 3 = 1 octamer
-  const configs = [
-    { chains:[[0],[1],[2],[3],[4],[5],[6],[7]], conv:'0%',  label:'Monomers (n=1 each)' },
-    { chains:[[0,1],[2,3],[4,5],[6,7]],        conv:'50%', label:'Dimers — low MW (n=2)' },
-    { chains:[[0,1,2,3],[4,5,6,7]],            conv:'75%', label:'Tetramers (n=4)' },
-    { chains:[[0,1,2,3,4,5,6,7]],              conv:'87.5%', label:'Octamer (n=8) — still need 99%+ for high MW!' },
-  ];
-  const cfg = configs[Math.min(state, 3)];
-  const totalW = 8 * mw + 7 * gap;
-  const chainSep = 20;
-  // Compute starting x for each chain so they spread evenly
-  const chainWidths = cfg.chains.map(c => c.length * mw + (c.length - 1) * gap);
-  const totalUsed  = chainWidths.reduce((a, b) => a + b, 0) + (cfg.chains.length - 1) * chainSep;
-  let cx = (W - totalUsed) / 2;
+// ── Substituent data (vinyl repeat unit C1 and C2 subs) ──────
+const VSUB={
+  PE:    {C1:['H','H'],  C2:['H','H']},
+  aPP:   {C1:['H','H'],  C2:['H','CH₃']},
+  iPP:   {C1:['H','H'],  C2:['H','CH₃']},
+  sPP:   {C1:['H','H'],  C2:['H','CH₃']},
+  aPS:   {C1:['H','H'],  C2:['H','Ph']},
+  iPS:   {C1:['H','H'],  C2:['H','Ph']},
+  PVC:   {C1:['H','H'],  C2:['H','Cl']},
+  PMMA:  {C1:['H','H'],  C2:['CH₃','COOCH₃']},
+  PTFE:  {C1:['F','F'],  C2:['F','F']},
+  pHEMA: {C1:['H','H'],  C2:['CH₃','COO(C₂H₄OH)']},
+};
 
-  cfg.chains.forEach((chain, ci) => {
-    const cw = chainWidths[ci];
-    chain.forEach((merIdx, mi) => {
-      const x = cx + mi * (mw + gap);
-      const col = merIdx % 2 === 0 ? colA : colB;
-      s += `<rect x="${x}" y="${y}" width="${mw}" height="${mh}" fill="${col}" rx="3" opacity="0.85"/>`;
-      if (mi > 0) s += `<line x1="${x}" y1="${H/2}" x2="${x-gap}" y2="${H/2}" stroke="${col}" stroke-width="2.5"/>`;
+// ── Zig-zag vinyl chain — propagation animation ───────────────
+function drawVinylChain(key,n){
+  const W=700,H=200;
+  let s=`<rect width="${W}" height="${H}" fill="#080a14"/>`;
+  if(n===0){
+    s+=sa(W/2,88,'Initiator radical active — first monomer not yet added','#3a5070',11);
+    s+=sa(W/2,112,'Use ▶ Next or ▶ Animate to grow the chain','#2a4060',9);
+    return s;
+  }
+  const vs=VSUB[key]||VSUB.PE;
+  const col=(MECH[key]||{animCol:'#5588ff'}).animCol;
+  const nBonds=2*n-1;
+  const dx=n===1?56:Math.min(52,Math.max(18,Math.floor(530/nBonds)));
+  const dy=Math.round(dx*0.70);
+  const sl=Math.round(dx*0.88);   // substituent bond length
+  const spr=Math.min(10,dx*0.28); // sub spread
+  const cy=100;
+  const startX=Math.round((W-nBonds*dx)/2);
+  // Left chain-continuation mark
+  s+=sb(startX,cy-dy,startX-18,cy-dy+12,'#2a3850',1.5);
+  s+=sa(startX-22,cy-dy+16,'···','#2a3850',8);
+  for(let j=0;j<2*n;j++){
+    const x=startX+j*dx;
+    const y=cy+(j%2===0?-dy:dy);
+    const isUp=(j%2===0);
+    const subs=isUp?vs.C1:vs.C2;
+    const yDir=isUp?-1:1;
+    // Backbone bond to next
+    if(j<2*n-1){
+      const nx=startX+(j+1)*dx,ny=cy+((j+1)%2===0?-dy:dy);
+      s+=sb(x,y,nx,ny,col,1.8);
+    }
+    // Substituents
+    subs.forEach((sub,si)=>{
+      const xOff=si===0?-spr:spr;
+      const tx=x+xOff;
+      const tyLabel=y+yDir*sl;
+      const tyBond=y+yDir*(sl-7);
+      if(sub==='Ph'){
+        const pr=Math.max(7,Math.min(12,dx*0.32));
+        s+=sb(x,y,tx,tyBond-yDir*pr,col,1.1);
+        s+=sPhenyl(tx,tyLabel,pr,col);
+      } else {
+        s+=sb(x,y,tx,tyBond,col,1.1);
+        const fsz=sub.length>4?6:sub.length>2?7.5:(n>6?8:10);
+        const fc=sub==='H'?'#506878':'#aad0e8';
+        s+=sa(tx,tyLabel,sub,fc,fsz);
+      }
     });
-    cx += cw + chainSep;
-  });
-
-  // Byproduct label
-  if (state > 0 && byproduct) {
-    s += `<text x="${W/2}" y="14" fill="#886644" font-size="9" text-anchor="middle" font-family="monospace">+ ${state * 4} × ${byproduct} released</text>`;
   }
-  s += `<text x="${W-8}" y="${H-7}" fill="#2a4060" font-size="9" text-anchor="end" font-family="monospace">Conversion ≈ ${cfg.conv}  |  ${cfg.label}</text>`;
+  // Radical dot (chain active end)
+  const xL=startX+(2*n-1)*dx,yL=cy+((2*n-1)%2===0?-dy:dy);
+  if(n<10) s+=sDot(xL+10,yL,'#ff5555',4);
+  else s+=sa(xL+16,yL,'✓ complete','#44bb66',8,'start');
+  s+=sa(W-4,H-8,`n = ${n} repeat unit${n>1?'s':''}`,'#2a4060',8,'end');
   return s;
 }
 
-// ROP: growing chain + ring pool on right
-function ropSVG(count, col, maxRings) {
-  const W=580, H=100, mw=28, mh=28, gap=3, y=(H-mh)/2;
-  let s = `<rect width="${W}" height="${H}" fill="#080a14"/>`;
-  // Draw opened chain on left
-  for (let i = 0; i < count; i++) {
-    const x = 12 + i * (mw + gap);
-    const fresh = i === count - 1;
-    s += `<rect x="${x}" y="${y}" width="${mw}" height="${mh}" fill="${col}" rx="3" opacity="${fresh?1:0.72}"/>`;
-    if (fresh) s += `<rect x="${x}" y="${y}" width="${mw}" height="${mh}" fill="none" stroke="#fff" stroke-width="1.5" rx="3" opacity="0.5"/>`;
-    if (i > 0) s += `<line x1="${x}" y1="${H/2}" x2="${x-gap}" y2="${H/2}" stroke="${col}" stroke-width="3"/>`;
+// ── PI diene chain (4C repeat unit: –CH₂–C(CH₃)=CH–CH₂–) ────
+function drawDieneChain(n){
+  const W=700,H=200,col='#aa66ff';
+  let s=`<rect width="${W}" height="${H}" fill="#080a14"/>`;
+  if(n===0){
+    s+=sa(W/2,88,'Anionic initiator active — cis-1,4 addition to isoprene','#3a5070',11);
+    s+=sa(W/2,112,'4 backbone carbons per repeat unit','#2a4060',9);
+    return s;
   }
-  // Draw remaining rings on right
-  const ringR = 13;
-  const ringStart = W - 20 - (maxRings - count) * (ringR * 2 + 8);
-  for (let i = 0; i < maxRings - count; i++) {
-    const rcx = ringStart + i * (ringR * 2 + 8) + ringR;
-    const rcy = H / 2;
-    s += `<polygon points="${hexPoly(rcx, rcy, ringR)}" fill="${col}" stroke="#fff" stroke-width="1" opacity="0.6"/>`;
-    // Show the "ring" opening slash
-    s += `<line x1="${rcx-ringR*0.5}" y1="${rcy-ringR*0.8}" x2="${rcx+ringR*0.5}" y2="${rcy+ringR*0.8}" stroke="#fff" stroke-width="1" opacity="0.3"/>`;
+  const nC=4*n,nB=nC-1;
+  const dx=Math.min(42,Math.max(16,Math.floor(560/nB)));
+  const dy=Math.round(dx*0.70),cy=100;
+  const startX=Math.round((W-nB*dx)/2);
+  const sl=Math.round(dx*0.88),spr=Math.min(10,dx*0.28);
+  s+=sb(startX,cy-dy,startX-16,cy-dy+11,'#2a3850',1.5);
+  s+=sa(startX-20,cy-dy+15,'···','#2a3850',8);
+  for(let j=0;j<nC;j++){
+    const x=startX+j*dx,y=cy+(j%2===0?-dy:dy);
+    const isUp=(j%2===0),jUnit=j%4,yDir=isUp?-1:1;
+    if(j<nC-1){
+      const nx=startX+(j+1)*dx,ny=cy+((j+1)%2===0?-dy:dy);
+      jUnit===1 ? s+=sdb(x,y,nx,ny,col) : s+=sb(x,y,nx,ny,col,1.8);
+    }
+    const tx=x+(jUnit===0||jUnit===3?(0):0),tyL=y+yDir*sl,tyB=y+yDir*(sl-7);
+    if(jUnit===0||jUnit===3){
+      ['H','H'].forEach((_,si)=>{const xo=si===0?-spr:spr;s+=sb(x,y,x+xo,tyB,col,1.1);s+=sa(x+xo,tyL,'H','#506878',n>5?8:10);});
+    } else if(jUnit===1){
+      s+=sb(x,y,x+(isUp?-spr:spr),tyB,col,1.1);s+=sa(x+(isUp?-spr:spr),tyL,'CH₃','#aad0e8',7.5);
+    } else {
+      s+=sb(x,y,x+(isUp?spr:-spr),tyB,col,1.1);s+=sa(x+(isUp?spr:-spr),tyL,'H','#506878',n>5?8:10);
+    }
   }
-  const rem = maxRings - count;
-  s += `<text x="${W-8}" y="${H-7}" fill="#2a4060" font-size="9" text-anchor="end" font-family="monospace">n = ${count}  |  ${rem} rings remaining</text>`;
+  const xL=startX+(nC-1)*dx,yL=cy+((nC-1)%2===0?-dy:dy);
+  if(n<10) s+=sDot(xL+10,yL,'#aa66ff',4);
+  else s+=sa(xL+16,yL,'✓ complete','#44bb66',8,'start');
+  s+=sa(W-4,H-8,`n = ${n} isoprene unit${n>1?'s':''} — cis-1,4`,'#2a4060',8,'end');
+  return s;
+}
+
+// ── Condensation propagation (growing coupled chain) ──────────
+function drawCondChain(key,n){
+  const W=700,H=200,m=MECH[key];
+  const col=(m||{animCol:'#44dd88'}).animCol;
+  const colB=col==='#44dd88'?'#ffaa44':'#44aaff';
+  let s=`<rect width="${W}" height="${H}" fill="#080a14"/>`;
+  if(n===0){
+    s+=sa(W/2,88,'Monomers present — A ends reactive with B ends','#3a5070',11);
+    s+=sa(W/2,112,'Any A group can react with any B group (random coupling)','#2a4060',9);
+    return s;
+  }
+  const showN=Math.min(n+1,11);
+  const bw=Math.min(48,Math.max(24,Math.floor(560/showN)));
+  const bh=32,by=(H-bh)/2,gap=3;
+  const totalW=showN*bw+(showN-1)*gap;
+  let bx=(W-totalW)/2;
+  for(let i=0;i<showN;i++){
+    const bc=i%2===0?col:colB;
+    s+=`<rect x="${bx.toFixed(1)}" y="${by}" width="${bw}" height="${bh}" fill="${bc}" rx="4" opacity="0.82"/>`;
+    if(i>0) s+=sb(bx,H/2,bx-gap,H/2,bc,2.5);
+    if(bw>30) s+=sa(bx+bw/2,H/2,i%2===0?'A':'B','#121a12',9);
+    bx+=bw+gap;
+  }
+  if(m&&m.byproduct) s+=sa(W/2,20,`+ ${n} × ${m.byproduct} released`,'#886644',9);
+  const p=n/(n+1),Xn=showN;
+  s+=sa(W/2,H-20,`${showN} units coupled — X̄ₙ = ${Xn} — p ≈ ${(p*100).toFixed(0)}%`,'#2a4060',8.5);
+  s+=sa(W/2,H-8,'Carothers: X̄ₙ = 1/(1−p) → need p > 0.99 for X̄ₙ > 100','#1e3050',7.5);
+  return s;
+}
+
+// ── ROP propagation (ring pool → growing chain) ───────────────
+function drawROPChain(key,n){
+  const W=700,H=200,col=(MECH[key]||{animCol:'#44dd88'}).animCol;
+  const isPEO=(key==='PEO');
+  let s=`<rect width="${W}" height="${H}" fill="#080a14"/>`;
+  const maxR=10,cy=100;
+  if(n>0){
+    const nB=Math.max(1,n-1);
+    const dx=n===1?40:Math.min(40,Math.max(16,Math.floor(280/nB)));
+    const dy=Math.round(dx*0.70),startX=30;
+    for(let j=0;j<n;j++){
+      const x=startX+j*dx,y=cy+(j%2===0?-dy:dy);
+      if(j<n-1){const nx=startX+(j+1)*dx,ny=cy+((j+1)%2===0?-dy:dy);s+=sb(x,y,nx,ny,col,1.8);}
+      if((isPEO&&j%2===1)||(!isPEO&&j%2===1)){s+=sa(x,y,'O','#ff9955',10);}
+    }
+    const xL=startX+(n-1)*dx,yL=cy+((n-1)%2===0?-dy:dy);
+    s+=sa(xL+5,yL+18,isPEO?'O⁻':'O⁻','#44dd88',8,'start');
+  } else {
+    s+=sa(100,cy,'R–O⁻','#5a7890',11,'middle');
+    s+=sa(100,cy+20,'(initiator alkoxide)','#3a5070',8,'middle');
+  }
+  const rLeft=maxR-n,ringR=isPEO?10:13,rSpacing=ringR*2+11,rPerRow=5;
+  const rAreaX=370;
+  for(let i=0;i<rLeft;i++){
+    const row=Math.floor(i/rPerRow),ci=i%rPerRow;
+    const rcx=rAreaX+ci*rSpacing+ringR,rcy=cy+(row===0?-15:15);
+    if(isPEO){
+      const pts3=[];
+      for(let p=0;p<3;p++){const a=(p*120-90)*Math.PI/180;pts3.push(`${(rcx+ringR*Math.cos(a)).toFixed(1)},${(rcy+ringR*Math.sin(a)).toFixed(1)}`);}
+      s+=`<polygon points="${pts3.join(' ')}" fill="${col}" stroke="#fff" stroke-width="1" opacity="0.65"/>`;
+      s+=sa(rcx,rcy,'O','#ff9955',7);
+    } else {
+      s+=`<polygon points="${hexPoly(rcx,rcy,ringR)}" fill="${col}" stroke="#fff" stroke-width="1" opacity="0.6"/>`;
+      s+=sa(rcx,rcy,'O','#ff9955',7);
+    }
+  }
+  s+=sa(W-4,H-8,`n = ${n} ring${n!==1?'s':''} opened — ${rLeft} remain`,'#2a4060',8,'end');
+  return s;
+}
+
+// ── INITIATION SVGs ───────────────────────────────────────────
+function vinylInitSVG(key){
+  const W=700,H=200,vs=VSUB[key]||VSUB.PE;
+  const col=(MECH[key]||{animCol:'#5588ff'}).animCol;
+  let s=`<rect width="${W}" height="${H}" fill="#080a14"/>`;
+  s+=sa(W/2,13,'Initiation Step','#3a5070',10);
+  // Initiator
+  s+=`<circle cx="82" cy="100" r="30" fill="#1a1020" stroke="#cc4400" stroke-width="1.5"/>`;
+  s+=sa(73,100,'R','#ffaa66',13);s+=sDot(99,90,'#ff5555',4);
+  s+=sa(82,143,'Radical initiator','#886040',8);
+  s+=sa(152,100,'+','#6a8aaa',16);
+  // Monomer (CH₂=CHR structure)
+  const mcx=282,mcy=100,hs=26,sl=20,spr=12;
+  s+=sa(mcx,18,'Monomer','#3a5070',9);
+  s+=sdb(mcx-hs,mcy,mcx+hs,mcy,col);  // C=C double bond
+  // C1 subs (H,H) upper-left and lower-left
+  vs.C1.forEach((sub,si)=>{
+    const ty=mcy+(si===0?-sl:sl),tx=mcx-hs-spr;
+    s+=sb(mcx-hs,mcy,tx,ty-4,col,1.1);
+    s+=sa(tx-(sub.length>1?8:0),ty,sub,sub==='H'?'#506878':'#aad0e8',9);
+  });
+  // C2 subs upper-right and lower-right
+  vs.C2.forEach((sub,si)=>{
+    const ty=mcy+(si===0?-sl:sl),tx=mcx+hs+spr;
+    if(sub==='Ph'){s+=sb(mcx+hs,mcy,tx,ty-10,col,1.1);s+=sPhenyl(tx,ty,10,col);}
+    else{s+=sb(mcx+hs,mcy,tx,ty-4,col,1.1);s+=sa(tx+(sub.length>2?9:0),ty,sub,sub==='H'?'#506878':'#aad0e8',sub.length>3?7:9);}
+  });
+  s+=sArr(362,100,432,100,'#5a7a9a');
+  // Product: R–C1–C2·
+  s+=sa(576,18,'First unit added','#3a5070',9);
+  const x1=490,y1=82,x2=542,y2=124;
+  s+=sb(460,103,x1,y1,col,1.8);s+=sa(456,103,'R','#ffaa66',11,'end');
+  s+=sb(x1,y1,x2,y2,col,1.8);
+  vs.C1.forEach((_,si)=>{const tx=x1+(si===0?-10:10),ty=y1-24;s+=sb(x1,y1,tx,ty+6,col,1.1);s+=sa(tx,ty,'H','#506878',9);});
+  vs.C2.forEach((sub,si)=>{
+    const tx=x2+(si===0?-10:10),ty=y2+24;
+    if(sub==='Ph'){s+=sb(x2,y2,tx,ty-10,col,1.1);s+=sPhenyl(tx,ty,10,col);}
+    else{s+=sb(x2,y2,tx,ty-6,col,1.1);s+=sa(tx,ty,sub,sub==='H'?'#506878':'#aad0e8',sub.length>3?7:9);}
+  });
+  s+=sDot(x2+13,y2,'#ff5555',4);
+  return s;
+}
+
+function dieneInitSVG(){
+  const W=700,H=200,col='#aa66ff';
+  let s=`<rect width="${W}" height="${H}" fill="#080a14"/>`;
+  s+=sa(W/2,13,'Initiation — Anionic (n-BuLi)','#3a5070',10);
+  s+=`<rect x="15" y="65" width="115" height="70" rx="6" fill="#110022" stroke="#8855cc" stroke-width="1.5"/>`;
+  s+=sa(72,92,'n-BuLi','#cc88ff',12);s+=sa(72,110,'n-C₄H₉–Li','#7744aa',9);
+  s+=sa(150,100,'+','#6a8aaa',15);
+  // Isoprene: CH₂=C(CH₃)–CH=CH₂
+  const mc=[222,260,300,338],my=100;
+  s+=sdb(mc[0],my,mc[1],my,col);s+=sb(mc[1],my,mc[2],my,col,1.8);s+=sdb(mc[2],my,mc[3],my,col);
+  s+=sb(mc[0],my,mc[0]-14,my-20,col,1.1);s+=sa(mc[0]-18,my-26,'H','#506878',9);
+  s+=sb(mc[0],my,mc[0]-14,my+20,col,1.1);s+=sa(mc[0]-18,my+26,'H','#506878',9);
+  s+=sb(mc[1],my,mc[1],my-28,col,1.1);s+=sa(mc[1],my-35,'CH₃','#aad0e8',8);
+  s+=sb(mc[2],my,mc[2],my+28,col,1.1);s+=sa(mc[2],my+35,'H','#506878',9);
+  s+=sb(mc[3],my,mc[3]+14,my-20,col,1.1);s+=sa(mc[3]+18,my-26,'H','#506878',9);
+  s+=sb(mc[3],my,mc[3]+14,my+20,col,1.1);s+=sa(mc[3]+18,my+26,'H','#506878',9);
+  s+=sa(280,20,'Isoprene','#3a5070',9);
+  s+=sArr(380,100,448,100,'#5a7a9a');
+  s+=sa(575,20,'cis-1,4 addition','#3a5070',9);
+  s+=sa(490,100,'n-Bu','#aa88cc',10,'end');
+  s+=sb(492,100,514,82,col,1.8);s+=sb(514,82,554,124,col,1.8);
+  s+=sdb(554,124,596,82,col);s+=sb(596,82,636,124,col,1.8);
+  s+=sDot(644,130,'#aa66ff',4);s+=sa(644,148,'⁻','#aa66ff',11);
+  return s;
+}
+
+function condensInitSVG(key){
+  const W=700,H=200,m=MECH[key];
+  const col=(m||{animCol:'#44dd88'}).animCol;
+  let s=`<rect width="${W}" height="${H}" fill="#080a14"/>`;
+  s+=sa(W/2,13,'Initiation — Monomer Activation','#3a5070',10);
+  const parts=(m.monomer||'').split('+').map(p=>p.trim());
+  if(parts.length>=2){
+    s+=`<rect x="30" y="48" width="240" height="104" rx="8" fill="#0e1a10" stroke="${col}" stroke-width="1.2"/>`;
+    s+=sa(150,82,parts[0],'#aaddbb',9.5,'middle');
+    s+=sa(150,102,'Monomer A','#3a7050',8.5,'middle');
+    const aLabel=key==='Nylon66'?'–NH₂':key==='PDMS'?'–Si–Cl':key==='PET'?'–OH':key==='PEEK'?'–OH (phenoxide)':'–reactive A';
+    s+=sa(150,120,aLabel,'#2a5040',8,'middle');
+    s+=sa(150,136,`FG activates at: ${m.catalyst.split('/')[0].trim()}`,'#1e4030',7.5,'middle');
+    s+=sa(W/2,100,'+','#6a8aaa',16);
+    s+=`<rect x="430" y="48" width="240" height="104" rx="8" fill="#0e1a10" stroke="${col}" stroke-width="1.2"/>`;
+    const p2=parts[1]||'';
+    s+=sa(550,82,p2.replace(/\s.*/,''),'#aaddbb',9.5,'middle');
+    s+=sa(550,102,'Monomer B','#3a7050',8.5,'middle');
+    const bLabel=key==='Nylon66'?'–COOH':key==='PDMS'?'–Cl':key==='PET'?'–COOH':key==='PEEK'?'–C–F (activated)':'–reactive B';
+    s+=sa(550,120,bLabel,'#2a5040',8,'middle');
+    if(m.byproduct) s+=sa(550,136,`Byproduct: ${m.byproduct}`,'#886644',7.5,'middle');
+  } else {
+    s+=`<rect x="150" y="50" width="400" height="100" rx="8" fill="#0e1a10" stroke="${col}" stroke-width="1.2"/>`;
+    s+=sa(350,95,m.monomer||'','#aaddbb',10,'middle');
+    s+=sa(350,115,`Catalyst: ${m.catalyst}`,'#2a4060',8,'middle');
+  }
+  s+=sa(W/2,H-10,`Both monomers must react: stoichiometry is critical!`,'#886644',8.5);
+  return s;
+}
+
+function ropInitSVG(key){
+  const W=700,H=200,col=(MECH[key]||{animCol:'#44dd88'}).animCol;
+  const m=MECH[key],isPEO=(key==='PEO');
+  let s=`<rect width="${W}" height="${H}" fill="#080a14"/>`;
+  s+=sa(W/2,13,'Initiation — Ring Opening','#3a5070',10);
+  s+=`<rect x="20" y="62" width="140" height="76" rx="8" fill="#0e1a10" stroke="${col}" stroke-width="1.2"/>`;
+  s+=sa(90,92,'R–OH','#aaddbb',13,'middle');
+  s+=sa(90,110,isPEO?'KOH / alkoxide':'Sn(Oct)₂ / ROH','#2a5040',8,'middle');
+  s+=sa(90,124,'Initiator','#1e4030',8,'middle');
+  s+=sa(182,100,'+','#6a8aaa',15);
+  // Cyclic monomer
+  const mcx=315,mcy=100;
+  if(isPEO){
+    const r=26,pts3=[];
+    for(let p=0;p<3;p++){const a=(p*120-90)*Math.PI/180;pts3.push([mcx+r*Math.cos(a),mcy+r*Math.sin(a)]);}
+    for(let p=0;p<3;p++){const[x1,y1]=pts3[p],[x2,y2]=pts3[(p+1)%3];s+=sb(x1,y1,x2,y2,col,2);}
+    s+=sa(pts3[0][0],pts3[0][1]-10,'O','#ff9955',11);
+    [[1,0],[1,1],[2,0],[2,1]].forEach(([vi,si])=>{
+      const[vx,vy]=pts3[vi],xo=(si===0?-14:12),yo=6;
+      s+=sb(vx,vy,vx+xo*0.7,vy+yo,col,1.1);s+=sa(vx+xo,vy+yo+2,'H','#506878',9);
+    });
+    s+=sa(mcx,mcy+48,'Ethylene oxide (oxirane)','#2a5040',8);
+    s+=sa(mcx,mcy+61,'3-membered ring — highly strained','#1e3030',7.5);
+  } else {
+    const r=32,pts=[];
+    for(let i=0;i<6;i++){const a=(i*60-90)*Math.PI/180;pts.push([mcx+r*Math.cos(a),mcy+r*Math.sin(a)]);}
+    for(let i=0;i<6;i++){const[x1,y1]=pts[i],[x2,y2]=pts[(i+1)%6];s+=sb(x1,y1,x2,y2,col,2);}
+    ['O','C','C','O','C','C'].forEach((at,i)=>{
+      const[ax,ay]=pts[i],ox=(ax-mcx)*0.38,oy=(ay-mcy)*0.38;
+      s+=sa(ax+ox,ay+oy,at,at==='O'?'#ff9955':'#aad0e8',8);
+    });
+    s+=sa(mcx,mcy,'=O','#ff9955',7.5);
+    s+=sa(mcx,mcy+52,'L-Lactide — 6-membered cyclic diester','#2a5040',8);
+    s+=sa(mcx,mcy+65,'Ring strain + controlled ROP → narrow PDI','#1e3030',7.5);
+  }
+  s+=sArr(412,100,480,100,'#5a7a9a');
+  s+=sa(580,20,'Ring opens:','#3a5070',9);
+  s+=`<rect x="502" y="55" width="182" height="90" rx="8" fill="#0e1a10" stroke="${col}" stroke-width="1.2"/>`;
+  s+=sa(593,86,isPEO?'R–O–CH₂–CH₂–O⁻':'R–O–CH(CH₃)–','#aaddbb',isPEO?9:8.5,'middle');
+  if(!isPEO) s+=sa(593,102,'C(=O)–O⁻','#aaddbb',8.5,'middle');
+  s+=sa(593,isPEO?104:120,'Metal alkoxide end','#2a5040',8,'middle');
+  s+=sa(593,isPEO?118:134,'→ propagates living','#1e3030',7.5,'middle');
+  return s;
+}
+
+// ── TERMINATION SVGs ──────────────────────────────────────────
+function vinylTermSVG(key){
+  const W=700,H=200,vs=VSUB[key]||VSUB.PE;
+  const col=(MECH[key]||{animCol:'#5588ff'}).animCol;
+  const mechType=(MECH[key]||{type:'radical'}).type;
+  let s=`<rect width="${W}" height="${H}" fill="#080a14"/>`;
+  if(mechType==='anionic'){
+    s+=sa(W/2,13,'Termination — Deliberate Quench (Living Chain)','#3a5070',10);
+    s+=sa(W/2,38,'No spontaneous termination — chain grows until quenched!','#4a6080',8.5);
+    s+=sa(180,78,'~~~CH₂–CHR','#aa66ff',10,'middle');s+=sDot(238,78,'#aa66ff',4);
+    s+=sa(180,95,'carbanion','#7755aa',8,'middle');
+    s+=sa(310,78,'+','#6a8aaa',14);
+    s+=sa(420,78,'CH₃OH','#aaddbb',11,'middle');s+=sa(420,95,'proton source','#3a5070',8,'middle');
+    s+=sArr(490,78,555,78,'#5a7a9a');
+    s+=sa(620,78,'~~~CH₂–CHR–H','#5588ff',9.5,'middle');s+=sa(620,95,'dead polymer','#2a4060',8,'middle');
+    s+=sa(W/2,130,'PDI ≈ 1.05 — extremely narrow!','#44dd88',9);
+    s+=sa(W/2,148,'Can re-add monomer → block copolymers','#3a5070',8.5);
+    s+=sa(W/2,165,'n-Bu–[block A]–[block B] architectures possible','#2a4060',8);
+  } else if(mechType==='coordination'){
+    s+=sa(W/2,13,'Termination — β-Hydride Elimination','#3a5070',10);
+    s+=`<circle cx="108" cy="100" r="34" fill="#1a1820" stroke="#008888" stroke-width="1.5"/>`;
+    s+=sa(98,98,'Ti','#44ddcc',14);s+=sa(116,90,'n+','#44ddcc',8);
+    s+=sb(142,100,190,100,'#006688',1.8);s+=sa(246,100,'~~~CH₂–CH(R)','#5588ff',10,'start');
+    s+=sa(246,116,'polymer chain','#2a4060',8,'start');
+    const bx=190,by1=100,by2=162;
+    s+=sArr(bx,by1+10,bx,by2,'#5a7a9a');
+    s+=sa(bx+12,by2,'β–H moves to Ti → Ti–H + vinyl end group','#3a5070',9,'start');
+    s+=sa(520,78,'Ti–H (restart site)','#44ddcc',9,'middle');
+    s+=sa(520,100,'~~~CH=CR₂','#5588ff',9.5,'middle');
+    s+=sa(520,116,'vinyl-terminated dead chain','#2a4060',8,'middle');
+    s+=sa(W/2,172,'Ti–H can reinitiate → new chain grows at same site','#3a5070',8);
+  } else {
+    s+=sa(W/2,13,'Termination — Combination or Disproportionation','#3a5070',10);
+    const cx=350;
+    s+=sa(W/2,32,'A · Combination (radical coupling):','#4a6080',9);
+    s+=sa(cx-110,60,'~~~CH₂–CHR','#5588ff',9.5,'end');s+=sDot(cx-57,60,'#ff5555',4);
+    s+=sa(cx,60,'+','#6a8aaa',12);
+    s+=sDot(cx+56,60,'#ff5555',4);s+=sa(cx+112,60,'RHC–CH₂~~~','#5588ff',9.5,'start');
+    s+=sArr(cx,70,cx,94,'#5a7a9a');
+    s+=sa(cx,105,'~~~CHR–RHC~~~   (dead chain, MW×2)','#5588ff',9.5,'middle');
+    s+=sa(W/2,128,'B · Disproportionation (H transfer):','#4a6080',9);
+    s+=sa(195,146,'~~~CH₂–ĊHR','#5588ff',9,'middle');s+=sa(340,146,'+','#6a8aaa',11);s+=sa(500,146,'ĊHR–CH₂~~~','#5588ff',9,'middle');
+    s+=sArr(350,155,350,172,'#5a7a9a');
+    s+=sa(W/2,182,'~~~CH₂–CHR  +  CH₂=CR~~~   (two dead chains)','#5588ff',8,'middle');
+  }
+  return s;
+}
+
+function dieneTermSVG(){
+  const W=700,H=200,col='#aa66ff';
+  let s=`<rect width="${W}" height="${H}" fill="#080a14"/>`;
+  s+=sa(W/2,13,'Termination — Deliberate Quench','#3a5070',10);
+  s+=sa(W/2,38,'Living anionic chain — no spontaneous termination','#4a6080',9);
+  s+=sa(200,85,'~~~C(CH₃)=CH–CH₂','#aa66ff',10,'middle');s+=sDot(296,85,'#aa66ff',4);
+  s+=sa(200,102,'carbanion end','#7755aa',8,'middle');
+  s+=sa(350,85,'+','#6a8aaa',14);
+  s+=sa(460,85,'CH₃OH','#aaddbb',12,'middle');
+  s+=sArr(530,85,590,85,'#5a7a9a');
+  s+=sa(645,85,'–CH₃','#aa66ff',10,'middle');s+=sa(645,102,'terminated','#2a4060',8,'middle');
+  s+=sa(W/2,132,'Final structure: linear cis-1,4 with defined MW (PDI ≈ 1.05)','#44dd88',9);
+  s+=sa(W/2,150,'Applications: synthetic natural rubber, tire compounds','#3a5070',8.5);
+  s+=sa(W/2,166,'Block copolymers possible: SBS (styrene-butadiene-styrene) thermoplastic elastomers','#2a4060',8);
+  return s;
+}
+
+function condensTermSVG(){
+  const W=700,H=200;
+  let s=`<rect width="${W}" height="${H}" fill="#080a14"/>`;
+  s+=sa(W/2,13,'High Conversion Requirement — Carothers Equation','#3a5070',10);
+  s+=sa(W/2,36,'X̄ₙ = 1 / (1 − p)','#cce8ff',17);
+  s+=sa(W/2,56,'p = fraction of functional groups reacted (conversion)','#5a7890',8.5);
+  const rows=[['90%','10'],['95%','20'],['99%','100'],['99.5%','200'],['99.9%','1000']];
+  const tx0=220,tw=260;
+  s+=sa(tx0,76,'p','#3a5070',9,'middle');s+=sa(tx0+tw,76,'X̄ₙ','#3a5070',9,'middle');
+  s+=sb(tx0-80,82,tx0+tw+80,82,'#1e2540',1);
+  rows.forEach(([p,Xn],i)=>{
+    const ry=93+i*18,hi=(i===2||i===3||i===4);
+    s+=sa(tx0,ry,p,hi?'#ffcc44':'#5a8090',hi?10:9,'middle');
+    s+=sa(tx0+tw,ry,Xn,hi?'#44dd88':'#5a8090',hi?10:9,'middle');
+  });
+  s+=sa(W/2,188,'Step-growth needs > 99% conversion for high MW — unlike chain-growth!','#886644',8.5);
+  return s;
+}
+
+function ropTermSVG(key){
+  const W=700,H=200,col=(MECH[key]||{animCol:'#44dd88'}).animCol;
+  const isPEO=(key==='PEO');
+  let s=`<rect width="${W}" height="${H}" fill="#080a14"/>`;
+  s+=sa(W/2,13,'Chain Control / Termination','#3a5070',10);
+  s+=sa(W/2,36,'MW Control:   M̄ₙ = [Monomer] / [Initiator]  ×  M₀','#cce8ff',13);
+  s+=sa(W/2,56,`M₀ = ${isPEO?'44 g/mol (ethylene oxide)':'144 g/mol (L-lactide)'}   PDI ≈ ${isPEO?'1.05':'1.05–1.15'}`,'#5a7890',8.5);
+  s+=sa(W/2,78,'Narrow Molecular Weight Distribution (vs radical chain-growth):','#4a6080',9);
+  // Simple visual: narrow vs broad bar
+  const cx=350,gcy=118,gw=160,gh=34;
+  for(let x=-gw;x<=gw;x+=2){
+    const y1=gh*Math.exp(-(x*x)/(2*24*24));
+    const y2=gh*Math.exp(-((x+2)*(x+2))/(2*24*24));
+    s+=sb(cx+x,gcy-y1,cx+x+2,gcy-y2,col,1.5);
+  }
+  s+=sb(cx-gw-10,gcy,cx+gw+10,gcy,'#2a3850',1);
+  s+=sa(cx,gcy+14,'Narrow distribution (PDI ≈ 1.1)','#44dd88',8.5);
+  const termMethod=isPEO?'Protonation of alkoxide end (H₂O / acid)':'Acylation / protonation of chain-end alkoxide';
+  s+=sa(W/2,162,'Termination: '+termMethod,'#3a5070',8.5);
+  s+=sa(W/2,178,'Block copolymers: add second monomer after first is consumed','#2a4060',8);
   return s;
 }
 
 // ── Build mechanism panel ─────────────────────────────────────
-function buildMechPanel() {
-  const m = MECH[activeKey];
-  if (!m) return;
-
+function buildMechPanel(){
+  const m=MECH[activeKey]; if(!m) return;
+  // Reset tab
+  mechStep=0; mechPropN=0;
+  clearInterval(mechAnimTimer); mechAnimTimer=null;
+  document.querySelectorAll('.mech-tab-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
   // Type badge
-  document.getElementById('mech-type-row').innerHTML =
-    `<span class="mech-type-badge" style="${m.typeCss}">⚗ ${m.label}</span>`;
-
+  document.getElementById('mech-type-row').innerHTML=`<span class="mech-type-badge" style="${m.typeCss}">⚗ ${m.label}</span>`;
   // Stats row
-  const bp = m.byproduct ? `<div class="mech-stat">Byproduct: <span>${m.byproduct}</span></div>` : '';
-  document.getElementById('mech-stats-row').innerHTML =
+  const bp=m.byproduct?`<div class="mech-stat">Byproduct: <span>${m.byproduct}</span></div>`:'';
+  document.getElementById('mech-stats-row').innerHTML=
     `<div class="mech-stat">Monomer: <span>${m.monomer}</span></div>
      <div class="mech-stat">Catalyst: <span>${m.catalyst}</span></div>${bp}`;
-
-  // Step cards
-  document.getElementById('mech-steps-row').innerHTML = m.steps.map((st, i) =>
-    `<div class="mech-step-card">
-       <div class="mech-step-num">Step ${i+1}</div>
-       <div class="mech-step-title">${st.title}</div>
-       <div class="mech-step-text">${st.text}</div>
-     </div>`
-  ).join('');
-
-  // Description
-  document.getElementById('mech-desc-row').textContent = m.desc;
-
-  // Reset animation
-  mechAnimStep = 0;
-  clearInterval(mechAnimTimer); mechAnimTimer = null;
-  renderMechFrame(0);
-  document.getElementById('mech-anim-label').textContent = 'Press ▶ Play to animate';
-  document.getElementById('btn-mech-play').textContent = '▶ Play';
+  document.getElementById('mech-desc-row').textContent=m.desc;
+  renderMechFrame();
 }
 
-function renderMechFrame(step) {
-  const m   = MECH[activeKey];
-  const svg = document.getElementById('svg-mech-anim');
-  const MAX = 12;
-  if (m.anim === 'chain') {
-    svg.innerHTML = chainGrowthSVG(step, m.animCol, MAX);
-    document.getElementById('mech-anim-label').textContent =
-      step === 0 ? 'Chain initiates from radical end →' :
-      step < MAX  ? `Propagating — mer ${step} of ${MAX} added` :
-                    'Chain complete (termination)';
-  } else if (m.anim === 'step') {
-    const colB = m.animCol === '#44dd88' ? '#ffaa44' : '#44aaff';
-    svg.innerHTML = stepGrowthSVG(step, m.animCol, colB, m.byproduct);
-    document.getElementById('mech-anim-label').textContent =
-      ['All monomers — chains length 1','Condensation coupling — dimers form',
-       'Dimers couple — tetramers form','Higher coupling — still moderate MW'][Math.min(step,3)];
-  } else if (m.anim === 'rop') {
-    svg.innerHTML = ropSVG(step, m.animCol, MAX);
-    document.getElementById('mech-anim-label').textContent =
-      step === 0 ? 'Ring-opening initiates →' :
-      step < MAX  ? `Ring ${step} opened — chain length ${step}` :
-                    'All rings opened — linear chain complete';
-  }
-}
-
-function startMechAnim() {
-  const m = MECH[activeKey];
-  const MAX = m.anim === 'step' ? 3 : 12;
-  const interval = m.anim === 'chain' ? 180 : m.anim === 'rop' ? 320 : 900;
-  document.getElementById('btn-mech-play').textContent = '⏸ Pause';
-  mechAnimTimer = setInterval(() => {
-    mechAnimStep++;
-    renderMechFrame(mechAnimStep);
-    if (mechAnimStep >= MAX) {
-      clearInterval(mechAnimTimer); mechAnimTimer = null;
-      document.getElementById('btn-mech-play').textContent = '▶ Play';
-    }
-  }, interval);
-}
-
-document.getElementById('btn-mech-play').addEventListener('click', () => {
-  const m = MECH[activeKey]; if (!m) return;
-  if (mechAnimTimer) {
-    clearInterval(mechAnimTimer); mechAnimTimer = null;
-    document.getElementById('btn-mech-play').textContent = '▶ Play';
+function renderMechFrame(){
+  const m=MECH[activeKey]; if(!m) return;
+  const svg=document.getElementById('svg-mech-anim');
+  // Draw correct SVG based on step and mechanism type
+  if(mechStep===0){
+    if(m.anim==='chain')      svg.innerHTML=activeKey==='PI'?dieneInitSVG():vinylInitSVG(activeKey);
+    else if(m.anim==='step')  svg.innerHTML=condensInitSVG(activeKey);
+    else                      svg.innerHTML=ropInitSVG(activeKey);
+  } else if(mechStep===1){
+    if(m.anim==='chain')      svg.innerHTML=activeKey==='PI'?drawDieneChain(mechPropN):drawVinylChain(activeKey,mechPropN);
+    else if(m.anim==='step')  svg.innerHTML=drawCondChain(activeKey,mechPropN);
+    else                      svg.innerHTML=drawROPChain(activeKey,mechPropN);
+    document.getElementById('mech-prop-counter').textContent=`${mechPropN} / 10 units`;
   } else {
-    const MAX = m.anim === 'step' ? 3 : 12;
-    if (mechAnimStep >= MAX) { mechAnimStep = 0; renderMechFrame(0); }
+    if(m.anim==='chain')      svg.innerHTML=activeKey==='PI'?dieneTermSVG():vinylTermSVG(activeKey);
+    else if(m.anim==='step')  svg.innerHTML=condensTermSVG();
+    else                      svg.innerHTML=ropTermSVG(activeKey);
+  }
+  // Step annotation from MECH data
+  const st=m.steps[Math.min(mechStep,m.steps.length-1)];
+  document.getElementById('mech-step-ann').innerHTML=`<strong>${st.title}:</strong> ${st.text}`;
+  // Show prop controls only on propagation tab
+  document.getElementById('mech-prop-ctrl').classList.toggle('show',mechStep===1);
+}
+
+function startMechAnim(){
+  if(mechStep!==1) return;
+  const m=MECH[activeKey];
+  const interval=m.anim==='step'?800:300;
+  document.getElementById('btn-mech-play').textContent='⏸ Pause';
+  mechAnimTimer=setInterval(()=>{
+    if(mechPropN>=10){
+      clearInterval(mechAnimTimer);mechAnimTimer=null;
+      document.getElementById('btn-mech-play').textContent='▶ Animate';
+      return;
+    }
+    mechPropN++; renderMechFrame();
+  },interval);
+}
+
+// ── Mech tab buttons ──────────────────────────────────────────
+document.querySelectorAll('.mech-tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const step=+btn.dataset.step;
+    mechStep=step; mechPropN=0;
+    clearInterval(mechAnimTimer);mechAnimTimer=null;
+    document.getElementById('btn-mech-play').textContent='▶ Animate';
+    document.querySelectorAll('.mech-tab-btn').forEach(b=>b.classList.toggle('active',b===btn));
+    renderMechFrame();
+  });
+});
+
+document.getElementById('btn-mech-prev').addEventListener('click',()=>{
+  if(mechPropN>0){mechPropN--;renderMechFrame();}
+});
+document.getElementById('btn-mech-next').addEventListener('click',()=>{
+  if(mechPropN<10){mechPropN++;renderMechFrame();}
+});
+
+document.getElementById('btn-mech-play').addEventListener('click',()=>{
+  if(!MECH[activeKey]) return;
+  if(mechAnimTimer){
+    clearInterval(mechAnimTimer);mechAnimTimer=null;
+    document.getElementById('btn-mech-play').textContent='▶ Animate';
+  } else {
+    if(mechPropN>=10){mechPropN=0;renderMechFrame();}
     startMechAnim();
   }
 });
 
-document.getElementById('btn-mech-reset').addEventListener('click', () => {
-  clearInterval(mechAnimTimer); mechAnimTimer = null;
-  mechAnimStep = 0;
-  renderMechFrame(0);
-  document.getElementById('btn-mech-play').textContent = '▶ Play';
-  document.getElementById('mech-anim-label').textContent = 'Press ▶ Play to animate';
+document.getElementById('btn-mech-reset').addEventListener('click',()=>{
+  clearInterval(mechAnimTimer);mechAnimTimer=null;
+  mechPropN=0; renderMechFrame();
+  document.getElementById('btn-mech-play').textContent='▶ Animate';
 });
 
 document.getElementById('btn-mech-close').addEventListener('click', closeMech);
