@@ -193,6 +193,68 @@
     .quiz-msg.wrong   { color:#ff6655; }
     .quiz-msg.reveal  { color:#ffaa44; }
     .quiz-wrong-btn   { opacity:.28 !important; pointer-events:none !important; text-decoration:line-through; }
+    /* ── Polymerization Mechanism Panel ── */
+    #panel-mech {
+      position:absolute; inset:0; background:#0c0e1a;
+      display:none; flex-direction:column; align-items:stretch;
+      z-index:12; overflow:hidden;
+    }
+    #panel-mech.show { display:flex; }
+    #panel-mech-header {
+      display:flex; align-items:center; justify-content:center; gap:14px;
+      padding:9px 20px 7px; border-bottom:1px solid #1e2540; flex-shrink:0;
+    }
+    #panel-mech-title {
+      font-size:.65rem; color:#3a4a6a; letter-spacing:1.2px;
+      font-family:'Segoe UI',sans-serif; text-transform:uppercase; white-space:nowrap;
+    }
+    #panel-mech-scroll {
+      flex:1; overflow-x:auto; overflow-y:auto;
+      display:flex; flex-direction:column; align-items:center;
+      padding:12px 20px 16px; gap:12px;
+    }
+    .mech-type-badge {
+      display:inline-block; padding:4px 14px; border-radius:20px;
+      font-size:.72rem; font-weight:700; letter-spacing:1.2px;
+      text-transform:uppercase; font-family:'Segoe UI',sans-serif;
+    }
+    .mech-stats {
+      display:flex; gap:20px; flex-wrap:wrap; justify-content:center;
+      font-size:.78rem; font-family:'Segoe UI',sans-serif;
+    }
+    .mech-stat { color:#5a7090; }
+    .mech-stat span { color:#8ab8d8; font-weight:600; }
+    .mech-anim-wrap {
+      background:#080a14; border:1px solid #1e2840; border-radius:6px;
+      overflow:hidden; width:100%; max-width:580px; flex-shrink:0;
+    }
+    .mech-anim-wrap svg { display:block; }
+    .mech-anim-controls {
+      display:flex; align-items:center; gap:8px; padding:6px 10px;
+      border-top:1px solid #1e2840; background:#0a0c18;
+    }
+    .mech-ctrl-btn {
+      background:#1a2840; border:1px solid #2a3860; color:#6090b8;
+      border-radius:4px; padding:3px 12px; font-size:.75rem;
+      cursor:pointer; font-family:'Segoe UI',sans-serif; transition:all .15s;
+    }
+    .mech-ctrl-btn:hover { background:#1e3860; color:#88c0e0; }
+    .mech-anim-label { flex:1; color:#2a4060; font-size:.72rem; font-family:monospace; }
+    .mech-steps {
+      display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;
+      width:100%; max-width:580px;
+    }
+    .mech-step-card {
+      background:#0e1020; border:1px solid #1e2840; border-radius:6px;
+      padding:10px 12px;
+    }
+    .mech-step-num  { font-size:.65rem; color:#3a5070; font-family:monospace; margin-bottom:3px; text-transform:uppercase; letter-spacing:.8px; }
+    .mech-step-title{ font-size:.8rem; font-weight:700; color:#88c0e0; margin-bottom:5px; }
+    .mech-step-text { font-size:.72rem; color:#6888a8; line-height:1.55; }
+    .mech-desc {
+      max-width:580px; font-size:.78rem; color:#5a7890; line-height:1.7;
+      font-family:'Segoe UI',sans-serif; text-align:center;
+    }
   </style>
 </head>
 <body>
@@ -273,6 +335,9 @@
       <div class="btn-row">
         <button class="tgl-btn" id="btn-quiz" style="background:#1a2830;border-color:#2a4850;color:#60a8b0;">🎯 Quiz Me</button>
       </div>
+      <div class="btn-row">
+        <button class="tgl-btn" id="btn-mech" style="background:#1a2030;border-color:#2a3850;color:#6080a0;">⚗️ Polymerization</button>
+      </div>
     </div>
   </div>
 
@@ -340,6 +405,27 @@
     </div>
     <div id="panel-chart-scroll">
       <svg id="svg-chart" viewBox="0 0 600 400" width="600" height="400"></svg>
+    </div>
+  </div>
+  <!-- Polymerization mechanism overlay -->
+  <div id="panel-mech">
+    <div id="panel-mech-header">
+      <div id="panel-mech-title">Polymerization Mechanism</div>
+      <button class="view-btn" id="btn-mech-close">✕ Close</button>
+    </div>
+    <div id="panel-mech-scroll">
+      <div id="mech-type-row"></div>
+      <div class="mech-stats" id="mech-stats-row"></div>
+      <div class="mech-anim-wrap">
+        <svg id="svg-mech-anim" viewBox="0 0 580 100" width="580" height="100"></svg>
+        <div class="mech-anim-controls">
+          <button class="mech-ctrl-btn" id="btn-mech-play">▶ Play</button>
+          <button class="mech-ctrl-btn" id="btn-mech-reset">↺ Reset</button>
+          <span class="mech-anim-label" id="mech-anim-label"></span>
+        </div>
+      </div>
+      <div class="mech-steps" id="mech-steps-row"></div>
+      <div class="mech-desc"  id="mech-desc-row"></div>
     </div>
   </div>
   <!-- Quiz feedback bar -->
@@ -994,6 +1080,215 @@ const POLYMERS = {
   },
 
 };
+
+// ── Polymerization Mechanism Data ────────────────────────────
+const MECH = {
+  PE: {
+    type:'radical', label:'Free Radical (LDPE) / Ziegler-Natta (HDPE)',
+    typeCss:'background:#cc4400;color:#ffe0c0;',
+    monomer:'CH₂═CH₂', catalyst:'Peroxide or TiCl₄/AlR₃', byproduct:null,
+    anim:'chain', animCol:'#5588ff',
+    steps:[
+      {title:'Initiation',  text:'Peroxide homolysis → R· attacks C═C π bond of ethylene'},
+      {title:'Propagation', text:'Chain-end radical adds ethylene one-by-one (kₚ ~ 10³ L/mol·s)'},
+      {title:'Termination', text:'Combination or disproportionation; backbiting gives LDPE branching'},
+    ],
+    desc:'LDPE forms by high-pressure free radical polymerization — significant chain branching reduces crystallinity. HDPE uses Ziegler-Natta coordination catalysis for a linear, highly crystalline chain.',
+  },
+  aPP: {
+    type:'coordination', label:'Ziegler-Natta (Low Stereospecificity)',
+    typeCss:'background:#006688;color:#c0f0ff;',
+    monomer:'CH₂═CH(CH₃)', catalyst:'TiCl₄ / Al(C₂H₅)₃', byproduct:null,
+    anim:'chain', animCol:'#5588ff',
+    steps:[
+      {title:'Coordination', text:'Propylene coordinates at Ti active site via its π bond'},
+      {title:'Insertion',    text:'Random face selectivity → methyl placed up or down → atactic'},
+      {title:'Termination',  text:'β-hydride elimination → vinyl end group + Ti–H'},
+    ],
+    desc:'Atactic PP forms when the Ziegler-Natta catalyst lacks stereospecificity — propylene inserts from random faces, placing the methyl group randomly. The result is an amorphous rubbery solid with no Tm.',
+  },
+  iPP: {
+    type:'coordination', label:'Ziegler-Natta (Isospecific)',
+    typeCss:'background:#006688;color:#c0f0ff;',
+    monomer:'CH₂═CH(CH₃)', catalyst:'TiCl₄ / Al(C₂H₅)₃ (isospecific)', byproduct:null,
+    anim:'chain', animCol:'#5588ff',
+    steps:[
+      {title:'Coordination', text:'Propylene coordinates at sterically controlled Ti site — same face every time'},
+      {title:'Insertion',    text:'Consistent re or si face insertion → all methyl groups on same side'},
+      {title:'Termination',  text:'β-hydride elimination; new chain starts at Ti–H site'},
+    ],
+    desc:'Isotactic PP requires a stereospecific Ziegler-Natta catalyst. Propylene always coordinates from the same face, placing all methyl groups on one side of the chain and enabling the 3₁ helix and crystallization.',
+  },
+  sPP: {
+    type:'coordination', label:'Metallocene (Syndiospecific, Cs-symmetric)',
+    typeCss:'background:#006688;color:#c0f0ff;',
+    monomer:'CH₂═CH(CH₃)', catalyst:'Cs-symmetric metallocene / MAO', byproduct:null,
+    anim:'chain', animCol:'#5588ff',
+    steps:[
+      {title:'Coordination', text:'Cs-symmetric metallocene presents alternating enantiofaces to propylene'},
+      {title:'Insertion',    text:'Face alternates with each step → methyl flips above/below every mer'},
+      {title:'Termination',  text:'Chain transfer to monomer or β-hydride elimination'},
+    ],
+    desc:'Syndiotactic PP requires a Cs-symmetric metallocene that alternates the face of propylene insertion with every step. This strict alternation produces the TTGG helix and enables crystallization.',
+  },
+  aPS: {
+    type:'radical', label:'Free Radical Chain-Growth',
+    typeCss:'background:#cc4400;color:#ffe0c0;',
+    monomer:'CH₂═CH(C₆H₅)', catalyst:'AIBN or peroxide', byproduct:null,
+    anim:'chain', animCol:'#5588ff',
+    steps:[
+      {title:'Initiation',  text:'AIBN or peroxide generates radicals that attack styrene π bond'},
+      {title:'Propagation', text:'Benzylic radical stabilization; random phenyl orientation (atactic)'},
+      {title:'Termination', text:'Combination dominates; high MW but atactic → amorphous glass'},
+    ],
+    desc:'Atactic PS forms by free radical polymerization. The radical intermediate has no stereocontrol, placing phenyl groups randomly — preventing crystallization. Bulky phenyl groups raise Tg to 100°C.',
+  },
+  iPS: {
+    type:'anionic', label:'Anionic Living Polymerization',
+    typeCss:'background:#660088;color:#f0c0ff;',
+    monomer:'CH₂═CH(C₆H₅)', catalyst:'n-BuLi (organolithium)', byproduct:null,
+    anim:'chain', animCol:'#aa66ff',
+    steps:[
+      {title:'Initiation',  text:'n-BuLi adds to styrene → carbanion stabilized by phenyl ring'},
+      {title:'Propagation', text:'"Living" chain — no termination; isotactic placement at low T'},
+      {title:'Quench',      text:'Deliberately quenched with MeOH; PDI ≈ 1.05; narrow MW distribution'},
+    ],
+    desc:'Anionic polymerization produces living chains with no termination and very narrow PDI (≈1.05). The carbanion propagates continuously until deliberately quenched — ideal for block copolymers and controlled architectures.',
+  },
+  PVC: {
+    type:'radical', label:'Free Radical Chain-Growth',
+    typeCss:'background:#cc4400;color:#ffe0c0;',
+    monomer:'CH₂═CHCl', catalyst:'Peroxide or AIBN', byproduct:null,
+    anim:'chain', animCol:'#5588ff',
+    steps:[
+      {title:'Initiation',  text:'Radical attacks vinyl chloride; Cl is electron-withdrawing'},
+      {title:'Propagation', text:'Head-to-tail addition; Cl placed randomly → atactic'},
+      {title:'Termination', text:'Combination; labile C–Cl bonds degrade above ~100°C (HCl evolution)'},
+    ],
+    desc:'PVC forms by free radical polymerization of vinyl chloride. The polar C–Cl bonds raise Tg to 82°C but also cause thermal lability — PVC requires stabilizers to prevent HCl elimination during processing.',
+  },
+  PMMA: {
+    type:'radical', label:'Free Radical Chain-Growth',
+    typeCss:'background:#cc4400;color:#ffe0c0;',
+    monomer:'CH₂═C(CH₃)(COOCH₃)', catalyst:'AIBN or peroxide', byproduct:null,
+    anim:'chain', animCol:'#5588ff',
+    steps:[
+      {title:'Initiation',  text:'Radical attacks MMA; α-methyl group adds steric bulk at chain end'},
+      {title:'Propagation', text:'1,2-addition; ester groups restrict rotation and raise Tg'},
+      {title:'Termination', text:'Disproportionation favored due to steric hindrance at chain end'},
+    ],
+    desc:'PMMA forms by free radical polymerization. α-methyl and ester side groups together give a rigid transparent amorphous polymer (Tg = 105°C) used in optical applications and as bone cement in orthopaedics.',
+  },
+  PTFE: {
+    type:'radical', label:'Free Radical Emulsion Polymerization',
+    typeCss:'background:#cc4400;color:#ffe0c0;',
+    monomer:'CF₂═CF₂', catalyst:'Persulfate initiator (aqueous emulsion)', byproduct:null,
+    anim:'chain', animCol:'#80ddff',
+    steps:[
+      {title:'Initiation',  text:'Persulfate radical attacks TFE in aqueous emulsion at elevated pressure'},
+      {title:'Propagation', text:'Very fast; fluorines completely shield the backbone (no H-bonding)'},
+      {title:'Termination', text:'Combination; extraordinarily high MW (10⁶–10⁷); insoluble in all solvents'},
+    ],
+    desc:'PTFE forms by emulsion polymerization of tetrafluoroethylene. C–F bonds (strongest in organic chemistry) give exceptional chemical inertness. The symmetric backbone gives very low Tg (−113°C) yet high Tm (327°C) from crystalline packing.',
+  },
+  PI: {
+    type:'anionic', label:'Anionic / Coordination Chain-Growth',
+    typeCss:'background:#660088;color:#f0c0ff;',
+    monomer:'CH₂═C(CH₃)–CH═CH₂', catalyst:'n-BuLi or Ziegler-Natta', byproduct:null,
+    anim:'chain', animCol:'#aa66ff',
+    steps:[
+      {title:'Initiation',  text:'Carbanion initiates 1,4-addition to the isoprene diene system'},
+      {title:'Propagation', text:'cis-1,4 selectivity with Li counterion → natural rubber microstructure'},
+      {title:'Termination', text:'Living chains quenched with MeOH; can form star/block architectures'},
+    ],
+    desc:'cis-1,4-Polyisoprene (natural rubber) is produced biologically by Hevea enzyme polymerization. Synthetic PI uses n-BuLi anionic initiation. The cis double bond creates the kinked backbone responsible for rubber elasticity at body temperature.',
+  },
+  pHEMA: {
+    type:'radical', label:'Free Radical Chain-Growth',
+    typeCss:'background:#cc4400;color:#ffe0c0;',
+    monomer:'CH₂═C(CH₃)(COOC₂H₄OH)', catalyst:'AIBN or redox initiator', byproduct:null,
+    anim:'chain', animCol:'#5588ff',
+    steps:[
+      {title:'Initiation',  text:'Radical attacks HEMA; hydroxyl pendant groups are water-compatible'},
+      {title:'Propagation', text:'Rapid chain growth; hydroxyethyl ester groups pendant on backbone'},
+      {title:'Termination', text:'Combination; cross-linking with EGDMA produces hydrogel network'},
+    ],
+    desc:'pHEMA forms by free radical polymerization of 2-hydroxyethyl methacrylate. Hydroxyl groups make it hydrophilic and biocompatible — the first synthetic hydrogel, invented by Wichterle & Lím in 1960 for soft contact lenses.',
+  },
+  iPLA: {
+    type:'rop', label:'Ring-Opening Polymerization (ROP)',
+    typeCss:'background:#007744;color:#c0ffe0;',
+    monomer:'L-Lactide (cyclic diester)', catalyst:'Sn(Oct)₂ or organocatalyst', byproduct:null,
+    anim:'rop', animCol:'#44dd88',
+    steps:[
+      {title:'Activation',    text:'Sn(Oct)₂ / R–OH opens one C–O bond of the lactide ring'},
+      {title:'Propagation',   text:'Growing alkoxide attacks next lactide; controlled, near-living character'},
+      {title:'Chain Control', text:'MW = [lactide]/[initiator] × 144 g/mol; PDI ~ 1.1; stereosequence preserved'},
+    ],
+    desc:'PLLA forms by ring-opening polymerization of L-lactide (the cyclic diester of L-lactic acid). ROP gives precise MW control with narrow PDI. The all-L stereosequence enables crystallization; ester linkages allow in vivo hydrolytic degradation.',
+  },
+  Nylon66: {
+    type:'condensation', label:'Condensation Step-Growth',
+    typeCss:'background:#885500;color:#ffe8a0;',
+    monomer:'HO₂C(CH₂)₄CO₂H + H₂N(CH₂)₆NH₂', catalyst:'Heat (270°C)', byproduct:'H₂O',
+    anim:'step', animCol:'#44dd88',
+    steps:[
+      {title:'Salt Formation', text:'Adipic acid + HMDA → nylon salt — guarantees exact 1:1 stoichiometry'},
+      {title:'Propagation',    text:'Any amine reacts with any acid end; random coupling of oligomers; H₂O expelled'},
+      {title:'High Conversion',text:'MW rises sharply only above 99% conversion: X̄ₙ = 1/(1–p) (Carothers equation)'},
+    ],
+    desc:'Nylon 6,6 forms by condensation of adipic acid and hexamethylenediamine. Step-growth kinetics require >99% conversion for high MW — a fundamental contrast to chain-growth. H-bonding between amide groups gives Tm = 265°C.',
+  },
+  PDMS: {
+    type:'condensation', label:'Hydrolysis-Condensation / ROP',
+    typeCss:'background:#885500;color:#ffe8a0;',
+    monomer:'(CH₃)₂SiCl₂', catalyst:'H₂O then acid/base', byproduct:'HCl / H₂O',
+    anim:'step', animCol:'#ffaa44',
+    steps:[
+      {title:'Hydrolysis',    text:'Cl₂SiMe₂ + H₂O → HO–SiMe₂–OH (silanol) + 2 HCl'},
+      {title:'Condensation',  text:'Silanols condense: Si–OH + HO–Si → Si–O–Si + H₂O'},
+      {title:'Chain Control', text:'Cyclic oligomers (D4/D5) can be ROP-opened for narrow-PDI linear chains'},
+    ],
+    desc:'PDMS forms by hydrolysis and condensation of dimethyldichlorosilane, or by ROP of cyclic oligomers (D4/D5). The Si–O backbone is the most flexible of any common polymer (Tg = −127°C) and thermally stable to 250°C.',
+  },
+  PET: {
+    type:'condensation', label:'Melt Polycondensation (Esterification)',
+    typeCss:'background:#885500;color:#ffe8a0;',
+    monomer:'Ethylene glycol + terephthalic acid', catalyst:'Sb₂O₃ or Ti catalyst', byproduct:'H₂O / MeOH',
+    anim:'step', animCol:'#44dd88',
+    steps:[
+      {title:'Transesterification', text:'DMT + ethylene glycol → bis-hydroxyethyl terephthalate + MeOH'},
+      {title:'Polycondensation',    text:'Oligomers condense under vacuum at 280°C; glycol expelled as vapor'},
+      {title:'Solid-State',         text:'Final high-MW grade polymerized below Tm in solid state to prevent degradation'},
+    ],
+    desc:'PET forms by melt polycondensation of ethylene glycol with terephthalic acid. The aromatic ester backbone gives Tg = 80°C and Tm = 260°C. Vacuum is essential to remove byproducts and drive the equilibrium toward high MW.',
+  },
+  PEEK: {
+    type:'condensation', label:'Nucleophilic Aromatic Substitution (SNAr)',
+    typeCss:'background:#885500;color:#ffe8a0;',
+    monomer:"4,4'-difluorobenzophenone + hydroquinone", catalyst:'K₂CO₃ / sulfolane, 300°C', byproduct:'KF',
+    anim:'step', animCol:'#44dd88',
+    steps:[
+      {title:'Activation',   text:'K₂CO₃ deprotonates hydroquinone → phenoxide; C═O group activates C–F bond'},
+      {title:'Substitution', text:'Phenoxide attacks C–F via Meisenheimer complex (SNAr); F⁻ expelled as KF'},
+      {title:'Propagation',  text:'Alternating aromatic SNAr builds rigid-rod aromatic chain at ~300°C'},
+    ],
+    desc:'PEEK is made by nucleophilic aromatic substitution at 300°C. The rigid all-aromatic backbone gives the highest Tg (145°C) and Tm (343°C) of common engineering polymers, along with exceptional chemical resistance and biocompatibility.',
+  },
+  PEO: {
+    type:'rop', label:'Ring-Opening Polymerization (ROP)',
+    typeCss:'background:#007744;color:#c0ffe0;',
+    monomer:'Ethylene oxide (3-membered ring)', catalyst:'KOH / alkoxide initiator', byproduct:null,
+    anim:'rop', animCol:'#44dd88',
+    steps:[
+      {title:'Initiation',  text:'Alkoxide nucleophile attacks strained ethylene oxide ring → O-alkylation, ring opens'},
+      {title:'Propagation', text:'Growing alkoxide opens successive EO rings; living character; narrow PDI'},
+      {title:'Termination', text:'Protonation of alkoxide end; MW = [EO]/[initiator] × 44 g/mol'},
+    ],
+    desc:'PEO forms by ring-opening polymerization of ethylene oxide (oxirane). The strained 3-membered ring drives the reaction thermodynamically. The ether oxygens give hydrophilicity (Tg = −67°C) while chain regularity enables crystallization (Tm = 67°C).',
+  },
+};
+
 
 // ═══════════════════════════════════════════════════
 //  CHAIN BUILDER
@@ -1951,6 +2246,233 @@ document.getElementById('btn-chart').addEventListener('click', function () {
     buildChart();
   } else {
     this.style.cssText = 'background:#1a2830;border-color:#2a4850;color:#60a8b0;';
+  }
+});
+
+// ── Polymerization Mechanism Panel ───────────────────────────
+let mechVisible  = false;
+let mechAnimTimer = null;
+let mechAnimStep  = 0;
+const panelMech  = document.getElementById('panel-mech');
+
+function closeMech() {
+  mechVisible = false;
+  clearInterval(mechAnimTimer); mechAnimTimer = null;
+  panelMech.classList.remove('show');
+  const btn = document.getElementById('btn-mech');
+  btn.classList.remove('on');
+  btn.style.cssText = 'background:#1a2030;border-color:#2a3850;color:#6080a0;';
+}
+
+// ── Animation helpers ─────────────────────────────────────────
+function hexPoly(cx, cy, r) {
+  const pts = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (i * 60 - 30) * Math.PI / 180;
+    pts.push(`${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`);
+  }
+  return pts.join(' ');
+}
+
+// Chain-growth: return SVG string for given mer count
+function chainGrowthSVG(count, col, maxMers) {
+  const W=580, H=100, mw=28, mh=28, gap=3;
+  let s = `<rect width="${W}" height="${H}" fill="#080a14"/>`;
+  for (let i = 0; i < count; i++) {
+    const x = 12 + i * (mw + gap), y = (H - mh) / 2;
+    const fresh = i === count - 1;
+    s += `<rect x="${x}" y="${y}" width="${mw}" height="${mh}" fill="${col}" rx="3" opacity="${fresh ? 1 : 0.72}"/>`;
+    if (fresh) s += `<rect x="${x}" y="${y}" width="${mw}" height="${mh}" fill="none" stroke="#fff" stroke-width="1.5" rx="3" opacity="0.5"/>`;
+    if (i > 0) s += `<line x1="${x}" y1="${H/2}" x2="${x - gap}" y2="${H/2}" stroke="${col}" stroke-width="3"/>`;
+  }
+  if (count > 0) {
+    const ex = 12 + count * (mw + gap);
+    s += `<text x="${ex+2}" y="${H/2+5}" fill="#ff5555" font-size="15" font-weight="bold" font-family="monospace">·</text>`;
+  }
+  const rem = maxMers - count;
+  const label = rem > 0 ? `${rem} monomers in feed` : '⛓ High MW achieved rapidly';
+  s += `<text x="${W-8}" y="${H-7}" fill="#2a4060" font-size="9" text-anchor="end" font-family="monospace">n = ${count}  |  ${label}</text>`;
+  return s;
+}
+
+// Step-growth: pre-computed layout states (monomers → dimers → tetramers → octamer)
+function stepGrowthSVG(state, colA, colB, byproduct) {
+  const W=580, H=100, mw=24, mh=24, gap=2, y=(H-mh)/2;
+  let s = `<rect width="${W}" height="${H}" fill="#080a14"/>`;
+  // state 0 = 8 monomers, state 1 = 4 dimers, state 2 = 2 tetramers, state 3 = 1 octamer
+  const configs = [
+    { chains:[[0],[1],[2],[3],[4],[5],[6],[7]], conv:'0%',  label:'Monomers (n=1 each)' },
+    { chains:[[0,1],[2,3],[4,5],[6,7]],        conv:'50%', label:'Dimers — low MW (n=2)' },
+    { chains:[[0,1,2,3],[4,5,6,7]],            conv:'75%', label:'Tetramers (n=4)' },
+    { chains:[[0,1,2,3,4,5,6,7]],              conv:'87.5%', label:'Octamer (n=8) — still need 99%+ for high MW!' },
+  ];
+  const cfg = configs[Math.min(state, 3)];
+  const totalW = 8 * mw + 7 * gap;
+  const chainSep = 20;
+  // Compute starting x for each chain so they spread evenly
+  const chainWidths = cfg.chains.map(c => c.length * mw + (c.length - 1) * gap);
+  const totalUsed  = chainWidths.reduce((a, b) => a + b, 0) + (cfg.chains.length - 1) * chainSep;
+  let cx = (W - totalUsed) / 2;
+
+  cfg.chains.forEach((chain, ci) => {
+    const cw = chainWidths[ci];
+    chain.forEach((merIdx, mi) => {
+      const x = cx + mi * (mw + gap);
+      const col = merIdx % 2 === 0 ? colA : colB;
+      s += `<rect x="${x}" y="${y}" width="${mw}" height="${mh}" fill="${col}" rx="3" opacity="0.85"/>`;
+      if (mi > 0) s += `<line x1="${x}" y1="${H/2}" x2="${x-gap}" y2="${H/2}" stroke="${col}" stroke-width="2.5"/>`;
+    });
+    cx += cw + chainSep;
+  });
+
+  // Byproduct label
+  if (state > 0 && byproduct) {
+    s += `<text x="${W/2}" y="14" fill="#886644" font-size="9" text-anchor="middle" font-family="monospace">+ ${state * 4} × ${byproduct} released</text>`;
+  }
+  s += `<text x="${W-8}" y="${H-7}" fill="#2a4060" font-size="9" text-anchor="end" font-family="monospace">Conversion ≈ ${cfg.conv}  |  ${cfg.label}</text>`;
+  return s;
+}
+
+// ROP: growing chain + ring pool on right
+function ropSVG(count, col, maxRings) {
+  const W=580, H=100, mw=28, mh=28, gap=3, y=(H-mh)/2;
+  let s = `<rect width="${W}" height="${H}" fill="#080a14"/>`;
+  // Draw opened chain on left
+  for (let i = 0; i < count; i++) {
+    const x = 12 + i * (mw + gap);
+    const fresh = i === count - 1;
+    s += `<rect x="${x}" y="${y}" width="${mw}" height="${mh}" fill="${col}" rx="3" opacity="${fresh?1:0.72}"/>`;
+    if (fresh) s += `<rect x="${x}" y="${y}" width="${mw}" height="${mh}" fill="none" stroke="#fff" stroke-width="1.5" rx="3" opacity="0.5"/>`;
+    if (i > 0) s += `<line x1="${x}" y1="${H/2}" x2="${x-gap}" y2="${H/2}" stroke="${col}" stroke-width="3"/>`;
+  }
+  // Draw remaining rings on right
+  const ringR = 13;
+  const ringStart = W - 20 - (maxRings - count) * (ringR * 2 + 8);
+  for (let i = 0; i < maxRings - count; i++) {
+    const rcx = ringStart + i * (ringR * 2 + 8) + ringR;
+    const rcy = H / 2;
+    s += `<polygon points="${hexPoly(rcx, rcy, ringR)}" fill="${col}" stroke="#fff" stroke-width="1" opacity="0.6"/>`;
+    // Show the "ring" opening slash
+    s += `<line x1="${rcx-ringR*0.5}" y1="${rcy-ringR*0.8}" x2="${rcx+ringR*0.5}" y2="${rcy+ringR*0.8}" stroke="#fff" stroke-width="1" opacity="0.3"/>`;
+  }
+  const rem = maxRings - count;
+  s += `<text x="${W-8}" y="${H-7}" fill="#2a4060" font-size="9" text-anchor="end" font-family="monospace">n = ${count}  |  ${rem} rings remaining</text>`;
+  return s;
+}
+
+// ── Build mechanism panel ─────────────────────────────────────
+function buildMechPanel() {
+  const m = MECH[activeKey];
+  if (!m) return;
+
+  // Type badge
+  document.getElementById('mech-type-row').innerHTML =
+    `<span class="mech-type-badge" style="${m.typeCss}">⚗ ${m.label}</span>`;
+
+  // Stats row
+  const bp = m.byproduct ? `<div class="mech-stat">Byproduct: <span>${m.byproduct}</span></div>` : '';
+  document.getElementById('mech-stats-row').innerHTML =
+    `<div class="mech-stat">Monomer: <span>${m.monomer}</span></div>
+     <div class="mech-stat">Catalyst: <span>${m.catalyst}</span></div>${bp}`;
+
+  // Step cards
+  document.getElementById('mech-steps-row').innerHTML = m.steps.map((st, i) =>
+    `<div class="mech-step-card">
+       <div class="mech-step-num">Step ${i+1}</div>
+       <div class="mech-step-title">${st.title}</div>
+       <div class="mech-step-text">${st.text}</div>
+     </div>`
+  ).join('');
+
+  // Description
+  document.getElementById('mech-desc-row').textContent = m.desc;
+
+  // Reset animation
+  mechAnimStep = 0;
+  clearInterval(mechAnimTimer); mechAnimTimer = null;
+  renderMechFrame(0);
+  document.getElementById('mech-anim-label').textContent = 'Press ▶ Play to animate';
+  document.getElementById('btn-mech-play').textContent = '▶ Play';
+}
+
+function renderMechFrame(step) {
+  const m   = MECH[activeKey];
+  const svg = document.getElementById('svg-mech-anim');
+  const MAX = 12;
+  if (m.anim === 'chain') {
+    svg.innerHTML = chainGrowthSVG(step, m.animCol, MAX);
+    document.getElementById('mech-anim-label').textContent =
+      step === 0 ? 'Chain initiates from radical end →' :
+      step < MAX  ? `Propagating — mer ${step} of ${MAX} added` :
+                    'Chain complete (termination)';
+  } else if (m.anim === 'step') {
+    const colB = m.animCol === '#44dd88' ? '#ffaa44' : '#44aaff';
+    svg.innerHTML = stepGrowthSVG(step, m.animCol, colB, m.byproduct);
+    document.getElementById('mech-anim-label').textContent =
+      ['All monomers — chains length 1','Condensation coupling — dimers form',
+       'Dimers couple — tetramers form','Higher coupling — still moderate MW'][Math.min(step,3)];
+  } else if (m.anim === 'rop') {
+    svg.innerHTML = ropSVG(step, m.animCol, MAX);
+    document.getElementById('mech-anim-label').textContent =
+      step === 0 ? 'Ring-opening initiates →' :
+      step < MAX  ? `Ring ${step} opened — chain length ${step}` :
+                    'All rings opened — linear chain complete';
+  }
+}
+
+function startMechAnim() {
+  const m = MECH[activeKey];
+  const MAX = m.anim === 'step' ? 3 : 12;
+  const interval = m.anim === 'chain' ? 180 : m.anim === 'rop' ? 320 : 900;
+  document.getElementById('btn-mech-play').textContent = '⏸ Pause';
+  mechAnimTimer = setInterval(() => {
+    mechAnimStep++;
+    renderMechFrame(mechAnimStep);
+    if (mechAnimStep >= MAX) {
+      clearInterval(mechAnimTimer); mechAnimTimer = null;
+      document.getElementById('btn-mech-play').textContent = '▶ Play';
+    }
+  }, interval);
+}
+
+document.getElementById('btn-mech-play').addEventListener('click', () => {
+  const m = MECH[activeKey]; if (!m) return;
+  if (mechAnimTimer) {
+    clearInterval(mechAnimTimer); mechAnimTimer = null;
+    document.getElementById('btn-mech-play').textContent = '▶ Play';
+  } else {
+    const MAX = m.anim === 'step' ? 3 : 12;
+    if (mechAnimStep >= MAX) { mechAnimStep = 0; renderMechFrame(0); }
+    startMechAnim();
+  }
+});
+
+document.getElementById('btn-mech-reset').addEventListener('click', () => {
+  clearInterval(mechAnimTimer); mechAnimTimer = null;
+  mechAnimStep = 0;
+  renderMechFrame(0);
+  document.getElementById('btn-mech-play').textContent = '▶ Play';
+  document.getElementById('mech-anim-label').textContent = 'Press ▶ Play to animate';
+});
+
+document.getElementById('btn-mech-close').addEventListener('click', closeMech);
+
+document.getElementById('btn-mech').addEventListener('click', function () {
+  if (show2D) {
+    show2D = false; panel2d.classList.remove('show');
+    document.getElementById('btn-2d').classList.remove('on');
+    document.getElementById('btn-2d').style.cssText = 'background:#1a2040;border-color:#3a5080;color:#7090c0;';
+  }
+  if (chartVisible) closeChart();
+  if (quizMode)     { /* keep quiz, just overlay */ }
+  mechVisible = !mechVisible;
+  panelMech.classList.toggle('show', mechVisible);
+  this.classList.toggle('on', mechVisible);
+  if (mechVisible) {
+    this.style.cssText = 'background:#0a1828;border-color:#2255aa;color:#66aaff;';
+    buildMechPanel();
+  } else {
+    this.style.cssText = 'background:#1a2030;border-color:#2a3850;color:#6080a0;';
   }
 });
 
