@@ -260,6 +260,33 @@
       max-width:700px; font-size:.78rem; color:#5a7890; line-height:1.7;
       font-family:'Segoe UI',sans-serif; text-align:center;
     }
+    /* ── Degradation & Biostability Panel ── */
+    #panel-deg { position:absolute; inset:0; background:#0c0e1a; display:none;
+      flex-direction:column; align-items:stretch; z-index:13; overflow:hidden; }
+    #panel-deg.show { display:flex; }
+    #panel-deg-header { display:flex; align-items:center; justify-content:center; gap:14px;
+      padding:9px 20px 7px; border-bottom:1px solid #1e2540; flex-shrink:0; }
+    #panel-deg-title { font-size:.65rem; color:#3a4a6a; letter-spacing:1.2px;
+      font-family:'Segoe UI',sans-serif; text-transform:uppercase; white-space:nowrap; }
+    #panel-deg-scroll { flex:1; overflow-x:auto; overflow-y:auto;
+      display:flex; flex-direction:column; align-items:center;
+      padding:12px 20px 16px; gap:12px; }
+    .deg-badge { display:inline-block; padding:4px 14px; border-radius:20px;
+      font-size:.72rem; font-weight:700; letter-spacing:1.2px;
+      text-transform:uppercase; font-family:'Segoe UI',sans-serif; }
+    .deg-badge-biostable       { background:#1a2030; color:#4a88cc; border:1px solid #2a4060; }
+    .deg-badge-hydrolytic      { background:#2a1808; color:#ffaa44; border:1px solid #663300; }
+    .deg-badge-slow-hydrolytic { background:#221408; color:#cc8833; border:1px solid #553300; }
+    .deg-badge-oxidative       { background:#281010; color:#ff7744; border:1px solid #662200; }
+    .deg-badge-slow-oxidative  { background:#201818; color:#dd7733; border:1px solid #441800; }
+    .deg-badge-hydrogel        { background:#082020; color:#44bbaa; border:1px solid #226655; }
+    .deg-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px;
+      width:100%; max-width:680px; }
+    .deg-cell { background:#0a0c1c; border:1px solid #1a2040; border-radius:6px; padding:9px 12px; }
+    .deg-cell-label { font-size:.62rem; color:#3a5070; text-transform:uppercase;
+      letter-spacing:.8px; margin-bottom:4px; }
+    .deg-cell-value { font-size:.82rem; color:#8ab8d8; font-weight:600; line-height:1.4; }
+    .deg-cell-note  { font-size:.72rem; color:#5a7890; margin-top:3px; line-height:1.5; }
   </style>
 </head>
 <body>
@@ -342,6 +369,9 @@
       </div>
       <div class="btn-row">
         <button class="tgl-btn" id="btn-mech" style="background:#1a2030;border-color:#2a3850;color:#6080a0;">⚗️ Polymerization</button>
+      </div>
+      <div class="btn-row">
+        <button class="tgl-btn" id="btn-deg" style="background:#1a1830;border-color:#3a2860;color:#8060a0;">🧪 Degradation</button>
       </div>
     </div>
   </div>
@@ -436,6 +466,21 @@
       </div>
       <div class="mech-step-ann" id="mech-step-ann"></div>
       <div class="mech-desc"  id="mech-desc-row"></div>
+    </div>
+  </div>
+  <!-- Degradation & Biostability overlay -->
+  <div id="panel-deg">
+    <div id="panel-deg-header">
+      <div id="panel-deg-title">🧪 Degradation &amp; Biostability</div>
+      <button class="view-btn" id="btn-deg-close">✕ Close</button>
+    </div>
+    <div id="panel-deg-scroll">
+      <div id="deg-badge-row"></div>
+      <div class="mech-anim-wrap" style="max-width:680px">
+        <svg id="svg-deg" viewBox="0 0 680 160" width="680" height="160"></svg>
+      </div>
+      <div class="deg-grid" id="deg-grid-row"></div>
+      <div class="mech-desc" id="deg-desc-row"></div>
     </div>
   </div>
   <!-- Quiz feedback bar -->
@@ -1831,6 +1876,7 @@ document.querySelectorAll('.poly-btn:not(.disabled)').forEach(btn => {
     rebuildChain();
     if (show2D) render2D();
     if (mechVisible) buildMechPanel();
+    if (degVisible) buildDegPanel();
   });
 });
 
@@ -2249,6 +2295,7 @@ document.getElementById('btn-chart').addEventListener('click', function () {
     btn2d.classList.remove('on');
     btn2d.style.cssText = 'background:#1a2040;border-color:#3a5080;color:#7090c0;';
   }
+  if (degVisible) closeDeg();
   chartVisible = !chartVisible;
   panelChart.classList.toggle('show', chartVisible);
   this.classList.toggle('on', chartVisible);
@@ -2276,6 +2323,84 @@ function closeMech() {
   btn.classList.remove('on');
   btn.style.cssText = 'background:#1a2030;border-color:#2a3850;color:#6080a0;';
 }
+
+// ── Degradation Data ─────────────────────────────────────────
+const DEGRAD = {
+  PE:    { stab:'biostable',       bondType:'C–C backbone',
+           mechanism:'No hydrolyzable bonds; saturated C–C backbone is chemically inert under all physiological conditions.',
+           rate:0, halfLife:'Decades (permanent)', products:'None in vivo',
+           pH:null, clinical:'Joint liners (UHMWPE), tubing, suture anchors, bone plugs' },
+  aPP:   { stab:'biostable',       bondType:'C–C backbone',
+           mechanism:'No hydrolyzable bonds; all-carbon backbone with methyl side groups is biologically inert.',
+           rate:0, halfLife:'Decades (permanent)', products:'None in vivo',
+           pH:null, clinical:'Medical packaging, suture packaging; limited direct implant use' },
+  iPP:   { stab:'biostable',       bondType:'C–C backbone',
+           mechanism:'No hydrolyzable bonds; highly crystalline C–C backbone resists chemical attack.',
+           rate:0, halfLife:'Decades (permanent)', products:'None in vivo',
+           pH:null, clinical:'Mesh implants, sutures, sterilizable instrument trays' },
+  sPP:   { stab:'biostable',       bondType:'C–C backbone',
+           mechanism:'No hydrolyzable bonds; syndiotactic arrangement does not alter backbone chemical stability.',
+           rate:0, halfLife:'Decades (permanent)', products:'None in vivo',
+           pH:null, clinical:'Medical packaging, labware; not a primary implant material' },
+  aPS:   { stab:'biostable',       bondType:'C–C backbone',
+           mechanism:'No hydrolyzable bonds; phenyl rings on C–C backbone are chemically inert under physiological conditions.',
+           rate:0, halfLife:'Decades (permanent)', products:'None in vivo',
+           pH:null, clinical:'Cell culture dishes, diagnostic labware; not a primary implant material' },
+  iPS:   { stab:'biostable',       bondType:'C–C backbone',
+           mechanism:'No hydrolyzable bonds; isotactic phenyl arrangement does not affect backbone chemical stability.',
+           rate:0, halfLife:'Decades (permanent)', products:'None in vivo',
+           pH:null, clinical:'Research applications; not used as an implant material' },
+  PVC:   { stab:'biostable',       bondType:'C–C backbone',
+           mechanism:'C–C backbone is inert; Cl groups can release plasticizers (DEHP leaching) but the backbone itself does not hydrolyze.',
+           rate:0, halfLife:'Decades', products:'None (backbone); plasticizer leaching is a separate concern',
+           pH:null, clinical:'Blood bags, IV tubing — DEHP plasticizer migration is a regulatory concern' },
+  PMMA:  { stab:'biostable',       bondType:'C–C backbone',
+           mechanism:'C–C backbone is non-degradable; ester side chains (–COOCH₃) are sterically shielded and do not hydrolyze at physiological pH.',
+           rate:0, halfLife:'Decades (permanent)', products:'None in vivo',
+           pH:null, clinical:'Bone cement (Palacos), intraocular lenses, craniofacial reconstruction' },
+  PTFE:  { stab:'biostable',       bondType:'C–F backbone',
+           mechanism:'C–F bonds (~485 kJ/mol) are the strongest in organic chemistry; fully fluorinated backbone is immune to all physiological chemistry.',
+           rate:0, halfLife:'Permanent', products:'None',
+           pH:null, clinical:'ePTFE vascular grafts (Gore-Tex), ligament augmentation, soft tissue patches' },
+  PI:    { stab:'oxidative',       bondType:'C=C backbone',
+           mechanism:'Backbone C=C double bonds are susceptible to ozone and reactive oxygen species (ROS) — cleavage via Criegee mechanism yields aldehydes and ketones.',
+           rate:2, halfLife:'Years (ozone/ROS dependent)', products:'Aldehydes, ketones, carboxylic acids',
+           pH:null, clinical:'Not a primary implant material; latex allergy is critical concern in medical devices' },
+  pHEMA: { stab:'hydrogel',        bondType:'C–C backbone (swelling)',
+           mechanism:'Non-degradable C–C backbone; hydrophilic 2-hydroxyethyl side chains absorb ~38% water by weight at equilibrium — swelling, not chain scission.',
+           rate:0, halfLife:'Permanent (equilibrium swelling only)', products:'No degradation products',
+           pH:null, clinical:'Soft contact lenses, corneal implants, drug delivery hydrogels, wound dressings' },
+  iPLA:  { stab:'hydrolytic',      bondType:'Ester (C–O)',
+           mechanism:'Ester bond hydrolysis under physiological aqueous conditions; bulk erosion in amorphous regions, autocatalysis accelerates late-stage degradation.',
+           rate:3, halfLife:'6–24 months (MW and crystallinity dependent)',
+           products:'Lactic acid → CO₂ + H₂O via Krebs cycle',
+           pH:'Autocatalytic: lactic acid accumulation drops local pH, accelerating further ester hydrolysis',
+           clinical:'Resorbable sutures (Vicryl), bone screws, drug-delivery microspheres, tissue engineering scaffolds' },
+  Nylon66:{ stab:'slow-hydrolytic', bondType:'Amide (C–N)',
+           mechanism:'Amide bond hydrolysis; resonance stabilization of amide nitrogen makes it far slower than ester hydrolysis — years vs. months.',
+           rate:1, halfLife:'Years to decades in vivo', products:'Adipic acid + hexamethylenediamine (HMDA)',
+           pH:'Acid- and base-catalyzed; neutral physiological pH hydrolysis is negligible',
+           clinical:'Permanent sutures (Ethilon, Nurolon); not used as an intentionally degradable biomaterial' },
+  PDMS:  { stab:'biostable',       bondType:'Si–O backbone',
+           mechanism:'Si–O backbone is thermodynamically stable; hydrophobic methyl groups shield the siloxane chain from water — paradoxically biostable despite polar backbone.',
+           rate:0, halfLife:'Decades (permanent)', products:'None in vivo',
+           pH:null, clinical:'Breast implants, catheters, joint spacers, contact lenses, microfluidic devices' },
+  PET:   { stab:'slow-hydrolytic', bondType:'Ester (C–O, very slow)',
+           mechanism:'Ester bonds present but hydrolysis is extremely slow at physiological pH due to aromatic ring steric protection — effectively biostable in clinical timeframes.',
+           rate:1, halfLife:'Decades in vivo', products:'Terephthalic acid + ethylene glycol',
+           pH:'Significant only at pH extremes; negligible at pH 7.4 and 37°C',
+           clinical:'Vascular grafts (Dacron), surgical meshes, sutures — used as permanent material despite ester bonds' },
+  PEEK:  { stab:'biostable',       bondType:'Aromatic ether ketone',
+           mechanism:'Fully aromatic poly(aryl ether ketone) backbone; exceptional resistance to hydrolysis, oxidation, sterilization, and radiation — top-tier engineering biopolymer.',
+           rate:0, halfLife:'Permanent', products:'None',
+           pH:null, clinical:'Spinal interbody cages, bone plates, dental implants, cranial reconstruction — radiolucent alternative to titanium' },
+  PEO:   { stab:'slow-oxidative',  bondType:'Ether (C–O)',
+           mechanism:'Ether C–O bonds resist hydrolysis but are cleaved by reactive oxygen species (H₂O₂, superoxide) produced by macrophages during the inflammatory response.',
+           rate:2, halfLife:'Weeks–months (high MW, oxidative environment)',
+           products:'Ethylene glycol oligomers, low-MW aldehydes',
+           pH:'Oxidation-dependent (ROS generated by phagocytes), not pH-sensitive',
+           clinical:'PEGylation of therapeutic proteins/nanoparticles, anti-fouling coatings, hydrogel drug carriers' },
+};
 
 // ── Animation helpers ─────────────────────────────────────────
 function hexPoly(cx, cy, r) {
@@ -2322,6 +2447,252 @@ function sPhenyl(cx,cy,r=12,col='#aabbd0'){
     s+=sb(x1+ux*sh+ddx,y1+uy*sh+ddy,x2-ux*sh+ddx,y2-uy*sh+ddy,col,1.0);
   }
   return s;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DEGRADATION SVG BUILDERS
+// ═══════════════════════════════════════════════════════════════
+function biostableSVG(key) {
+  const backboneLabel = {
+    PTFE:'–CF₂–CF₂–CF₂–CF₂–CF₂–', PDMS:'–Si(CH₃)₂–O–Si(CH₃)₂–O–',
+    PEEK:'–Ar–O–Ar–C(=O)–Ar–O–',   PE:'–CH₂–CH₂–CH₂–CH₂–CH₂–',
+    aPP:'–CH₂–CH(CH₃)–CH₂–CH(CH₃)–', iPP:'–CH₂–CH(CH₃)–CH₂–CH(CH₃)–',
+    sPP:'–CH₂–CH(CH₃)–CH₂–CH(CH₃)–', aPS:'–CH₂–CH(Ph)–CH₂–CH(Ph)–',
+    iPS:'–CH₂–CH(Ph)–CH₂–CH(Ph)–',    PVC:'–CH₂–CHCl–CH₂–CHCl–',
+    PMMA:'–CH₂–C(CH₃)(COOCH₃)–CH₂–',
+  }[key] || '–C–C–C–C–C–';
+  let s = `<rect width="680" height="160" fill="#080a14"/>`;
+  // Zig-zag backbone
+  const nNodes=7, x0=60, y0=66, dy=20, dx=48;
+  for(let i=0;i<nNodes-1;i++){
+    const x1=x0+i*dx,y1=y0+(i%2===0?0:dy),x2=x0+(i+1)*dx,y2=y0+((i+1)%2===0?0:dy);
+    s+=sb(x1,y1,x2,y2,'#2a5878',2);
+  }
+  for(let i=0;i<nNodes;i++) s+=sDot(x0+i*dx,y0+(i%2===0?0:dy),'#2a5878',4);
+  s+=sa(x0-16,y0,'~~~','#1e3a50',11,'end');
+  s+=sa(x0+(nNodes-1)*dx+16,y0+dy,'~~~','#1e3a50',11,'start');
+  s+=sa(x0+3*dx,y0+dy/2-26,backboneLabel,'#3a6888',9);
+  s+=sa(x0+3*dx,y0+dy/2+32,'No hydrolyzable bonds · Chemically inert backbone','#2a5070',9);
+  // Shield
+  s+=`<circle cx="600" cy="74" r="38" fill="#091a0e" stroke="#22aa44" stroke-width="2.5"/>`;
+  s+=sa(600,66,'✓','#44cc66',26);
+  s+=sa(600,91,'BIOSTABLE','#22aa44',8);
+  // Rate bar — at far left
+  const bx=30,by=136,bw=620,bh=8;
+  s+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="4" fill="#0f1828"/>`;
+  s+=`<rect x="${bx}" y="${by}" width="28" height="${bh}" rx="4" fill="#22aa44"/>`;
+  s+=`<polygon points="${bx+14},${by-5} ${bx+9},${by+bh+3} ${bx+19},${by+bh+3}" fill="#33cc55"/>`;
+  s+=sa(bx,by+20,'Non-degradable','#22aa44',8,'start');
+  s+=sa(bx+bw*0.33,by+20,'Very Slow','#4a7080',8);
+  s+=sa(bx+bw*0.66,by+20,'Slow','#4a7080',8);
+  s+=sa(bx+bw,by+20,'Fast','#ff5533',8,'end');
+  return s;
+}
+
+function hydrolyticSVG(key) {
+  const cfg = {
+    iPLA:    { formula:'–O–CH(CH₃)–C(=O)–|O|–CH(CH₃)–C(=O)–',
+               labile:'Ester Bond  (C–O)', col:'#ff9944',
+               products:['HO–CH(CH₃)–COOH (Lactic acid)','→ CO₂ + H₂O via Krebs cycle'], ratePos:0.55 },
+    PET:     { formula:'–O–CH₂CH₂–O–C(=O)–|O|–C₆H₄–C(=O)–',
+               labile:'Ester Bond  (C–O, very slow)', col:'#cc8833',
+               products:['HOCH₂CH₂OH  +  HOOC–C₆H₄–COOH','(Terephthalic acid + Ethylene glycol)'], ratePos:0.15 },
+    Nylon66: { formula:'–(CH₂)₆–C(=O)–|NH|–(CH₂)₆–C(=O)–',
+               labile:'Amide Bond  (C–N)', col:'#cc7744',
+               products:['HOOC–(CH₂)₄–COOH  +  H₂N–(CH₂)₆–NH₂','(Adipic acid  +  Hexamethylenediamine)'], ratePos:0.10 },
+  }[key] || { formula:'–C(=O)–|O|–', labile:'Ester', col:'#ff9944', products:['RCOOH','ROH'], ratePos:0.4 };
+  const [leftChain, labileGroup, rightChain] = cfg.formula.split('|');
+  const cy=72, cx=310;
+  let s = `<rect width="680" height="160" fill="#080a14"/>`;
+  // Left chain
+  s+=sa(cx-5,cy,'~~~'+leftChain,'#6888a8',10,'end');
+  // Labile bond box
+  const boxW=labileGroup.length*8+16;
+  s+=`<rect x="${cx}" y="${cy-15}" width="${boxW}" height="30" rx="4" fill="#220808" stroke="${cfg.col}" stroke-width="1.5"/>`;
+  s+=sa(cx+boxW/2,cy,labileGroup,cfg.col,11);
+  // Right chain
+  s+=sa(cx+boxW+5,cy,rightChain+'~~~','#6888a8',10,'start');
+  // Label above labile bond
+  s+=sa(cx+boxW/2,cy-26,cfg.labile,cfg.col,9);
+  // H₂O attacking
+  const h2oX=cx+boxW/2, h2oY=24;
+  s+=`<circle cx="${h2oX}" cy="${h2oY}" r="14" fill="#0a2030" stroke="#4488cc" stroke-width="1.5"/>`;
+  s+=sa(h2oX,h2oY,'H₂O','#5599dd',9);
+  s+=sArr(h2oX,h2oY+14,h2oX,cy-17,'#3388cc');
+  // Products
+  s+=`<line x1="20" y1="${cy+30}" x2="660" y2="${cy+30}" stroke="#1a2840" stroke-width="1"/>`;
+  s+=sa(24,cy+44,'⟶','#2a5070',12,'start');
+  s+=sa(50,cy+44,cfg.products[0],'#77cc77',9,'start');
+  if(cfg.products[1]) s+=sa(50,cy+57,cfg.products[1],'#558855',9,'start');
+  // Rate bar
+  const bx=30,by=136,bw=620,bh=8;
+  s+=`<defs><linearGradient id="rateg" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#22aa44"/><stop offset="35%" stop-color="#aaaa22"/>
+    <stop offset="65%" stop-color="#ffaa00"/><stop offset="100%" stop-color="#ff4422"/>
+  </linearGradient></defs>`;
+  s+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="4" fill="url(#rateg)" opacity="0.3"/>`;
+  const px=bx+cfg.ratePos*bw;
+  s+=`<polygon points="${px},${by-5} ${px-5},${by+bh+3} ${px+5},${by+bh+3}" fill="${cfg.col}"/>`;
+  s+=sa(bx,by+20,'Non-degradable','#22aa44',8,'start');
+  s+=sa(bx+bw*0.33,by+20,'Very Slow','#4a7080',8);
+  s+=sa(bx+bw*0.66,by+20,'Slow','#4a7080',8);
+  s+=sa(bx+bw,by+20,'Fast','#ff5533',8,'end');
+  return s;
+}
+
+function hydrogelSVG(key) {
+  let s = `<rect width="680" height="160" fill="#080a14"/>`;
+  // Polymer network grid
+  const gx0=28,gy0=24,gx1=440,gy1=118,cols=8,rows=3;
+  const gdx=(gx1-gx0)/cols, gdy=(gy1-gy0)/rows;
+  for(let r=0;r<=rows;r++) s+=sb(gx0,gy0+r*gdy,gx1,gy0+r*gdy,'#1a3a5a',1.5);
+  for(let c=0;c<=cols;c++) s+=sb(gx0+c*gdx,gy0,gx0+c*gdx,gy1,'#152838',1);
+  // Water dots
+  [[80,45],[165,78],[250,42],[340,72],[410,52],[105,95],[200,108],[308,94],[390,105],
+   [62,68],[272,58],[355,88],[148,58],[220,80],[458,70]].forEach(([wx,wy])=>{
+    s+=sDot(wx,wy,'#2266cc',5);
+    s+=sa(wx+8,wy,'H₂O','#3388cc',7,'start');
+  });
+  // Labels right side
+  s+=sa(475,45,'~38% H₂O','#44bbaa',14,'start');
+  s+=sa(475,63,'equilibrium','#3a8888',10,'start');
+  s+=sa(475,77,'swelling','#3a8888',10,'start');
+  s+=`<line x1="462" y1="62" x2="440" y2="70" stroke="#226655" stroke-width="1.5"/>`;
+  s+=sa(475,100,'C–C backbone','#2a5a6a',9,'start');
+  s+=sa(475,113,'(non-degradable)','#1a4050',9,'start');
+  // Stable shield
+  s+=`<circle cx="628" cy="62" r="26" fill="#0a1820" stroke="#22aa44" stroke-width="1.5"/>`;
+  s+=sa(628,56,'✓','#33cc55',20);
+  s+=sa(628,78,'STABLE','#22aa44',8);
+  // Rate bar — biostable
+  const bx=30,by=136,bw=620,bh=8;
+  s+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="4" fill="#0f1828"/>`;
+  s+=`<rect x="${bx}" y="${by}" width="28" height="${bh}" rx="4" fill="#22aa44"/>`;
+  s+=`<polygon points="${bx+14},${by-5} ${bx+9},${by+bh+3} ${bx+19},${by+bh+3}" fill="#33cc55"/>`;
+  s+=sa(bx,by+20,'Non-degradable (swells only — no chain scission)','#22aa44',8,'start');
+  return s;
+}
+
+function oxidativeSVG(key) {
+  const cy=72;
+  let s = `<rect width="680" height="160" fill="#080a14"/>`;
+  if(key==='PI'){
+    // cis-1,4-polyisoprene — C=C backbone
+    s+=sa(118,cy,'~~~–CH₂–','#6888a8',11,'end');
+    s+=`<rect x="120" y="${cy-18}" width="160" height="36" rx="4" fill="#200808" stroke="#ff8833" stroke-width="1.5" stroke-dasharray="3,2"/>`;
+    // C=C double bond
+    s+=sdb(130,cy,260,cy,'#ff9944');
+    s+=sa(130,cy,'C','#ffaa44',12);
+    s+=sa(260,cy,'C','#ffaa44',12);
+    s+=sa(195,cy-14,'(double bond)','#cc6622',8);
+    s+=sa(130,cy+22,'CH₃','#8898a8',9);
+    s+=sa(260,cy+22,'H','#8898a8',9);
+    s+=sa(290,cy,'–CH₂–~~~','#6888a8',11,'start');
+    s+=sa(195,cy-28,'Vulnerable C=C (oxidative cleavage via Criegee mech.)','#ff8833',9);
+    // ROS from above
+    s+=`<circle cx="195" cy="26" r="18" fill="#280808" stroke="#ff4444" stroke-width="1.5"/>`;
+    s+=sa(195,26,'·OH / O₃','#ff5555',9);
+    s+=sArr(195,44,195,cy-20,'#ff4444');
+    // Products
+    s+=sa(380,52,'→ Aldehydes + Ketones','#cc8833',10,'start');
+    s+=sa(380,66,'→ Carboxylic acids','#cc8833',10,'start');
+    s+=sa(380,80,'(Criegee oxidative cleavage)','#7a6040',9,'start');
+    const ratePos=0.35;
+    const bx=30,by=136,bw=620,bh=8;
+    s+=`<defs><linearGradient id="rateg3" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#22aa44"/><stop offset="35%" stop-color="#aaaa22"/>
+      <stop offset="65%" stop-color="#ffaa00"/><stop offset="100%" stop-color="#ff4422"/>
+    </linearGradient></defs>`;
+    s+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="4" fill="url(#rateg3)" opacity="0.3"/>`;
+    const px=bx+ratePos*bw;
+    s+=`<polygon points="${px},${by-5} ${px-5},${by+bh+3} ${px+5},${by+bh+3}" fill="#ff8833"/>`;
+    s+=sa(bx,by+20,'Non-degradable','#22aa44',8,'start');
+    s+=sa(bx+bw*0.33,by+20,'Very Slow','#4a7080',8);
+    s+=sa(bx+bw*0.66,by+20,'Slow','#4a7080',8);
+    s+=sa(bx+bw,by+20,'Fast','#ff5533',8,'end');
+  } else { // PEO — ether C–O
+    s+=sa(130,cy,'~~~–CH₂–','#6888a8',11,'end');
+    s+=`<rect x="132" y="${cy-16}" width="88" height="32" rx="4" fill="#201828" stroke="#ff7744" stroke-width="1.5" stroke-dasharray="3,2"/>`;
+    s+=sa(176,cy,'–O–','#ff8844',16);
+    s+=sa(176,cy-24,'Ether C–O (ROS cleavage)','#ff7744',9);
+    s+=sa(224,cy,'–CH₂–~~~','#6888a8',11,'start');
+    // ROS
+    s+=`<circle cx="176" cy="26" r="18" fill="#200818" stroke="#dd4422" stroke-width="1.5"/>`;
+    s+=sa(176,26,'H₂O₂ / ·O₂⁻','#ff5533',8);
+    s+=sArr(176,44,176,cy-18,'#dd4422');
+    // Products
+    s+=sa(360,52,'→ Ethylene glycol oligomers','#cc7733',10,'start');
+    s+=sa(360,66,'→ Low-MW aldehydes','#cc7733',10,'start');
+    s+=sa(360,80,'(ROS from macrophage inflammatory response)','#7a6040',9,'start');
+    const ratePos=0.20;
+    const bx=30,by=136,bw=620,bh=8;
+    s+=`<defs><linearGradient id="rateg4" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#22aa44"/><stop offset="35%" stop-color="#aaaa22"/>
+      <stop offset="65%" stop-color="#ffaa00"/><stop offset="100%" stop-color="#ff4422"/>
+    </linearGradient></defs>`;
+    s+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="4" fill="url(#rateg4)" opacity="0.3"/>`;
+    const px=bx+ratePos*bw;
+    s+=`<polygon points="${px},${by-5} ${px-5},${by+bh+3} ${px+5},${by+bh+3}" fill="#ff7744"/>`;
+    s+=sa(bx,by+20,'Non-degradable','#22aa44',8,'start');
+    s+=sa(bx+bw*0.33,by+20,'Very Slow','#4a7080',8);
+    s+=sa(bx+bw*0.66,by+20,'Slow','#4a7080',8);
+    s+=sa(bx+bw,by+20,'Fast','#ff5533',8,'end');
+  }
+  return s;
+}
+
+function buildDegSVG(key) {
+  const d = DEGRAD[key]; if(!d) return '';
+  if(d.stab==='biostable') return biostableSVG(key);
+  if(d.stab==='hydrolytic'||d.stab==='slow-hydrolytic') return hydrolyticSVG(key);
+  if(d.stab==='hydrogel') return hydrogelSVG(key);
+  return oxidativeSVG(key);
+}
+
+let degVisible = false;
+const panelDeg = document.getElementById('panel-deg');
+
+function closeDeg() {
+  degVisible = false;
+  panelDeg.classList.remove('show');
+  const btn = document.getElementById('btn-deg');
+  btn.classList.remove('on');
+  btn.style.cssText = 'background:#1a1830;border-color:#3a2860;color:#8060a0;';
+}
+
+function buildDegPanel() {
+  const d = DEGRAD[activeKey]; if(!d) return;
+  const stabLabel = {
+    biostable:'✓ Biostable', hydrolytic:'💧 Hydrolytic Degradation',
+    'slow-hydrolytic':'💧 Slow Hydrolytic', oxidative:'⚡ Oxidative Degradation',
+    'slow-oxidative':'⚡ Slow Oxidative', hydrogel:'💠 Hydrogel (Swelling Only)'
+  }[d.stab] || d.stab;
+  document.getElementById('deg-badge-row').innerHTML =
+    `<span class="deg-badge deg-badge-${d.stab}" style="font-family:'Segoe UI',sans-serif;">${stabLabel}</span>`;
+  document.getElementById('svg-deg').innerHTML = buildDegSVG(activeKey);
+  const phRow = d.pH
+    ? `<div class="deg-cell" style="grid-column:1/-1"><div class="deg-cell-label">pH / Autocatalysis Effect</div><div class="deg-cell-note">${d.pH}</div></div>`
+    : '';
+  document.getElementById('deg-grid-row').innerHTML = `
+    <div class="deg-cell">
+      <div class="deg-cell-label">Bond Type</div>
+      <div class="deg-cell-value">${d.bondType}</div>
+      <div class="deg-cell-note">${d.mechanism.substring(0,140)}${d.mechanism.length>140?'…':''}</div>
+    </div>
+    <div class="deg-cell">
+      <div class="deg-cell-label">Half-life In Vivo</div>
+      <div class="deg-cell-value">${d.halfLife}</div>
+    </div>
+    <div class="deg-cell">
+      <div class="deg-cell-label">Degradation Products</div>
+      <div class="deg-cell-note">${d.products}</div>
+    </div>
+    <div class="deg-cell">
+      <div class="deg-cell-label">Clinical Use</div>
+      <div class="deg-cell-note">${d.clinical}</div>
+    </div>
+    ${phRow}`;
+  document.getElementById('deg-desc-row').textContent = d.mechanism;
 }
 
 // ── Substituent data (vinyl repeat unit C1 and C2 subs) ──────
@@ -2859,6 +3230,7 @@ document.getElementById('btn-mech').addEventListener('click', function () {
     document.getElementById('btn-2d').style.cssText = 'background:#1a2040;border-color:#3a5080;color:#7090c0;';
   }
   if (chartVisible) closeChart();
+  if (degVisible) closeDeg();
   if (quizMode)     { /* keep quiz, just overlay */ }
   mechVisible = !mechVisible;
   panelMech.classList.toggle('show', mechVisible);
@@ -2868,6 +3240,28 @@ document.getElementById('btn-mech').addEventListener('click', function () {
     buildMechPanel();
   } else {
     this.style.cssText = 'background:#1a2030;border-color:#2a3850;color:#6080a0;';
+  }
+});
+
+// ── Degradation Panel ────────────────────────────────────────
+document.getElementById('btn-deg-close').addEventListener('click', closeDeg);
+
+document.getElementById('btn-deg').addEventListener('click', function () {
+  if (show2D) {
+    show2D = false; panel2d.classList.remove('show');
+    document.getElementById('btn-2d').classList.remove('on');
+    document.getElementById('btn-2d').style.cssText = 'background:#1a2040;border-color:#3a5080;color:#7090c0;';
+  }
+  if (chartVisible) closeChart();
+  if (mechVisible) closeMech();
+  degVisible = !degVisible;
+  panelDeg.classList.toggle('show', degVisible);
+  this.classList.toggle('on', degVisible);
+  if (degVisible) {
+    this.style.cssText = 'background:#1e0a30;border-color:#6633aa;color:#cc88ff;';
+    buildDegPanel();
+  } else {
+    this.style.cssText = 'background:#1a1830;border-color:#3a2860;color:#8060a0;';
   }
 });
 
@@ -2987,6 +3381,7 @@ document.getElementById('btn-2d').addEventListener('click', function () {
   this.classList.toggle('on', show2D);
   if (show2D) {
     if (chartVisible) closeChart();
+    if (degVisible) closeDeg();
     this.style.cssText = 'background:#0a3a5a;border-color:#2288cc;color:#66ccff;';
     render2D();
   } else {
