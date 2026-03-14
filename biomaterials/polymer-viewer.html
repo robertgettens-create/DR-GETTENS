@@ -260,6 +260,11 @@
       max-width:700px; font-size:.78rem; color:#5a7890; line-height:1.7;
       font-family:'Segoe UI',sans-serif; text-align:center;
     }
+    /* ── Copolymer category ── */
+    .cat-label.copolymer { color:#ffaa55; border-left:3px solid #cc6622; }
+    .poly-btn.copolymer  { background:#1e1208; border-color:#886633; color:#cc9955; }
+    .poly-btn.copolymer:hover { background:#2a1808; border-color:#cc9944; color:#ffcc77; }
+    .poly-btn.active.copolymer { background:#3a1800; border-color:#ff8833; color:#ffcc66; }
     /* ── Degradation & Biostability Panel ── */
     #panel-deg { position:absolute; inset:0; background:#0c0e1a; display:none;
       flex-direction:column; align-items:stretch; z-index:13; overflow:hidden; }
@@ -323,6 +328,18 @@
       <button class="poly-btn condensation" data-key="PEO"    data-cat="condensation">PEO<br><small>7₂ helix</small></button>
       <button class="poly-btn condensation" data-key="PET"  data-cat="condensation">PET<br><small>Aromatic ester</small></button>
       <button class="poly-btn condensation" data-key="PEEK" data-cat="condensation">PEEK<br><small>3 rings/mer</small></button>
+      <button class="poly-btn condensation" data-key="PCL"  data-cat="condensation">PCL<br><small>ε-caprolactone</small></button>
+      <button class="poly-btn condensation" data-key="PGA"  data-cat="condensation">PGA<br><small>Glycolide ROP</small></button>
+      <button class="poly-btn condensation" data-key="PDO"  data-cat="condensation">PDO<br><small>Dioxanone</small></button>
+      <button class="poly-btn condensation" data-key="PU"   data-cat="condensation">Poly-<br>urethane<br><small>Segmented</small></button>
+    </div>
+  </div>
+
+  <!-- ── COPOLYMERS ── -->
+  <div>
+    <div class="cat-label copolymer">Copolymers</div>
+    <div class="poly-grid">
+      <button class="poly-btn copolymer" data-key="PLGA" data-cat="copolymer">PLGA<br><small>75:25 LA:GA</small></button>
     </div>
   </div>
 
@@ -1134,6 +1151,102 @@ const POLYMERS = {
     },
   },
 
+  // ── NEW BIOMEDICAL POLYMERS ─────────────────────────────────
+  PCL: { name:'Poly(ε-caprolactone)', cat:'condensation',
+    formula:'—(CH₂)₅—CO—O)ₙ—', synth:'Ring-opening polymerisation of ε-caprolactone',
+    ba:'112° (CH₂) / 116° (ester)',
+    badge:{ crystal:'PCL · All-trans planar zigzag', amorphous:'PCL · Amorphous random coil' },
+    conf:{ crystal:'All-trans planar zigzag', amorphous:'Random coil (T / G± mixture)' },
+    backbone:[
+      {elem:'C',bl:1.54,ba:112*DEG,side:'HH'},{elem:'C',bl:1.54,ba:112*DEG,side:'HH'},
+      {elem:'C',bl:1.54,ba:112*DEG,side:'HH'},{elem:'C',bl:1.54,ba:112*DEG,side:'HH'},
+      {elem:'C',bl:1.54,ba:112*DEG,side:'HH'},{elem:'C',bl:1.52,ba:116*DEG,side:'C=O'},
+      {elem:'O',bl:1.33,ba:116*DEG,side:''},
+    ],
+    dihedralFn:()=>T, amorphousFn:amorFn(77),
+    info:{
+      crystal:{Tg:'−60 °C',Tm:'~60 °C',density:'1.15 g/cm³ (xtal)',
+        desc:'PCL packs five CH₂ groups and an ester unit into an all-trans zigzag. The long hydrophobic CH₂ run slows water ingress, giving a 2–4 year in vivo half-life — 5–10× slower than PLA. PCL is the polymer in the Capronor 5-year contraceptive implant.'},
+      amorphous:{Tg:'−60 °C',Tm:'— (amorphous)',density:'1.09 g/cm³',
+        desc:'Amorphous PCL is rubbery at body temperature. Widely 3D-printed into scaffolds and electrospun into membranes. Monocryl suture = PCL + PGLA blend balancing fast initial strength with slow complete resorption.'},
+    }},
+
+  PGA: { name:'Poly(glycolic acid)', cat:'condensation',
+    formula:'—(CH₂—CO—O)ₙ—', synth:'Ring-opening polymerisation of glycolide',
+    ba:'114° (CH₂) / 116° (ester)',
+    badge:{ crystal:'PGA · All-trans extended', amorphous:'PGA · Amorphous random coil' },
+    conf:{ crystal:'All-trans extended', amorphous:'Random coil (T / G± mixture)' },
+    backbone:[
+      {elem:'C',bl:1.51,ba:114*DEG,side:'HH'},
+      {elem:'C',bl:1.52,ba:116*DEG,side:'C=O'},
+      {elem:'O',bl:1.33,ba:116*DEG,side:''},
+    ],
+    dihedralFn:()=>T, amorphousFn:amorFn(83),
+    info:{
+      crystal:{Tg:'~36 °C',Tm:'~225 °C',density:'1.70 g/cm³ (xtal)',
+        desc:'PGA is the simplest polyester (just CH₂ between each ester). Very high crystallinity (45–55%) and Tm 225°C. Rapid amorphous-zone hydrolysis causes fast strength loss despite initial crystalline protection.'},
+      amorphous:{Tg:'~36 °C',Tm:'— (amorphous)',density:'~1.50 g/cm³',
+        desc:'Amorphous PGA degrades in weeks. Braided Dexon suture compensates for fast strength loss. Copolymerisation with PLA (→ Vicryl, PLGA) is the main strategy to tune degradation rate.'},
+    }},
+
+  PDO: { name:'Poly(p-dioxanone)', cat:'condensation',
+    formula:'—(O—CH₂—CH₂—O—CH₂—CO)ₙ—', synth:'Ring-opening polymerisation of p-dioxanone',
+    ba:'111° (ether) / 116° (ester)',
+    badge:{ crystal:'PDO · All-trans zigzag', amorphous:'PDO · Amorphous random coil' },
+    conf:{ crystal:'All-trans zigzag', amorphous:'Random coil (T / G± mixture)' },
+    backbone:[
+      {elem:'O',bl:1.33,ba:116*DEG,side:''},
+      {elem:'C',bl:1.43,ba:111*DEG,side:'HH'},{elem:'C',bl:1.54,ba:112*DEG,side:'HH'},
+      {elem:'O',bl:1.43,ba:111*DEG,side:''},
+      {elem:'C',bl:1.43,ba:111*DEG,side:'HH'},{elem:'C',bl:1.52,ba:116*DEG,side:'C=O'},
+    ],
+    dihedralFn:()=>T, amorphousFn:amorFn(91),
+    info:{
+      crystal:{Tg:'−10 °C',Tm:'~110 °C',density:'1.30 g/cm³ (xtal)',
+        desc:'PDO backbone alternates ether and ester oxygens. The ether flanking the ester slightly reduces C=O electrophilicity — slows hydrolysis vs. PGA. PDO is the polymer in PDS monofilament sutures: retains ~50% strength at 6 weeks (vs. PGA ~2 weeks).'},
+      amorphous:{Tg:'−10 °C',Tm:'— (amorphous)',density:'~1.22 g/cm³',
+        desc:'Amorphous PDO used in small-diameter vascular grafts and cardiovascular sutures where prolonged support is needed. Monofilament form has lower infection risk than braided sutures.'},
+    }},
+
+  PU: { name:'Polyurethane (Segmented)', cat:'condensation',
+    formula:'—(O—R—O—CO—NH—R′—NH—CO)ₙ—', synth:'Step-growth: diisocyanate + diol/polyol',
+    ba:'111° (ether) / 121° (urethane N)',
+    badge:{ crystal:'PU · Extended hard-segment', amorphous:'PU · Soft-segment coil' },
+    conf:{ crystal:'Extended hard-segment domains', amorphous:'Random coil (soft segment)' },
+    backbone:[
+      {elem:'O',bl:1.43,ba:111*DEG,side:''},{elem:'C',bl:1.43,ba:111*DEG,side:'HH'},
+      {elem:'C',bl:1.54,ba:112*DEG,side:'HH'},{elem:'O',bl:1.43,ba:111*DEG,side:''},
+      {elem:'C',bl:1.34,ba:117*DEG,side:'C=O'},{elem:'N',bl:1.34,ba:121*DEG,side:'HN'},
+      {elem:'C',bl:1.54,ba:112*DEG,side:'HH'},{elem:'C',bl:1.54,ba:112*DEG,side:'HH'},
+      {elem:'N',bl:1.34,ba:121*DEG,side:'HN'},{elem:'C',bl:1.34,ba:117*DEG,side:'C=O'},
+    ],
+    dihedralFn:()=>T, amorphousFn:amorFn(97),
+    info:{
+      crystal:{Tg:'varies (soft: −70 to +10 °C)',Tm:'60–200 °C (hard segment)',density:'1.0–1.2 g/cm³',
+        desc:'Segmented PU: hard segments (–NH–C(=O)–O– urethane) self-assemble into ordered microdomains acting as physical crosslinks; soft segments (polyether) give elastomeric flexibility. This architecture gives blood-contacting surfaces excellent fatigue resistance.'},
+      amorphous:{Tg:'varies',Tm:'— (segmented)',density:'~1.05 g/cm³',
+        desc:'Soft-segment PU used in foam wound dressings, catheter tips, and pacemaker lead insulation (Pellethane 2363). Oxidative degradation of polyether soft segments by macrophage H₂O₂ is the primary long-term failure mode in cardiac implants.'},
+    }},
+
+  PLGA: { name:'Poly(lactic-co-glycolic acid) — PLGA', cat:'copolymer',
+    formula:'—(CH(CH₃)—CO—O)ₓ—(CH₂—CO—O)_y—', synth:'ROP copolymerisation of L-lactide + glycolide',
+    ba:'112° (LA) / 114° (GA)',
+    badge:{ crystal:'PLGA · Amorphous copolymer (75:25)', amorphous:'PLGA · Amorphous random coil' },
+    conf:{ crystal:'Amorphous (random LA–GA sequence)', amorphous:'Random coil' },
+    backbone:[
+      {elem:'C',bl:1.44,ba:112*DEG,side:'HMe'},{elem:'C',bl:1.52,ba:116*DEG,side:'C=O'},
+      {elem:'O',bl:1.33,ba:116*DEG,side:''},
+      {elem:'C',bl:1.51,ba:114*DEG,side:'HH'},{elem:'C',bl:1.52,ba:116*DEG,side:'C=O'},
+      {elem:'O',bl:1.33,ba:116*DEG,side:''},
+    ],
+    dihedralFn:()=>T, amorphousFn:amorFn(103),
+    info:{
+      crystal:{Tg:'~45 °C (75:25)',Tm:'— (amorphous)',density:'1.30 g/cm³',
+        desc:'PLGA is fully amorphous — random LA/GA sequence prevents crystallization. The 3D display alternates one PLA and one PGA unit for clarity; in reality the sequence is random. Amorphous structure enables uniform water penetration and predictable bulk erosion drug release.'},
+      amorphous:{Tg:'~40–50 °C',Tm:'— (fully amorphous)',density:'~1.25 g/cm³',
+        desc:'PLGA 50:50 is fastest-degrading (2–3 months); 75:25 and 85:15 degrade slower. All grades are FDA-approved for drug delivery microspheres. Lupron Depot (prostate cancer) and Risperdal Consta (antipsychotic) are flagship PLGA products.'},
+    }},
+
 };
 
 // ── Polymerization Mechanism Data ────────────────────────────
@@ -1342,6 +1455,63 @@ const MECH = {
     ],
     desc:'PEO forms by ring-opening polymerization of ethylene oxide (oxirane). The strained 3-membered ring drives the reaction thermodynamically. The ether oxygens give hydrophilicity (Tg = −67°C) while chain regularity enables crystallization (Tm = 67°C).',
   },
+
+  // ── NEW BIOMEDICAL POLYMER MECHANISMS ───────────────────────
+  PCL: { type:'rop', label:'Ring-Opening Polymerization (ROP)',
+    typeCss:'background:#006655;color:#c0ffe0;',
+    monomer:'ε-Caprolactone (7-membered lactone)', catalyst:'Sn(Oct)₂ / Al(OiPr)₃',
+    byproduct:null, anim:'rop', animCol:'#33ddaa',
+    steps:[
+      {title:'Ring Opening', text:'Sn(Oct)₂/alcohol opens the 7-membered ring at the acyl–oxygen bond; generates a primary hydroxyl end-group, preserving the 5-carbon chain.'},
+      {title:'Propagation',  text:'Living alkoxide chain end repeatedly inserts ε-caprolactone; controlled MW and narrow PDI ~1.1–1.2 (living-type character).'},
+      {title:'Chain Control',text:'MW = [ε-CL]/[I] × 114 g/mol; block copolymers (PCL-b-PLA) are common scaffold materials tuning degradation from months to years.'},
+    ],
+    desc:'PCL is made by ROP of the readily available 7-membered ε-caprolactone. Slow hydrolytic degradation (2–4 years) makes it ideal for long-term drug delivery (Capronor implant) and tissue engineering scaffolds.'},
+
+  PGA: { type:'rop', label:'Ring-Opening Polymerization (ROP)',
+    typeCss:'background:#005566;color:#b0ffee;',
+    monomer:'Glycolide (6-membered cyclic diester)', catalyst:'Sn(Oct)₂ / Zn(Oct)₂',
+    byproduct:null, anim:'rop', animCol:'#22ccee',
+    steps:[
+      {title:'Ring Opening', text:'Lewis acid catalyst activates the glycolide ring; initiating alcohol opens the ester bond to form a metal alkoxide chain end.'},
+      {title:'Propagation',  text:'Sequential glycolide insertion; high crystallinity (45–55%) develops rapidly due to the regular –CH₂–COO– backbone.'},
+      {title:'Chain Control',text:'MW = [Glycolide]/[I] × 116 g/mol; copolymerize with lactide → PLGA or Vicryl (PGA/PLA 90:10) to tune degradation.'},
+    ],
+    desc:'PGA (Dexon) is the fastest-degrading synthetic bioabsorbable (weeks–months). The short CH₂–ester repeat packs into a highly crystalline structure. PGA was the first synthetic absorbable suture (1970).'},
+
+  PDO: { type:'rop', label:'Ring-Opening Polymerization (ROP)',
+    typeCss:'background:#446600;color:#d0ffaa;',
+    monomer:'p-Dioxanone (6-membered ether-ester ring)', catalyst:'Zn metal / organocatalyst',
+    byproduct:null, anim:'rop', animCol:'#88dd33',
+    steps:[
+      {title:'Ring Opening', text:'p-Dioxanone ring cleaved at the ester (C=O–O) bond; generates an alkoxide with a pendant ether oxygen in the growing chain.'},
+      {title:'Propagation',  text:'Living alkoxide chain end inserts dioxanone rings; moderate Mn control. Lower crystallinity than PGA due to the flexible ether unit.'},
+      {title:'Chain Control',text:'MW ~60–90 kDa for PDS suture; ether + ester dual backbone degrades slower than pure polyesters — ideal for slow-closing wounds.'},
+    ],
+    desc:'PDO is the polymer in PDS sutures — longest-lasting synthetic absorbable (180 days). Unique ether + ester backbone slows degradation vs. pure polyesters. Monofilament reduces tissue drag vs. braided sutures.'},
+
+  PU: { type:'condensation', label:'Step-Growth Polyurethane',
+    typeCss:'background:#553300;color:#ffe0aa;',
+    monomer:'Diisocyanate (R(–NCO)₂) + Diol (HO–R′–OH)', catalyst:'Sn(dibutyl) / DABCO',
+    byproduct:null, anim:'step', animCol:'#ff9933',
+    steps:[
+      {title:'Urethane Bond',  text:'–N=C=O is highly electrophilic; diol –OH attacks isocyanate carbon to form –NH–C(=O)–O– (urethane linkage) with no small-molecule byproduct.'},
+      {title:'Propagation',    text:'Step-growth alternation of diisocyanate and diol; hard and soft segments begin phase-separating above ~40°C during chain growth.'},
+      {title:'Morphology',     text:'Hard segments (urethane) form ordered microdomains acting as physical crosslinks; soft segments (polyol) determine elastomeric flexibility.'},
+    ],
+    desc:'Medical PUs (Pellethane, Tecoflex) are step-grown from diisocyanate + polyether diol. Hard/soft segment architecture gives elastomeric properties critical for ventricular assist device blood sacs, pacemaker leads, and catheters.'},
+
+  PLGA: { type:'rop', label:'ROP Copolymerization (Lactide + Glycolide)',
+    typeCss:'background:#553300;color:#ffddaa;',
+    monomer:'L-Lactide + Glycolide (variable ratio)', catalyst:'Sn(Oct)₂',
+    byproduct:null, anim:'rop', animCol:'#ffaa44',
+    steps:[
+      {title:'Co-initiation',      text:'Sn(Oct)₂/alcohol initiates ring-opening of both lactide and glycolide; feed ratio (e.g., 75:25 LA:GA) determines final copolymer composition.'},
+      {title:'Copolymerization',   text:'Lactide and glycolide insert randomly — disrupts crystallization → fully amorphous material. Higher GA feed = more hydrophilic = faster degradation.'},
+      {title:'Ratio Controls Rate',text:'50:50 → ~2 months; 75:25 → 3–6 months; 85:15 → 5–6 months. MW also tunable: [total monomer]/[I] × avg M₀ (~128 g/mol for 75:25).'},
+    ],
+    desc:'PLGA is the most widely used biodegradable polymer in medicine. FDA-approved for Lupron Depot, Risperdal Consta, and vaccine adjuvants. Tuning LA:GA ratio and MW programs drug release from weeks to years.'},
+
 };
 
 
@@ -2400,6 +2570,42 @@ const DEGRAD = {
            products:'Ethylene glycol oligomers, low-MW aldehydes',
            pH:'Oxidation-dependent (ROS generated by phagocytes), not pH-sensitive',
            clinical:'PEGylation of therapeutic proteins/nanoparticles, anti-fouling coatings, hydrogel drug carriers' },
+
+  // ── NEW BIOMEDICAL POLYMER DEGRADATION ──────────────────────
+  PCL:  { stab:'slow-hydrolytic', bondType:'Ester (C–O, very slow)',
+          mechanism:'Ester hydrolysis; 5-CH₂ hydrophobic run between esters slows water ingress — degrades 5–10× slower than PLA under identical conditions.',
+          rate:1, halfLife:'2–4 years in vivo',
+          products:'ε-Hydroxyhexanoic acid → adipic acid fragments → CO₂',
+          pH:'Mild autocatalysis; less severe than PLA due to low acid accumulation rate',
+          clinical:'Capronor (5-year contraceptive implant), PCL-HA bone scaffolds, 3D-printed scaffolds, Monocryl suture (PCL + PGLA blend)' },
+
+  PGA:  { stab:'hydrolytic',      bondType:'Ester (C–O, fast)',
+          mechanism:'Rapid ester hydrolysis; short hydrophilic CH₂ between esters accelerates water ingress. Amorphous regions degrade first, then crystalline zones by bulk erosion.',
+          rate:4, halfLife:'2–4 weeks (strength loss); 6–12 weeks (mass loss)',
+          products:'Glycolic acid → CO₂ + H₂O via glyoxylate pathway',
+          pH:'Autocatalytic; local pH can drop sharply in enclosed degradation compartments',
+          clinical:'Dexon sutures (first synthetic absorbable, 1970), surgical meshes — usually copolymerized as PLGA or Vicryl (PGA/PLA 90:10)' },
+
+  PDO:  { stab:'slow-hydrolytic', bondType:'Ester + Ether (dual C–O)',
+          mechanism:'Ester bond is primary hydrolysis site; flanking ether oxygen slightly reduces ester electrophilicity — slower than pure polyesters of similar MW.',
+          rate:2, halfLife:'~4–6 months (strength); 6–12 months (mass loss)',
+          products:'Hydroxyl-ether-acid fragments → CO₂ + H₂O',
+          pH:'Mild autocatalysis; less acidic degradation environment than PLA/PGA',
+          clinical:'PDS sutures (monofilament — low tissue drag), cardiovascular surgery, pediatric procedures needing longer support than PGA/PLA' },
+
+  PU:   { stab:'slow-oxidative',  bondType:'Urethane –NH–C(=O)–O–',
+          mechanism:'Dual degradation: (1) oxidative — macrophage ROS (H₂O₂) attack polyether soft segments; (2) hydrolytic — urethane/urea linkages cleave slowly, especially at pH extremes.',
+          rate:2, halfLife:'Years to decades (composition-dependent)',
+          products:'Diamine + CO₂ + diol fragments; isocyanate hydrolysis → diamine',
+          pH:'Urethane hydrolysis acid/base-catalyzed; soft-segment oxidation is ROS-driven, not pH-sensitive',
+          clinical:'VAD blood-contacting sacs, pacemaker lead insulation (Pellethane 2363), catheters, polyurethane foam wound dressings, breast implant shells' },
+
+  PLGA: { stab:'hydrolytic',      bondType:'Ester (C–O, ratio-tunable)',
+          mechanism:'Ester hydrolysis rate set by LA:GA ratio and MW. Higher GA = faster. Bulk erosion with autocatalytic acid generation; 50:50 has no crystallinity = fastest degradation.',
+          rate:3, halfLife:'2 wks (50:50)  ·  3–6 mo (75:25)  ·  5–6 mo (85:15)',
+          products:'Lactic acid + Glycolic acid → CO₂ + H₂O',
+          pH:'Autocatalytic: acid accumulation in matrix core accelerates bulk erosion; outer shell may stay intact while core liquefies ("burst release" risk)',
+          clinical:'Lupron Depot (prostate cancer), Risperdal Consta (antipsychotic), PLGA microsphere vaccines, degradable orthopedic screws, drug-eluting sutures' },
 };
 
 // ── Animation helpers ─────────────────────────────────────────
@@ -2667,8 +2873,10 @@ function buildDegPanel() {
     'slow-hydrolytic':'💧 Slow Hydrolytic', oxidative:'⚡ Oxidative Degradation',
     'slow-oxidative':'⚡ Slow Oxidative', hydrogel:'💠 Hydrogel (Swelling Only)'
   }[d.stab] || d.stab;
+  const plgaNote = activeKey==='PLGA'
+    ? `<span style="color:#aa8844;font-size:.68rem;margin-left:10px;">LA:GA 75:25 shown · ratio tunes half-life</span>` : '';
   document.getElementById('deg-badge-row').innerHTML =
-    `<span class="deg-badge deg-badge-${d.stab}" style="font-family:'Segoe UI',sans-serif;">${stabLabel}</span>`;
+    `<span class="deg-badge deg-badge-${d.stab}" style="font-family:'Segoe UI',sans-serif;">${stabLabel}</span>${plgaNote}`;
   document.getElementById('svg-deg').innerHTML = buildDegSVG(activeKey);
   const phRow = d.pH
     ? `<div class="deg-cell" style="grid-column:1/-1"><div class="deg-cell-label">pH / Autocatalysis Effect</div><div class="deg-cell-note">${d.pH}</div></div>`
@@ -2839,7 +3047,7 @@ function drawCondChain(key,n){
 // ── ROP propagation (ring pool → growing chain) ───────────────
 function drawROPChain(key,n){
   const W=700,H=200,col=(MECH[key]||{animCol:'#44dd88'}).animCol;
-  const isPEO=(key==='PEO');
+  const ringSides={PEO:3,PCL:7,PGA:6,PDO:6,PLGA:6}[key]||6;
   let s=`<rect width="${W}" height="${H}" fill="#080a14"/>`;
   const maxR=10,cy=100;
   if(n>0){
@@ -2849,28 +3057,23 @@ function drawROPChain(key,n){
     for(let j=0;j<n;j++){
       const x=startX+j*dx,y=cy+(j%2===0?-dy:dy);
       if(j<n-1){const nx=startX+(j+1)*dx,ny=cy+((j+1)%2===0?-dy:dy);s+=sb(x,y,nx,ny,col,1.8);}
-      if((isPEO&&j%2===1)||(!isPEO&&j%2===1)){s+=sa(x,y,'O','#ff9955',10);}
+      if(j%2===1){s+=sa(x,y,'O','#ff9955',10);}
     }
     const xL=startX+(n-1)*dx,yL=cy+((n-1)%2===0?-dy:dy);
-    s+=sa(xL+5,yL+18,isPEO?'O⁻':'O⁻','#44dd88',8,'start');
+    s+=sa(xL+5,yL+18,'O⁻','#44dd88',8,'start');
   } else {
     s+=sa(100,cy,'R–O⁻','#5a7890',11,'middle');
     s+=sa(100,cy+20,'(initiator alkoxide)','#3a5070',8,'middle');
   }
-  const rLeft=maxR-n,ringR=isPEO?10:13,rSpacing=ringR*2+11,rPerRow=5;
+  const rLeft=maxR-n,ringR=ringSides===3?10:ringSides===7?11:13,rSpacing=ringR*2+11,rPerRow=5;
   const rAreaX=370;
   for(let i=0;i<rLeft;i++){
     const row=Math.floor(i/rPerRow),ci=i%rPerRow;
     const rcx=rAreaX+ci*rSpacing+ringR,rcy=cy+(row===0?-15:15);
-    if(isPEO){
-      const pts3=[];
-      for(let p=0;p<3;p++){const a=(p*120-90)*Math.PI/180;pts3.push(`${(rcx+ringR*Math.cos(a)).toFixed(1)},${(rcy+ringR*Math.sin(a)).toFixed(1)}`);}
-      s+=`<polygon points="${pts3.join(' ')}" fill="${col}" stroke="#fff" stroke-width="1" opacity="0.65"/>`;
-      s+=sa(rcx,rcy,'O','#ff9955',7);
-    } else {
-      s+=`<polygon points="${hexPoly(rcx,rcy,ringR)}" fill="${col}" stroke="#fff" stroke-width="1" opacity="0.6"/>`;
-      s+=sa(rcx,rcy,'O','#ff9955',7);
-    }
+    const pts=[];
+    for(let p=0;p<ringSides;p++){const a=(p*360/ringSides-90)*Math.PI/180;pts.push(`${(rcx+ringR*Math.cos(a)).toFixed(1)},${(rcy+ringR*Math.sin(a)).toFixed(1)}`);}
+    s+=`<polygon points="${pts.join(' ')}" fill="${col}" stroke="#fff" stroke-width="1" opacity="${ringSides===3?0.65:0.6}"/>`;
+    s+=sa(rcx,rcy,'O','#ff9955',7);
   }
   s+=sa(W-4,H-8,`n = ${n} ring${n!==1?'s':''} opened — ${rLeft} remain`,'#2a4060',8,'end');
   return s;
@@ -2955,7 +3158,7 @@ function condensInitSVG(key){
     s+=`<rect x="30" y="48" width="240" height="104" rx="8" fill="#0e1a10" stroke="${col}" stroke-width="1.2"/>`;
     s+=sa(150,82,parts[0],'#aaddbb',9.5,'middle');
     s+=sa(150,102,'Monomer A','#3a7050',8.5,'middle');
-    const aLabel=key==='Nylon66'?'–NH₂':key==='PDMS'?'–Si–Cl':key==='PET'?'–OH':key==='PEEK'?'–OH (phenoxide)':'–reactive A';
+    const aLabel=key==='PU'?'–N=C=O (isocyanate)':key==='Nylon66'?'–NH₂':key==='PDMS'?'–Si–Cl':key==='PET'?'–OH':key==='PEEK'?'–OH (phenoxide)':'–reactive A';
     s+=sa(150,120,aLabel,'#2a5040',8,'middle');
     s+=sa(150,136,`FG activates at: ${m.catalyst.split('/')[0].trim()}`,'#1e4030',7.5,'middle');
     s+=sa(W/2,100,'+','#6a8aaa',16);
@@ -2963,7 +3166,7 @@ function condensInitSVG(key){
     const p2=parts[1]||'';
     s+=sa(550,82,p2.replace(/\s.*/,''),'#aaddbb',9.5,'middle');
     s+=sa(550,102,'Monomer B','#3a7050',8.5,'middle');
-    const bLabel=key==='Nylon66'?'–COOH':key==='PDMS'?'–Cl':key==='PET'?'–COOH':key==='PEEK'?'–C–F (activated)':'–reactive B';
+    const bLabel=key==='PU'?'–OH (diol / polyol)':key==='Nylon66'?'–COOH':key==='PDMS'?'–Cl':key==='PET'?'–COOH':key==='PEEK'?'–C–F (activated)':'–reactive B';
     s+=sa(550,120,bLabel,'#2a5040',8,'middle');
     if(m.byproduct) s+=sa(550,136,`Byproduct: ${m.byproduct}`,'#886644',7.5,'middle');
   } else {
@@ -2977,12 +3180,14 @@ function condensInitSVG(key){
 
 function ropInitSVG(key){
   const W=700,H=200,col=(MECH[key]||{animCol:'#44dd88'}).animCol;
-  const m=MECH[key],isPEO=(key==='PEO');
+  const m=MECH[key];
+  const isPEO=key==='PEO', isPCL=key==='PCL', isPGA=key==='PGA',
+        isPDO=key==='PDO', isPLGA=key==='PLGA';
   let s=`<rect width="${W}" height="${H}" fill="#080a14"/>`;
   s+=sa(W/2,13,'Initiation — Ring Opening','#3a5070',10);
   s+=`<rect x="20" y="62" width="140" height="76" rx="8" fill="#0e1a10" stroke="${col}" stroke-width="1.2"/>`;
   s+=sa(90,92,'R–OH','#aaddbb',13,'middle');
-  s+=sa(90,110,isPEO?'KOH / alkoxide':'Sn(Oct)₂ / ROH','#2a5040',8,'middle');
+  s+=sa(90,110,(isPEO?'KOH / alkoxide':'Sn(Oct)₂ / ROH'),'#2a5040',8,'middle');
   s+=sa(90,124,'Initiator','#1e4030',8,'middle');
   s+=sa(182,100,'+','#6a8aaa',15);
   // Cyclic monomer
@@ -2998,7 +3203,55 @@ function ropInitSVG(key){
     });
     s+=sa(mcx,mcy+48,'Ethylene oxide (oxirane)','#2a5040',8);
     s+=sa(mcx,mcy+61,'3-membered ring — highly strained','#1e3030',7.5);
+  } else if(isPCL){
+    // 7-membered heptagon for ε-caprolactone
+    const r=30,pts7=[];
+    for(let i=0;i<7;i++){const a=(i*360/7-90)*Math.PI/180;pts7.push([mcx+r*Math.cos(a),mcy+r*Math.sin(a)]);}
+    for(let i=0;i<7;i++){const[x1,y1]=pts7[i],[x2,y2]=pts7[(i+1)%7];s+=sb(x1,y1,x2,y2,col,2);}
+    // Label O at top, C=O double bond on one side
+    s+=sa(pts7[0][0],pts7[0][1]-10,'O','#ff9955',10);
+    s+=sdb(pts7[5][0],pts7[5][1],pts7[6][0],pts7[6][1],col); // C=O double bond
+    s+=sa((pts7[5][0]+pts7[6][0])/2-12,(pts7[5][1]+pts7[6][1])/2,'=O','#ff9955',8);
+    s+=sa(mcx,mcy+52,'ε-Caprolactone — 7-membered lactone','#2a5040',8);
+    s+=sa(mcx,mcy+65,'Ring strain drives ROP; longest-lived bioabsorbable','#1e3030',7.5);
+  } else if(isPGA){
+    // 6-membered glycolide (cyclic diester, no methyl)
+    const r=32,pts6=[];
+    for(let i=0;i<6;i++){const a=(i*60-90)*Math.PI/180;pts6.push([mcx+r*Math.cos(a),mcy+r*Math.sin(a)]);}
+    for(let i=0;i<6;i++){const[x1,y1]=pts6[i],[x2,y2]=pts6[(i+1)%6];s+=sb(x1,y1,x2,y2,col,2);}
+    ['O','C','C','O','C','C'].forEach((at,i)=>{
+      const[ax,ay]=pts6[i],ox=(ax-mcx)*0.38,oy=(ay-mcy)*0.38;
+      s+=sa(ax+ox,ay+oy,at,at==='O'?'#ff9955':'#aad0e8',8);
+    });
+    // Two C=O labels
+    s+=sa(mcx-14,mcy-6,'=O','#ff9955',7);s+=sa(mcx+14,mcy+6,'=O','#ff9955',7);
+    s+=sa(mcx,mcy+52,'Glycolide — cyclic diester of glycolic acid','#2a5040',8);
+    s+=sa(mcx,mcy+65,'No methyl group → fastest hydrolysis (Dexon suture)','#1e3030',7.5);
+  } else if(isPDO){
+    // 6-membered p-dioxanone (ether-ester)
+    const r=32,pts6=[];
+    for(let i=0;i<6;i++){const a=(i*60-90)*Math.PI/180;pts6.push([mcx+r*Math.cos(a),mcy+r*Math.sin(a)]);}
+    for(let i=0;i<6;i++){const[x1,y1]=pts6[i],[x2,y2]=pts6[(i+1)%6];s+=sb(x1,y1,x2,y2,col,2);}
+    // Atom labels: O-CH₂-CH₂-O-CH₂-C(=O)
+    ['O','C','C','O','C','C'].forEach((at,i)=>{
+      const[ax,ay]=pts6[i],ox=(ax-mcx)*0.38,oy=(ay-mcy)*0.38;
+      s+=sa(ax+ox,ay+oy,at,at==='O'?'#ff9955':'#aad0e8',8);
+    });
+    s+=sa(mcx,mcy+52,'p-Dioxanone — 6-membered ether-ester ring','#2a5040',8);
+    s+=sa(mcx,mcy+65,'Dual O atoms → slower hydrolysis than pure polyesters','#1e3030',7.5);
+  } else if(isPLGA){
+    // Two side-by-side mini hexagons: lactide (left) + glycolide (right)
+    const lx=mcx-28,gx=mcx+28,ry=mcy,rr=20;
+    for(let h=0;h<2;h++){
+      const hx=h===0?lx:gx,hcol=h===0?'#44dd88':col,pts=[];
+      for(let i=0;i<6;i++){const a=(i*60-90)*Math.PI/180;pts.push([hx+rr*Math.cos(a),ry+rr*Math.sin(a)]);}
+      for(let i=0;i<6;i++){const[x1,y1]=pts[i],[x2,y2]=pts[(i+1)%6];s+=sb(x1,y1,x2,y2,hcol,1.8);}
+      s+=sa(hx,ry,h===0?'LA':'GA',h===0?'#44dd88':'#ffaa44',7);
+    }
+    s+=sa(mcx,mcy+44,'Lactide + Glycolide co-feed (75:25 shown)','#2a5040',8);
+    s+=sa(mcx,mcy+57,'Random insertion → fully amorphous copolymer','#1e3030',7.5);
   } else {
+    // Default: L-Lactide 6-ring (iPLA)
     const r=32,pts=[];
     for(let i=0;i<6;i++){const a=(i*60-90)*Math.PI/180;pts.push([mcx+r*Math.cos(a),mcy+r*Math.sin(a)]);}
     for(let i=0;i<6;i++){const[x1,y1]=pts[i],[x2,y2]=pts[(i+1)%6];s+=sb(x1,y1,x2,y2,col,2);}
@@ -3013,10 +3266,18 @@ function ropInitSVG(key){
   s+=sArr(412,100,480,100,'#5a7a9a');
   s+=sa(580,20,'Ring opens:','#3a5070',9);
   s+=`<rect x="502" y="55" width="182" height="90" rx="8" fill="#0e1a10" stroke="${col}" stroke-width="1.2"/>`;
-  s+=sa(593,86,isPEO?'R–O–CH₂–CH₂–O⁻':'R–O–CH(CH₃)–','#aaddbb',isPEO?9:8.5,'middle');
-  if(!isPEO) s+=sa(593,102,'C(=O)–O⁻','#aaddbb',8.5,'middle');
-  s+=sa(593,isPEO?104:120,'Metal alkoxide end','#2a5040',8,'middle');
-  s+=sa(593,isPEO?118:134,'→ propagates living','#1e3030',7.5,'middle');
+  // Ring-opened product text per polymer
+  const prodLines={
+    PEO:  ['R–O–CH₂–CH₂–O⁻',null],
+    PCL:  ['R–O–(CH₂)₅–','C(=O)–O⁻'],
+    PGA:  ['R–O–CH₂–','C(=O)–O⁻'],
+    PDO:  ['R–O–CH₂–CH₂–','O–CH₂–C(=O)–O⁻'],
+    PLGA: ['R–O–CHR–','C(=O)–O⁻ (LA/GA)'],
+  }[key]||['R–O–CH(CH₃)–','C(=O)–O⁻'];
+  s+=sa(593,86,prodLines[0],'#aaddbb',8.5,'middle');
+  if(prodLines[1]) s+=sa(593,102,prodLines[1],'#aaddbb',8.5,'middle');
+  s+=sa(593,prodLines[1]?120:104,'Metal alkoxide end','#2a5040',8,'middle');
+  s+=sa(593,prodLines[1]?134:118,'→ propagates living','#1e3030',7.5,'middle');
   return s;
 }
 
@@ -3106,11 +3367,14 @@ function condensTermSVG(){
 
 function ropTermSVG(key){
   const W=700,H=200,col=(MECH[key]||{animCol:'#44dd88'}).animCol;
-  const isPEO=(key==='PEO');
+  const m0={PEO:'44',iPLA:'144',PCL:'114',PGA:'116',PDO:'102',PLGA:'~128 (75:25)'}[key]||'144';
+  const monName={PEO:'ethylene oxide',iPLA:'L-lactide',PCL:'ε-caprolactone',
+                 PGA:'glycolide',PDO:'p-dioxanone',PLGA:'lactide+glycolide avg'}[key]||'L-lactide';
+  const pdi=(key==='PEO')?'1.05':'1.05–1.20';
   let s=`<rect width="${W}" height="${H}" fill="#080a14"/>`;
   s+=sa(W/2,13,'Chain Control / Termination','#3a5070',10);
   s+=sa(W/2,36,'MW Control:   M̄ₙ = [Monomer] / [Initiator]  ×  M₀','#cce8ff',13);
-  s+=sa(W/2,56,`M₀ = ${isPEO?'44 g/mol (ethylene oxide)':'144 g/mol (L-lactide)'}   PDI ≈ ${isPEO?'1.05':'1.05–1.15'}`,'#5a7890',8.5);
+  s+=sa(W/2,56,`M₀ = ${m0} g/mol (${monName})   PDI ≈ ${pdi}`,'#5a7890',8.5);
   s+=sa(W/2,78,'Narrow Molecular Weight Distribution (vs radical chain-growth):','#4a6080',9);
   // Simple visual: narrow vs broad bar
   const cx=350,gcy=118,gw=160,gh=34;
@@ -3121,7 +3385,7 @@ function ropTermSVG(key){
   }
   s+=sb(cx-gw-10,gcy,cx+gw+10,gcy,'#2a3850',1);
   s+=sa(cx,gcy+14,'Narrow distribution (PDI ≈ 1.1)','#44dd88',8.5);
-  const termMethod=isPEO?'Protonation of alkoxide end (H₂O / acid)':'Acylation / protonation of chain-end alkoxide';
+  const termMethod=(key==='PEO')?'Protonation of alkoxide end (H₂O / acid)':'Acylation / protonation of chain-end alkoxide';
   s+=sa(W/2,162,'Termination: '+termMethod,'#3a5070',8.5);
   s+=sa(W/2,178,'Block copolymers: add second monomer after first is consumed','#2a4060',8);
   return s;
