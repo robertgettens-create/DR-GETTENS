@@ -1179,7 +1179,7 @@ let currentJoke = 0;
 let totalGroans  = 0;
 let reactionGiven = false;
 
-currentJoke = new Date().getDay() % JOKES.length;
+currentJoke = Math.floor(Math.random() * JOKES.length);
 
 function loadJoke(idx) {
     currentJoke   = ((idx % JOKES.length) + JOKES.length) % JOKES.length;
@@ -1224,7 +1224,11 @@ function react(type) {
     document.getElementById('groanMeter').style.display = 'block';
 }
 
-function nextJoke() { loadJoke(currentJoke + 1); }
+function nextJoke() {
+    let next;
+    do { next = Math.floor(Math.random() * JOKES.length); } while (next === currentJoke);
+    loadJoke(next);
+}
 
 document.getElementById('jokeTotal').textContent = JOKES.length;
 document.getElementById('jokeNum').textContent   = currentJoke + 1;
