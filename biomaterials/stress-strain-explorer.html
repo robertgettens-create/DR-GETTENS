@@ -432,10 +432,12 @@ const MATS = {
       color: '#5ab0f0', E: 200, nu: 0.29, sigmaY: 250, UTS: 420, EL: 28,
       note: 'Shows distinct upper/lower yield point (Lüders band). Very common structural material.',
       hasUpperYield: true,
-      // Elastic slope check: E=200 GPa → at 0.14% strain σ = 200,000×0.0014 = 280 MPa ✓
+      // Elastic slope check: E=200 GPa → at 0.07%: σ=140 MPa, at 0.14%: σ=280 MPa ✓
+      // Mid-elastic point [0.07,140] gives the spline a smooth ramp so it peaks
+      // cleanly at the upper yield and doesn't overshoot before dropping.
       curve: [
-        [0,0],[0.14,280],[0.16,250],[0.20,253],[2.0,265],
-        [8,320],[14,378],[18,420],[22,405],[26,382],[28,360]
+        [0,0],[0.07,140],[0.14,280],[0.16,250],[0.22,251],
+        [2.0,265],[8,320],[14,378],[18,420],[22,405],[26,382],[28,360]
       ]
     },
     {
@@ -641,27 +643,33 @@ function getPMMACurve(T) {
 
   const E_MPa   = E * 1000;
   const epsY    = (sigmaY / E_MPa) * 100; // yield strain in %
+  // Post-yield extension: distance from yield strain to fracture strain.
+  // All post-yield curve points are expressed as epsY + pye * fraction so that
+  // x-coordinates are always strictly increasing regardless of temperature.
+  const pye = Math.max(EL - epsY, EL * 0.01);
 
   const curve = [[0,0]];
   curve.push([epsY * 0.5, sigmaY * 0.5]);
   curve.push([epsY,       sigmaY]);
 
   if (type === 'brittle') {
-    curve.push([EL * 0.4, sigmaY + (UTS - sigmaY) * 0.5]);
-    curve.push([EL,       UTS]);
+    // Short post-yield region before catastrophic fracture
+    curve.push([epsY + pye * 0.40, sigmaY + (UTS - sigmaY) * 0.5]);
+    curve.push([EL,                UTS]);
   } else if (type === 'plastic') {
-    curve.push([epsY * 1.4, sigmaY * 0.96]); // slight post-yield softening
-    curve.push([EL * 0.25,  UTS * 0.88]);
-    curve.push([EL * 0.55,  UTS * 0.96]);
-    curve.push([EL * 0.80,  UTS]);
-    curve.push([EL,         UTS * 0.94]);    // fracture
-  } else { // rubbery
-    curve.push([epsY * 2,  sigmaY * 0.85]);
-    curve.push([EL * 0.1,  UTS * 0.30]);
-    curve.push([EL * 0.3,  UTS * 0.60]);
-    curve.push([EL * 0.6,  UTS * 0.85]);
-    curve.push([EL * 0.85, UTS * 0.97]);
-    curve.push([EL,        UTS]);
+    // Slight post-yield softening, then strain hardening to UTS, then necking
+    curve.push([epsY + pye * 0.08, sigmaY * 0.96]);
+    curve.push([epsY + pye * 0.28, UTS * 0.88]);
+    curve.push([epsY + pye * 0.58, UTS * 0.96]);
+    curve.push([epsY + pye * 0.82, UTS]);
+    curve.push([EL,                UTS * 0.94]);   // fracture
+  } else { // rubbery — gentle initial softening, then gradual rise
+    curve.push([epsY + pye * 0.05, sigmaY * 0.88]);
+    curve.push([epsY + pye * 0.15, UTS * 0.48]);
+    curve.push([epsY + pye * 0.35, UTS * 0.66]);
+    curve.push([epsY + pye * 0.62, UTS * 0.85]);
+    curve.push([epsY + pye * 0.88, UTS * 0.97]);
+    curve.push([EL,                UTS]);
   }
   return { curve, E_GPa: E, E_MPa, sigmaY, UTS, EL, type };
 }
@@ -704,7 +712,8 @@ function toC(ep, s) {
   return [x, y];
 }
 
-// Catmull-Rom smooth curve
+// Catmull-Rom smooth curve — control points clamped to segment bounding box
+// to prevent backward x-loops and y-overshoots at sharp stress transitions
 function drawSmooth(pts, color, lw, dash) {
   if (pts.length < 2) return;
   ctx.save();
@@ -724,11 +733,15 @@ function drawSmooth(pts, color, lw, dash) {
     const [x2, y2] = toC(p2[0], p2[1]);
     const [x0, y0] = toC(p0[0], p0[1]);
     const [x3, y3] = toC(p3[0], p3[1]);
-    ctx.bezierCurveTo(
-      x1 + (x2 - x0) / 6, y1 + (y2 - y0) / 6,
-      x2 - (x3 - x1) / 6, y2 - (y3 - y1) / 6,
-      x2, y2
-    );
+    // Clamp each control point to the segment bounding box so the spline
+    // never moves backward (in x) or overshoots past either endpoint (in y).
+    const xLo = Math.min(x1, x2), xHi = Math.max(x1, x2);
+    const yLo = Math.min(y1, y2), yHi = Math.max(y1, y2);
+    const cp1x = Math.min(Math.max(x1 + (x2 - x0) / 6, xLo), xHi);
+    const cp1y = Math.min(Math.max(y1 + (y2 - y0) / 6, yLo), yHi);
+    const cp2x = Math.min(Math.max(x2 - (x3 - x1) / 6, xLo), xHi);
+    const cp2y = Math.min(Math.max(y2 - (y3 - y1) / 6, yLo), yHi);
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x2, y2);
   }
   ctx.stroke();
   ctx.restore();
@@ -909,9 +922,10 @@ function draw() {
     }
 
     // Upper / lower yield labels for low carbon steel
-    if (m.hasUpperYield && curve.length > 3) {
-      const [uyx, uyy] = toC(curve[1][0], curve[1][1]);
-      const [lyx, lyy] = toC(curve[2][0], curve[2][1]);
+    // curve[2] = upper yield peak, curve[3] = lower yield (mid-elastic point added at [1])
+    if (m.hasUpperYield && curve.length > 4) {
+      const [uyx, uyy] = toC(curve[2][0], curve[2][1]);
+      const [lyx, lyy] = toC(curve[3][0], curve[3][1]);
       ctx.fillStyle = '#9090f8';
       ctx.font = '10px Segoe UI';
       ctx.textAlign = 'left';
