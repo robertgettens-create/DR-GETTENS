@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stress-Strain Explorer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #12131a;
+      color: #dde1f0;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 258px;
+      min-width: 258px;
+      background: #1a1d2e;
+      border-right: 1px solid #2a2d45;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 18px 14px;
+      overflow-y: auto;
+    }
+
+    #sidebar h1 {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #7eb8f7;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      border-bottom: 1px solid #2a2d45;
+      padding-bottom: 10px;
+    }
+
+    .section-label {
+      font-size: 0.64rem;
+      font-weight: 700;
+      color: #5a6080;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 6px;
+    }
+
+    /* Class selector */
+    .class-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+
+    .class-btn {
+      padding: 8px 4px;
+      background: #1e2238;
+      border: 1px solid #2e3355;
+      border-radius: 6px;
+      color: #9ba8c8;
+      cursor: pointer;
+      font-size: 0.69rem;
+      font-weight: 600;
+      text-align: center;
+      transition: all 0.18s;
+    }
+    .class-btn:hover { background: #253060; border-color: #4a6bcc; color: #c8d8ff; }
+    .class-btn.active { font-weight: 700; }
+    .class-btn.metals.active   { background: #162840; border-color: #5ab0f0; color: #80d0ff; }
+    .class-btn.polymers.active { background: #302808; border-color: #d8b840; color: #f0d878; }
+    .class-btn.ceramics.active { background: #2a2010; border-color: #c0a060; color: #e0c888; }
+    .class-btn.bio.active      { background: #102818; border-color: #50b868; color: #80e098; }
+
+    /* Material list */
+    .mat-list { display: flex; flex-direction: column; gap: 5px; }
+
+    .mat-btn {
+      padding: 8px 10px;
+      background: #1e2238;
+      border: 1px solid #2e3355;
+      border-radius: 6px;
+      color: #9ba8c8;
+      cursor: pointer;
+      font-size: 0.71rem;
+      font-weight: 600;
+      text-align: left;
+      transition: all 0.18s;
+      line-height: 1.35;
+    }
+    .mat-btn .formula {
+      font-size: 0.60rem;
+      font-weight: 400;
+      color: #4a5870;
+      display: block;
+      margin-top: 1px;
+    }
+    .mat-btn:hover { background: #253060; border-color: #4a6bcc; color: #c8d8ff; }
+    .mat-btn.active { background: #1c2448; }
+
+    /* Material note */
+    #mat-note {
+      font-size: 0.64rem;
+      color: #6a7898;
+      line-height: 1.5;
+      padding: 7px 9px;
+      background: #141728;
+      border-left: 2px solid #2e3a5a;
+      border-radius: 4px;
+      min-height: 36px;
+    }
+
+    /* Toggle grid */
+    .toggle-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+
+    .tog-btn {
+      padding: 7px 4px;
+      background: #1e2238;
+      border: 1px solid #2e3355;
+      border-radius: 6px;
+      color: #5a6888;
+      cursor: pointer;
+      font-size: 0.64rem;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.35;
+      transition: all 0.18s;
+    }
+    .tog-btn:hover { border-color: #4a6bcc; color: #9ba8c8; }
+    .tog-btn.on { color: #fff; }
+    .tog-btn.on.t-resil  { background: #102a10; border-color: #50b840; color: #90e870; }
+    .tog-btn.on.t-tough  { background: #101838; border-color: #4070d8; color: #80b0f8; }
+    .tog-btn.on.t-true   { background: #300818; border-color: #d84070; color: #f880a0; }
+    .tog-btn.on.t-labels { background: #282010; border-color: #b8a030; color: #e8d060; }
+    .tog-btn.on.t-offset { background: #301800; border-color: #d08030; color: #f0b060; }
+    .tog-btn.on.t-eng    { background: #102030; border-color: #3090c0; color: #70c8f0; }
+
+    /* ── Zoom section ── */
+    .zoom-presets {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 5px;
+      margin-bottom: 8px;
+    }
+    .zoom-preset-btn {
+      padding: 6px 4px;
+      background: #1e2238;
+      border: 1px solid #2e3355;
+      border-radius: 6px;
+      color: #6a7898;
+      cursor: pointer;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-align: center;
+      transition: all 0.18s;
+    }
+    .zoom-preset-btn:hover { border-color: #4a6bcc; color: #9ba8c8; }
+    .zoom-preset-btn.active { background: #18263a; border-color: #3a78b8; color: #70b8f8; }
+    .zoom-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .zoom-lbl      { font-size: 0.63rem; color: #6a78a0; }
+    .zoom-val-disp { font-size: 0.80rem; font-weight: 700; color: #70b8f8; }
+    .zoom-ticks    { display: flex; justify-content: space-between;
+                     font-size: 0.57rem; color: #404868; margin-top: 4px; }
+    /* Blue thumb for zoom slider (distinct from yellow temp slider) */
+    #zoom-slider::-webkit-slider-thumb { background: #4a90d8; }
+    #zoom-slider::-webkit-slider-thumb:hover { background: #70b8f8; }
+
+    /* Temperature section */
+    #temp-section { display: none; }
+
+    .temp-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .temp-val { font-size: 0.88rem; font-weight: 700; color: #f0d060; }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      background: #2e3355;
+      border-radius: 2px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #f0d060;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { background: #fff080; }
+
+    .temp-ticks {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.57rem;
+      color: #404868;
+      margin-top: 4px;
+    }
+
+    #behavior-badge {
+      margin-top: 8px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-align: center;
+      padding: 5px 8px;
+      border-radius: 4px;
+      background: #141726;
+      border-left: 2px solid #404868;
+      color: #808aaa;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Main area ── */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #canvas-wrap {
+      flex: 1;
+      position: relative;
+      padding: 10px 14px 4px 10px;
+      min-height: 0;
+    }
+
+    #ssCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 6px;
+    }
+
+    /* ── Info panel ── */
+    #info-panel {
+      background: #13152a;
+      border-top: 1px solid #22253a;
+      padding: 9px 14px;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 7px;
+    }
+
+    .prop-card {
+      background: #1a1d2e;
+      border: 1px solid #252840;
+      border-radius: 6px;
+      padding: 7px 8px;
+      text-align: center;
+    }
+
+    .prop-lbl {
+      font-size: 0.57rem;
+      color: #4a5878;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 4px;
+    }
+
+    .prop-val {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #7eb8f7;
+      line-height: 1;
+    }
+
+    .prop-unit {
+      font-size: 0.57rem;
+      color: #404c68;
+      margin-top: 3px;
+    }
+
+    .prop-card.ductile    { border-color: #30683a; }
+    .prop-card.ductile .prop-val    { color: #68d888; }
+    .prop-card.brittle    { border-color: #682838; }
+    .prop-card.brittle .prop-val    { color: #e07070; }
+    .prop-card.elastomeric { border-color: #684820; }
+    .prop-card.elastomeric .prop-val { color: #e09050; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════ SIDEBAR ══════════════════ -->
+<div id="sidebar">
+  <h1>Stress–Strain Explorer</h1>
+
+  <div>
+    <div class="section-label">Material Class</div>
+    <div class="class-grid">
+      <button class="class-btn metals active"   onclick="selectClass('metals')">Metals</button>
+      <button class="class-btn polymers"         onclick="selectClass('polymers')">Polymers</button>
+      <button class="class-btn ceramics"         onclick="selectClass('ceramics')">Ceramics</button>
+      <button class="class-btn bio"              onclick="selectClass('bio')">Bio / Composite</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">Material</div>
+    <div id="mat-list" class="mat-list"></div>
+  </div>
+
+  <div id="mat-note"></div>
+
+  <!-- Temperature (polymers only) -->
+  <div id="temp-section">
+    <div class="section-label">Temperature</div>
+    <div class="temp-row">
+      <span style="font-size:0.63rem;color:#7a88aa">T =</span>
+      <span class="temp-val" id="temp-display">20 °C</span>
+    </div>
+    <input type="range" id="temp-slider" min="4" max="80" step="4" value="20"
+           oninput="onTempChange(this.value)">
+    <div class="temp-ticks">
+      <span>4 °C</span>
+      <span style="color:#e07050">Tg ≈ 105 °C →</span>
+      <span>80 °C</span>
+    </div>
+    <div id="behavior-badge">Plastic (T &lt;&lt; Tg)</div>
+  </div>
+
+  <!-- View Range / Zoom -->
+  <div>
+    <div class="section-label">View Range</div>
+    <div class="zoom-presets">
+      <button class="zoom-preset-btn active" id="zbtn-full"    onclick="setZoomPreset('full')">Full</button>
+      <button class="zoom-preset-btn"        id="zbtn-elastic" onclick="setZoomPreset('elastic')">Elastic</button>
+      <button class="zoom-preset-btn"        id="zbtn-yield"   onclick="setZoomPreset('yield')">Yield+</button>
+    </div>
+    <div class="zoom-row">
+      <span class="zoom-lbl">X range</span>
+      <span class="zoom-val-disp" id="zoom-display">Full</span>
+    </div>
+    <input type="range" id="zoom-slider" min="0" max="100" value="100"
+           oninput="onZoomChange(+this.value)">
+    <div class="zoom-ticks">
+      <span>← Zoom in</span>
+      <span>Full →</span>
+    </div>
+  </div>
+
+  <!-- Display toggles -->
+  <div>
+    <div class="section-label">Display Options</div>
+    <div class="toggle-grid">
+      <button class="tog-btn t-resil"  id="btn-resil"  onclick="toggle('resilience')">Resilience<br>Region</button>
+      <button class="tog-btn t-tough"  id="btn-tough"  onclick="toggle('toughness')">Toughness<br>Region</button>
+      <button class="tog-btn t-true on" id="btn-true"  onclick="toggle('trueStress')">True σ–ε<br>Curve</button>
+      <button class="tog-btn t-labels on" id="btn-labels" onclick="toggle('labels')">Key Point<br>Labels</button>
+      <button class="tog-btn t-offset" id="btn-offset" onclick="toggle('offset')">0.2% Offset<br>Line</button>
+      <button class="tog-btn t-eng on" id="btn-eng"   onclick="toggle('engCurve')">Eng. σ–ε<br>Curve</button>
+    </div>
+  </div>
+</div><!-- /sidebar -->
+
+<!-- ══════════════════ MAIN ══════════════════ -->
+<div id="main">
+  <div id="canvas-wrap">
+    <canvas id="ssCanvas"></canvas>
+  </div>
+
+  <div id="info-panel">
+    <div class="prop-card">
+      <div class="prop-lbl">Young's Modulus</div>
+      <div class="prop-val" id="v-E">—</div>
+      <div class="prop-unit" id="u-E">GPa</div>
+    </div>
+    <div class="prop-card">
+      <div class="prop-lbl">Poisson's Ratio</div>
+      <div class="prop-val" id="v-nu">—</div>
+      <div class="prop-unit">ν</div>
+    </div>
+    <div class="prop-card">
+      <div class="prop-lbl">Yield Strength</div>
+      <div class="prop-val" id="v-sy">—</div>
+      <div class="prop-unit">MPa</div>
+    </div>
+    <div class="prop-card">
+      <div class="prop-lbl">UTS</div>
+      <div class="prop-val" id="v-uts">—</div>
+      <div class="prop-unit">MPa</div>
+    </div>
+    <div class="prop-card">
+      <div class="prop-lbl">Ductility</div>
+      <div class="prop-val" id="v-el">—</div>
+      <div class="prop-unit">% EL</div>
+    </div>
+    <div class="prop-card">
+      <div class="prop-lbl">Resilience</div>
+      <div class="prop-val" id="v-resil">—</div>
+      <div class="prop-unit">kJ / m³</div>
+    </div>
+    <div class="prop-card">
+      <div class="prop-lbl">Toughness</div>
+      <div class="prop-val" id="v-tough">—</div>
+      <div class="prop-unit">MJ / m³</div>
+    </div>
+    <div class="prop-card" id="card-cls">
+      <div class="prop-lbl">Classification</div>
+      <div class="prop-val" id="v-cls">—</div>
+      <div class="prop-unit" id="v-cls-note">—</div>
+    </div>
+  </div>
+</div><!-- /main -->
+
+<script>
+// ════════════════════════════════════════════════════════
+//  MATERIAL DATA
+//  Curves: [strain_%, stress_MPa]  — verified against E·ε = σ in elastic region
+// ════════════════════════════════════════════════════════
+const MATS = {
+  metals: [
+    {
+      id: 'lowC', name: 'Low Carbon Steel', formula: 'Fe + ~0.25% C',
+      color: '#5ab0f0', E: 200, nu: 0.29, sigmaY: 250, UTS: 420, EL: 28,
+      note: 'Shows distinct upper/lower yield point (Lüders band). Very common structural material.',
+      hasUpperYield: true,
+      // Elastic slope check: E=200 GPa → at 0.14% strain σ = 200,000×0.0014 = 280 MPa ✓
+      curve: [
+        [0,0],[0.14,280],[0.16,250],[0.20,253],[2.0,265],
+        [8,320],[14,378],[18,420],[22,405],[26,382],[28,360]
+      ]
+    },
+    {
+      id: 'al6061', name: 'Aluminum 6061-T6', formula: 'Al + Mg + Si',
+      color: '#c0c8e0', E: 69, nu: 0.33, sigmaY: 276, UTS: 310, EL: 17,
+      note: 'No distinct yield point; 0.2% offset method used. Excellent strength-to-weight ratio.',
+      hasOffsetYield: true,
+      // E=69 GPa → at 0.4% strain σ = 69,000×0.004 = 276 MPa ✓
+      curve: [
+        [0,0],[0.2,138],[0.4,276],[0.6,282],[1,286],[5,298],[10,308],[13,310],[15,296],[17,278]
+      ]
+    },
+    {
+      id: 'highC', name: 'High Carbon Steel', formula: 'Fe + ~0.8% C',
+      color: '#f07850', E: 210, nu: 0.29, sigmaY: 600, UTS: 825, EL: 8,
+      note: 'Much higher strength than low carbon steel but significantly less ductile.',
+      // E=210 GPa → at 0.286% strain σ = 210,000×0.00286 = 600 MPa ✓
+      curve: [
+        [0,0],[0.286,600],[0.5,635],[2,715],[5,785],[7,825],[7.5,808],[8,782]
+      ]
+    },
+    {
+      id: 'ti6al4v', name: 'Ti-6Al-4V', formula: 'Titanium Alloy',
+      color: '#80e060', E: 114, nu: 0.34, sigmaY: 880, UTS: 950, EL: 14,
+      note: 'Exceptional strength-to-weight ratio. Biocompatible — widely used in orthopedic implants.',
+      // E=114 GPa → at 0.77% strain σ = 114,000×0.0077 = 878 MPa ≈ 880 ✓
+      curve: [
+        [0,0],[0.39,444],[0.77,880],[1.2,905],[4,930],[8,943],[11,950],[12.5,936],[14,912]
+      ]
+    },
+  ],
+
+  polymers: [
+    {
+      id: 'pmma', name: 'PMMA', formula: 'Poly(methyl methacrylate)',
+      color: '#f0d060', E: 3.3, nu: 0.38, sigmaY: 55, UTS: 72, EL: 5,
+      note: 'Acrylic glass (Plexiglas). Behavior shifts from brittle to rubbery as T → Tg (105 °C).',
+      tempDependent: true, Tg: 105,
+      tempProps: {
+         4: { E:3.9,  sigmaY:68, UTS:80, EL:2.0,  type:'brittle'  },
+        20: { E:3.3,  sigmaY:55, UTS:72, EL:5.0,  type:'plastic'  },
+        40: { E:2.0,  sigmaY:38, UTS:50, EL:12.0, type:'plastic'  },
+        60: { E:0.8,  sigmaY:18, UTS:28, EL:35.0, type:'rubbery'  },
+        80: { E:0.18, sigmaY: 5, UTS: 9, EL:60.0, type:'rubbery'  },
+      }
+    },
+    {
+      id: 'hdpe', name: 'HDPE', formula: 'High-Density Polyethylene',
+      color: '#70e0b0', E: 0.8, nu: 0.42, sigmaY: 25, UTS: 35, EL: 100,
+      note: 'Semi-crystalline. Classic cold-drawing plateau: a neck forms and propagates along gauge.',
+      hasColdDrawing: true,
+      curve: [
+        [0,0],[1.56,12.5],[3.13,25],[4,22.5],[8,20],[25,20.5],[55,22],[80,30],[100,35]
+      ]
+    },
+    {
+      id: 'natRubber', name: 'Natural Rubber', formula: 'Polyisoprene (crosslinked)',
+      color: '#e09040', E: 0.001, nu: 0.499, sigmaY: null, UTS: 25, EL: 600,
+      note: 'Elastomer. J-shaped curve arises from entropy-driven uncoiling of random polymer chains.',
+      isElastomer: true,
+      curve: [
+        [0,0],[50,0.5],[100,1.2],[150,2.5],[200,4.5],[300,9],[400,16],[500,22],[600,25]
+      ]
+    },
+    {
+      id: 'silicone', name: 'Silicone Rubber', formula: 'PDMS (crosslinked)',
+      color: '#d080e0', E: 0.0008, nu: 0.499, sigmaY: null, UTS: 6, EL: 800,
+      note: 'Medical-grade elastomer. Extremely soft and biocompatible; large reversible deformation.',
+      isElastomer: true,
+      curve: [
+        [0,0],[100,0.8],[200,1.5],[300,2.5],[500,4.5],[700,5.8],[800,6]
+      ]
+    },
+  ],
+
+  ceramics: [
+    {
+      id: 'alumina', name: 'Alumina (Al₂O₃)', formula: 'Aluminum Oxide',
+      color: '#e0d0a0', E: 390, nu: 0.22, sigmaY: null, UTS: 350, EL: 0.09,
+      note: 'Very brittle: linear-elastic to sudden catastrophic fracture. No dislocations can move.',
+      isBrittle: true,
+      curve: [[0,0],[0.045,175],[0.09,350]]
+    },
+    {
+      id: 'sic', name: 'Silicon Carbide', formula: 'SiC',
+      color: '#b0a0c8', E: 410, nu: 0.19, sigmaY: null, UTS: 420, EL: 0.10,
+      note: 'Extremely hard and stiff; used in armor, cutting tools, and high-temp applications.',
+      isBrittle: true,
+      curve: [[0,0],[0.051,210],[0.10,420]]
+    },
+    {
+      id: 'castIron', name: 'Gray Cast Iron', formula: 'Fe + 2–4% C + Si',
+      color: '#909090', E: 105, nu: 0.26, sigmaY: null, UTS: 180, EL: 0.6,
+      note: 'Brittle despite being a metal. Graphite flakes act as internal stress concentrators.',
+      isBrittle: true,
+      curve: [[0,0],[0.05,52],[0.1,95],[0.25,145],[0.4,168],[0.6,180]]
+    },
+  ],
+
+  bio: [
+    {
+      id: 'bone', name: 'Cortical Bone', formula: 'HAp + Collagen + Water',
+      color: '#f0e090', E: 20, nu: 0.30, sigmaY: 100, UTS: 150, EL: 2.5,
+      note: 'Anisotropic; longitudinal direction shown. Hierarchical structure provides toughness.',
+      curve: [
+        [0,0],[0.25,50],[0.5,100],[0.7,122],[1.0,140],[1.5,148],[2.0,150],[2.3,130],[2.5,110]
+      ]
+    },
+    {
+      id: 'cartilage', name: 'Articular Cartilage', formula: 'Collagen + PG + ~80% H₂O',
+      color: '#60c8a0', E: 0.001, nu: 0.45, sigmaY: null, UTS: 5, EL: 60,
+      note: 'Highly nonlinear, viscoelastic. Compressive behavior shown. Strain-rate dependent.',
+      isElastomer: true,
+      curve: [[0,0],[10,0.5],[20,1.2],[30,2.0],[45,3.5],[58,4.8],[60,5.0]]
+    },
+    {
+      id: 'cfrp', name: 'CFRP (Unidirectional)', formula: 'Carbon Fiber / Epoxy',
+      color: '#6090d0', E: 135, nu: 0.27, sigmaY: null, UTS: 1500, EL: 1.1,
+      note: 'Linear-elastic to sudden brittle failure in fiber direction. Highest specific stiffness.',
+      isBrittle: true,
+      curve: [[0,0],[0.37,500],[0.74,1000],[0.93,1250],[1.1,1500]]
+    },
+  ]
+};
+
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+const S = {
+  cls: 'metals',
+  id:  'lowC',
+  temperature: 20,
+  resilience: false,
+  toughness:  false,
+  trueStress: true,
+  labels:     true,
+  offset:     false,
+  engCurve:   true,
+  xSlider:    100,   // 0 = max zoom-in, 100 = full view (logarithmic scale)
+};
+
+// ════════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════════
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function getMat() {
+  for (const cls of Object.values(MATS)) {
+    const m = cls.find(x => x.id === S.id);
+    if (m) return m;
+  }
+  return MATS.metals[0];
+}
+
+function niceMax(v) {
+  if (v <= 0) return 1;
+  const mag = Math.pow(10, Math.floor(Math.log10(v)));
+  const n   = v / mag;
+  if (n <= 1.2) return 1.2 * mag;
+  if (n <= 2)   return 2   * mag;
+  if (n <= 2.5) return 2.5 * mag;
+  if (n <= 5)   return 5   * mag;
+  return 10 * mag;
+}
+
+// Compute resilience: U_R = σy² / (2E)  [kJ/m³] when σy in MPa, E in MPa
+// Derivation: U_R [J/m³] = (σy·1e6)² / (2·E·1e6) = σy²·1e6 / (2E)  → ÷1000 → kJ/m³
+function resilience_kJm3(sigmaY_MPa, E_MPa) {
+  return (sigmaY_MPa * sigmaY_MPa) / (2 * E_MPa) * 1000; // kJ/m³
+}
+
+// Toughness via trapezoid rule: result in MJ/m³
+function toughness_MJm3(curve) {
+  let area = 0;
+  for (let i = 1; i < curve.length; i++) {
+    const dEps = (curve[i][0] - curve[i-1][0]) / 100; // strain fraction
+    const avgS = (curve[i][1] + curve[i-1][1]) / 2;   // MPa
+    area += dEps * avgS;  // MPa = MJ/m³
+  }
+  return area;
+}
+
+// Generate PMMA curve from interpolated temperature properties
+function getPMMACurve(T) {
+  const m = getMat();
+  T = Math.max(4, Math.min(80, T));
+  const temps = [4, 20, 40, 60, 80];
+  let t0 = 4, t1 = 20, f = 0;
+  for (let i = 0; i < temps.length - 1; i++) {
+    if (T >= temps[i] && T <= temps[i+1]) {
+      t0 = temps[i]; t1 = temps[i+1];
+      f = (T - t0) / (t1 - t0);
+      break;
+    }
+  }
+  const p0 = m.tempProps[t0];
+  const p1 = m.tempProps[t1];
+  const E       = lerp(p0.E,      p1.E,      f); // GPa
+  const sigmaY  = lerp(p0.sigmaY, p1.sigmaY, f);
+  const UTS     = lerp(p0.UTS,    p1.UTS,    f);
+  const EL      = lerp(p0.EL,     p1.EL,     f);
+  const type    = f < 0.5 ? p0.type : p1.type;
+
+  const E_MPa   = E * 1000;
+  const epsY    = (sigmaY / E_MPa) * 100; // yield strain in %
+
+  const curve = [[0,0]];
+  curve.push([epsY * 0.5, sigmaY * 0.5]);
+  curve.push([epsY,       sigmaY]);
+
+  if (type === 'brittle') {
+    curve.push([EL * 0.4, sigmaY + (UTS - sigmaY) * 0.5]);
+    curve.push([EL,       UTS]);
+  } else if (type === 'plastic') {
+    curve.push([epsY * 1.4, sigmaY * 0.96]); // slight post-yield softening
+    curve.push([EL * 0.25,  UTS * 0.88]);
+    curve.push([EL * 0.55,  UTS * 0.96]);
+    curve.push([EL * 0.80,  UTS]);
+    curve.push([EL,         UTS * 0.94]);    // fracture
+  } else { // rubbery
+    curve.push([epsY * 2,  sigmaY * 0.85]);
+    curve.push([EL * 0.1,  UTS * 0.30]);
+    curve.push([EL * 0.3,  UTS * 0.60]);
+    curve.push([EL * 0.6,  UTS * 0.85]);
+    curve.push([EL * 0.85, UTS * 0.97]);
+    curve.push([EL,        UTS]);
+  }
+  return { curve, E_GPa: E, E_MPa, sigmaY, UTS, EL, type };
+}
+
+function getCurveData() {
+  const m = getMat();
+  if (m.tempDependent) {
+    const d = getPMMACurve(S.temperature);
+    return { curve: d.curve, E_MPa: d.E_MPa, sigmaY: d.sigmaY, UTS: d.UTS, EL: d.EL };
+  }
+  return { curve: m.curve, E_MPa: m.E * 1000, sigmaY: m.sigmaY, UTS: m.UTS, EL: m.EL };
+}
+
+// True stress/strain (valid up to UTS/necking): σT = σE(1+ε),  εT = ln(1+ε)
+function getTrueCurve(engCurve) {
+  let utsIdx = 0, utsS = 0;
+  for (let i = 0; i < engCurve.length; i++) {
+    if (engCurve[i][1] > utsS) { utsS = engCurve[i][1]; utsIdx = i; }
+  }
+  return engCurve.slice(0, utsIdx + 1).map(([ep, s]) => {
+    const e = ep / 100;
+    return [Math.log(1 + e) * 100, s * (1 + e)];
+  });
+}
+
+// ════════════════════════════════════════════════════════
+//  CANVAS
+// ════════════════════════════════════════════════════════
+const canvas = document.getElementById('ssCanvas');
+const ctx    = canvas.getContext('2d');
+const PAD    = { L: 76, R: 30, T: 36, B: 60 };
+let _scale   = { xMax: 30, yMax: 500 };
+
+function plotW() { return canvas.width  - PAD.L - PAD.R; }
+function plotH() { return canvas.height - PAD.T - PAD.B; }
+
+function toC(ep, s) {
+  const x = PAD.L + (ep / _scale.xMax) * plotW();
+  const y = PAD.T + plotH() - (s / _scale.yMax) * plotH();
+  return [x, y];
+}
+
+// Catmull-Rom smooth curve
+function drawSmooth(pts, color, lw, dash) {
+  if (pts.length < 2) return;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth   = lw;
+  ctx.lineJoin    = 'round';
+  ctx.lineCap     = 'round';
+  if (dash) ctx.setLineDash([6, 5]);
+  ctx.beginPath();
+  ctx.moveTo(...toC(pts[0][0], pts[0][1]));
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(i - 1, 0)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(i + 2, pts.length - 1)];
+    const [x1, y1] = toC(p1[0], p1[1]);
+    const [x2, y2] = toC(p2[0], p2[1]);
+    const [x0, y0] = toC(p0[0], p0[1]);
+    const [x3, y3] = toC(p3[0], p3[1]);
+    ctx.bezierCurveTo(
+      x1 + (x2 - x0) / 6, y1 + (y2 - y0) / 6,
+      x2 - (x3 - x1) / 6, y2 - (y3 - y1) / 6,
+      x2, y2
+    );
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function dot(x, y, r, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawFractureX(cx, cy, color) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  const d = 6;
+  ctx.beginPath();
+  ctx.moveTo(cx - d, cy - d); ctx.lineTo(cx + d, cy + d);
+  ctx.moveTo(cx + d, cy - d); ctx.lineTo(cx - d, cy + d);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function clipPlot() {
+  ctx.rect(PAD.L, PAD.T, plotW(), plotH());
+  ctx.clip();
+}
+
+function draw() {
+  const m  = getMat();
+  const { curve, E_MPa, sigmaY, UTS, EL } = getCurveData();
+
+  const maxEps   = Math.max(...curve.map(p => p[0]));
+  const fullXMax = niceMax(maxEps * 1.10);
+
+  // Logarithmic zoom: slider 0–100 maps xPct 1%–100% of fullXMax
+  // Formula: xPct = 100^(xSlider/100)  →  at 100→100%, at 50→10%, at 0→1%
+  const xFrac  = Math.pow(100, S.xSlider / 100) / 100;
+  _scale.xMax  = Math.max(fullXMax * xFrac, 1e-6);
+
+  // Auto-scale Y to whichever data points fall within the visible X window
+  const visPts    = curve.filter(p => p[0] <= _scale.xMax);
+  const visSigMax = visPts.length ? Math.max(...visPts.map(p => p[1])) : curve[curve.length - 1][1];
+  _scale.yMax     = niceMax(visSigMax * 1.20);
+
+  const W = canvas.width, H = canvas.height;
+  const pw = plotW(), ph = plotH();
+
+  // Background
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0c0d18';
+  ctx.fillRect(0, 0, W, H);
+
+  // Plot area background
+  ctx.save();
+  clipPlot();
+  ctx.fillStyle = '#0e0f1e';
+  ctx.fillRect(PAD.L, PAD.T, pw, ph);
+
+  // Grid
+  ctx.strokeStyle = '#191b2e';
+  ctx.lineWidth = 1;
+  const nX = 8, nY = 6;
+  for (let i = 0; i <= nX; i++) {
+    const [cx] = toC((_scale.xMax / nX) * i, 0);
+    ctx.beginPath(); ctx.moveTo(cx, PAD.T); ctx.lineTo(cx, PAD.T + ph); ctx.stroke();
+  }
+  for (let i = 0; i <= nY; i++) {
+    const [, cy] = toC(0, (_scale.yMax / nY) * i);
+    ctx.beginPath(); ctx.moveTo(PAD.L, cy); ctx.lineTo(PAD.L + pw, cy); ctx.stroke();
+  }
+
+  // ── Toughness fill ──
+  if (S.toughness) {
+    ctx.beginPath();
+    ctx.moveTo(...toC(curve[0][0], curve[0][1]));
+    for (let i = 1; i < curve.length; i++) ctx.lineTo(...toC(curve[i][0], curve[i][1]));
+    const [lx] = toC(curve[curve.length - 1][0], 0);
+    const [fx] = toC(curve[0][0], 0);
+    ctx.lineTo(lx, PAD.T + ph);
+    ctx.lineTo(fx, PAD.T + ph);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(50,90,220,0.16)';
+    ctx.fill();
+  }
+
+  // ── Resilience fill ──
+  if (S.resilience && sigmaY) {
+    const epsY_pct = (sigmaY / E_MPa) * 100;
+    const resPts   = curve.filter(p => p[0] <= epsY_pct * 1.15);
+    if (resPts.length >= 2) {
+      ctx.beginPath();
+      ctx.moveTo(...toC(0, 0));
+      resPts.forEach(p => ctx.lineTo(...toC(p[0], p[1])));
+      const [yx] = toC(epsY_pct, 0);
+      ctx.lineTo(yx, PAD.T + ph);
+      ctx.lineTo(PAD.L, PAD.T + ph);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(60,180,50,0.18)';
+      ctx.fill();
+    }
+  }
+
+  // ── True stress-strain curve ──
+  if (S.trueStress && !m.isElastomer && !m.isBrittle) {
+    const truePts = getTrueCurve(curve);
+    drawSmooth(truePts, '#e05878', 1.7, true);
+    if (truePts.length > 1) {
+      const last = truePts[truePts.length - 1];
+      const [lx, ly] = toC(last[0], last[1]);
+      ctx.fillStyle = '#e05878';
+      ctx.font = '10px Segoe UI';
+      ctx.textAlign = 'left';
+      ctx.fillText('True σ–ε', Math.min(lx + 6, PAD.L + pw - 52), Math.max(ly - 6, PAD.T + 14));
+    }
+  }
+
+  // ── 0.2% offset line ──
+  if (S.offset) {
+    const slope = E_MPa / 100; // MPa per %strain
+    const x1 = 0.2, x2 = x1 + _scale.yMax / slope;
+    ctx.save();
+    ctx.strokeStyle = '#d08030';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.moveTo(...toC(x1, 0));
+    ctx.lineTo(...toC(x2, _scale.yMax));
+    ctx.stroke();
+    ctx.fillStyle = '#c07020';
+    ctx.font = '10px Segoe UI';
+    ctx.textAlign = 'left';
+    const [ox, oy] = toC(x1, 0);
+    ctx.fillText('0.2% offset', ox + 4, oy - 6);
+    ctx.restore();
+  }
+
+  // ── Engineering curve ──
+  if (S.engCurve) {
+    drawSmooth(curve, m.color, 2.5, false);
+  }
+
+  // ── Key labels ──
+  if (S.labels) {
+    const labelFont = '11px Segoe UI';
+    ctx.font = labelFont;
+
+    // Fracture marker (X)
+    const fp = curve[curve.length - 1];
+    const [fx, fy] = toC(fp[0], fp[1]);
+    drawFractureX(fx, fy, '#ff5050');
+    ctx.fillStyle = '#ff8080';
+    ctx.textAlign = 'left';
+    ctx.fillText('Fracture', fx + 9, fy + 4);
+
+    // UTS marker
+    let utsI = 0, utsV = 0;
+    curve.forEach((p, i) => { if (p[1] > utsV) { utsV = p[1]; utsI = i; } });
+    const [ux, uy] = toC(curve[utsI][0], curve[utsI][1]);
+    dot(ux, uy, 5, '#f0b040');
+    ctx.fillStyle = '#f8d060';
+    ctx.textAlign = curve[utsI][0] > _scale.xMax * 0.7 ? 'right' : 'left';
+    const utsOff = curve[utsI][0] > _scale.xMax * 0.7 ? -9 : 9;
+    ctx.fillText(`UTS = ${Math.round(utsV)} MPa`, ux + utsOff, uy - 8);
+
+    // Yield strength marker
+    if (sigmaY) {
+      const epsY_pct = (sigmaY / E_MPa) * 100;
+      const [yx, yy] = toC(epsY_pct, sigmaY);
+      dot(yx, yy, 5, '#50d870');
+      ctx.fillStyle = '#80f0a0';
+      ctx.textAlign = 'right';
+      ctx.fillText(`σy = ${Math.round(sigmaY)} MPa`, yx - 9, yy - 8);
+    }
+
+    // Upper / lower yield labels for low carbon steel
+    if (m.hasUpperYield && curve.length > 3) {
+      const [uyx, uyy] = toC(curve[1][0], curve[1][1]);
+      const [lyx, lyy] = toC(curve[2][0], curve[2][1]);
+      ctx.fillStyle = '#9090f8';
+      ctx.font = '10px Segoe UI';
+      ctx.textAlign = 'left';
+      ctx.fillText('Upper yield', uyx + 6, uyy - 5);
+      ctx.fillText('Lower yield', lyx + 6, lyy + 12);
+    }
+
+    // Cold-drawing label
+    if (m.hasColdDrawing && curve.length > 6) {
+      const midPt = curve[Math.floor(curve.length * 0.45)];
+      const [mx, my] = toC(midPt[0], midPt[1]);
+      ctx.fillStyle = '#70b8d0';
+      ctx.font = '10px Segoe UI';
+      ctx.textAlign = 'center';
+      ctx.fillText('← cold drawing →', mx, my + 16);
+    }
+
+    // Elastic modulus slope annotation
+    if (E_MPa && sigmaY) {
+      const epsEnd  = Math.min((sigmaY / E_MPa) * 100 * 0.6, _scale.xMax * 0.12);
+      const sigEnd  = E_MPa * epsEnd / 100;
+      const [ex1, ey1] = toC(0, 0);
+      const [ex2, ey2] = toC(epsEnd, sigEnd);
+      ctx.save();
+      ctx.strokeStyle = '#506080';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(ex1, ey1); ctx.lineTo(ex2, ey2); ctx.stroke();
+      ctx.setLineDash([]);
+      const ang = Math.atan2(ey2 - ey1, ex2 - ex1);
+      const mx2 = (ex1 + ex2) / 2, my2 = (ey1 + ey2) / 2;
+      ctx.translate(mx2 + 12 * Math.cos(ang - Math.PI / 2), my2 + 12 * Math.sin(ang - Math.PI / 2));
+      ctx.rotate(ang);
+      ctx.fillStyle = '#6080a0';
+      ctx.font = '10px Segoe UI';
+      ctx.textAlign = 'center';
+      const E_GPa = E_MPa / 1000;
+      const eLabel = E_GPa >= 1 ? `E = ${E_GPa.toFixed(0)} GPa`
+                                 : `E = ${(E_GPa*1000).toFixed(0)} MPa`;
+      ctx.fillText(eLabel, 0, 0);
+      ctx.restore();
+    }
+
+    // Elastomer entropy note
+    if (m.isElastomer) {
+      ctx.fillStyle = '#907840';
+      ctx.font = '10px Segoe UI';
+      ctx.textAlign = 'left';
+      const [, topY] = toC(0, _scale.yMax);
+      ctx.fillText('Entropy-driven recoil (J-curve)', PAD.L + 8, PAD.T + ph - 10);
+    }
+  }
+
+  ctx.restore(); // end clip
+
+  // ── Axes ──
+  ctx.strokeStyle = '#505878';
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(PAD.L, PAD.T + ph); ctx.lineTo(PAD.L + pw, PAD.T + ph); // x
+  ctx.moveTo(PAD.L, PAD.T);      ctx.lineTo(PAD.L,       PAD.T + ph); // y
+  ctx.stroke();
+
+  // Tick labels
+  ctx.fillStyle   = '#606880';
+  ctx.font        = '10.5px Segoe UI';
+  ctx.textAlign   = 'center';
+  for (let i = 0; i <= nX; i++) {
+    const v   = (_scale.xMax / nX) * i;
+    const [cx] = toC(v, 0);
+    const fmt = _scale.xMax < 1 ? v.toFixed(2) : _scale.xMax < 5 ? v.toFixed(1) : v.toFixed(0);
+    ctx.fillText(fmt, cx, PAD.T + ph + 16);
+  }
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= nY; i++) {
+    const v    = (_scale.yMax / nY) * i;
+    const [, cy] = toC(0, v);
+    ctx.fillText(v.toFixed(0), PAD.L - 7, cy + 4);
+  }
+
+  // Axis titles
+  ctx.fillStyle   = '#9ba8c8';
+  ctx.font        = '12px Segoe UI';
+  ctx.textAlign   = 'center';
+  ctx.fillText('Engineering Strain  ε  (%)', PAD.L + pw / 2, PAD.T + ph + 44);
+  ctx.save();
+  ctx.translate(16, PAD.T + ph / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Engineering Stress  σ  (MPa)', 0, 0);
+  ctx.restore();
+
+  // Material name overlay
+  ctx.fillStyle   = m.color + 'cc';
+  ctx.font        = 'bold 13px Segoe UI';
+  ctx.textAlign   = 'right';
+  ctx.fillText(m.name, PAD.L + pw - 10, PAD.T + 18);
+  ctx.fillStyle   = '#4a587a';
+  ctx.font        = '10.5px Segoe UI';
+  ctx.fillText(m.formula || '', PAD.L + pw - 10, PAD.T + 33);
+
+  // Zoom badge — show when not at full view
+  if (S.xSlider < 99) {
+    const xFmt = _scale.xMax < 1 ? _scale.xMax.toFixed(2)
+               : _scale.xMax < 10 ? _scale.xMax.toFixed(1)
+               : _scale.xMax.toFixed(0);
+    const badge = `ε  0 – ${xFmt} %`;
+    ctx.font = 'bold 10px Segoe UI';
+    const bw = ctx.measureText(badge).width + 16;
+    const bx = PAD.L + 10, by = PAD.T + 10;
+    ctx.fillStyle = 'rgba(24,36,60,0.82)';
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, 20, 4);
+    ctx.fill();
+    ctx.strokeStyle = '#3a78b8';
+    ctx.lineWidth   = 1;
+    ctx.stroke();
+    ctx.fillStyle   = '#70b8f8';
+    ctx.textAlign   = 'left';
+    ctx.fillText(badge, bx + 8, by + 14);
+  }
+
+  // Legend for true curve
+  if (S.trueStress && !m.isElastomer && !m.isBrittle) {
+    const lx = PAD.L + pw - 10;
+    const ly = PAD.T + 52;
+    ctx.save();
+    ctx.strokeStyle = '#e05878';
+    ctx.lineWidth   = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(lx - 40, ly); ctx.lineTo(lx, ly); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle   = '#e05878';
+    ctx.font        = '10px Segoe UI';
+    ctx.textAlign   = 'right';
+    ctx.fillText('True σ–ε', lx - 44, ly + 4);
+    ctx.restore();
+    // Engineering legend
+    ctx.save();
+    ctx.strokeStyle = m.color;
+    ctx.lineWidth   = 2;
+    ctx.beginPath(); ctx.moveTo(lx - 40, ly + 16); ctx.lineTo(lx, ly + 16); ctx.stroke();
+    ctx.fillStyle   = m.color;
+    ctx.font        = '10px Segoe UI';
+    ctx.textAlign   = 'right';
+    ctx.fillText('Engineering σ–ε', lx - 44, ly + 20);
+    ctx.restore();
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  INFO PANEL
+// ════════════════════════════════════════════════════════
+function updateInfo() {
+  const m  = getMat();
+  const { curve, E_MPa, sigmaY, UTS, EL } = getCurveData();
+  const E_GPa = E_MPa / 1000;
+
+  // Young's modulus — adaptive display
+  let eStr, eUnit;
+  if (E_GPa >= 1)     { eStr = E_GPa.toFixed(0); eUnit = 'GPa'; }
+  else if (E_GPa >= 0.01) { eStr = E_GPa.toFixed(2); eUnit = 'GPa'; }
+  else               { eStr = (E_GPa * 1000).toFixed(2); eUnit = 'MPa'; }
+  document.getElementById('v-E').textContent = eStr;
+  document.getElementById('u-E').textContent = eUnit;
+
+  document.getElementById('v-nu').textContent  = m.nu ? m.nu.toFixed(2) : '≈ 0.5';
+  document.getElementById('v-sy').textContent  = sigmaY ? Math.round(sigmaY) : 'N/A';
+  document.getElementById('v-uts').textContent = UTS     ? Math.round(UTS)   : 'N/A';
+  document.getElementById('v-el').textContent  = EL < 0.5 ? EL.toFixed(2) : EL.toFixed(1);
+
+  // Resilience
+  if (sigmaY) {
+    document.getElementById('v-resil').textContent = Math.round(resilience_kJm3(sigmaY, E_MPa));
+  } else {
+    document.getElementById('v-resil').textContent = 'N/A';
+  }
+
+  // Toughness
+  document.getElementById('v-tough').textContent = toughness_MJm3(curve).toFixed(1);
+
+  // Classification
+  const card = document.getElementById('card-cls');
+  card.className = 'prop-card';
+  let cls = '', note = '';
+  if (m.isBrittle)    { cls = 'Brittle';     note = '%EL < 1%';         card.classList.add('brittle');    }
+  else if (m.isElastomer){ cls = 'Elastomeric'; note = 'Entropy-driven';   card.classList.add('elastomeric');}
+  else if (EL >= 5)   { cls = 'Ductile';     note = '%EL ≥ 5%';         card.classList.add('ductile');    }
+  else                { cls = 'Brittle';     note = '%EL < 5%';         card.classList.add('brittle');    }
+  document.getElementById('v-cls').textContent      = cls;
+  document.getElementById('v-cls-note').textContent = note;
+}
+
+// ════════════════════════════════════════════════════════
+//  UI HANDLERS
+// ════════════════════════════════════════════════════════
+function selectClass(cls) {
+  S.cls = cls;
+  document.querySelectorAll('.class-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.class-btn.' + cls).classList.add('active');
+  S.id = MATS[cls][0].id;
+  buildMatList();
+  checkTempSection();
+  resetZoom();
+  refresh();
+}
+
+function buildMatList() {
+  const list = document.getElementById('mat-list');
+  list.innerHTML = '';
+  MATS[S.cls].forEach(m => {
+    const b = document.createElement('button');
+    b.className = 'mat-btn' + (m.id === S.id ? ' active' : '');
+    if (m.id === S.id) {
+      b.style.borderColor = m.color;
+      b.style.color = m.color;
+    }
+    b.innerHTML = m.name + '<span class="formula">' + m.formula + '</span>';
+    b.onclick = () => selectMat(m.id);
+    list.appendChild(b);
+  });
+  document.getElementById('mat-note').textContent = getMat().note || '';
+}
+
+function selectMat(id) {
+  S.id = id;
+  buildMatList();
+  checkTempSection();
+  resetZoom();
+  refresh();
+}
+
+function checkTempSection() {
+  const m = getMat();
+  document.getElementById('temp-section').style.display = m.tempDependent ? 'block' : 'none';
+}
+
+function onTempChange(val) {
+  S.temperature = parseInt(val);
+  document.getElementById('temp-display').textContent = val + ' °C';
+  const T = S.temperature;
+  let beh, col;
+  if      (T < 30) { beh = 'Brittle behavior  (T << Tg)'; col = '#e07060'; }
+  else if (T < 55) { beh = 'Plastic behavior  (T < Tg)';  col = '#d8c040'; }
+  else             { beh = 'Rubbery behavior  (T → Tg)';  col = '#60d870'; }
+  const badge = document.getElementById('behavior-badge');
+  badge.textContent   = beh;
+  badge.style.color   = col;
+  badge.style.borderLeftColor = col;
+  refresh();
+}
+
+const TOGGLE_MAP = {
+  resilience: ['btn-resil',  't-resil' ],
+  toughness:  ['btn-tough',  't-tough' ],
+  trueStress: ['btn-true',   't-true'  ],
+  labels:     ['btn-labels', 't-labels'],
+  offset:     ['btn-offset', 't-offset'],
+  engCurve:   ['btn-eng',    't-eng'   ],
+};
+function toggle(key) {
+  S[key] = !S[key];
+  const [btnId, cls] = TOGGLE_MAP[key];
+  document.getElementById(btnId).classList.toggle('on', S[key]);
+  draw();
+}
+
+// ════════════════════════════════════════════════════════
+//  ZOOM
+// ════════════════════════════════════════════════════════
+
+// Inverse of the draw() zoom formula: given a desired xMax and the full xMax,
+// compute what slider value (0-100) would produce it.
+function xMaxToSlider(targetXMax, fullXMax) {
+  const xPct = (targetXMax / fullXMax) * 100;
+  if (xPct >= 100) return 100;
+  if (xPct <=   1) return   0;
+  return Math.log(xPct) / Math.log(100) * 100; // invert: 100^(s/100) = xPct
+}
+
+function updateZoomDisplay() {
+  const { curve } = getCurveData();
+  const fullXMax  = Math.max(...curve.map(p => p[0]));
+  const xFrac     = Math.pow(100, S.xSlider / 100) / 100;
+  const xMax      = fullXMax * xFrac;
+  const el        = document.getElementById('zoom-display');
+  if (S.xSlider >= 99) {
+    el.textContent = 'Full';
+  } else {
+    const fmt = xMax < 1 ? xMax.toFixed(2) : xMax < 10 ? xMax.toFixed(1) : xMax.toFixed(0);
+    el.textContent = '0 – ' + fmt + ' %';
+  }
+}
+
+function onZoomChange(val) {
+  S.xSlider = val;
+  // Highlight "Full" preset only if all the way right; clear others
+  document.querySelectorAll('.zoom-preset-btn').forEach(b => b.classList.remove('active'));
+  if (val >= 99) document.getElementById('zbtn-full').classList.add('active');
+  updateZoomDisplay();
+  draw();
+}
+
+function setZoomPreset(preset) {
+  const { curve, E_MPa, sigmaY } = getCurveData();
+  const fullXMax = Math.max(...curve.map(p => p[0]));
+
+  if (preset === 'full') {
+    S.xSlider = 100;
+  } else if (preset === 'elastic') {
+    // Show 5× the yield strain — reveals elastic slope + yield transition clearly
+    const epsY      = sigmaY ? (sigmaY / E_MPa) * 100 : fullXMax * 0.03;
+    const targetMax = Math.min(epsY * 5, fullXMax * 0.5);
+    S.xSlider       = xMaxToSlider(targetMax, fullXMax);
+  } else if (preset === 'yield') {
+    // Show 25% of the full range — captures yield + early work hardening
+    const targetMax = fullXMax * 0.25;
+    S.xSlider       = xMaxToSlider(targetMax, fullXMax);
+  }
+
+  S.xSlider = Math.max(0, Math.min(100, S.xSlider));
+  document.getElementById('zoom-slider').value = S.xSlider;
+  document.querySelectorAll('.zoom-preset-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('zbtn-' + preset).classList.add('active');
+  updateZoomDisplay();
+  draw();
+}
+
+function resetZoom() {
+  S.xSlider = 100;
+  document.getElementById('zoom-slider').value = 100;
+  document.querySelectorAll('.zoom-preset-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('zbtn-full').classList.add('active');
+  updateZoomDisplay();
+}
+
+function refresh() { updateInfo(); draw(); }
+
+// ════════════════════════════════════════════════════════
+//  RESIZE + INIT
+// ════════════════════════════════════════════════════════
+function resizeCanvas() {
+  const wrap = document.getElementById('canvas-wrap');
+  canvas.width  = wrap.clientWidth  - 24;
+  canvas.height = wrap.clientHeight - 14;
+  draw();
+}
+
+window.addEventListener('resize', resizeCanvas);
+
+function init() {
+  // Sync initial toggle button states
+  Object.entries(TOGGLE_MAP).forEach(([key, [btnId, cls]]) => {
+    document.getElementById(btnId).classList.toggle('on', S[key]);
+  });
+  buildMatList();
+  checkTempSection();
+  resizeCanvas();       // also calls draw()
+  updateInfo();
+  updateZoomDisplay();
+}
+
+init();
+</script>
+</body>
+</html>
