@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mechanical Properties Explorer</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #0f1018;
+      color: #dde1f0;
+      min-height: 100vh;
+    }
+
+    /* ── Top nav ── */
+    #topbar {
+      background: #13151f;
+      border-bottom: 1px solid #1e2235;
+      padding: 12px 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    #topbar a {
+      font-size: 0.72rem;
+      color: #5a6890;
+      text-decoration: none;
+      letter-spacing: 0.5px;
+      transition: color 0.15s;
+    }
+    #topbar a:hover { color: #9ba8c8; }
+    .breadcrumb-sep { color: #2e3555; font-size: 0.8rem; }
+    #topbar .current { color: #9ba8c8; font-size: 0.72rem; }
+
+    /* ── Hero header ── */
+    #hero {
+      padding: 44px 28px 36px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    #hero .tag {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      color: #e07888;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    #hero h1 {
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: #eef2ff;
+      margin-bottom: 10px;
+      letter-spacing: -0.5px;
+    }
+    #hero p {
+      font-size: 0.9rem;
+      color: #6a7898;
+      line-height: 1.7;
+      max-width: 600px;
+    }
+
+    /* ── Module grid ── */
+    #modules {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 28px 52px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 18px;
+    }
+
+    .mod-card {
+      background: #14162a;
+      border: 1px solid #1e2240;
+      border-radius: 12px;
+      padding: 24px 20px;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+      position: relative;
+      overflow: hidden;
+    }
+    .mod-card::before {
+      content: '';
+      position: absolute;
+      top: -30px; right: -30px;
+      width: 110px; height: 110px;
+      border-radius: 50%;
+      opacity: 0.08;
+    }
+    .mod-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255,255,255,0.12);
+    }
+    .mod-card.coming-soon {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    /* Per-card accent colors */
+    .mod-card.strain  { box-shadow: 0 4px 18px rgba(200,40,70,0.15);  border-color: rgba(220,60,90,0.22); }
+    .mod-card.strain:hover  { box-shadow: 0 8px 28px rgba(200,40,70,0.30); }
+    .mod-card.strain::before  { background: #dc3c5a; }
+
+    .mod-card.state   { box-shadow: 0 4px 18px rgba(60,100,220,0.18); border-color: rgba(80,130,230,0.25); }
+    .mod-card.state:hover   { box-shadow: 0 8px 28px rgba(60,100,220,0.35); }
+    .mod-card.state::before   { background: #4a80e8; }
+
+    .mod-card.tests   { box-shadow: 0 4px 14px rgba(60,160,120,0.12); border-color: rgba(60,160,120,0.18); }
+    .mod-card.tests::before   { background: #3ea878; }
+
+    .mod-card.hardness { box-shadow: 0 4px 14px rgba(160,100,60,0.12); border-color: rgba(160,100,60,0.18); }
+    .mod-card.hardness::before { background: #c88040; }
+
+    .mod-icon { font-size: 2rem; margin-bottom: 12px; }
+
+    .mod-tag {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+    .mod-card.strain  .mod-tag { color: #f08898; }
+    .mod-card.state   .mod-tag { color: #80a8f8; }
+    .mod-card.tests   .mod-tag { color: #60c898; }
+    .mod-card.hardness .mod-tag { color: #e0a860; }
+
+    .mod-card h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #eef2ff;
+      margin-bottom: 8px;
+    }
+    .mod-card p {
+      font-size: 0.81rem;
+      color: #5a6890;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    .mod-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 16px;
+    }
+    .pill {
+      border-radius: 20px;
+      padding: 3px 9px;
+      font-size: 0.68rem;
+      font-weight: 600;
+    }
+    .mod-card.strain  .pill { background: rgba(200,50,80,0.22); border: 1px solid rgba(220,80,100,0.45); color: #ffb0be; }
+    .mod-card.state   .pill { background: rgba(60,100,220,0.20); border: 1px solid rgba(80,130,230,0.45); color: #a0c0f8; }
+    .mod-card.tests   .pill { background: rgba(40,140,100,0.20); border: 1px solid rgba(60,160,120,0.45); color: #80d8b0; }
+    .mod-card.hardness .pill { background: rgba(140,80,40,0.20); border: 1px solid rgba(160,100,60,0.45); color: #e8c080; }
+
+    .mod-cta {
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .mod-card.strain  .mod-cta { color: #f07888; }
+    .mod-card.state   .mod-cta { color: #7098f8; }
+    .mod-card.tests   .mod-cta { color: #50b888; }
+    .mod-card.hardness .mod-cta { color: #d09858; }
+
+    .soon-badge {
+      display: inline-block;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: #1e2240;
+      border: 1px solid #2e3560;
+      border-radius: 4px;
+      padding: 3px 8px;
+      color: #4a5878;
+    }
+
+    /* Section divider label */
+    .section-hdr {
+      grid-column: 1 / -1;
+      font-size: 0.63rem;
+      font-weight: 700;
+      color: #3a4060;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #1a1e32;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="topbar">
+  <a href="../index.html">← Back to Course Hub</a>
+  <span class="breadcrumb-sep">›</span>
+  <span class="current">Mechanical Properties</span>
+</div>
+
+<div id="hero">
+  <div class="tag">Mechanical Properties &bull; Interactive Modules</div>
+  <h1>Mechanical Properties Explorer</h1>
+  <p>Interactive tools for understanding how materials respond to mechanical loading —
+     from stress–strain behavior and failure criteria to multiaxial stress states
+     and standardized test methods.</p>
+</div>
+
+<div id="modules">
+
+  <div class="section-hdr">Available Modules</div>
+
+  <!-- Stress-Strain Explorer -->
+  <a class="mod-card strain" href="../biomaterials/stress-strain-explorer.html">
+    <div class="mod-icon">📈</div>
+    <div class="mod-tag">Curves &bull; Material Behavior</div>
+    <h3>Stress–Strain Curves</h3>
+    <p>Compare engineering and true stress–strain curves for 13 materials across
+       4 classes. Toggle resilience, toughness, yield markers, and the 0.2%
+       offset line. PMMA updates live with temperature.</p>
+    <div class="mod-pills">
+      <span class="pill">13 Materials</span>
+      <span class="pill">4 Classes</span>
+      <span class="pill">Temp. Effects</span>
+      <span class="pill">Overlay Compare</span>
+    </div>
+    <div class="mod-cta">Open Module →</div>
+  </a>
+
+  <!-- Stress State -->
+  <a class="mod-card state" href="stress-state.html">
+    <div class="mod-icon">🔷</div>
+    <div class="mod-tag">Stress State &bull; Mohr's Circle</div>
+    <h3>Stress State & Mohr's Circle</h3>
+    <p>Visualize the 2D stress tensor on a rotating stress element. Mohr's circle
+       updates live — find principal stresses, max shear, and the von Mises
+       equivalent stress interactively.</p>
+    <div class="mod-pills">
+      <span class="pill">Stress Element</span>
+      <span class="pill">Mohr's Circle</span>
+      <span class="pill">Principal Planes</span>
+      <span class="pill">Von Mises</span>
+    </div>
+    <div class="mod-cta">Open Module →</div>
+  </a>
+
+  <div class="section-hdr" style="margin-top:4px;">Coming Soon</div>
+
+  <!-- Mechanical Tests -->
+  <div class="mod-card tests coming-soon">
+    <div class="mod-icon">🔨</div>
+    <div class="mod-tag">Testing Methods</div>
+    <h3>Mechanical Tests</h3>
+    <p>Tensile test setup and instrumentation, Charpy and Izod impact testing,
+       ductile-to-brittle transition curves, and fracture toughness basics.</p>
+    <div class="mod-pills">
+      <span class="pill">Tensile Test</span>
+      <span class="pill">Charpy/Izod</span>
+      <span class="pill">DBT Curve</span>
+    </div>
+    <span class="soon-badge">Coming Soon</span>
+  </div>
+
+  <!-- Hardness -->
+  <div class="mod-card hardness coming-soon">
+    <div class="mod-icon">💎</div>
+    <div class="mod-tag">Hardness &bull; Indentation</div>
+    <h3>Hardness Testing</h3>
+    <p>Brinell, Vickers, Rockwell, and Knoop indentation methods. Conversion
+       between scales, correlation to tensile strength, and hardness depth
+       profiles for case-hardened parts.</p>
+    <div class="mod-pills">
+      <span class="pill">Brinell</span>
+      <span class="pill">Vickers</span>
+      <span class="pill">Rockwell</span>
+    </div>
+    <span class="soon-badge">Coming Soon</span>
+  </div>
+
+</div>
+
+</body>
+</html>

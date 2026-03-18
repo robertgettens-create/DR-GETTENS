@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stress State Explorer</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #12131a; color: #dde1f0;
+      display: flex; height: 100vh; overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 262px; min-width: 262px;
+      background: #1a1d2e; border-right: 1px solid #2a2d45;
+      display: flex; flex-direction: column; gap: 14px;
+      padding: 18px 14px; overflow-y: auto;
+    }
+    #sidebar h1 {
+      font-size: 0.92rem; font-weight: 700; color: #7eb8f7;
+      text-transform: uppercase; letter-spacing: 2px;
+      border-bottom: 1px solid #2a2d45; padding-bottom: 10px;
+    }
+    #sidebar h1 a {
+      float: right; font-size: 0.68rem; color: #4a6090;
+      text-decoration: none; font-weight: 400; letter-spacing: 0;
+      text-transform: none;
+    }
+    #sidebar h1 a:hover { color: #7a90c0; }
+    .section-label {
+      font-size: 0.64rem; font-weight: 700; color: #5a6080;
+      text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px;
+    }
+
+    /* Stress component sliders */
+    .stress-row { margin-bottom: 10px; }
+    .stress-header {
+      display: flex; justify-content: space-between;
+      align-items: baseline; margin-bottom: 4px;
+    }
+    .stress-name { font-size: 0.80rem; font-weight: 700; }
+    .stress-val  { font-size: 0.88rem; font-weight: 700; }
+    .stress-unit { font-size: 0.62rem; color: #5a6880; }
+
+    input[type=range] {
+      -webkit-appearance: none; width: 100%; height: 4px;
+      background: #2e3355; border-radius: 2px; outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 15px; height: 15px;
+      border-radius: 50%; cursor: pointer; transition: background 0.15s;
+    }
+    #sl-sigx::-webkit-slider-thumb  { background: #f0b040; }
+    #sl-sigy::-webkit-slider-thumb  { background: #60d870; }
+    #sl-tauxy::-webkit-slider-thumb { background: #e05878; }
+    #sl-theta::-webkit-slider-thumb { background: #7ab8f8; }
+
+    /* Preset buttons */
+    .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .preset-btn {
+      padding: 7px 4px; background: #1e2238; border: 1px solid #2e3355;
+      border-radius: 6px; color: #6a7898; cursor: pointer; font-size: 0.65rem;
+      font-weight: 600; text-align: center; line-height: 1.35; transition: all 0.18s;
+    }
+    .preset-btn:hover { border-color: #4a6bcc; color: #9ba8c8; }
+    .preset-btn.active { background: #182040; border-color: #4a78c8; color: #8ab8f8; }
+
+    /* Rotation presets */
+    .rot-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 8px; }
+    .rot-btn {
+      padding: 6px 4px; background: #1e2238; border: 1px solid #2e3355;
+      border-radius: 6px; color: #6a7898; cursor: pointer; font-size: 0.64rem;
+      font-weight: 600; text-align: center; transition: all 0.18s;
+    }
+    .rot-btn:hover { border-color: #4a6bcc; color: #9ba8c8; }
+    .rot-btn.active { background: #18263a; border-color: #3a78b8; color: #70b8f8; }
+
+    .theta-row {
+      display: flex; justify-content: space-between;
+      align-items: baseline; margin-bottom: 5px;
+    }
+    .theta-lbl { font-size: 0.78rem; font-weight: 600; color: #7ab8f8; }
+    .theta-val { font-size: 0.95rem; font-weight: 700; color: #7ab8f8; }
+
+    /* Toggle grid */
+    .toggle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .tog-btn {
+      padding: 7px 4px; background: #1e2238; border: 1px solid #2e3355;
+      border-radius: 6px; color: #5a6888; cursor: pointer; font-size: 0.64rem;
+      font-weight: 600; text-align: center; line-height: 1.35; transition: all 0.18s;
+    }
+    .tog-btn:hover { border-color: #4a6bcc; color: #9ba8c8; }
+    .tog-btn.on { color: #fff; }
+    .tog-btn.on.t-labels { background: #282010; border-color: #b8a030; color: #e8d060; }
+    .tog-btn.on.t-axes   { background: #182030; border-color: #4080b8; color: #70b8f8; }
+
+    /* Scenario note */
+    #scenario-note {
+      font-size: 0.64rem; color: #6a7898; line-height: 1.5;
+      padding: 7px 9px; background: #141728; border-left: 2px solid #2e3a5a;
+      border-radius: 4px;
+    }
+
+    /* ── Main area ── */
+    #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    #canvas-wrap { flex: 1; position: relative; padding: 10px 14px 4px 10px; min-height: 0; }
+    #ssCanvas { width: 100%; height: 100%; display: block; border-radius: 6px; }
+
+    /* ── Info panel ── */
+    #info-panel {
+      background: #13152a; border-top: 1px solid #22253a;
+      padding: 9px 14px;
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px;
+    }
+    .prop-card {
+      background: #1a1d2e; border: 1px solid #252840;
+      border-radius: 6px; padding: 7px 8px; text-align: center;
+    }
+    .prop-lbl  { font-size: 0.57rem; color: #4a5878; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+    .prop-val  { font-size: 0.92rem; font-weight: 700; color: #7eb8f7; line-height: 1; }
+    .prop-unit { font-size: 0.57rem; color: #404c68; margin-top: 3px; }
+    .prop-card.tension    { border-color: #306830; }
+    .prop-card.tension    .prop-val { color: #68d888; }
+    .prop-card.compression { border-color: #682838; }
+    .prop-card.compression .prop-val { color: #e07070; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<div id="sidebar">
+  <h1>Stress State <a href="index.html">← Hub</a></h1>
+
+  <!-- Stress components -->
+  <div>
+    <div class="section-label">Applied Stresses (MPa)</div>
+    <div class="stress-row">
+      <div class="stress-header">
+        <span class="stress-name" style="color:#f0b040">σ<sub>x</sub></span>
+        <span><span class="stress-val" id="v-sigx" style="color:#f0b040">200</span>
+              <span class="stress-unit"> MPa</span></span>
+      </div>
+      <input type="range" id="sl-sigx" min="-300" max="300" step="5" value="200"
+             oninput="onStressChange()">
+    </div>
+    <div class="stress-row">
+      <div class="stress-header">
+        <span class="stress-name" style="color:#60d870">σ<sub>y</sub></span>
+        <span><span class="stress-val" id="v-sigy" style="color:#60d870">0</span>
+              <span class="stress-unit"> MPa</span></span>
+      </div>
+      <input type="range" id="sl-sigy" min="-300" max="300" step="5" value="0"
+             oninput="onStressChange()">
+    </div>
+    <div class="stress-row">
+      <div class="stress-header">
+        <span class="stress-name" style="color:#e05878">τ<sub>xy</sub></span>
+        <span><span class="stress-val" id="v-tauxy" style="color:#e05878">0</span>
+              <span class="stress-unit"> MPa</span></span>
+      </div>
+      <input type="range" id="sl-tauxy" min="-300" max="300" step="5" value="0"
+             oninput="onStressChange()">
+    </div>
+  </div>
+
+  <!-- Presets -->
+  <div>
+    <div class="section-label">Preset Scenarios</div>
+    <div class="preset-grid">
+      <button class="preset-btn active" id="ps-uniaxial" onclick="setPreset('uniaxial')">Uniaxial<br>Tension</button>
+      <button class="preset-btn"        id="ps-biaxial"  onclick="setPreset('biaxial')">Equal<br>Biaxial</button>
+      <button class="preset-btn"        id="ps-shear"    onclick="setPreset('shear')">Pure<br>Shear</button>
+      <button class="preset-btn"        id="ps-combined" onclick="setPreset('combined')">Bending +<br>Torsion</button>
+    </div>
+  </div>
+
+  <div id="scenario-note">Uniaxial tension — all load carried on x-face. Principal planes align with x and y axes.</div>
+
+  <!-- Element rotation -->
+  <div>
+    <div class="section-label">Element Rotation</div>
+    <div class="rot-grid">
+      <button class="rot-btn active" id="rb-zero"      onclick="setRotation('zero')">θ = 0°</button>
+      <button class="rot-btn"        id="rb-principal" onclick="setRotation('principal')">Principal</button>
+      <button class="rot-btn"        id="rb-maxshear"  onclick="setRotation('maxshear')">Max Shear</button>
+    </div>
+    <div class="theta-row">
+      <span class="theta-lbl">θ =</span>
+      <span class="theta-val" id="v-theta">0°</span>
+    </div>
+    <input type="range" id="sl-theta" min="-90" max="90" step="1" value="0"
+           oninput="onThetaChange()">
+    <div style="display:flex;justify-content:space-between;font-size:0.57rem;color:#404868;margin-top:4px;">
+      <span>−90°</span><span>0°</span><span>+90°</span>
+    </div>
+  </div>
+
+  <!-- Display toggles -->
+  <div>
+    <div class="section-label">Display</div>
+    <div class="toggle-grid">
+      <button class="tog-btn t-labels on" id="btn-labels" onclick="toggle('labels')">Stress<br>Labels</button>
+      <button class="tog-btn t-axes on"   id="btn-axes"   onclick="toggle('axes')">Coord.<br>Axes</button>
+    </div>
+  </div>
+</div><!-- /sidebar -->
+
+<!-- ══════════════ MAIN ══════════════ -->
+<div id="main">
+  <div id="canvas-wrap">
+    <canvas id="ssCanvas"></canvas>
+  </div>
+
+  <div id="info-panel">
+    <div class="prop-card" id="card-s1">
+      <div class="prop-lbl">Principal σ₁</div>
+      <div class="prop-val" id="v-s1">—</div>
+      <div class="prop-unit">MPa</div>
+    </div>
+    <div class="prop-card" id="card-s2">
+      <div class="prop-lbl">Principal σ₂</div>
+      <div class="prop-val" id="v-s2">—</div>
+      <div class="prop-unit">MPa</div>
+    </div>
+    <div class="prop-card">
+      <div class="prop-lbl">Max Shear τ<sub>max</sub></div>
+      <div class="prop-val" id="v-tmax">—</div>
+      <div class="prop-unit">MPa</div>
+    </div>
+    <div class="prop-card">
+      <div class="prop-lbl">Principal Angle θ<sub>p</sub></div>
+      <div class="prop-val" id="v-thetap">—</div>
+      <div class="prop-unit">degrees</div>
+    </div>
+    <div class="prop-card">
+      <div class="prop-lbl">Von Mises σ<sub>vm</sub></div>
+      <div class="prop-val" id="v-vm">—</div>
+      <div class="prop-unit">MPa</div>
+    </div>
+    <div class="prop-card">
+      <div class="prop-lbl">Hydrostatic σ<sub>h</sub></div>
+      <div class="prop-val" id="v-hydro">—</div>
+      <div class="prop-unit">MPa</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+const S = {
+  sigx: 200, sigy: 0, tauxy: 0,
+  theta: 0,
+  labels: true,
+  axes: true,
+};
+
+const canvas = document.getElementById('ssCanvas');
+const ctx    = canvas.getContext('2d');
+
+// ════════════════════════════════════════════════════════
+//  MECHANICS
+// ════════════════════════════════════════════════════════
+function computeState() {
+  const { sigx, sigy, tauxy } = S;
+  const C = (sigx + sigy) / 2;
+  const R = Math.sqrt(((sigx - sigy) / 2) ** 2 + tauxy ** 2);
+  const sigma1   = C + R;
+  const sigma2   = C - R;
+  const tauMax   = R;
+  const thetaP   = 0.5 * Math.atan2(2 * tauxy, sigx - sigy) * 180 / Math.PI;
+  const vonMises = Math.sqrt(sigma1 ** 2 - sigma1 * sigma2 + sigma2 ** 2);
+  const hydro    = C;
+  return { C, R, sigma1, sigma2, tauMax, thetaP, vonMises, hydro };
+}
+
+// Stress components on a plane rotated CCW by theta_deg from x-axis
+function getRotatedStress(theta_deg) {
+  const { sigx, sigy, tauxy } = S;
+  const t  = theta_deg * Math.PI / 180;
+  const C  = (sigx + sigy) / 2;
+  const dS = (sigx - sigy) / 2;
+  return {
+    sigxp:  C + dS * Math.cos(2*t) + tauxy * Math.sin(2*t),
+    sigyp:  C - dS * Math.cos(2*t) - tauxy * Math.sin(2*t),
+    tauxyp: -dS * Math.sin(2*t)    + tauxy * Math.cos(2*t),
+  };
+}
+
+// ════════════════════════════════════════════════════════
+//  DRAWING HELPERS
+// ════════════════════════════════════════════════════════
+function drawArrow(x1, y1, x2, y2, color, lw) {
+  const dx = x2-x1, dy = y2-y1;
+  const len = Math.sqrt(dx*dx + dy*dy);
+  if (len < 2) return;
+  const angle = Math.atan2(dy, dx);
+  const hLen  = Math.min(9, len * 0.32);
+  ctx.save();
+  ctx.strokeStyle = color; ctx.fillStyle = color;
+  ctx.lineWidth = lw; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - hLen*Math.cos(angle - Math.PI/7), y2 - hLen*Math.sin(angle - Math.PI/7));
+  ctx.lineTo(x2 - hLen*Math.cos(angle + Math.PI/7), y2 - hLen*Math.sin(angle + Math.PI/7));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+// Transform a point in element frame (with element centered at cx,cy, rotated by -theta_rad)
+// back to canvas coordinates
+function elemToCanvas(cx, cy, theta_rad, rx, ry) {
+  const c = Math.cos(theta_rad), s = Math.sin(theta_rad);
+  return [cx + rx*c + ry*s, cy - rx*s + ry*c];
+}
+
+function niceStep(range) {
+  if (range <= 0) return 10;
+  const raw = range / 4;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const n   = raw / mag;
+  if (n < 1.5) return mag;
+  if (n < 3.5) return 2 * mag;
+  if (n < 7.5) return 5 * mag;
+  return 10 * mag;
+}
+
+// ════════════════════════════════════════════════════════
+//  DRAW STRESS ELEMENT  (left ~44% of canvas)
+// ════════════════════════════════════════════════════════
+function drawElement() {
+  const ew  = Math.floor(canvas.width * 0.44);
+  const eh  = canvas.height;
+  const cx  = ew / 2;
+  const cy  = eh / 2 + 8;
+
+  const sz      = Math.min(ew, eh) * 0.20;  // half-size of element (px)
+  const maxStress = 300;
+  const arrowMax  = sz * 0.85;              // max arrow length (px)
+  const scale     = arrowMax / maxStress;   // px per MPa
+
+  const theta_rad = S.theta * Math.PI / 180;
+  const { sigxp, sigyp, tauxyp } = getRotatedStress(S.theta);
+
+  // ── Section title ──
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText('Stress Element', cx, 20);
+
+  // ── Ghost element (unrotated, faint) ──
+  if (Math.abs(S.theta) > 1) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(50,60,100,0.30)';
+    ctx.lineWidth = 1; ctx.setLineDash([4, 5]);
+    ctx.strokeRect(cx - sz, cy - sz, sz*2, sz*2);
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  // ── Rotated element body ──
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(-theta_rad);
+
+  // Fill
+  ctx.fillStyle = 'rgba(14,22,50,0.70)';
+  ctx.fillRect(-sz, -sz, sz*2, sz*2);
+
+  // Border — color indicates stress state
+  const { C, R } = computeState();
+  const { sigma1 } = computeState();
+  const elemColor = sigma1 > 10 ? '#4a78b8' : sigma1 < -10 ? '#a84060' : '#506080';
+  ctx.strokeStyle = elemColor; ctx.lineWidth = 2;
+  ctx.strokeRect(-sz, -sz, sz*2, sz*2);
+
+  // Corner ticks
+  ctx.fillStyle = elemColor + '60';
+  const cm = 7;
+  [[- sz,-sz],[sz-cm,-sz],[-sz,sz-cm],[sz-cm,sz-cm]].forEach(([x,y]) => ctx.fillRect(x,y,cm,cm));
+
+  const NRM = '#f0b040'; // normal stress color
+  const SHR = '#e05878'; // shear stress color
+  const gap = sz * 0.05; // gap between face and arrow start
+
+  // Helper: draw one face's normal + shear arrows
+  // fx,fy = face midpoint; nDx,nDy = outward normal unit vec;
+  // sDx,sDy = positive shear direction unit vec (in canvas coords)
+  function face(fx, fy, nDx, nDy, sDx, sDy, sigN, tau) {
+    const ax = fx + nDx * gap, ay = fy + nDy * gap;
+    const sN = sigN >= 0 ? 1 : -1;
+    const sT = tau  >= 0 ? 1 : -1;
+    const nLen = Math.abs(sigN) * scale;
+    const tLen = Math.abs(tau)  * scale;
+    if (nLen > 2) drawArrow(ax, ay, ax + nDx*sN*nLen, ay + nDy*sN*nLen, NRM, 2);
+    if (tLen > 2) drawArrow(ax, ay, ax + sDx*sT*tLen, ay + sDy*sT*tLen, SHR, 2);
+  }
+
+  // Right face  (+x out, shear +y = -y canvas)
+  face( sz,  0,  1,  0,  0, -1, sigxp, tauxyp);
+  // Left face   (-x out, shear -y = +y canvas)
+  face(-sz,  0, -1,  0,  0,  1, sigxp, tauxyp);
+  // Top face    (-y canvas = +y math out, shear +x)
+  face( 0, -sz,  0, -1,  1,  0, sigyp, tauxyp);
+  // Bottom face (+y canvas = -y math out, shear -x)
+  face( 0,  sz,  0,  1, -1,  0, sigyp, tauxyp);
+
+  ctx.restore(); // end element rotation
+
+  // ── Stress labels (drawn in canvas frame → always upright) ──
+  if (S.labels) {
+    ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+    const scl  = scale;
+    const sxp  = sigxp, syp = sigyp, tp = tauxyp;
+    const sxDir = sxp >= 0 ? 1 : -1;
+    const syDir = syp >= 0 ? -1 : 1;  // canvas: up is -y
+    const tDir  = tp  >= 0 ? -1 : 1;  // canvas: positive τ → upward
+
+    // σx' label — beyond right-face normal arrow tip
+    const nxOff = sz + gap + Math.abs(sxp)*scl + sxDir*16;
+    const [lxX, lyX] = elemToCanvas(cx, cy, theta_rad, nxOff, 0);
+    ctx.fillStyle = NRM;
+    ctx.fillText(`σx' = ${sxp.toFixed(0)}`, lxX, lyX + 4);
+
+    // σy' label — beyond top-face normal arrow tip
+    const nyOff = -(sz + gap + Math.abs(syp)*scl + 16);
+    const [lxY, lyY] = elemToCanvas(cx, cy, theta_rad, 0, nyOff);
+    ctx.fillStyle = NRM;
+    ctx.fillText(`σy' = ${syp.toFixed(0)}`, lxY, lyY + 4);
+
+    // τ label — beside right-face shear arrow tip
+    const tOff = tDir * (Math.abs(tp)*scl + 16);
+    const [lxT, lyT] = elemToCanvas(cx, cy, theta_rad, sz + gap, tOff);
+    ctx.fillStyle = SHR;
+    ctx.fillText(`τ = ${tp.toFixed(0)}`, lxT, lyT + 4);
+  }
+
+  // ── Coordinate axes ──
+  if (S.axes) {
+    const axX = 30, axY = eh - 30, axLen = 24;
+    drawArrow(axX, axY, axX + axLen, axY, '#5a7898', 1.5);
+    drawArrow(axX, axY, axX, axY - axLen, '#5a7898', 1.5);
+    ctx.fillStyle = '#5a7898'; ctx.font = '10px Segoe UI';
+    ctx.textAlign = 'left';  ctx.fillText('x', axX + axLen + 5, axY + 4);
+    ctx.textAlign = 'center'; ctx.fillText('y', axX, axY - axLen - 6);
+
+    // Small rotated axes showing element frame
+    if (Math.abs(S.theta) > 0.5) {
+      const theta_rad = S.theta * Math.PI / 180;
+      const bx = ew - 36, by = eh - 36;
+      const [ex1, ey1] = [bx + axLen*Math.cos(-theta_rad),         by + axLen*Math.sin(-theta_rad)];
+      const [ex2, ey2] = [bx + axLen*Math.cos(-theta_rad+Math.PI/2), by + axLen*Math.sin(-theta_rad+Math.PI/2)];
+      drawArrow(bx, by, ex1, ey1, '#3a7ab8', 1.2);
+      drawArrow(bx, by, ex2, ey2, '#3a7ab8', 1.2);
+      ctx.fillStyle = '#3a6898'; ctx.font = '9px Segoe UI';
+      ctx.textAlign = 'center';
+      ctx.fillText(`x'`, ex1 + 6*Math.cos(-theta_rad), ey1 + 6*Math.sin(-theta_rad) + 4);
+      ctx.fillText(`y'`, ex2 + 6*Math.cos(-theta_rad+Math.PI/2), ey2 + 6*Math.sin(-theta_rad+Math.PI/2) + 4);
+    }
+  }
+
+  // ── θ label ──
+  if (Math.abs(S.theta) > 0.5) {
+    ctx.fillStyle = '#7ab8f8'; ctx.font = 'bold 11px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText(`θ = ${S.theta > 0 ? '+' : ''}${S.theta}°`, cx, eh - 16);
+    // Small arc at center showing θ
+    const arcR = sz * 0.22;
+    ctx.save();
+    ctx.strokeStyle = '#4a7898'; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, arcR, 0, -theta_rad, S.theta > 0);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  DRAW MOHR'S CIRCLE  (right ~56% of canvas)
+// ════════════════════════════════════════════════════════
+function drawMohrCircle() {
+  const sx  = Math.floor(canvas.width * 0.44);  // section start x
+  const sw  = canvas.width - sx;                // section width
+  const sh  = canvas.height;
+
+  // Section separator
+  ctx.strokeStyle = '#1a1d2e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx, 16); ctx.lineTo(sx, sh - 16); ctx.stroke();
+
+  // Title
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText("Mohr's Circle", sx + sw/2, 20);
+
+  const { C, R, sigma1, sigma2, tauMax, thetaP } = computeState();
+
+  // Scale: fit circle + margins in available area
+  const pad   = 54;
+  const availW = sw - 2*pad;
+  const availH = sh - 2*pad - 30;
+  const ext    = Math.max(R * 1.5 + 20, 25); // half-extent in stress space around C
+  const scale  = Math.min(availW / (2*ext), availH / (2*ext));
+
+  // Canvas coords of Mohr's circle center (C, 0)
+  const ocx = sx + sw / 2;
+  const ocy = sh / 2 + 12;
+
+  function m2c(sigma, tau) {
+    return [ocx + (sigma - C) * scale, ocy - tau * scale];
+  }
+
+  // ── Grid ──
+  const step = niceStep(ext * 0.8);
+  ctx.strokeStyle = '#13152a'; ctx.lineWidth = 1;
+
+  const sigMin = C - ext - step, sigMax = C + ext + step;
+  for (let v = Math.ceil(sigMin/step)*step; v <= sigMax; v += step) {
+    const [gx] = m2c(v, 0);
+    if (gx < sx + 4 || gx > sx + sw - 4) continue;
+    ctx.beginPath(); ctx.moveTo(gx, pad + 22); ctx.lineTo(gx, sh - pad); ctx.stroke();
+  }
+  for (let v = -Math.ceil((ext)/step)*step; v <= ext + step; v += step) {
+    const [, gy] = m2c(C, v);
+    if (gy < pad + 22 || gy > sh - pad) continue;
+    ctx.beginPath(); ctx.moveTo(sx + pad - 6, gy); ctx.lineTo(sx + sw - pad + 6, gy); ctx.stroke();
+  }
+
+  // ── Axes ──
+  const [axLx] = m2c(C - ext - 4, 0);
+  const [axRx] = m2c(C + ext + 4, 0);
+  const [, axTy] = m2c(C,  ext + 4);
+  const [, axBy] = m2c(C, -ext - 4);
+  ctx.strokeStyle = '#28304a'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(Math.max(axLx, sx+4), ocy); ctx.lineTo(Math.min(axRx, sx+sw-4), ocy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ocx, Math.max(axTy, pad+22)); ctx.lineTo(ocx, Math.min(axBy, sh-pad)); ctx.stroke();
+
+  // Axis tick labels
+  ctx.fillStyle = '#404868'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
+  for (let v = Math.ceil(sigMin/step)*step; v <= sigMax; v += step) {
+    const [gx] = m2c(v, 0);
+    if (gx < sx + pad - 5 || gx > sx + sw - pad + 5) continue;
+    ctx.fillText(v.toFixed(0), gx, sh - pad + 14);
+  }
+  ctx.textAlign = 'right';
+  for (let v = -Math.ceil(ext/step)*step; v <= ext; v += step) {
+    if (Math.abs(v) < step * 0.1) continue;
+    const [, gy] = m2c(C, v);
+    if (gy < pad + 22 || gy > sh - pad) continue;
+    ctx.fillText(v.toFixed(0), sx + pad - 8, gy + 3);
+  }
+
+  // Axis labels
+  ctx.fillStyle = '#6a7898'; ctx.font = '11px Segoe UI';
+  ctx.textAlign = 'left';
+  ctx.fillText('σ (MPa)', Math.min(axRx, sx+sw-4) + 4, ocy + 4);
+  ctx.textAlign = 'center';
+  ctx.fillText('τ (MPa)', ocx, Math.max(axTy, pad+22) - 6);
+
+  // ── Mohr's Circle ──
+  ctx.strokeStyle = '#3a5888'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(ocx, ocy, R * scale, 0, Math.PI * 2); ctx.stroke();
+
+  // ── Diameter line: X-face ↔ Y-face ──
+  const [xfx, xfy] = m2c(S.sigx,  S.tauxy);
+  const [yfx, yfy] = m2c(S.sigy, -S.tauxy);
+  ctx.strokeStyle = '#243050'; ctx.lineWidth = 1;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath(); ctx.moveTo(xfx, xfy); ctx.lineTo(yfx, yfy); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── Arc showing 2θ rotation on circle ──
+  if (Math.abs(S.theta) > 0.5) {
+    const xfAngle = Math.atan2(-(xfy - ocy), xfx - ocx); // angle from center to X-face
+    const twoTheta = 2 * S.theta * Math.PI / 180;
+    ctx.strokeStyle = 'rgba(100,160,240,0.35)'; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    // CW rotation on Mohr's circle = CCW element rotation
+    ctx.arc(ocx, ocy, R * scale, xfAngle, xfAngle + twoTheta, twoTheta < 0);
+    ctx.stroke();
+    // 2θ label near midpoint of arc
+    const midAngle = xfAngle + twoTheta * 0.5;
+    const labelR   = R * scale * 0.72;
+    ctx.fillStyle = '#5080a8'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText(`2θ`, ocx + labelR * Math.cos(midAngle), ocy - labelR * Math.sin(midAngle));
+  }
+
+  // ── Helper: draw labeled point ──
+  function mpt(sigma, tau, color, r, label, side) {
+    const [px, py] = m2c(sigma, tau);
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI*2); ctx.fill();
+    if (S.labels && label) {
+      ctx.fillStyle = color; ctx.font = '10px Segoe UI';
+      const ox = side === 'l' ? -9 : side === 'r' ? 9 : 0;
+      const oy = side === 't' ? -11 : side === 'b' ? 14 : 4;
+      ctx.textAlign = ox < 0 ? 'right' : ox > 0 ? 'left' : 'center';
+      ctx.fillText(label, px + ox, py + oy);
+    }
+  }
+
+  // Principal stress points (on σ-axis)
+  const s1Side = sigma1 >= C ? 'b' : 't';
+  const s2Side = sigma2 <= C ? 'b' : 't';
+  mpt(sigma1, 0, '#50d870', 5, `σ₁ = ${sigma1.toFixed(0)}`, 'b');
+  mpt(sigma2, 0, '#50d870', 5, `σ₂ = ${sigma2.toFixed(0)}`, 'b');
+
+  // Max shear points
+  mpt(C,  tauMax, '#c060f0', 4, `τmax = ${tauMax.toFixed(0)}`, 't');
+  mpt(C, -tauMax, '#c060f0', 4, null, '');
+
+  // X-face and Y-face (θ = 0)
+  mpt(S.sigx,  S.tauxy, '#f0b040', 5, 'X', 'r');
+  mpt(S.sigy, -S.tauxy, '#60d870', 5, 'Y', 'l');
+
+  // Current rotated point (when θ ≠ 0)
+  if (Math.abs(S.theta) > 0.5) {
+    const { sigxp, sigyp, tauxyp } = getRotatedStress(S.theta);
+    mpt(sigxp, tauxyp, '#7ab8f8', 6, null, '');
+    mpt(sigyp, -tauxyp, '#7ab8f8', 4, null, '');
+    // Rotated diameter line
+    const [rx1, ry1] = m2c(sigxp, tauxyp);
+    const [rx2, ry2] = m2c(sigyp, -tauxyp);
+    ctx.strokeStyle = '#2a4070'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(rx1, ry1); ctx.lineTo(rx2, ry2); ctx.stroke();
+    if (S.labels) {
+      ctx.fillStyle = '#7ab8f8'; ctx.font = '10px Segoe UI'; ctx.textAlign = 'left';
+      ctx.fillText(`(${sigxp.toFixed(0)}, ${tauxyp.toFixed(0)})`, rx1 + 9, ry1 + 4);
+    }
+  }
+
+  // Center dot + C label
+  ctx.fillStyle = '#405070';
+  ctx.beginPath(); ctx.arc(ocx, ocy, 3, 0, Math.PI*2); ctx.fill();
+  if (S.labels) {
+    ctx.fillStyle = '#506080'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText(`C = ${C.toFixed(0)}`, ocx, ocy + 14);
+  }
+
+  // τ sign convention note
+  ctx.fillStyle = '#353d58'; ctx.font = '9px Segoe UI';
+  ctx.textAlign = 'right';
+  ctx.fillText('τ (+) upward', sx + sw - pad + 4, ocy - 6);
+}
+
+// ════════════════════════════════════════════════════════
+//  MAIN DRAW
+// ════════════════════════════════════════════════════════
+function draw() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // Section backgrounds
+  const ew = Math.floor(W * 0.44);
+  ctx.fillStyle = '#0d0f1c'; ctx.fillRect(0,  0, ew, H);
+  ctx.fillStyle = '#0a0b18'; ctx.fillRect(ew, 0, W - ew, H);
+
+  drawElement();
+  drawMohrCircle();
+}
+
+// ════════════════════════════════════════════════════════
+//  INFO PANEL
+// ════════════════════════════════════════════════════════
+function updateInfo() {
+  const { C, R, sigma1, sigma2, tauMax, thetaP, vonMises, hydro } = computeState();
+  document.getElementById('v-s1').textContent    = sigma1.toFixed(0);
+  document.getElementById('v-s2').textContent    = sigma2.toFixed(0);
+  document.getElementById('v-tmax').textContent  = tauMax.toFixed(0);
+  document.getElementById('v-thetap').textContent = thetaP.toFixed(1);
+  document.getElementById('v-vm').textContent    = vonMises.toFixed(0);
+  document.getElementById('v-hydro').textContent = hydro.toFixed(0);
+
+  const c1 = document.getElementById('card-s1');
+  c1.className = 'prop-card ' + (sigma1 > 1 ? 'tension' : sigma1 < -1 ? 'compression' : '');
+  const c2 = document.getElementById('card-s2');
+  c2.className = 'prop-card ' + (sigma2 > 1 ? 'tension' : sigma2 < -1 ? 'compression' : '');
+}
+
+// ════════════════════════════════════════════════════════
+//  EVENT HANDLERS
+// ════════════════════════════════════════════════════════
+function onStressChange() {
+  S.sigx  = +document.getElementById('sl-sigx').value;
+  S.sigy  = +document.getElementById('sl-sigy').value;
+  S.tauxy = +document.getElementById('sl-tauxy').value;
+  document.getElementById('v-sigx').textContent  = S.sigx;
+  document.getElementById('v-sigy').textContent  = S.sigy;
+  document.getElementById('v-tauxy').textContent = S.tauxy;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('scenario-note').textContent = 'Custom stress state.';
+  updateInfo(); draw();
+}
+
+function onThetaChange() {
+  S.theta = +document.getElementById('sl-theta').value;
+  document.getElementById('v-theta').textContent = S.theta + '°';
+  document.querySelectorAll('.rot-btn').forEach(b => b.classList.remove('active'));
+  draw();
+}
+
+const PRESETS = {
+  uniaxial: {
+    sigx:200, sigy:0, tauxy:0,
+    note: 'Uniaxial tension — all load on x-face. Principal planes align with x/y axes; σ₁ = 200 MPa, σ₂ = 0, τmax = 100 MPa at 45°.'
+  },
+  biaxial: {
+    sigx:150, sigy:150, tauxy:0,
+    note: 'Equal biaxial — Mohr\'s circle degenerates to a point. No in-plane shear exists; all τ = 0. Equibiaxial tension or compression.'
+  },
+  shear: {
+    sigx:0, sigy:0, tauxy:150,
+    note: 'Pure shear — circle is centered at origin. Principal stresses ±150 MPa at ±45°. Common in torsion.'
+  },
+  combined: {
+    sigx:180, sigy:0, tauxy:120,
+    note: 'Combined bending + torsion — typical shaft loading. Large circle, principal planes at an angle.'
+  },
+};
+
+function setPreset(preset) {
+  const p = PRESETS[preset];
+  S.sigx = p.sigx; S.sigy = p.sigy; S.tauxy = p.tauxy;
+  ['sigx','sigy','tauxy'].forEach(k => {
+    document.getElementById('sl-' + k).value     = S[k];
+    document.getElementById('v-'  + k).textContent = S[k];
+  });
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('ps-' + preset).classList.add('active');
+  document.getElementById('scenario-note').textContent = p.note;
+  // Reset rotation
+  S.theta = 0;
+  document.getElementById('sl-theta').value = 0;
+  document.getElementById('v-theta').textContent = '0°';
+  document.querySelectorAll('.rot-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('rb-zero').classList.add('active');
+  updateInfo(); draw();
+}
+
+function setRotation(mode) {
+  const { thetaP } = computeState();
+  if      (mode === 'zero')      S.theta = 0;
+  else if (mode === 'principal') S.theta = Math.round(thetaP * 10) / 10;
+  else if (mode === 'maxshear')  S.theta = Math.round((thetaP - 45) * 10) / 10;
+  S.theta = Math.max(-90, Math.min(90, S.theta));
+  document.getElementById('sl-theta').value = S.theta;
+  document.getElementById('v-theta').textContent = S.theta + '°';
+  document.querySelectorAll('.rot-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('rb-' + mode).classList.add('active');
+  draw();
+}
+
+function toggle(key) {
+  S[key] = !S[key];
+  document.getElementById('btn-' + key).classList.toggle('on', S[key]);
+  draw();
+}
+
+// ════════════════════════════════════════════════════════
+//  RESIZE + INIT
+// ════════════════════════════════════════════════════════
+function resizeCanvas() {
+  const wrap = document.getElementById('canvas-wrap');
+  canvas.width  = wrap.clientWidth  - 24;
+  canvas.height = wrap.clientHeight - 14;
+  draw();
+}
+
+window.addEventListener('resize', resizeCanvas);
+
+function init() {
+  document.getElementById('btn-labels').classList.add('on');
+  document.getElementById('btn-axes').classList.add('on');
+  document.getElementById('ps-uniaxial').classList.add('active');
+  document.getElementById('rb-zero').classList.add('active');
+  updateInfo();
+  resizeCanvas();
+}
+
+init();
+</script>
+</body>
+</html>
