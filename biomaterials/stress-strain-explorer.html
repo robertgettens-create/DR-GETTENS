@@ -294,6 +294,54 @@
     .prop-card.brittle .prop-val    { color: #e07070; }
     .prop-card.elastomeric { border-color: #684820; }
     .prop-card.elastomeric .prop-val { color: #e09050; }
+
+    /* Lock-scale button (inside temp section) */
+    .lock-scale-btn {
+      display: block; width: 100%; margin-top: 8px;
+      padding: 6px 10px;
+      background: #1e2238; border: 1px solid #2e3355; border-radius: 6px;
+      color: #6a7898; cursor: pointer; font-size: 0.65rem; font-weight: 600;
+      text-align: center; transition: all 0.18s;
+    }
+    .lock-scale-btn:hover { border-color: #9060c0; color: #b080d0; }
+    .lock-scale-btn.on { background: #201030; border-color: #9060c0; color: #c090e8; }
+
+    /* Compare / overlay section */
+    .compare-toggle-btn {
+      display: block; width: 100%;
+      padding: 7px 10px;
+      background: #1e2238; border: 1px solid #2e3355; border-radius: 6px;
+      color: #6a7898; cursor: pointer; font-size: 0.67rem; font-weight: 600;
+      text-align: left; transition: all 0.18s; margin-bottom: 6px;
+    }
+    .compare-toggle-btn:hover { border-color: #4a6bcc; color: #9ba8c8; }
+    .compare-toggle-btn.open  { border-color: #4a6bcc; color: #9ba8c8; background: #1c2448; }
+
+    #compare-picker { display: none; }
+    #compare-picker.open { display: block; }
+
+    .ov-class-label {
+      font-size: 0.58rem; color: #404868; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px;
+      padding: 5px 4px 2px;
+    }
+    .ov-item {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 6px; border-radius: 4px; cursor: pointer;
+      font-size: 0.67rem; color: #7a88a8; transition: background 0.15s;
+    }
+    .ov-item:hover { background: #1e2238; }
+    .ov-item input[type=checkbox] {
+      width: 12px; height: 12px; cursor: pointer;
+      accent-color: var(--ov-color, #7eb8f7); flex-shrink: 0;
+    }
+    .ov-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    #compare-active-note {
+      font-size: 0.62rem; color: #5060a0;
+      padding: 3px 6px; display: none;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -334,6 +382,9 @@
       <span>80 °C</span>
     </div>
     <div id="behavior-badge">Plastic (T &lt;&lt; Tg)</div>
+    <button class="lock-scale-btn" id="btn-lock-scale" onclick="toggleLockScale()">
+      🔓 Lock axes across temperatures
+    </button>
   </div>
 
   <!-- View Range / Zoom -->
@@ -368,6 +419,16 @@
       <button class="tog-btn t-eng on" id="btn-eng"   onclick="toggle('engCurve')">Eng. σ–ε<br>Curve</button>
     </div>
   </div>
+  <!-- Compare / Overlay -->
+  <div>
+    <div class="section-label">Compare Curves</div>
+    <button class="compare-toggle-btn" id="compare-toggle-btn" onclick="toggleComparePicker()">
+      ＋ Add overlay curve
+    </button>
+    <div id="compare-picker"></div>
+    <div id="compare-active-note"></div>
+  </div>
+
 </div><!-- /sidebar -->
 
 <!-- ══════════════════ MAIN ══════════════════ -->
@@ -577,6 +638,8 @@ const S = {
   offset:     false,
   engCurve:   true,
   xSlider:    100,   // 0 = max zoom-in, 100 = full view (logarithmic scale)
+  lockScale:  false, // lock PMMA axes across all temperatures
+  overlayIds: [],    // additional material IDs to draw for comparison (max 3)
 };
 
 // ════════════════════════════════════════════════════════
@@ -683,6 +746,24 @@ function getCurveData() {
   return { curve: m.curve, E_MPa: m.E * 1000, sigmaY: m.sigmaY, UTS: m.UTS, EL: m.EL };
 }
 
+function getMatById(id) {
+  for (const cls of Object.values(MATS)) {
+    const m = cls.find(x => x.id === id);
+    if (m) return m;
+  }
+  return null;
+}
+
+function getOverlayCurveData(id) {
+  const m = getMatById(id);
+  if (!m) return null;
+  if (m.tempDependent) {
+    const d = getPMMACurve(S.temperature);  // use current temp
+    return { curve: d.curve, E_MPa: d.E_MPa, sigmaY: d.sigmaY, UTS: d.UTS, EL: d.EL };
+  }
+  return { curve: m.curve, E_MPa: m.E * 1000, sigmaY: m.sigmaY, UTS: m.UTS, EL: m.EL };
+}
+
 // True stress/strain (valid up to UTS/necking): σT = σE(1+ε),  εT = ln(1+ε)
 function getTrueCurve(engCurve) {
   let utsIdx = 0, utsS = 0;
@@ -781,15 +862,46 @@ function draw() {
   const maxEps   = Math.max(...curve.map(p => p[0]));
   const fullXMax = niceMax(maxEps * 1.10);
 
-  // Logarithmic zoom: slider 0–100 maps xPct 1%–100% of fullXMax
-  // Formula: xPct = 100^(xSlider/100)  →  at 100→100%, at 50→10%, at 0→1%
-  const xFrac  = Math.pow(100, S.xSlider / 100) / 100;
-  _scale.xMax  = Math.max(fullXMax * xFrac, 1e-6);
+  // Collect overlay curves
+  const overlayCurves = S.overlayIds.map(id => {
+    const om = getMatById(id);
+    if (!om) return null;
+    const od = getOverlayCurveData(id);
+    return { mat: om, ...od };
+  }).filter(Boolean);
 
-  // Auto-scale Y to whichever data points fall within the visible X window
-  const visPts    = curve.filter(p => p[0] <= _scale.xMax);
-  const visSigMax = visPts.length ? Math.max(...visPts.map(p => p[1])) : curve[curve.length - 1][1];
-  _scale.yMax     = niceMax(visSigMax * 1.20);
+  // Compute base X range: locked PMMA scale, or max across all active curves
+  let baseXMax;
+  if (S.lockScale && m.tempDependent) {
+    let gx = 0;
+    [4, 20, 40, 60, 80].forEach(T => {
+      const d = getPMMACurve(T);
+      gx = Math.max(gx, ...d.curve.map(p => p[0]));
+    });
+    baseXMax = niceMax(gx * 1.10);
+  } else {
+    const allFull = [fullXMax, ...overlayCurves.map(oc => Math.max(...oc.curve.map(p => p[0])))];
+    baseXMax = niceMax(Math.max(...allFull) * 1.10);
+  }
+
+  // Logarithmic zoom: slider 0–100 maps xPct 1%–100% of fullXMax
+  const xFrac  = Math.pow(100, S.xSlider / 100) / 100;
+  _scale.xMax  = Math.max(baseXMax * xFrac, 1e-6);
+
+  // Auto-scale Y to visible data across all active curves + locked PMMA temps
+  let visSigMax = 0;
+  [curve, ...overlayCurves.map(oc => oc.curve)].forEach(c => {
+    const vis = c.filter(p => p[0] <= _scale.xMax);
+    visSigMax = Math.max(visSigMax, vis.length ? Math.max(...vis.map(p => p[1])) : c[c.length-1][1]);
+  });
+  if (S.lockScale && m.tempDependent) {
+    [4, 20, 40, 60, 80].forEach(T => {
+      const d = getPMMACurve(T);
+      const vis = d.curve.filter(p => p[0] <= _scale.xMax);
+      visSigMax = Math.max(visSigMax, vis.length ? Math.max(...vis.map(p => p[1])) : d.curve[d.curve.length-1][1]);
+    });
+  }
+  _scale.yMax = niceMax(visSigMax * 1.20);
 
   const W = canvas.width, H = canvas.height;
   const pw = plotW(), ph = plotH();
@@ -883,9 +995,36 @@ function draw() {
     ctx.restore();
   }
 
+  // ── Overlay curves (drawn behind primary) ──
+  overlayCurves.forEach(({ mat: om, curve: oc }) => {
+    drawSmooth(oc, om.color + 'b0', 1.8, false);
+  });
+
   // ── Engineering curve ──
   if (S.engCurve) {
     drawSmooth(curve, m.color, 2.5, false);
+  }
+
+  // ── Overlay legend (top-left when comparing) ──
+  if (overlayCurves.length > 0) {
+    const legendItems = [{ mat: m, isPrimary: true }, ...overlayCurves.map(oc => ({ mat: oc.mat, isPrimary: false }))];
+    const lx = PAD.L + 10, ly = PAD.T + 10;
+    const rowH = 17, padX = 8, padY = 6;
+    const legendW = 178, legendH = legendItems.length * rowH + padY * 2;
+    ctx.fillStyle = 'rgba(10,12,24,0.88)';
+    ctx.beginPath(); ctx.roundRect(lx, ly, legendW, legendH, 4); ctx.fill();
+    ctx.strokeStyle = '#2e3355'; ctx.lineWidth = 1; ctx.stroke();
+    legendItems.forEach(({ mat: lm, isPrimary }, i) => {
+      const y = ly + padY + i * rowH + rowH * 0.5;
+      ctx.strokeStyle = lm.color + (isPrimary ? '' : 'b0');
+      ctx.lineWidth = isPrimary ? 2.5 : 1.8;
+      ctx.setLineDash([]); ctx.beginPath();
+      ctx.moveTo(lx + padX, y); ctx.lineTo(lx + padX + 26, y); ctx.stroke();
+      ctx.fillStyle = isPrimary ? lm.color : lm.color + 'cc';
+      ctx.font = (isPrimary ? 'bold ' : '') + '10px Segoe UI';
+      ctx.textAlign = 'left';
+      ctx.fillText(lm.name, lx + padX + 32, y + 4);
+    });
   }
 
   // ── Key labels ──
@@ -1017,14 +1156,16 @@ function draw() {
   ctx.fillText('Engineering Stress  σ  (MPa)', 0, 0);
   ctx.restore();
 
-  // Material name overlay
-  ctx.fillStyle   = m.color + 'cc';
-  ctx.font        = 'bold 13px Segoe UI';
-  ctx.textAlign   = 'right';
-  ctx.fillText(m.name, PAD.L + pw - 10, PAD.T + 18);
-  ctx.fillStyle   = '#4a587a';
-  ctx.font        = '10.5px Segoe UI';
-  ctx.fillText(m.formula || '', PAD.L + pw - 10, PAD.T + 33);
+  // Material name overlay (hidden when compare legend is shown)
+  if (overlayCurves.length === 0) {
+    ctx.fillStyle   = m.color + 'cc';
+    ctx.font        = 'bold 13px Segoe UI';
+    ctx.textAlign   = 'right';
+    ctx.fillText(m.name, PAD.L + pw - 10, PAD.T + 18);
+    ctx.fillStyle   = '#4a587a';
+    ctx.font        = '10.5px Segoe UI';
+    ctx.fillText(m.formula || '', PAD.L + pw - 10, PAD.T + 33);
+  }
 
   // Zoom badge — show when not at full view
   if (S.xSlider < 99) {
@@ -1126,9 +1267,13 @@ function selectClass(cls) {
   document.querySelectorAll('.class-btn').forEach(b => b.classList.remove('active'));
   document.querySelector('.class-btn.' + cls).classList.add('active');
   S.id = MATS[cls][0].id;
+  // Remove newly-primary material from overlays if present
+  const ovIdx = S.overlayIds.indexOf(S.id);
+  if (ovIdx >= 0) S.overlayIds.splice(ovIdx, 1);
   buildMatList();
   checkTempSection();
   resetZoom();
+  buildComparePicker();
   refresh();
 }
 
@@ -1150,10 +1295,14 @@ function buildMatList() {
 }
 
 function selectMat(id) {
+  // Remove from overlays if it was there
+  const ovIdx = S.overlayIds.indexOf(id);
+  if (ovIdx >= 0) S.overlayIds.splice(ovIdx, 1);
   S.id = id;
   buildMatList();
   checkTempSection();
   resetZoom();
+  buildComparePicker();
   refresh();
 }
 
@@ -1190,6 +1339,79 @@ function toggle(key) {
   const [btnId, cls] = TOGGLE_MAP[key];
   document.getElementById(btnId).classList.toggle('on', S[key]);
   draw();
+}
+
+// ════════════════════════════════════════════════════════
+//  LOCK SCALE
+// ════════════════════════════════════════════════════════
+function toggleLockScale() {
+  S.lockScale = !S.lockScale;
+  const btn = document.getElementById('btn-lock-scale');
+  btn.classList.toggle('on', S.lockScale);
+  btn.textContent = S.lockScale ? '🔒 Axes locked (all temps)' : '🔓 Lock axes across temperatures';
+  refresh();
+}
+
+// ════════════════════════════════════════════════════════
+//  COMPARE / OVERLAY
+// ════════════════════════════════════════════════════════
+function toggleComparePicker() {
+  const picker = document.getElementById('compare-picker');
+  const btn    = document.getElementById('compare-toggle-btn');
+  const isOpen = picker.classList.toggle('open');
+  btn.classList.toggle('open', isOpen);
+  btn.textContent = isOpen ? '✕ Close picker' : '＋ Add overlay curve';
+  if (isOpen) buildComparePicker();
+}
+
+function buildComparePicker() {
+  const picker = document.getElementById('compare-picker');
+  if (!picker.classList.contains('open')) return;
+  picker.innerHTML = '';
+  const clsLabels = { metals: 'Metals', polymers: 'Polymers', ceramics: 'Ceramics', bio: 'Bio / Composite' };
+  Object.entries(MATS).forEach(([cls, mats]) => {
+    const clsEl = document.createElement('div');
+    clsEl.className = 'ov-class-label';
+    clsEl.textContent = clsLabels[cls];
+    picker.appendChild(clsEl);
+    mats.forEach(mat => {
+      const isPrimary = mat.id === S.id;
+      const isActive  = S.overlayIds.includes(mat.id);
+      const row = document.createElement('label');
+      row.className = 'ov-item';
+      row.style.setProperty('--ov-color', mat.color);
+      if (isPrimary) { row.style.opacity = '0.38'; row.style.pointerEvents = 'none'; }
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = isActive; cb.disabled = isPrimary;
+      cb.onchange = () => toggleOverlayMat(mat.id);
+      const dot = document.createElement('span');
+      dot.className = 'ov-dot'; dot.style.background = mat.color;
+      const nameEl = document.createElement('span');
+      nameEl.textContent = mat.name;
+      row.appendChild(cb); row.appendChild(dot); row.appendChild(nameEl);
+      picker.appendChild(row);
+    });
+  });
+  // Active count note
+  const note = document.getElementById('compare-active-note');
+  if (S.overlayIds.length > 0) {
+    note.style.display = 'block';
+    note.textContent = `${S.overlayIds.length} overlay${S.overlayIds.length > 1 ? 's' : ''} active (max 3)`;
+  } else {
+    note.style.display = 'none';
+  }
+}
+
+function toggleOverlayMat(id) {
+  const idx = S.overlayIds.indexOf(id);
+  if (idx >= 0) {
+    S.overlayIds.splice(idx, 1);
+  } else {
+    if (S.overlayIds.length >= 3) S.overlayIds.shift(); // drop oldest if at cap
+    S.overlayIds.push(id);
+  }
+  buildComparePicker();
+  refresh();
 }
 
 // ════════════════════════════════════════════════════════
@@ -1282,6 +1504,7 @@ function init() {
   });
   buildMatList();
   checkTempSection();
+  buildComparePicker();
   resizeCanvas();       // also calls draw()
   updateInfo();
   updateZoomDisplay();
