@@ -1,0 +1,1924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crystal Imperfections Explorer</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',Tahoma,sans-serif; background:#12131a; color:#dde1f0; display:flex; height:100vh; overflow:hidden; }
+
+    #sidebar { width:270px; min-width:270px; background:#1a1d2e; border-right:1px solid #2a2d45; display:flex; flex-direction:column; gap:12px; padding:16px 14px; overflow-y:auto; }
+    #sidebar h1 { font-size:0.88rem; font-weight:700; color:#b080e0; text-transform:uppercase; letter-spacing:2px; border-bottom:1px solid #2a2d45; padding-bottom:10px; }
+    #sidebar h1 a { float:right; font-size:0.68rem; color:#4a6090; text-decoration:none; font-weight:400; letter-spacing:0; text-transform:none; }
+    #sidebar h1 a:hover { color:#7a90c0; }
+    .section-label { font-size:0.63rem; font-weight:700; color:#5a6080; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:6px; }
+
+    .mat-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+    .mat-btn { padding:7px 4px; background:#1e2238; border:1px solid #2e3355; border-radius:6px; color:#6a7898; cursor:pointer; font-size:0.64rem; font-weight:600; text-align:center; line-height:1.35; transition:all 0.18s; }
+    .mat-btn:hover { border-color:#8050c0; color:#c0a0f0; }
+    .mat-btn.active { background:#1e1830; border-color:#8050c0; color:#c0a0f0; }
+
+    .tog-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+    .tog-btn { padding:6px 4px; background:#1e2238; border:1px solid #2e3355; border-radius:6px; color:#5a6888; cursor:pointer; font-size:0.63rem; font-weight:600; text-align:center; line-height:1.35; transition:all 0.18s; }
+    .tog-btn:hover { border-color:#8050c0; color:#c0a0f0; }
+    .tog-btn.on { background:#1e1830; border-color:#7040b0; color:#c0a0f0; }
+
+    .ctrl-row { margin-bottom:10px; }
+    .ctrl-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+    .ctrl-lbl { font-size:0.78rem; font-weight:600; color:#9ba8c8; }
+    .ctrl-val { font-size:0.88rem; font-weight:700; color:#b080e0; }
+    .ctrl-unit { font-size:0.62rem; color:#5a6880; }
+    input[type=range] { -webkit-appearance:none; width:100%; height:4px; background:#2e3355; border-radius:2px; outline:none; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:15px; height:15px; border-radius:50%; background:#b080e0; cursor:pointer; }
+    .tick-row { display:flex; justify-content:space-between; font-size:0.57rem; color:#404868; margin-top:3px; }
+
+    .play-row { display:flex; gap:6px; }
+    .play-btn { flex:1; padding:8px 6px; border-radius:6px; border:1px solid #2e3355; background:#1e2238; color:#b080e0; font-size:0.72rem; font-weight:700; cursor:pointer; transition:all 0.18s; text-align:center; }
+    .play-btn:hover { border-color:#8050c0; background:#1e1830; }
+    .play-btn.primary { background:#1a1030; border-color:#7040b0; color:#c898f0; }
+    .play-btn.primary:hover { background:#221840; border-color:#9060d0; }
+    .play-btn.danger { border-color:#602828; color:#e06060; }
+    .play-btn.danger:hover { background:#2a1818; border-color:#903030; }
+
+    #scenario-note { font-size:0.62rem; color:#6a7898; line-height:1.55; padding:7px 9px; background:#141728; border-left:2px solid #4a2a70; border-radius:4px; margin-top:auto; }
+
+    #main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+    #tab-bar { display:flex; gap:0; background:#13152a; border-bottom:1px solid #20233a; padding:0 14px; flex-shrink:0; }
+    .tab-btn { padding:10px 18px; font-size:0.78rem; font-weight:600; background:none; border:none; color:#4a5878; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all 0.18s; letter-spacing:0.3px; }
+    .tab-btn:hover { color:#a070c0; }
+    .tab-btn.active { color:#b080e0; border-bottom-color:#9060c0; }
+
+    #canvas-wrap { flex:1; position:relative; padding:8px 12px 4px 8px; min-height:0; }
+    #impCanvas { width:100%; height:100%; display:block; border-radius:6px; }
+
+    #info-panel { background:#13152a; border-top:1px solid #22253a; padding:8px 14px; display:grid; grid-template-columns:repeat(6,1fr); gap:6px; flex-shrink:0; }
+    .prop-card { background:#1a1d2e; border:1px solid #252840; border-radius:6px; padding:6px 8px; text-align:center; }
+    .prop-lbl  { font-size:0.56rem; color:#4a5878; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:3px; }
+    .prop-val  { font-size:0.88rem; font-weight:700; color:#b080e0; line-height:1; }
+    .prop-unit { font-size:0.56rem; color:#404c68; margin-top:2px; }
+    .prop-card.ok   { border-color:#2a5a2a; } .prop-card.ok   .prop-val { color:#60d880; }
+    .prop-card.warn { border-color:#5a4a10; } .prop-card.warn .prop-val { color:#e0c050; }
+    .prop-card.alert { border-color:#5a2828; } .prop-card.alert .prop-val { color:#e06060; }
+  </style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<div id="sidebar">
+  <h1>Imperfections <a href="index.html">← Hub</a></h1>
+
+  <!-- Point Defects -->
+  <div id="pane-point-sb">
+    <div class="section-label">Defect Types</div>
+    <div class="tog-grid">
+      <button class="tog-btn on" id="pt-vacancy"       onclick="togPt('vacancy')">Vacancy</button>
+      <button class="tog-btn"    id="pt-selfInt"        onclick="togPt('selfInt')">Self-<br>Interstitial</button>
+      <button class="tog-btn"    id="pt-substitutional" onclick="togPt('substitutional')">Substitutional</button>
+      <button class="tog-btn"    id="pt-interstitial"   onclick="togPt('interstitial')">Interstitial<br>Impurity</button>
+    </div>
+    <div style="margin-top:12px">
+      <div class="section-label">Temperature</div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-lbl">T =</span>
+          <span><span class="ctrl-val" id="v-ptTemp">800</span><span class="ctrl-unit"> K</span></span>
+        </div>
+        <input type="range" id="sl-ptTemp" min="300" max="1500" step="25" value="800" oninput="onPtTemp()">
+        <div class="tick-row"><span>300 K</span><span>1500 K</span></div>
+      </div>
+    </div>
+    <div style="margin-top:8px">
+      <div class="section-label">Lattice Grid</div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-lbl">Size</span>
+          <span><span class="ctrl-val" id="v-ptGrid">8</span><span class="ctrl-unit"> ×8</span></span>
+        </div>
+        <input type="range" id="sl-ptGrid" min="6" max="12" step="1" value="8" oninput="onPtGrid()">
+        <div class="tick-row"><span>6</span><span>12</span></div>
+      </div>
+    </div>
+    <div class="play-row" style="margin-top:8px">
+      <button class="play-btn primary" onclick="randomizePt()">🎲 Randomize</button>
+      <button class="play-btn danger"  onclick="resetPt()">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- Dislocations -->
+  <div id="pane-dislocation-sb" style="display:none">
+    <div class="section-label">Dislocation Type</div>
+    <div class="mat-grid">
+      <button class="mat-btn active" id="dm-edge"  onclick="setDisType('edge')">Edge</button>
+      <button class="mat-btn"        id="dm-screw" onclick="setDisType('screw')">Screw</button>
+    </div>
+    <div style="margin-top:12px">
+      <div class="section-label">Applied Shear Stress</div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-lbl">τ</span>
+          <span><span class="ctrl-val" id="v-disTau">0</span><span class="ctrl-unit"> (rel.)</span></span>
+        </div>
+        <input type="range" id="sl-disTau" min="0" max="100" step="1" value="0" oninput="onDisTau()">
+        <div class="tick-row"><span>0</span><span>τ_max</span></div>
+      </div>
+    </div>
+    <div style="margin-top:8px">
+      <div class="section-label">Display</div>
+      <div class="tog-grid">
+        <button class="tog-btn on" id="dt-burgers"  onclick="togDis('burgers')">Burgers<br>Vector</button>
+        <button class="tog-btn"    id="dt-circuit"  onclick="togDis('circuit')">Burgers<br>Circuit</button>
+        <button class="tog-btn on" id="dt-halfplane" onclick="togDis('halfplane')">Extra Half-<br>Plane</button>
+        <button class="tog-btn on" id="dt-slip"     onclick="togDis('slip')">Slip<br>Plane</button>
+      </div>
+    </div>
+    <div class="play-row" style="margin-top:10px">
+      <button class="play-btn primary" id="btn-glide" onclick="toggleGlide()">▶ Glide</button>
+      <button class="play-btn danger"  onclick="resetDis()">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- Planar Defects -->
+  <div id="pane-planar-sb" style="display:none">
+    <div class="section-label">Boundary Type</div>
+    <div class="mat-grid">
+      <button class="mat-btn active" id="pm-low_angle" onclick="setPlType('low_angle')">Low-Angle<br>Tilt</button>
+      <button class="mat-btn"        id="pm-high_angle" onclick="setPlType('high_angle')">High-Angle<br>GB</button>
+      <button class="mat-btn"        id="pm-twin"       onclick="setPlType('twin')">Twin<br>Boundary</button>
+      <button class="mat-btn"        id="pm-stacking"   onclick="setPlType('stacking')">Stacking<br>Fault</button>
+    </div>
+    <div style="margin-top:12px">
+      <div class="section-label">Grain Size d</div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-lbl">d =</span>
+          <span><span class="ctrl-val" id="v-plGrain">50</span><span class="ctrl-unit"> μm</span></span>
+        </div>
+        <input type="range" id="sl-plGrain" min="10" max="200" step="5" value="50" oninput="onPlGrain()">
+        <div class="tick-row"><span>10 μm</span><span>200 μm</span></div>
+      </div>
+    </div>
+    <div style="margin-top:6px">
+      <div class="section-label">Display</div>
+      <div class="tog-grid">
+        <button class="tog-btn on" id="plt-colors"  onclick="togPl('colors')">Grain<br>Colors</button>
+        <button class="tog-btn on" id="plt-orient"  onclick="togPl('orient')">Orientation<br>Arrows</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Volume Defects -->
+  <div id="pane-volume-sb" style="display:none">
+    <div class="section-label">Defect Type</div>
+    <div class="mat-grid">
+      <button class="mat-btn active" id="vm-voids"     onclick="setVolType('voids')">Voids</button>
+      <button class="mat-btn"        id="vm-inclusions" onclick="setVolType('inclusions')">Inclusions</button>
+      <button class="mat-btn"        id="vm-precipitates" onclick="setVolType('precipitates')">Precipitates</button>
+      <button class="mat-btn"        id="vm-porosity"  onclick="setVolType('porosity')">Porosity</button>
+    </div>
+    <div style="margin-top:12px">
+      <div class="section-label">Volume Fraction</div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-lbl">f =</span>
+          <span><span class="ctrl-val" id="v-volFrac">2.0</span><span class="ctrl-unit"> %</span></span>
+        </div>
+        <input type="range" id="sl-volFrac" min="0.5" max="15" step="0.5" value="2.0" oninput="onVolFrac()">
+        <div class="tick-row"><span>0.5%</span><span>15%</span></div>
+      </div>
+    </div>
+    <div class="play-row" style="margin-top:8px">
+      <button class="play-btn primary" onclick="randomizeVol()">🎲 Randomize</button>
+      <button class="play-btn danger"  onclick="resetVol()">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- Characterization -->
+  <div id="pane-characterization-sb" style="display:none">
+    <div class="section-label">Technique</div>
+    <div class="mat-grid">
+      <button class="mat-btn active" id="ch-optical" onclick="setCharTech('optical')">Optical<br>Microscopy</button>
+      <button class="mat-btn"        id="ch-sem"     onclick="setCharTech('sem')">SEM</button>
+      <button class="mat-btn"        id="ch-tem"     onclick="setCharTech('tem')">TEM</button>
+      <button class="mat-btn"        id="ch-xrd"     onclick="setCharTech('xrd')">X-Ray<br>Diffraction</button>
+    </div>
+    <div style="margin-top:12px">
+      <div class="section-label">Magnification</div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-lbl">Mag</span>
+          <span><span class="ctrl-val" id="v-charMag">200</span><span class="ctrl-unit"> ×</span></span>
+        </div>
+        <input type="range" id="sl-charMag" min="0" max="100" step="1" value="30" oninput="onCharMag()">
+        <div class="tick-row"><span>Low</span><span>High</span></div>
+      </div>
+    </div>
+    <div style="margin-top:6px">
+      <div class="section-label">Sample Type</div>
+      <div class="mat-grid">
+        <button class="mat-btn active" id="cs-poly"    onclick="setCharSample('poly')">Poly-<br>crystalline</button>
+        <button class="mat-btn"        id="cs-single"  onclick="setCharSample('single')">Single<br>Crystal</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="scenario-note">Toggle defect types and adjust temperature to explore vacancy concentration via the Arrhenius equation.</div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div id="main">
+  <div id="tab-bar">
+    <button class="tab-btn active" onclick="showTab('point',this)">⚫ Point Defects</button>
+    <button class="tab-btn"        onclick="showTab('dislocation',this)">〰 Dislocations</button>
+    <button class="tab-btn"        onclick="showTab('planar',this)">🔲 Planar Defects</button>
+    <button class="tab-btn"        onclick="showTab('volume',this)">🫧 Volume Defects</button>
+    <button class="tab-btn"        onclick="showTab('characterization',this)">🔬 Characterization</button>
+  </div>
+  <div id="canvas-wrap">
+    <canvas id="impCanvas"></canvas>
+  </div>
+  <div id="info-panel">
+    <div class="prop-card" id="card0"><div class="prop-lbl" id="lbl0">—</div><div class="prop-val" id="val0">—</div><div class="prop-unit" id="unt0"></div></div>
+    <div class="prop-card" id="card1"><div class="prop-lbl" id="lbl1">—</div><div class="prop-val" id="val1" style="font-size:0.7rem">—</div><div class="prop-unit" id="unt1"></div></div>
+    <div class="prop-card" id="card2"><div class="prop-lbl" id="lbl2">—</div><div class="prop-val" id="val2">—</div><div class="prop-unit" id="unt2"></div></div>
+    <div class="prop-card" id="card3"><div class="prop-lbl" id="lbl3">—</div><div class="prop-val" id="val3">—</div><div class="prop-unit" id="unt3"></div></div>
+    <div class="prop-card" id="card4"><div class="prop-lbl" id="lbl4">—</div><div class="prop-val" id="val4">—</div><div class="prop-unit" id="unt4"></div></div>
+    <div class="prop-card" id="card5"><div class="prop-lbl" id="lbl5">—</div><div class="prop-val" id="val5" style="font-size:0.7rem">—</div><div class="prop-unit" id="unt5"></div></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  CONSTANTS & DATA
+// ══════════════════════════════════════════════════════════
+
+const kB = 8.617e-5;  // eV/K (Boltzmann constant)
+const Qv = 0.90;      // eV, vacancy formation energy (Cu-like)
+
+// Notes per tab
+const NOTES = {
+  point:  'Toggle defect types and adjust temperature to explore vacancy concentration via the Arrhenius equation. n_v/N = exp(−Q_v / kT).',
+  dislocation: 'Edge dislocation: extra half-plane of atoms above the slip plane. Apply shear stress to glide the dislocation one Burgers vector at a time.',
+  planar: 'Grain boundaries impede dislocation motion → Hall-Petch strengthening. Smaller grains = more boundaries = higher yield stress.',
+  volume: 'Internal defects (voids, inclusions, porosity) act as stress concentrators and reduce effective cross-section. K_t = 3 for a circular hole.',
+  characterization: 'Different techniques reveal different length scales of defects. Optical ~200 nm resolution; SEM ~1 nm; TEM ~0.1 nm; XRD reveals lattice-level info.',
+};
+
+const PLANAR_NOTES = {
+  low_angle: 'Low-angle tilt boundary: array of edge dislocations with spacing D = b/θ. Misorientation θ < 15°. Energy increases with θ until transition to high-angle boundary.',
+  high_angle: 'High-angle grain boundary: θ > 15°. Disordered atomic arrangement at boundary. Hall-Petch: σ_y = σ₀ + k_y·d^(−1/2). Finer grains → higher strength.',
+  twin: 'Twin boundary: mirror reflection of crystal structure across the twin plane. Very low boundary energy. Found in FCC metals (annealing twins) and HCP metals (deformation twins).',
+  stacking: 'Stacking fault: interruption in the ABCABC stacking sequence of close-packed planes. E.g., ABCABABC. Bounded by partial dislocations. Low stacking fault energy → wider faults.',
+};
+
+const VOL_NOTES = {
+  voids: 'Voids: empty internal cavities from casting shrinkage, creep cavitation, or radiation damage. Stress concentration factor K_t = 3 for a spherical void under tension.',
+  inclusions: 'Inclusions: foreign particles trapped during processing (e.g., MnS stringers in steel from rolling). Elongated along working direction. Sites for crack initiation.',
+  precipitates: 'Precipitates: second-phase particles formed by heat treatment. Can strengthen (precipitation hardening) or embrittle depending on size, distribution, and coherency.',
+  porosity: 'Porosity: distributed small voids from gas evolution during solidification or incomplete sintering in powder metallurgy. Reduces effective modulus: E_eff ≈ E₀(1−p)².',
+};
+
+const CHAR_DATA = {
+  optical: { name:'Optical Microscopy', res:'~200 nm', defects:'Grains, inclusions, cracks', prep:'Polish + etch', signal:'Reflected visible light' },
+  sem:     { name:'Scanning Electron Microscopy', res:'~1 nm', defects:'Surface topography, fracture features', prep:'Conductive coating', signal:'Secondary / Backscattered e⁻' },
+  tem:     { name:'Transmission Electron Microscopy', res:'~0.1 nm', defects:'Dislocations, stacking faults, precipitates', prep:'Thin foil (~100 nm)', signal:'Transmitted e⁻ beam' },
+  xrd:     { name:'X-Ray Diffraction', res:'Lattice-level', defects:'Crystal structure, lattice strain, grain size', prep:'Powder or flat surface', signal:'Diffracted X-rays (Bragg)' },
+};
+
+// ══════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════
+const S = {
+  tab: 'point',
+  // Point defects
+  ptShow: { vacancy:true, selfInt:false, substitutional:false, interstitial:false },
+  ptTemp: 800, ptGrid: 8, ptSeed: 1,
+  // Dislocations
+  disType: 'edge', disTau: 0,
+  disShow: { burgers:true, circuit:false, halfplane:true, slip:true },
+  disGlidePos: 0, disAnimating: false, disAnimRef: null,
+  // Planar
+  plType: 'low_angle', plGrain: 50,
+  plShow: { colors:true, orient:true },
+  plVoronoiPts: null,
+  // Volume
+  volType: 'voids', volFrac: 2.0, volSeed: 1, volDefects: null,
+  // Characterization
+  charTech: 'optical', charMag: 200, charSample: 'poly',
+};
+
+const canvas = document.getElementById('impCanvas');
+const ctx    = canvas.getContext('2d');
+
+// ══════════════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════════════
+
+// Seeded RNG (simple LCG)
+function seededRng(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 1664525 + 1013904223) & 0xFFFFFFFF;
+    return (s >>> 0) / 0xFFFFFFFF;
+  };
+}
+
+function niceStep(r) {
+  if(r<=0)return 10;
+  const raw=r/4, mag=Math.pow(10,Math.floor(Math.log10(raw))), n=raw/mag;
+  return n<1.5?mag:n<3.5?2*mag:n<7.5?5*mag:10*mag;
+}
+
+function drawArrow(x1,y1,x2,y2,color,lw) {
+  const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);
+  if(len<3)return;
+  const a=Math.atan2(dy,dx),h=Math.min(9,len*0.3);
+  ctx.save(); ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=lw; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-h*Math.cos(a-Math.PI/7),y2-h*Math.sin(a-Math.PI/7));
+  ctx.lineTo(x2-h*Math.cos(a+Math.PI/7),y2-h*Math.sin(a+Math.PI/7));
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+
+function fBox(x,y,w,h,text,fontSize) {
+  ctx.fillStyle='rgba(14,16,28,0.85)';
+  ctx.strokeStyle='#2e3355';
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.roundRect(x,y,w,h,5);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#9ba8c8';
+  ctx.font=`${fontSize||10}px Segoe UI`;
+  ctx.textAlign='left';
+  const lines = text.split('\n');
+  lines.forEach((line,i) => {
+    ctx.fillText(line, x+8, y+14+i*(fontSize||10)*1.4);
+  });
+}
+
+// Vacancy concentration
+function vacConc(T) {
+  return Math.exp(-Qv / (kB * T));
+}
+
+// Hall-Petch
+function hallPetch(d_um) {
+  const sigma0 = 70;  // MPa (friction stress for mild steel)
+  const ky = 0.74;    // MPa·mm^(1/2)
+  const d_mm = d_um / 1000;
+  return sigma0 + ky / Math.sqrt(d_mm);
+}
+
+// Generate Voronoi seed points
+function genVoronoi(n, w, h, seed) {
+  const rng = seededRng(seed);
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    pts.push({ x: rng() * w, y: rng() * h, angle: rng() * Math.PI });
+  }
+  return pts;
+}
+
+// Generate volume defect positions
+function genVolDefects(type, frac, w, h, seed) {
+  const rng = seededRng(seed);
+  const area = w * h;
+  const count = Math.max(3, Math.floor(frac / 100 * area / 300));
+  const defs = [];
+  for (let i = 0; i < count; i++) {
+    const sz = type === 'porosity' ? 2 + rng() * 6 : 4 + rng() * 10;
+    defs.push({ x: 20 + rng() * (w - 40), y: 20 + rng() * (h - 40), r: sz, shape: rng() });
+  }
+  return defs;
+}
+
+// ══════════════════════════════════════════════════════════
+//  POINT DEFECTS DRAWING
+// ══════════════════════════════════════════════════════════
+
+function drawPoint(W, H) {
+  const leftW = Math.floor(W * 0.46);
+  const N = S.ptGrid;
+  const pad = 30;
+  const availW = leftW - pad * 2;
+  const availH = H - pad * 2 - 20;
+  const spacing = Math.min(availW / (N - 1), availH / (N - 1));
+  const r = spacing * 0.28;
+  const offX = pad + (availW - spacing * (N - 1)) / 2;
+  const offY = pad + 20 + (availH - spacing * (N - 1)) / 2;
+
+  // Title
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('2D Crystal Lattice — Point Defects', leftW / 2, 16);
+
+  const rng = seededRng(S.ptSeed);
+
+  // Decide which sites have defects
+  const totalSites = N * N;
+  const defectMap = new Map(); // "row,col" -> defect type
+
+  if (S.ptShow.vacancy) {
+    const count = Math.max(1, Math.round(totalSites * 0.06));
+    for (let i = 0; i < count; i++) {
+      let r_, c_;
+      do { r_ = Math.floor(rng() * N); c_ = Math.floor(rng() * N); }
+      while (defectMap.has(r_ + ',' + c_));
+      defectMap.set(r_ + ',' + c_, 'vacancy');
+    }
+  }
+  if (S.ptShow.substitutional) {
+    const count = Math.max(1, Math.round(totalSites * 0.04));
+    for (let i = 0; i < count; i++) {
+      let r_, c_;
+      do { r_ = Math.floor(rng() * N); c_ = Math.floor(rng() * N); }
+      while (defectMap.has(r_ + ',' + c_));
+      defectMap.set(r_ + ',' + c_, 'substitutional');
+    }
+  }
+
+  // Interstitial positions (between lattice sites)
+  const interstitials = [];
+  if (S.ptShow.selfInt) {
+    const count = Math.max(1, Math.round(totalSites * 0.03));
+    for (let i = 0; i < count; i++) {
+      const row = Math.floor(rng() * (N - 1));
+      const col = Math.floor(rng() * (N - 1));
+      interstitials.push({ row, col, type: 'selfInt' });
+    }
+  }
+  if (S.ptShow.interstitial) {
+    const count = Math.max(1, Math.round(totalSites * 0.04));
+    for (let i = 0; i < count; i++) {
+      const row = Math.floor(rng() * (N - 1));
+      const col = Math.floor(rng() * (N - 1));
+      interstitials.push({ row, col, type: 'interstitial' });
+    }
+  }
+
+  // Draw lattice atoms
+  for (let row = 0; row < N; row++) {
+    for (let col = 0; col < N; col++) {
+      const cx = offX + col * spacing;
+      const cy = offY + row * spacing;
+      const key = row + ',' + col;
+      const defect = defectMap.get(key);
+
+      if (defect === 'vacancy') {
+        // Dashed circle, no fill
+        ctx.strokeStyle = '#607090'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#607090'; ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
+        ctx.fillText('V', cx, cy + 3);
+      } else if (defect === 'substitutional') {
+        // Different color and slightly larger
+        ctx.fillStyle = '#e06050';
+        ctx.beginPath(); ctx.arc(cx, cy, r * 1.1, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#ff8070'; ctx.lineWidth = 1; ctx.stroke();
+        // Strain arrows (neighbors displaced outward)
+        const strain = r * 0.2;
+        if (col > 0) drawArrow(cx - spacing + r + 2, cy, cx - spacing + r + 2 - strain * 2, cy, 'rgba(255,100,80,0.3)', 0.8);
+        if (col < N - 1) drawArrow(cx + spacing - r - 2, cy, cx + spacing - r - 2 + strain * 2, cy, 'rgba(255,100,80,0.3)', 0.8);
+      } else {
+        // Normal atom
+        ctx.fillStyle = '#4a70a8';
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#6090d0'; ctx.lineWidth = 0.8; ctx.stroke();
+      }
+    }
+  }
+
+  // Draw interstitials
+  interstitials.forEach(it => {
+    const cx = offX + (it.col + 0.5) * spacing;
+    const cy = offY + (it.row + 0.5) * spacing;
+    if (it.type === 'selfInt') {
+      // Same color but squeezed between sites
+      ctx.fillStyle = '#80a0e0';
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.9, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#a0c0ff'; ctx.lineWidth = 1.5; ctx.stroke();
+      // Displacement arrows on neighbors
+      const disp = r * 0.15;
+      ctx.strokeStyle = 'rgba(130,170,255,0.3)'; ctx.lineWidth = 0.8;
+      [[0,0],[0,1],[1,0],[1,1]].forEach(([dr,dc]) => {
+        const nx = offX + (it.col + dc) * spacing;
+        const ny = offY + (it.row + dr) * spacing;
+        const dx = nx - cx, dy = ny - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        ctx.beginPath();
+        ctx.moveTo(nx, ny);
+        ctx.lineTo(nx + dx / dist * disp * 3, ny + dy / dist * disp * 3);
+        ctx.stroke();
+      });
+    } else {
+      // Small foreign atom
+      ctx.fillStyle = '#60d060';
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.45, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#80f080'; ctx.lineWidth = 1; ctx.stroke();
+    }
+  });
+
+  // Legend
+  let ly = H - 14;
+  ctx.font = '8px Segoe UI'; ctx.textAlign = 'left';
+  const legend = [];
+  if (S.ptShow.vacancy) legend.push(['#607090', 'Vacancy (V)']);
+  if (S.ptShow.selfInt) legend.push(['#80a0e0', 'Self-interstitial']);
+  if (S.ptShow.substitutional) legend.push(['#e06050', 'Substitutional']);
+  if (S.ptShow.interstitial) legend.push(['#60d060', 'Interstitial impurity']);
+  legend.forEach((l, i) => {
+    const lx = 8 + i * (leftW / legend.length);
+    ctx.fillStyle = l[0]; ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#6a7898'; ctx.fillText(l[1], lx + 8, ly + 3);
+  });
+
+  // Right: Arrhenius curve
+  drawArrheniusCurve(leftW, W, H);
+}
+
+function drawArrheniusCurve(sx, W, H) {
+  const pad = { l: 58, r: 20, t: 32, b: 46 };
+  const aw = W - sx - pad.l - pad.r;
+  const ah = H - pad.t - pad.b;
+
+  // X: 1000/T (K^-1), Y: ln(nv/N)
+  const Tmin = 300, Tmax = 1500;
+  const xMin = 1000 / Tmax, xMax = 1000 / Tmin;
+  const yVals = [];
+  for (let T = Tmin; T <= Tmax; T += 10) {
+    yVals.push(Math.log(vacConc(T)));
+  }
+  const yMin = Math.min(...yVals) * 1.05;
+  const yMax = Math.max(...yVals, -1) * 0.9;
+
+  function toC(invT, lnC) {
+    return [
+      sx + pad.l + ((invT - xMin) / (xMax - xMin)) * aw,
+      pad.t + ah - ((lnC - yMin) / (yMax - yMin)) * ah
+    ];
+  }
+
+  // Separator
+  ctx.strokeStyle = '#1a1d2e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx, 16); ctx.lineTo(sx, H - 16); ctx.stroke();
+
+  // Grid
+  ctx.strokeStyle = '#13152a'; ctx.lineWidth = 1;
+  for (let x = Math.ceil(xMin * 2) / 2; x <= xMax; x += 0.5) {
+    const [cx] = toC(x, yMin);
+    ctx.beginPath(); ctx.moveTo(cx, pad.t); ctx.lineTo(cx, pad.t + ah); ctx.stroke();
+    ctx.fillStyle = '#3a4060'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText(x.toFixed(1), cx, pad.t + ah + 14);
+  }
+  const yStep = niceStep((yMax - yMin) * 0.9);
+  for (let y = Math.ceil(yMin / yStep) * yStep; y <= yMax; y += yStep) {
+    const [, cy] = toC(xMin, y);
+    ctx.beginPath(); ctx.moveTo(sx + pad.l, cy); ctx.lineTo(sx + pad.l + aw, cy); ctx.stroke();
+    ctx.fillStyle = '#3a4060'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'right';
+    ctx.fillText(y.toFixed(0), sx + pad.l - 6, cy + 3);
+  }
+
+  // Axes
+  ctx.strokeStyle = '#304060'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx + pad.l, pad.t); ctx.lineTo(sx + pad.l, pad.t + ah + 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx + pad.l - 4, pad.t + ah); ctx.lineTo(sx + pad.l + aw, pad.t + ah); ctx.stroke();
+  ctx.fillStyle = '#6a7898'; ctx.font = '11px Segoe UI';
+  ctx.textAlign = 'center'; ctx.fillText('1000 / T  (K⁻¹)', sx + pad.l + aw / 2, pad.t + ah + 32);
+  ctx.save(); ctx.translate(sx + pad.l - 42, pad.t + ah / 2); ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center'; ctx.fillText('ln( n_v / N )', 0, 0); ctx.restore();
+
+  // Arrhenius line
+  const nPts = 200;
+  ctx.strokeStyle = '#b080e0'; ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  for (let i = 0; i <= nPts; i++) {
+    const T = Tmin + (i / nPts) * (Tmax - Tmin);
+    const invT = 1000 / T;
+    const lnC = Math.log(vacConc(T));
+    const [cx, cy] = toC(invT, lnC);
+    i === 0 ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy);
+  }
+  ctx.stroke();
+
+  // Current temperature point
+  const curInvT = 1000 / S.ptTemp;
+  const curLnC = Math.log(vacConc(S.ptTemp));
+  const [px, py] = toC(curInvT, curLnC);
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#b080e0'; ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2); ctx.fill();
+
+  // Label
+  const conc = vacConc(S.ptTemp);
+  ctx.fillStyle = '#c0a0e0'; ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText(`n_v/N = ${conc.toExponential(2)}`, px + 10, py - 2);
+  ctx.fillStyle = '#7a88a8'; ctx.font = '9px Segoe UI';
+  ctx.fillText(`T = ${S.ptTemp} K`, px + 10, py + 12);
+
+  // Formula box
+  fBox(sx + pad.l + 4, pad.t + 4, aw * 0.65, 38,
+    `n_v/N = exp(−Q_v / kT)\nQ_v = ${Qv} eV   k = 8.617×10⁻⁵ eV/K`, 9);
+
+  // Title
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Arrhenius Plot — Vacancy Concentration', sx + pad.l + aw / 2, pad.t - 14);
+}
+
+// ══════════════════════════════════════════════════════════
+//  DISLOCATION DRAWING
+// ══════════════════════════════════════════════════════════
+
+function drawDislocation(W, H) {
+  const leftW = Math.floor(W * 0.46);
+
+  if (S.disType === 'edge') {
+    drawEdgeDislocation(leftW, H);
+  } else {
+    drawScrewDislocation(leftW, H);
+  }
+
+  // Right panel: info diagram
+  drawDislocationInfo(leftW, W, H);
+}
+
+function drawEdgeDislocation(leftW, H) {
+  // Title
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Edge Dislocation — Extra Half-Plane', leftW / 2, 16);
+
+  const cols = 13, rows = 10;
+  const padX = 24, padY = 26;
+  const availW = leftW - padX * 2;
+  const availH = H - padY * 2 - 20;
+  const sp = Math.min(availW / (cols - 1), availH / (rows - 1));
+  const r = sp * 0.24;
+  const offX = padX + (availW - sp * (cols - 1)) / 2;
+  const offY = padY + 16 + (availH - sp * (rows - 1)) / 2;
+
+  const slipRow = Math.floor(rows / 2);
+  const extraCol = Math.floor(cols / 2); // extra half-plane column
+  const glideOffset = S.disGlidePos * sp; // smooth pixel offset
+
+  // Slip plane
+  if (S.disShow.slip) {
+    const y = offY + slipRow * sp - sp / 2;
+    ctx.strokeStyle = 'rgba(200,160,60,0.4)'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(offX - 10, y); ctx.lineTo(offX + (cols - 1) * sp + 10, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(200,160,60,0.5)'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'right';
+    ctx.fillText('Slip plane', offX + (cols - 1) * sp + 8, y - 5);
+  }
+
+  // Draw atoms
+  for (let row = 0; row < rows; row++) {
+    const isAboveSlip = row < slipRow;
+    const nCols = isAboveSlip ? cols + 1 : cols; // extra column above slip plane
+
+    for (let col = 0; col < nCols; col++) {
+      let cx, cy;
+
+      if (isAboveSlip) {
+        // Above slip plane: extra column makes spacing slightly compressed
+        const effectiveSp = sp * cols / (cols + 1);
+        cx = offX + col * effectiveSp + glideOffset;
+        cy = offY + row * sp;
+      } else {
+        cx = offX + col * sp;
+        cy = offY + row * sp;
+      }
+
+      // Is this the extra half-plane?
+      const isExtra = isAboveSlip && col === extraCol;
+
+      if (isExtra && S.disShow.halfplane) {
+        ctx.fillStyle = '#e07040';
+        ctx.beginPath(); ctx.arc(cx, cy, r * 1.15, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#ff9060'; ctx.lineWidth = 1.5; ctx.stroke();
+      } else if (isAboveSlip && S.disShow.halfplane && col === extraCol) {
+        ctx.fillStyle = '#e07040';
+        ctx.beginPath(); ctx.arc(cx, cy, r * 1.15, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#ff9060'; ctx.lineWidth = 1.5; ctx.stroke();
+      } else {
+        ctx.fillStyle = isAboveSlip ? '#4a70a8' : '#4a70a8';
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#6090d0'; ctx.lineWidth = 0.6; ctx.stroke();
+      }
+    }
+  }
+
+  // Extra half-plane highlight (vertical line for the extra column)
+  if (S.disShow.halfplane) {
+    const effectiveSp = sp * cols / (cols + 1);
+    const hpX = offX + extraCol * effectiveSp + glideOffset;
+    const hpY1 = offY;
+    const hpY2 = offY + (slipRow - 1) * sp;
+    ctx.strokeStyle = 'rgba(224,112,64,0.5)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(hpX, hpY1 - r); ctx.lineTo(hpX, hpY2 + r + sp * 0.4); ctx.stroke();
+  }
+
+  // Dislocation core symbol (⊥)
+  const coreY = offY + slipRow * sp - sp / 2;
+  const effectiveSp = sp * cols / (cols + 1);
+  const coreX = offX + extraCol * effectiveSp + glideOffset;
+  ctx.fillStyle = '#e0e060'; ctx.font = 'bold 16px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('⊥', coreX, coreY + 6);
+
+  // Burgers vector
+  if (S.disShow.burgers) {
+    const bx1 = coreX + sp * 0.5, by1 = coreY + sp * 0.8;
+    const bx2 = bx1 + sp, by2 = by1;
+    drawArrow(bx1, by1, bx2, by2, '#60e060', 2);
+    ctx.fillStyle = '#60e060'; ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText('b', (bx1 + bx2) / 2, by2 + 14);
+  }
+
+  // Burgers circuit
+  if (S.disShow.circuit) {
+    const startRow = slipRow - 2, startCol = extraCol + 2;
+    const steps = [
+      [0, -1], [0, -1], [0, -1], [0, -1],     // left 4
+      [1, 0], [1, 0], [1, 0], [1, 0],          // down 4
+      [0, 1], [0, 1], [0, 1], [0, 1],          // right 4
+      [-1, 0], [-1, 0], [-1, 0], [-1, 0],       // up 4
+    ];
+    let cr = startRow, cc = startCol;
+    ctx.strokeStyle = 'rgba(100,224,100,0.6)'; ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 2]);
+    steps.forEach(([dr, dc]) => {
+      const x1 = offX + cc * sp, y1 = offY + cr * sp;
+      cr += dr; cc += dc;
+      const x2 = offX + cc * sp, y2 = offY + cr * sp;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    });
+    ctx.setLineDash([]);
+    // Closure failure arrow
+    const endX = offX + cc * sp, endY = offY + cr * sp;
+    const startX = offX + startCol * sp, startY = offY + startRow * sp;
+    if (Math.abs(endX - startX) > 2 || Math.abs(endY - startY) > 2) {
+      drawArrow(endX, endY, startX, startY, '#ff6060', 2);
+      ctx.fillStyle = '#ff6060'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'left';
+      ctx.fillText('closure failure = b', startX + 8, startY - 8);
+    }
+  }
+
+  // Shear stress arrows
+  if (S.disTau > 0) {
+    const arrowLen = 15 + S.disTau / 100 * 20;
+    const tauCol = `rgba(240,200,60,${0.3 + S.disTau / 100 * 0.5})`;
+    // Top: rightward
+    for (let i = 0; i < 3; i++) {
+      const y = offY - 8;
+      const x = offX + i * sp * 4 + sp;
+      drawArrow(x, y, x + arrowLen, y, tauCol, 1.5);
+    }
+    // Bottom: leftward
+    for (let i = 0; i < 3; i++) {
+      const y = offY + (rows - 1) * sp + 10;
+      const x = offX + i * sp * 4 + sp * 3;
+      drawArrow(x, y, x - arrowLen, y, tauCol, 1.5);
+    }
+    ctx.fillStyle = tauCol; ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText('τ →', offX + (cols - 1) * sp / 2, offY - 16);
+  }
+}
+
+function drawScrewDislocation(leftW, H) {
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Screw Dislocation — Top-Down View', leftW / 2, 16);
+
+  // Draw a spiral pattern showing the screw dislocation
+  const cx = leftW / 2, cy = H / 2;
+  const maxR = Math.min(leftW, H) * 0.35;
+
+  // Background: concentric circles (lattice planes viewed from above)
+  ctx.strokeStyle = 'rgba(70,100,160,0.3)'; ctx.lineWidth = 0.8;
+  for (let ri = 1; ri <= 8; ri++) {
+    ctx.beginPath(); ctx.arc(cx, cy, ri * maxR / 8, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // Spiral ramp showing the screw dislocation
+  ctx.strokeStyle = '#b080e0'; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (let a = 0; a <= Math.PI * 6; a += 0.02) {
+    const rr = maxR * 0.08 + (a / (Math.PI * 6)) * maxR * 0.85;
+    const x = cx + rr * Math.cos(a);
+    const y = cy + rr * Math.sin(a);
+    a === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Dislocation line (center)
+  ctx.fillStyle = '#e0e060';
+  ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#e0e060'; ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('S', cx, cy - 10);
+
+  // Burgers vector (parallel to dislocation line = out of screen)
+  if (S.disShow.burgers) {
+    ctx.fillStyle = '#60e060'; ctx.font = 'bold 11px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText('b  ⊙ (out of page)', cx, H - 20);
+    // Circle-dot symbol
+    ctx.strokeStyle = '#60e060'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx - 45, H - 24, 6, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#60e060';
+    ctx.beginPath(); ctx.arc(cx - 45, H - 24, 2, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Labels
+  ctx.fillStyle = '#6a7898'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText('Spiral step at surface', 12, 34);
+  ctx.fillText('represents screw displacement', 12, 46);
+}
+
+function drawDislocationInfo(sx, W, H) {
+  const pad = { l: 40, r: 20, t: 32, b: 30 };
+  const aw = W - sx - pad.l - pad.r;
+  const ah = H - pad.t - pad.b;
+
+  // Separator
+  ctx.strokeStyle = '#1a1d2e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx, 16); ctx.lineTo(sx, H - 16); ctx.stroke();
+
+  // Title
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText(S.disType === 'edge' ? 'Edge Dislocation — Key Concepts' : 'Screw Dislocation — Key Concepts', sx + pad.l + aw / 2, pad.t - 14);
+
+  // Info boxes
+  const boxW = aw - 10, boxH = 46;
+  let y = pad.t + 10;
+
+  if (S.disType === 'edge') {
+    fBox(sx + pad.l + 5, y, boxW, boxH,
+      'Burgers vector b ⊥ dislocation line ℓ\nGlide direction: perpendicular to line', 10);
+    y += boxH + 10;
+    fBox(sx + pad.l + 5, y, boxW, boxH,
+      'Extra half-plane terminates at core\nCore symbol: ⊥ (inverted T)', 10);
+    y += boxH + 10;
+    fBox(sx + pad.l + 5, y, boxW, boxH + 8,
+      `Stress field: τ = Gb/(2πr)\nCompression above slip plane\nTension below slip plane`, 10);
+    y += boxH + 20;
+    fBox(sx + pad.l + 5, y, boxW, boxH,
+      `Peierls stress: τ_P = (2G/(1−ν))·exp(−2πw/b)\nLattice friction resisting glide`, 10);
+  } else {
+    fBox(sx + pad.l + 5, y, boxW, boxH,
+      'Burgers vector b ∥ dislocation line ℓ\nGlide direction: any plane containing ℓ', 10);
+    y += boxH + 10;
+    fBox(sx + pad.l + 5, y, boxW, boxH,
+      'Creates a spiral ramp at the surface\nNo distinct extra half-plane', 10);
+    y += boxH + 10;
+    fBox(sx + pad.l + 5, y, boxW, boxH,
+      'Can cross-slip between planes easily\nImportant for work hardening (Stage III)', 10);
+    y += boxH + 10;
+    fBox(sx + pad.l + 5, y, boxW, boxH,
+      'Pure shear stress field (no hydrostatic)\nτ = Gb/(2πr)', 10);
+  }
+
+  // Comparison table at bottom
+  y = H - 90;
+  ctx.fillStyle = '#3a4868'; ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Edge vs. Screw Comparison', sx + pad.l + aw / 2, y);
+  y += 14;
+  ctx.font = '9px Segoe UI'; ctx.fillStyle = '#6a7898'; ctx.textAlign = 'left';
+  const tblX = sx + pad.l + 10;
+  ctx.fillText('Property', tblX, y); ctx.fillText('Edge', tblX + aw * 0.4, y); ctx.fillText('Screw', tblX + aw * 0.7, y);
+  y += 12;
+  ctx.fillStyle = '#5a6880';
+  ctx.fillText('b vs ℓ', tblX, y); ctx.fillText('⊥', tblX + aw * 0.45, y); ctx.fillText('∥', tblX + aw * 0.75, y);
+  y += 12;
+  ctx.fillText('Glide plane', tblX, y); ctx.fillText('unique', tblX + aw * 0.4, y); ctx.fillText('any w/ ℓ', tblX + aw * 0.7, y);
+  y += 12;
+  ctx.fillText('Cross-slip', tblX, y); ctx.fillText('No', tblX + aw * 0.45, y); ctx.fillText('Yes', tblX + aw * 0.75, y);
+}
+
+// ══════════════════════════════════════════════════════════
+//  PLANAR DEFECTS DRAWING
+// ══════════════════════════════════════════════════════════
+
+function drawPlanar(W, H) {
+  const leftW = Math.floor(W * 0.46);
+  const type = S.plType;
+
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  const titles = { low_angle: 'Low-Angle Tilt Boundary', high_angle: 'Polycrystalline Grain Structure', twin: 'Twin Boundary', stacking: 'Stacking Fault — ABCABC Sequence' };
+  ctx.fillText(titles[type] || '', leftW / 2, 16);
+
+  if (type === 'low_angle') drawLowAngle(leftW, H);
+  else if (type === 'high_angle') drawHighAngle(leftW, H);
+  else if (type === 'twin') drawTwinBoundary(leftW, H);
+  else drawStackingFault(leftW, H);
+
+  // Right: Hall-Petch curve (for low_angle and high_angle) or stacking diagram
+  if (type === 'low_angle' || type === 'high_angle') {
+    drawHallPetch(leftW, W, H);
+  } else if (type === 'twin') {
+    drawTwinInfo(leftW, W, H);
+  } else {
+    drawStackingInfo(leftW, W, H);
+  }
+}
+
+function drawLowAngle(leftW, H) {
+  const cx = leftW / 2;
+  const padY = 32, padX = 30;
+  const regionW = (leftW - padX * 2) / 2;
+  const regionH = H - padY * 2 - 20;
+  const sp = Math.min(regionW / 6, regionH / 10);
+  const r = sp * 0.22;
+
+  // Left crystal (rotated slightly CCW)
+  const theta = 0.08; // rad, ~4.5 degrees
+  ctx.save();
+  ctx.translate(padX + regionW / 2, padY + 20 + regionH / 2);
+  ctx.rotate(-theta / 2);
+  for (let row = -5; row <= 5; row++) {
+    for (let col = -3; col <= 0; col++) {
+      ctx.fillStyle = S.plShow.colors ? '#4a80c0' : '#4a70a8';
+      ctx.beginPath(); ctx.arc(col * sp, row * sp, r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // Right crystal (rotated CW)
+  ctx.save();
+  ctx.translate(padX + regionW / 2, padY + 20 + regionH / 2);
+  ctx.rotate(theta / 2);
+  for (let row = -5; row <= 5; row++) {
+    for (let col = 0; col <= 3; col++) {
+      ctx.fillStyle = S.plShow.colors ? '#80a0d0' : '#4a70a8';
+      ctx.beginPath(); ctx.arc(col * sp, row * sp, r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // Boundary line with dislocation symbols
+  const bx = padX + regionW / 2;
+  ctx.strokeStyle = 'rgba(200,160,60,0.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+  ctx.beginPath(); ctx.moveTo(bx, padY + 20); ctx.lineTo(bx, padY + 20 + regionH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Dislocation symbols along boundary
+  const nDis = Math.floor(regionH / (sp * 2));
+  ctx.fillStyle = '#e0e060'; ctx.font = 'bold 12px Segoe UI'; ctx.textAlign = 'center';
+  for (let i = 0; i < nDis; i++) {
+    const dy = padY + 30 + i * sp * 2;
+    ctx.fillText('⊥', bx, dy);
+  }
+
+  // Misorientation angle label
+  ctx.fillStyle = '#b0a060'; ctx.font = '10px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText(`θ = ${(theta * 180 / Math.PI).toFixed(1)}°`, cx, H - 14);
+  ctx.fillText(`D = b/θ (dislocation spacing)`, cx, H - 28);
+
+  // Orientation arrows
+  if (S.plShow.orient) {
+    const arrL = 18;
+    drawArrow(padX + regionW * 0.25, padY + 30, padX + regionW * 0.25 + arrL * Math.cos(-theta / 2), padY + 30 - arrL * Math.sin(-theta / 2), '#6090d0', 1.5);
+    drawArrow(padX + regionW * 0.75, padY + 30, padX + regionW * 0.75 + arrL * Math.cos(theta / 2), padY + 30 - arrL * Math.sin(theta / 2), '#90a8d0', 1.5);
+  }
+}
+
+function drawHighAngle(leftW, H) {
+  // Simple Voronoi-like grain structure
+  const pad = 24;
+  const w = leftW - pad * 2;
+  const h = H - pad * 2 - 16;
+
+  // Generate or reuse Voronoi points
+  const nGrains = Math.max(6, Math.round(12 * (100 / S.plGrain)));
+  if (!S.plVoronoiPts || S.plVoronoiPts.length !== nGrains) {
+    S.plVoronoiPts = genVoronoi(nGrains, w, h, 42);
+  }
+  const pts = S.plVoronoiPts;
+
+  // Draw Voronoi by nearest-point coloring (pixel-level approximation via grid)
+  const step = 4;
+  const grainColors = pts.map((p, i) => {
+    const hue = (i * 137.5 + 200) % 360;
+    return S.plShow.colors ? `hsl(${hue},35%,28%)` : '#1a2438';
+  });
+  const borderColor = '#506890';
+
+  for (let y = 0; y < h; y += step) {
+    for (let x = 0; x < w; x += step) {
+      let minD = Infinity, minI = 0, secondD = Infinity;
+      for (let i = 0; i < pts.length; i++) {
+        const d = (x - pts[i].x) ** 2 + (y - pts[i].y) ** 2;
+        if (d < minD) { secondD = minD; minI = i; minD = d; }
+        else if (d < secondD) secondD = d;
+      }
+      // Near boundary?
+      const isBoundary = Math.sqrt(secondD) - Math.sqrt(minD) < step * 2.5;
+      ctx.fillStyle = isBoundary ? borderColor : grainColors[minI];
+      ctx.fillRect(pad + x, pad + 16 + y, step, step);
+    }
+  }
+
+  // Orientation arrows inside each grain
+  if (S.plShow.orient) {
+    pts.forEach((p, i) => {
+      const ax = pad + p.x, ay = pad + 16 + p.y;
+      const len = 12;
+      const ex = ax + len * Math.cos(p.angle);
+      const ey = ay - len * Math.sin(p.angle);
+      drawArrow(ax, ay, ex, ey, 'rgba(200,200,240,0.5)', 1.2);
+    });
+  }
+
+  ctx.fillStyle = '#5a7090'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText(`~${nGrains} grains, d ≈ ${S.plGrain} μm`, 8, H - 6);
+}
+
+function drawTwinBoundary(leftW, H) {
+  const cx = leftW / 2;
+  const padY = 36, padX = 20;
+  const regionH = H - padY * 2 - 10;
+  const sp = Math.min((leftW - padX * 2) / 12, regionH / 12);
+  const r = sp * 0.22;
+
+  // Draw parent crystal (left side) and twin (right side), mirror across vertical line
+  const mirrorX = cx;
+  const twinAngle = Math.PI / 6; // 30 deg tilt for visual clarity
+
+  // Parent (left)
+  ctx.save();
+  for (let row = -6; row <= 6; row++) {
+    for (let col = -5; col <= 0; col++) {
+      const ax = mirrorX + col * sp;
+      const ay = padY + 20 + regionH / 2 + row * sp;
+      if (ax < padX || ay < padY + 16 || ay > H - padY) continue;
+      ctx.fillStyle = S.plShow.colors ? '#4a80c0' : '#4a70a8';
+      ctx.beginPath(); ctx.arc(ax, ay, r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // Twin (right) — mirrored
+  for (let row = -6; row <= 6; row++) {
+    for (let col = 0; col <= 5; col++) {
+      const ax = mirrorX + col * sp;
+      const ay = padY + 20 + regionH / 2 + (-row) * sp; // mirrored y
+      if (ax > leftW - padX || ay < padY + 16 || ay > H - padY) continue;
+      ctx.fillStyle = S.plShow.colors ? '#80a0d0' : '#6a88b8';
+      ctx.beginPath(); ctx.arc(ax, ay, r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // Twin boundary line
+  ctx.strokeStyle = '#e0c050'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(mirrorX, padY + 16); ctx.lineTo(mirrorX, H - padY); ctx.stroke();
+
+  // Mirror label
+  ctx.fillStyle = '#e0c050'; ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Twin plane (mirror)', cx, H - 10);
+  ctx.fillStyle = '#6a7898'; ctx.font = '9px Segoe UI';
+  ctx.fillText('Parent', cx - sp * 3, padY + 28);
+  ctx.fillText('Twin', cx + sp * 2, padY + 28);
+}
+
+function drawStackingFault(leftW, H) {
+  const padY = 36, padX = 20;
+  const layerH = Math.min(28, (H - padY * 2) / 14);
+  const cx = leftW / 2;
+  let y = padY + 20;
+
+  const sequence = ['A','B','C','A','B','C','A','B','A','B','C','A','B','C'];
+  const faultStart = 6; // fault between index 6 and 7
+  const colors = { A: '#4a80c0', B: '#60a060', C: '#c07040' };
+  const offsets = { A: 0, B: layerH * 0.4, C: layerH * 0.8 };
+
+  sequence.forEach((layer, i) => {
+    const ly = y + i * layerH;
+    const lx = padX + offsets[layer];
+    const isFault = i >= faultStart && i <= faultStart + 1;
+
+    ctx.fillStyle = isFault ? colors[layer] + '40' : colors[layer] + '80';
+    ctx.strokeStyle = colors[layer];
+    ctx.lineWidth = isFault ? 2 : 1;
+
+    // Draw atoms in a row
+    const nAtoms = Math.floor((leftW - padX * 2 - offsets[layer]) / (layerH * 0.8));
+    for (let a = 0; a < nAtoms; a++) {
+      const ax = lx + a * layerH * 0.8 + layerH * 0.3;
+      ctx.beginPath(); ctx.arc(ax, ly, layerH * 0.28, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+    }
+
+    // Layer label
+    ctx.fillStyle = '#dde1f0'; ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'right';
+    ctx.fillText(layer, padX - 4, ly + 4);
+
+    // Mark fault
+    if (i === faultStart) {
+      ctx.strokeStyle = '#ff6060'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(padX - 10, ly + layerH / 2); ctx.lineTo(leftW - padX + 10, ly + layerH / 2); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#ff6060'; ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'right';
+      ctx.fillText('Stacking fault', leftW - padX + 8, ly + layerH / 2 - 4);
+    }
+  });
+
+  ctx.fillStyle = '#6a7898'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Normal: ABCABC...  Fault: ...ABA... (HCP-like)', cx, H - 8);
+}
+
+function drawHallPetch(sx, W, H) {
+  const pad = { l: 56, r: 20, t: 32, b: 46 };
+  const aw = W - sx - pad.l - pad.r;
+  const ah = H - pad.t - pad.b;
+
+  const dMin = 10, dMax = 200;
+  const xMin = 1 / Math.sqrt(dMax / 1000), xMax = 1 / Math.sqrt(dMin / 1000);
+  const yMin = hallPetch(dMax) * 0.85, yMax = hallPetch(dMin) * 1.1;
+
+  function toC(x, sig) {
+    return [
+      sx + pad.l + ((x - xMin) / (xMax - xMin)) * aw,
+      pad.t + ah - ((sig - yMin) / (yMax - yMin)) * ah
+    ];
+  }
+
+  // Separator
+  ctx.strokeStyle = '#1a1d2e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx, 16); ctx.lineTo(sx, H - 16); ctx.stroke();
+
+  // Grid
+  ctx.strokeStyle = '#13152a'; ctx.lineWidth = 1;
+  const xStep = niceStep((xMax - xMin) * 0.9);
+  for (let x = Math.ceil(xMin / xStep) * xStep; x <= xMax; x += xStep) {
+    const [cx] = toC(x, yMin);
+    ctx.beginPath(); ctx.moveTo(cx, pad.t); ctx.lineTo(cx, pad.t + ah); ctx.stroke();
+    ctx.fillStyle = '#3a4060'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText(x.toFixed(1), cx, pad.t + ah + 14);
+  }
+  const yStep = niceStep((yMax - yMin) * 0.9);
+  for (let y = Math.ceil(yMin / yStep) * yStep; y <= yMax; y += yStep) {
+    const [, cy] = toC(xMin, y);
+    ctx.beginPath(); ctx.moveTo(sx + pad.l, cy); ctx.lineTo(sx + pad.l + aw, cy); ctx.stroke();
+    ctx.fillStyle = '#3a4060'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'right';
+    ctx.fillText(y.toFixed(0), sx + pad.l - 6, cy + 3);
+  }
+
+  // Axes
+  ctx.strokeStyle = '#304060'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx + pad.l, pad.t); ctx.lineTo(sx + pad.l, pad.t + ah + 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx + pad.l - 4, pad.t + ah); ctx.lineTo(sx + pad.l + aw, pad.t + ah); ctx.stroke();
+  ctx.fillStyle = '#6a7898'; ctx.font = '11px Segoe UI';
+  ctx.textAlign = 'center'; ctx.fillText('d⁻¹ᐟ² (mm⁻¹ᐟ²)', sx + pad.l + aw / 2, pad.t + ah + 32);
+  ctx.save(); ctx.translate(sx + pad.l - 42, pad.t + ah / 2); ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center'; ctx.fillText('σ_y (MPa)', 0, 0); ctx.restore();
+
+  // Hall-Petch line
+  ctx.strokeStyle = '#b080e0'; ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  for (let d = dMin; d <= dMax; d += 1) {
+    const x = 1 / Math.sqrt(d / 1000);
+    const sig = hallPetch(d);
+    const [cx, cy] = toC(x, sig);
+    d === dMin ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy);
+  }
+  ctx.stroke();
+
+  // Current grain size marker
+  const curX = 1 / Math.sqrt(S.plGrain / 1000);
+  const curSig = hallPetch(S.plGrain);
+  const [px, py] = toC(curX, curSig);
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#b080e0'; ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#c0a0e0'; ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText(`σ_y = ${curSig.toFixed(0)} MPa`, px + 10, py - 2);
+  ctx.fillStyle = '#7a88a8'; ctx.font = '9px Segoe UI';
+  ctx.fillText(`d = ${S.plGrain} μm`, px + 10, py + 12);
+
+  // Formula
+  fBox(sx + pad.l + 4, pad.t + 4, aw * 0.7, 32,
+    `σ_y = σ₀ + k_y · d⁻¹ᐟ²\nσ₀ = 70 MPa, k_y = 0.74 MPa·mm¹ᐟ²`, 9);
+
+  // Title
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Hall-Petch Relationship', sx + pad.l + aw / 2, pad.t - 14);
+}
+
+function drawTwinInfo(sx, W, H) {
+  const pad = { l: 30, r: 20, t: 32, b: 20 };
+  const aw = W - sx - pad.l - pad.r;
+  ctx.strokeStyle = '#1a1d2e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx, 16); ctx.lineTo(sx, H - 16); ctx.stroke();
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Twin Boundary — Key Facts', sx + pad.l + aw / 2, pad.t - 14);
+
+  let y = pad.t + 10;
+  const bw = aw - 10, bh = 46;
+  fBox(sx + pad.l + 5, y, bw, bh, 'Mirror symmetry across twin plane\nVery low boundary energy (~few % of high-angle GB)', 10); y += bh + 10;
+  fBox(sx + pad.l + 5, y, bw, bh, 'Annealing twins: formed during recrystallization\nCommon in FCC metals (Cu, brass, austenitic SS)', 10); y += bh + 10;
+  fBox(sx + pad.l + 5, y, bw, bh, 'Deformation twins: formed under impact/low T\nCommon in HCP metals (Zn, Ti) and BCC at high ε̇', 10); y += bh + 10;
+  fBox(sx + pad.l + 5, y, bw, bh, 'Coherent twin boundary: low energy, flat plane\nIncoherent twin boundary: higher energy, stepped', 10);
+}
+
+function drawStackingInfo(sx, W, H) {
+  const pad = { l: 30, r: 20, t: 32, b: 20 };
+  const aw = W - sx - pad.l - pad.r;
+  ctx.strokeStyle = '#1a1d2e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx, 16); ctx.lineTo(sx, H - 16); ctx.stroke();
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Stacking Fault — Key Concepts', sx + pad.l + aw / 2, pad.t - 14);
+
+  let y = pad.t + 10;
+  const bw = aw - 10, bh = 46;
+  fBox(sx + pad.l + 5, y, bw, bh, 'FCC normal: ...ABCABCABC...\nFault: ...ABCABABCABC... (local HCP)', 10); y += bh + 10;
+  fBox(sx + pad.l + 5, y, bw, bh, 'Bounded by partial dislocations\na/6<112> Shockley partials', 10); y += bh + 10;
+  fBox(sx + pad.l + 5, y, bw, bh + 8, 'Low SFE → wide faults → hard to cross-slip\n  Cu: 45 mJ/m², SS304: 20 mJ/m²\nHigh SFE → narrow faults → easy cross-slip\n  Al: 166 mJ/m²', 9); y += bh + 20;
+  fBox(sx + pad.l + 5, y, bw, bh, 'SFE controls work-hardening rate, texture,\nand deformation twin formation', 10);
+}
+
+// ══════════════════════════════════════════════════════════
+//  VOLUME DEFECTS DRAWING
+// ══════════════════════════════════════════════════════════
+
+function drawVolume(W, H) {
+  const leftW = Math.floor(W * 0.46);
+  const pad = 24;
+  const bw = leftW - pad * 2;
+  const bh = H - pad * 2 - 16;
+
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  const titles = { voids:'Cross-Section — Voids', inclusions:'Cross-Section — Inclusions', precipitates:'Cross-Section — Precipitates', porosity:'Cross-Section — Porosity' };
+  ctx.fillText(titles[S.volType] || '', leftW / 2, 16);
+
+  // Material block
+  ctx.fillStyle = '#2a3a5a';
+  ctx.fillRect(pad, pad + 16, bw, bh);
+  ctx.strokeStyle = '#405878'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(pad, pad + 16, bw, bh);
+
+  // Subtle crosshatch
+  ctx.save(); ctx.strokeStyle = 'rgba(60,80,120,0.15)'; ctx.lineWidth = 0.5;
+  for (let x = pad; x < pad + bw; x += 12) {
+    ctx.beginPath(); ctx.moveTo(x, pad + 16); ctx.lineTo(x + bh * 0.3, pad + 16 + bh); ctx.stroke();
+  }
+  ctx.restore();
+
+  // Generate defects if needed
+  if (!S.volDefects || S.volDefects.type !== S.volType) {
+    S.volDefects = { type: S.volType, items: genVolDefects(S.volType, S.volFrac, bw, bh, S.volSeed) };
+  }
+
+  const items = S.volDefects.items;
+
+  items.forEach(d => {
+    const dx = pad + d.x;
+    const dy = pad + 16 + d.y;
+
+    if (S.volType === 'voids') {
+      ctx.fillStyle = '#080a14';
+      ctx.beginPath(); ctx.ellipse(dx, dy, d.r, d.r * 0.8, d.shape * Math.PI, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#1a2030'; ctx.lineWidth = 1; ctx.stroke();
+      // Stress concentration rings
+      ctx.strokeStyle = 'rgba(200,80,60,0.15)'; ctx.lineWidth = 0.7;
+      for (let k = 1; k <= 3; k++) {
+        ctx.beginPath(); ctx.ellipse(dx, dy, d.r + k * 4, (d.r + k * 4) * 0.8, d.shape * Math.PI, 0, Math.PI * 2); ctx.stroke();
+      }
+    } else if (S.volType === 'inclusions') {
+      // Elongated MnS-like stringers
+      ctx.fillStyle = '#c08840';
+      const len = d.r * 1.8, ht = d.r * 0.4;
+      ctx.save(); ctx.translate(dx, dy); ctx.rotate(0.1);
+      ctx.beginPath(); ctx.ellipse(0, 0, len, ht, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#e0a850'; ctx.lineWidth = 0.8; ctx.stroke();
+      ctx.restore();
+    } else if (S.volType === 'precipitates') {
+      // Small regular particles
+      ctx.fillStyle = '#60c060';
+      const sz = d.r * 0.6;
+      ctx.beginPath(); ctx.arc(dx, dy, sz, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#80e080'; ctx.lineWidth = 0.8; ctx.stroke();
+      // Coherency strain field
+      ctx.strokeStyle = 'rgba(100,200,100,0.12)'; ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.arc(dx, dy, sz + 5, 0, Math.PI * 2); ctx.stroke();
+    } else { // porosity
+      ctx.fillStyle = '#060810';
+      const sz = d.r * 0.5 + 1;
+      ctx.beginPath(); ctx.arc(dx, dy, sz, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#101828'; ctx.lineWidth = 0.5; ctx.stroke();
+    }
+  });
+
+  ctx.fillStyle = '#5a7090'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText(`Volume fraction: ${S.volFrac.toFixed(1)}%  |  ${items.length} defects`, 8, H - 6);
+
+  // Right panel: info
+  drawVolumeInfo(leftW, W, H);
+}
+
+function drawVolumeInfo(sx, W, H) {
+  const pad = { l: 30, r: 20, t: 32, b: 20 };
+  const aw = W - sx - pad.l - pad.r;
+  ctx.strokeStyle = '#1a1d2e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx, 16); ctx.lineTo(sx, H - 16); ctx.stroke();
+
+  const infoMap = {
+    voids: {
+      title: 'Voids — Stress Concentration',
+      boxes: [
+        'Stress concentration factor K_t = 3\nfor a circular hole under uniaxial tension',
+        'σ_max = K_t · σ_applied\nCritical for fatigue crack initiation',
+        'Sources: casting shrinkage, creep cavitation,\nradiation damage, hydrogen embrittlement',
+        'Detection: ultrasonic testing, radiography,\nmetallographic cross-section',
+      ]
+    },
+    inclusions: {
+      title: 'Inclusions — Processing Defects',
+      boxes: [
+        'MnS stringers elongated during hot rolling\nAligned along the working direction',
+        'Act as stress concentrators and crack\ninitiation sites during fatigue',
+        'Cleanliness rating: ASTM E45\nWorst-field or average-field methods',
+        'Control: vacuum degassing, electroslag\nremelting, calcium treatment',
+      ]
+    },
+    precipitates: {
+      title: 'Precipitates — Second Phase Particles',
+      boxes: [
+        'Coherent: lattice matches matrix → strain\nfield → effective strengthening (GP zones)',
+        'Semi-coherent: partial match → moderate\nstrengthening (θ\' in Al-Cu)',
+        'Incoherent: no lattice match → Orowan\nlooping mechanism (overaged precipitates)',
+        'Precipitation hardening: solution treat →\nquench → age (time + temperature)',
+      ]
+    },
+    porosity: {
+      title: 'Porosity — Distributed Voids',
+      boxes: [
+        'Gas porosity: spherical, from dissolved gas\nShrinkage porosity: irregular, at centerline',
+        'Effective modulus: E_eff ≈ E₀(1 − p)²\np = porosity volume fraction',
+        'Reduces ductility, fatigue life, and thermal\nconductivity proportionally',
+        'Powder metallurgy: controlled porosity for\nfilters, bearings, biomedical implants',
+      ]
+    },
+  };
+
+  const info = infoMap[S.volType];
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText(info.title, sx + pad.l + aw / 2, pad.t - 14);
+
+  let y = pad.t + 10;
+  const bw = aw - 10, bh = 46;
+  info.boxes.forEach(text => {
+    fBox(sx + pad.l + 5, y, bw, bh, text, 10);
+    y += bh + 10;
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  CHARACTERIZATION DRAWING
+// ══════════════════════════════════════════════════════════
+
+function drawCharacterization(W, H) {
+  const leftW = Math.floor(W * 0.46);
+  const tech = S.charTech;
+
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText(`Simulated ${CHAR_DATA[tech].name} View`, leftW / 2, 16);
+
+  // Viewport (circular for microscopy, rectangular for XRD)
+  const cx = leftW / 2, cy = H / 2;
+  const viewR = Math.min(leftW, H) * 0.38;
+
+  if (tech === 'xrd') {
+    drawXRDView(leftW, H);
+  } else {
+    // Circular viewport
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, viewR, 0, Math.PI * 2); ctx.clip();
+
+    if (tech === 'optical') drawOpticalView(cx, cy, viewR);
+    else if (tech === 'sem') drawSEMView(cx, cy, viewR);
+    else drawTEMView(cx, cy, viewR);
+
+    ctx.restore();
+
+    // Viewport border
+    ctx.strokeStyle = '#506080'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(cx, cy, viewR, 0, Math.PI * 2); ctx.stroke();
+
+    // Dark surround
+    ctx.fillStyle = '#06080c';
+    ctx.beginPath();
+    ctx.rect(0, 28, leftW, H - 28);
+    ctx.arc(cx, cy, viewR + 1, 0, Math.PI * 2, true);
+    ctx.fill();
+
+    // Scale bar
+    const barW = viewR * 0.4;
+    const barY = cy + viewR - 16;
+    ctx.fillStyle = '#e0e0e0';
+    ctx.fillRect(cx - barW / 2, barY, barW, 3);
+    ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
+    const scales = { optical: '50 μm', sem: '5 μm', tem: '200 nm' };
+    ctx.fillText(scales[tech], cx, barY + 14);
+  }
+
+  // Magnification label
+  ctx.fillStyle = '#5a7090'; ctx.font = '10px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText(`${S.charMag}×`, 8, H - 6);
+
+  // Right panel
+  drawCharInfo(leftW, W, H);
+}
+
+function drawOpticalView(cx, cy, R) {
+  // Simulated etched grain structure
+  const rng = seededRng(17);
+  const nGrains = 8 + Math.floor(S.charMag / 80);
+  const pts = [];
+  for (let i = 0; i < nGrains; i++) {
+    pts.push({ x: (rng() - 0.5) * R * 2, y: (rng() - 0.5) * R * 2, bright: 0.15 + rng() * 0.25 });
+  }
+
+  // Voronoi-color each grain with different brightness
+  const step = 3;
+  for (let y = -R; y < R; y += step) {
+    for (let x = -R; x < R; x += step) {
+      if (x * x + y * y > R * R) continue;
+      let minD = Infinity, minI = 0;
+      for (let i = 0; i < pts.length; i++) {
+        const d = (x - pts[i].x) ** 2 + (y - pts[i].y) ** 2;
+        if (d < minD) { minD = d; minI = i; }
+      }
+      const b = pts[minI].bright;
+      ctx.fillStyle = `rgb(${Math.floor(b * 200)},${Math.floor(b * 210)},${Math.floor(b * 230)})`;
+      ctx.fillRect(cx + x, cy + y, step, step);
+    }
+  }
+
+  // Dark grain boundaries
+  for (let y = -R; y < R; y += step) {
+    for (let x = -R; x < R; x += step) {
+      if (x * x + y * y > R * R) continue;
+      let minD = Infinity, secondD = Infinity;
+      for (let i = 0; i < pts.length; i++) {
+        const d = (x - pts[i].x) ** 2 + (y - pts[i].y) ** 2;
+        if (d < minD) { secondD = minD; minD = d; }
+        else if (d < secondD) secondD = d;
+      }
+      if (Math.sqrt(secondD) - Math.sqrt(minD) < step * 2) {
+        ctx.fillStyle = '#080a10';
+        ctx.fillRect(cx + x, cy + y, step, step);
+      }
+    }
+  }
+}
+
+function drawSEMView(cx, cy, R) {
+  // Simulated SEM fracture surface (bright edges, grainy)
+  const rng = seededRng(23);
+  const step = 2;
+  for (let y = -R; y < R; y += step) {
+    for (let x = -R; x < R; x += step) {
+      if (x * x + y * y > R * R) continue;
+      // Topographic simulation: random height field
+      const h = rng() * 0.5 + 0.25;
+      // Edge-brightening: brighter if steep gradient
+      const edge = Math.abs(Math.sin(x * 0.08 + rng() * 3) * Math.cos(y * 0.06));
+      const b = h * 0.7 + edge * 0.3;
+      const v = Math.floor(b * 220);
+      ctx.fillStyle = `rgb(${v},${v},${v + 10})`;
+      ctx.fillRect(cx + x, cy + y, step, step);
+    }
+  }
+
+  // Some river marks / features
+  ctx.strokeStyle = 'rgba(200,200,220,0.3)'; ctx.lineWidth = 1;
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath();
+    const sx = (rng() - 0.5) * R, sy = (rng() - 0.5) * R;
+    ctx.moveTo(cx + sx, cy + sy);
+    ctx.lineTo(cx + sx + (rng() - 0.5) * R * 0.6, cy + sy + (rng() - 0.5) * R * 0.3);
+    ctx.stroke();
+  }
+}
+
+function drawTEMView(cx, cy, R) {
+  // Simulated TEM: lighter background with dark dislocation lines
+  ctx.fillStyle = '#c8c8c0';
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+
+  // Bend contours (broad dark bands)
+  ctx.strokeStyle = 'rgba(40,40,40,0.15)'; ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.moveTo(cx - R, cy - R * 0.3);
+  ctx.quadraticCurveTo(cx, cy + R * 0.2, cx + R, cy - R * 0.1);
+  ctx.stroke();
+
+  // Dislocation lines (dark wiggly lines)
+  const rng = seededRng(31);
+  ctx.strokeStyle = '#303030'; ctx.lineWidth = 1.5;
+  for (let n = 0; n < 12; n++) {
+    ctx.beginPath();
+    let px = (rng() - 0.5) * R * 1.5, py = (rng() - 0.5) * R * 1.5;
+    ctx.moveTo(cx + px, cy + py);
+    const segs = 4 + Math.floor(rng() * 4);
+    for (let s = 0; s < segs; s++) {
+      px += (rng() - 0.5) * R * 0.3;
+      py += (rng() - 0.5) * R * 0.3;
+      ctx.lineTo(cx + px, cy + py);
+    }
+    ctx.stroke();
+  }
+
+  // Stacking fault fringe (striped region)
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
+  ctx.strokeStyle = 'rgba(60,60,60,0.25)'; ctx.lineWidth = 2;
+  for (let i = -10; i <= 10; i++) {
+    const y = cy + R * 0.5 + i * 5;
+    ctx.beginPath();
+    ctx.moveTo(cx - R * 0.3, y);
+    ctx.lineTo(cx + R * 0.2, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.fillStyle = '#505050'; ctx.font = '8px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText('SF fringes', cx + R * 0.25, cy + R * 0.5);
+}
+
+function drawXRDView(leftW, H) {
+  const pad = 28;
+  const plotW = leftW - pad * 2;
+  const plotH = H - pad * 2 - 30;
+
+  // XRD pattern (Intensity vs 2θ)
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('X-Ray Diffraction Pattern', leftW / 2, 16);
+
+  // Axes
+  const ox = pad, oy = pad + 20 + plotH;
+  ctx.strokeStyle = '#304060'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(ox, pad + 20); ctx.lineTo(ox, oy + 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ox - 4, oy); ctx.lineTo(ox + plotW, oy); ctx.stroke();
+  ctx.fillStyle = '#6a7898'; ctx.font = '10px Segoe UI';
+  ctx.textAlign = 'center'; ctx.fillText('2θ (degrees)', ox + plotW / 2, oy + 28);
+  ctx.save(); ctx.translate(ox - 16, pad + 20 + plotH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Intensity', 0, 0); ctx.restore();
+
+  // Tick marks
+  ctx.fillStyle = '#3a4060'; ctx.font = '8px Segoe UI'; ctx.textAlign = 'center';
+  for (let t = 20; t <= 100; t += 10) {
+    const x = ox + (t - 20) / 80 * plotW;
+    ctx.beginPath(); ctx.moveTo(x, oy); ctx.lineTo(x, oy + 4); ctx.stroke();
+    ctx.fillText(t + '°', x, oy + 14);
+  }
+
+  // Bragg peaks (simulated for BCC iron)
+  const peaks = [
+    { twoTheta: 44.7, hkl: '110', intensity: 1.0 },
+    { twoTheta: 65.0, hkl: '200', intensity: 0.20 },
+    { twoTheta: 82.3, hkl: '211', intensity: 0.30 },
+    { twoTheta: 98.9, hkl: '220', intensity: 0.08 },
+  ];
+
+  // Background + peaks
+  ctx.strokeStyle = '#b080e0'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  const nPts = 400;
+  for (let i = 0; i <= nPts; i++) {
+    const theta = 20 + (i / nPts) * 80;
+    let intensity = 0.02; // background
+    peaks.forEach(pk => {
+      const width = 0.8 + (S.charSample === 'poly' ? 0.4 : 0.15); // broader for polycrystalline
+      intensity += pk.intensity * Math.exp(-0.5 * ((theta - pk.twoTheta) / width) ** 2);
+    });
+    const x = ox + (theta - 20) / 80 * plotW;
+    const y = oy - intensity * plotH * 0.85;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Peak labels
+  peaks.forEach(pk => {
+    const x = ox + (pk.twoTheta - 20) / 80 * plotW;
+    const y = oy - pk.intensity * plotH * 0.85;
+    ctx.fillStyle = '#c0a0e0'; ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText(`(${pk.hkl})`, x, y - 8);
+  });
+
+  // Bragg's law formula
+  fBox(pad + 4, H - 44, plotW * 0.75, 32, 'Bragg\'s Law: nλ = 2d·sin(θ)\nλ = 0.1541 nm (Cu Kα)', 9);
+}
+
+function drawCharInfo(sx, W, H) {
+  const pad = { l: 30, r: 20, t: 32, b: 20 };
+  const aw = W - sx - pad.l - pad.r;
+  ctx.strokeStyle = '#1a1d2e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx, 16); ctx.lineTo(sx, H - 16); ctx.stroke();
+
+  const tech = CHAR_DATA[S.charTech];
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Technique Summary', sx + pad.l + aw / 2, pad.t - 14);
+
+  let y = pad.t + 10;
+  const bw = aw - 10;
+  fBox(sx + pad.l + 5, y, bw, 34, `Resolution: ${tech.res}\nSignal: ${tech.signal}`, 10); y += 44;
+  fBox(sx + pad.l + 5, y, bw, 34, `Defects visible: ${tech.defects}`, 10); y += 44;
+  fBox(sx + pad.l + 5, y, bw, 34, `Sample prep: ${tech.prep}`, 10); y += 54;
+
+  // Resolution comparison bar chart
+  ctx.fillStyle = '#3a4868'; ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Resolution Comparison', sx + pad.l + aw / 2, y);
+  y += 16;
+
+  const techs = [
+    { name: 'Optical', res: 200, unit: 'nm', color: '#b080e0' },
+    { name: 'SEM', res: 1, unit: 'nm', color: '#60a0e0' },
+    { name: 'TEM', res: 0.1, unit: 'nm', color: '#60c060' },
+    { name: 'XRD', res: 0.01, unit: 'nm (lattice)', color: '#e0a060' },
+  ];
+  const maxLog = Math.log10(200);
+  const barH = 14, barGap = 6;
+
+  techs.forEach((t, i) => {
+    const by = y + i * (barH + barGap);
+    const logR = Math.log10(t.res);
+    const barW_ = ((maxLog - logR + 1) / (maxLog + 2)) * (aw - 80);
+    const isActive = t.name.toLowerCase().startsWith(S.charTech.slice(0, 3));
+    ctx.fillStyle = isActive ? t.color : t.color + '60';
+    ctx.fillRect(sx + pad.l + 60, by, barW_, barH);
+    ctx.strokeStyle = isActive ? '#fff' : t.color; ctx.lineWidth = isActive ? 1.5 : 0.5;
+    ctx.strokeRect(sx + pad.l + 60, by, barW_, barH);
+    ctx.fillStyle = '#8a98b8'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'right';
+    ctx.fillText(t.name, sx + pad.l + 56, by + barH - 3);
+    ctx.fillStyle = '#a0b0c8'; ctx.textAlign = 'left';
+    ctx.fillText(`${t.res} ${t.unit}`, sx + pad.l + 64 + barW_, by + barH - 3);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  MAIN DRAW
+// ══════════════════════════════════════════════════════════
+
+function draw() {
+  const W = canvas.width, H = canvas.height;
+  const leftW = Math.floor(W * 0.46);
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0d0f1c'; ctx.fillRect(0, 0, leftW, H);
+  ctx.fillStyle = '#0a0b18'; ctx.fillRect(leftW, 0, W - leftW, H);
+
+  if      (S.tab === 'point')            drawPoint(W, H);
+  else if (S.tab === 'dislocation')      drawDislocation(W, H);
+  else if (S.tab === 'planar')           drawPlanar(W, H);
+  else if (S.tab === 'volume')           drawVolume(W, H);
+  else if (S.tab === 'characterization') drawCharacterization(W, H);
+}
+
+// ══════════════════════════════════════════════════════════
+//  INFO PANEL
+// ══════════════════════════════════════════════════════════
+
+function setCard(i, lbl, val, unit, cls) {
+  document.getElementById('lbl' + i).textContent = lbl;
+  document.getElementById('val' + i).textContent = val;
+  document.getElementById('unt' + i).textContent = unit || '';
+  document.getElementById('card' + i).className = 'prop-card' + (cls ? ' ' + cls : '');
+}
+
+function updateInfo() {
+  if (S.tab === 'point') {
+    const nv = vacConc(S.ptTemp);
+    const active = Object.entries(S.ptShow).filter(([, v]) => v).map(([k]) => k);
+    setCard(0, 'Temperature', S.ptTemp, 'K');
+    setCard(1, 'Q_v', Qv.toFixed(2), 'eV');
+    setCard(2, 'n_v / N', nv.toExponential(2), '', nv > 1e-4 ? 'warn' : '');
+    setCard(3, 'Defects On', active.length, '');
+    setCard(4, 'Lattice', S.ptGrid + '×' + S.ptGrid, '');
+    setCard(5, 'k_B', '8.617e-5', 'eV/K');
+
+  } else if (S.tab === 'dislocation') {
+    setCard(0, 'Type', S.disType === 'edge' ? 'Edge' : 'Screw', '');
+    setCard(1, 'b direction', S.disType === 'edge' ? '⊥ to ℓ' : '∥ to ℓ', '');
+    setCard(2, 'Shear τ', S.disTau, '(rel.)');
+    setCard(3, 'Glide Dist.', S.disGlidePos, 'b');
+    setCard(4, 'Slip System', '{111}<110>', '');
+    setCard(5, 'Cross-slip', S.disType === 'screw' ? 'Yes' : 'No', '');
+
+  } else if (S.tab === 'planar') {
+    const sig = hallPetch(S.plGrain);
+    setCard(0, 'Boundary', S.plType.replace('_', ' '), '');
+    setCard(1, 'Grain Size', S.plGrain, 'μm');
+    setCard(2, 'σ_y (H-P)', sig.toFixed(0), 'MPa', sig > 400 ? 'warn' : '');
+    setCard(3, 'σ₀', '70', 'MPa');
+    setCard(4, 'k_y', '0.74', 'MPa·mm½');
+    setCard(5, 'd⁻¹ᐟ²', (1 / Math.sqrt(S.plGrain / 1000)).toFixed(1), 'mm⁻½');
+
+  } else if (S.tab === 'volume') {
+    const kt = S.volType === 'voids' ? '3.0' : S.volType === 'inclusions' ? '2-4' : S.volType === 'precipitates' ? '1.5-2' : '2-3';
+    const source = { voids: 'Casting / Creep', inclusions: 'Rolling / Casting', precipitates: 'Heat Treatment', porosity: 'Sintering / Casting' };
+    setCard(0, 'Defect Type', S.volType, '');
+    setCard(1, 'Vol. Fraction', S.volFrac.toFixed(1), '%', S.volFrac > 5 ? 'warn' : '');
+    setCard(2, 'K_t', kt, '', '');
+    setCard(3, 'Effect σ_y', S.volType === 'precipitates' ? '↑ Stronger' : '↓ Weaker', '');
+    setCard(4, 'Source', source[S.volType], '');
+    setCard(5, 'Detection', 'UT / X-ray', '');
+
+  } else if (S.tab === 'characterization') {
+    const tech = CHAR_DATA[S.charTech];
+    setCard(0, 'Technique', S.charTech.toUpperCase(), '');
+    setCard(1, 'Resolution', tech.res, '');
+    setCard(2, 'Magnification', S.charMag + '×', '');
+    setCard(3, 'Defects', tech.defects.split(',')[0], '');
+    setCard(4, 'Sample Prep', tech.prep, '');
+    setCard(5, 'Signal', tech.signal.split('/')[0], '');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  EVENT HANDLERS
+// ══════════════════════════════════════════════════════════
+
+function showTab(tab, btn) {
+  S.tab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  ['point','dislocation','planar','volume','characterization'].forEach(t => {
+    const p = document.getElementById('pane-' + t + '-sb');
+    if (p) p.style.display = t === tab ? '' : 'none';
+  });
+  const noteMap = {
+    point: NOTES.point,
+    dislocation: NOTES.dislocation,
+    planar: PLANAR_NOTES[S.plType] || NOTES.planar,
+    volume: VOL_NOTES[S.volType] || NOTES.volume,
+    characterization: NOTES.characterization,
+  };
+  document.getElementById('scenario-note').textContent = noteMap[tab] || '';
+  updateInfo(); draw();
+}
+
+// Point defect handlers
+function togPt(key) {
+  S.ptShow[key] = !S.ptShow[key];
+  document.getElementById('pt-' + key).classList.toggle('on');
+  S.ptSeed++;
+  updateInfo(); draw();
+}
+function onPtTemp() {
+  S.ptTemp = +document.getElementById('sl-ptTemp').value;
+  document.getElementById('v-ptTemp').textContent = S.ptTemp;
+  updateInfo(); draw();
+}
+function onPtGrid() {
+  S.ptGrid = +document.getElementById('sl-ptGrid').value;
+  document.getElementById('v-ptGrid').textContent = S.ptGrid;
+  S.ptSeed++;
+  updateInfo(); draw();
+}
+function randomizePt() { S.ptSeed = Math.floor(Math.random() * 100000); draw(); }
+function resetPt() {
+  S.ptTemp = 800; S.ptGrid = 8; S.ptSeed = 1;
+  S.ptShow = { vacancy: true, selfInt: false, substitutional: false, interstitial: false };
+  document.getElementById('sl-ptTemp').value = 800; document.getElementById('v-ptTemp').textContent = '800';
+  document.getElementById('sl-ptGrid').value = 8; document.getElementById('v-ptGrid').textContent = '8';
+  document.querySelectorAll('[id^="pt-"]').forEach(b => b.classList.remove('on'));
+  document.getElementById('pt-vacancy').classList.add('on');
+  updateInfo(); draw();
+}
+
+// Dislocation handlers
+function setDisType(t) {
+  S.disType = t;
+  document.querySelectorAll('[id^="dm-"]').forEach(b => b.classList.remove('active'));
+  document.getElementById('dm-' + t).classList.add('active');
+  S.disGlidePos = 0;
+  updateInfo(); draw();
+}
+function onDisTau() {
+  S.disTau = +document.getElementById('sl-disTau').value;
+  document.getElementById('v-disTau').textContent = S.disTau;
+  draw();
+}
+function togDis(key) {
+  S.disShow[key] = !S.disShow[key];
+  document.getElementById('dt-' + key).classList.toggle('on');
+  draw();
+}
+function toggleGlide() {
+  if (S.disAnimating) {
+    S.disAnimating = false;
+    if (S.disAnimRef) { cancelAnimationFrame(S.disAnimRef); S.disAnimRef = null; }
+    document.getElementById('btn-glide').textContent = '▶ Glide';
+    return;
+  }
+  if (S.disTau < 10) { S.disTau = 50; document.getElementById('sl-disTau').value = 50; document.getElementById('v-disTau').textContent = '50'; }
+  S.disAnimating = true;
+  document.getElementById('btn-glide').textContent = '⏸ Pause';
+  let lastTime = Date.now();
+  function step() {
+    const now = Date.now();
+    const dt = (now - lastTime) / 1000;
+    lastTime = now;
+    S.disGlidePos += dt * S.disTau / 100 * 2;
+    if (S.disGlidePos > 5) S.disGlidePos = 0; // wrap around
+    updateInfo(); draw();
+    if (S.disAnimating) S.disAnimRef = requestAnimationFrame(step);
+  }
+  S.disAnimRef = requestAnimationFrame(step);
+}
+function resetDis() {
+  S.disAnimating = false;
+  if (S.disAnimRef) { cancelAnimationFrame(S.disAnimRef); S.disAnimRef = null; }
+  document.getElementById('btn-glide').textContent = '▶ Glide';
+  S.disGlidePos = 0; S.disTau = 0;
+  document.getElementById('sl-disTau').value = 0; document.getElementById('v-disTau').textContent = '0';
+  updateInfo(); draw();
+}
+
+// Planar handlers
+function setPlType(t) {
+  S.plType = t;
+  document.querySelectorAll('[id^="pm-"]').forEach(b => b.classList.remove('active'));
+  document.getElementById('pm-' + t).classList.add('active');
+  S.plVoronoiPts = null;
+  document.getElementById('scenario-note').textContent = PLANAR_NOTES[t] || NOTES.planar;
+  updateInfo(); draw();
+}
+function onPlGrain() {
+  S.plGrain = +document.getElementById('sl-plGrain').value;
+  document.getElementById('v-plGrain').textContent = S.plGrain;
+  S.plVoronoiPts = null;
+  updateInfo(); draw();
+}
+function togPl(key) {
+  S.plShow[key] = !S.plShow[key];
+  document.getElementById('plt-' + key).classList.toggle('on');
+  draw();
+}
+
+// Volume handlers
+function setVolType(t) {
+  S.volType = t;
+  document.querySelectorAll('[id^="vm-"]').forEach(b => b.classList.remove('active'));
+  document.getElementById('vm-' + t).classList.add('active');
+  S.volDefects = null;
+  document.getElementById('scenario-note').textContent = VOL_NOTES[t] || NOTES.volume;
+  updateInfo(); draw();
+}
+function onVolFrac() {
+  S.volFrac = +document.getElementById('sl-volFrac').value;
+  document.getElementById('v-volFrac').textContent = S.volFrac.toFixed(1);
+  S.volDefects = null;
+  updateInfo(); draw();
+}
+function randomizeVol() { S.volSeed = Math.floor(Math.random() * 100000); S.volDefects = null; draw(); }
+function resetVol() {
+  S.volFrac = 2.0; S.volSeed = 1; S.volDefects = null;
+  document.getElementById('sl-volFrac').value = 2.0; document.getElementById('v-volFrac').textContent = '2.0';
+  updateInfo(); draw();
+}
+
+// Characterization handlers
+function setCharTech(t) {
+  S.charTech = t;
+  document.querySelectorAll('[id^="ch-"]').forEach(b => b.classList.remove('active'));
+  document.getElementById('ch-' + t).classList.add('active');
+  // Update magnification range
+  const magRanges = { optical:[50,1000], sem:[100,50000], tem:[10000,500000], xrd:[0,0] };
+  const range = magRanges[t];
+  const slider = document.getElementById('sl-charMag');
+  const sliderVal = +slider.value;
+  S.charMag = Math.round(range[0] + (sliderVal / 100) * (range[1] - range[0]));
+  document.getElementById('v-charMag').textContent = t === 'xrd' ? 'N/A' : S.charMag;
+  document.getElementById('scenario-note').textContent = NOTES.characterization;
+  updateInfo(); draw();
+}
+function onCharMag() {
+  const magRanges = { optical:[50,1000], sem:[100,50000], tem:[10000,500000], xrd:[0,0] };
+  const range = magRanges[S.charTech];
+  const sliderVal = +document.getElementById('sl-charMag').value;
+  S.charMag = Math.round(range[0] + (sliderVal / 100) * (range[1] - range[0]));
+  document.getElementById('v-charMag').textContent = S.charTech === 'xrd' ? 'N/A' : S.charMag;
+  updateInfo(); draw();
+}
+function setCharSample(s) {
+  S.charSample = s;
+  document.querySelectorAll('[id^="cs-"]').forEach(b => b.classList.remove('active'));
+  document.getElementById('cs-' + s).classList.add('active');
+  draw();
+}
+
+// ══════════════════════════════════════════════════════════
+//  RESIZE + INIT
+// ══════════════════════════════════════════════════════════
+
+function resizeCanvas() {
+  const wrap = document.getElementById('canvas-wrap');
+  canvas.width  = wrap.clientWidth  - 20;
+  canvas.height = wrap.clientHeight - 12;
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+function init() {
+  document.getElementById('scenario-note').textContent = NOTES.point;
+  updateInfo();
+  resizeCanvas();
+}
+init();
+</script>
+</body>
+</html>
