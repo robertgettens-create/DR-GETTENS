@@ -732,7 +732,8 @@ function drawCharpy() {
 
   // Specimen position (bottom of swing)
   const specX=pivX, specY=pivY+armL;
-  const specW=32, specH=10;
+  // Vertical specimen: narrow width, tall height
+  const specW=11, specH=38;
 
   // Draw support frame
   ctx.strokeStyle='#283040'; ctx.lineWidth=3; ctx.lineCap='round';
@@ -744,39 +745,48 @@ function drawCharpy() {
   ctx.beginPath(); ctx.arc(pivX,pivY,9,0,Math.PI*2); ctx.fill();
   ctx.strokeStyle='#5060a0'; ctx.lineWidth=1.5; ctx.stroke();
 
-  // Draw anvil/support at specimen base
-  const anvilY=specY+specH/2+4;
+  // Anvil base supporting the bottom of the vertical specimen
+  const anvilY = specY + specH/2 + 2;
   ctx.fillStyle='#283040';
   ctx.beginPath();
-  ctx.moveTo(specX-24,anvilY); ctx.lineTo(specX+24,anvilY);
-  ctx.lineTo(specX+28,anvilY+16); ctx.lineTo(specX-28,anvilY+16);
+  ctx.moveTo(specX-18, anvilY); ctx.lineTo(specX+18, anvilY);
+  ctx.lineTo(specX+22, anvilY+14); ctx.lineTo(specX-22, anvilY+14);
   ctx.closePath(); ctx.fill();
   ctx.strokeStyle='#384860'; ctx.lineWidth=1; ctx.stroke();
+  // Two small anvil notches that cradle the specimen corners
+  ctx.fillStyle='#384860';
+  ctx.fillRect(specX-specW/2-3, anvilY-3, 5, 5);
+  ctx.fillRect(specX+specW/2-2, anvilY-3, 5, 5);
 
-  // Charpy specimen (notched bar, broken if struck)
+  // Charpy specimen — vertical bar, notch on LEFT face (facing incoming striker)
   if(S.cSpecBroken){
     const fracType = cvn > mat.CVNu*0.5 ? 'ductile' : 'brittle';
     const col = fracType==='ductile' ? '#c87030' : '#a8b0b8';
-    // Left half
+    const fracSurfCol = fracType==='ductile' ? '#e09050' : '#c8d0d8';
+    // Bottom half stays in place
     ctx.fillStyle=col;
-    ctx.fillRect(specX-specW/2, specY-specH/2, specW/2-3, specH);
-    // Right half
-    ctx.fillRect(specX+3, specY-specH/2, specW/2-3, specH);
-    // Fracture surface
-    ctx.fillStyle = fracType==='ductile'?'#e09050':'#c8d0d8';
-    ctx.fillRect(specX-3, specY-specH/2, 6, specH);
+    ctx.fillRect(specX-specW/2, specY, specW, specH/2);
+    // Top half tips right (thrown by impact)
+    ctx.fillRect(specX-specW/2+6, specY-specH/2, specW, specH/2-1);
+    // Fracture surface at mid-height
+    ctx.fillStyle=fracSurfCol;
+    ctx.fillRect(specX-specW/2, specY-2, specW, 4);
     ctx.fillStyle=col; ctx.font='bold 9px Segoe UI'; ctx.textAlign='center';
-    ctx.fillText(fracType==='ductile'?'Ductile':'Brittle', specX, specY+specH/2+14);
+    ctx.fillText(fracType==='ductile'?'Ductile':'Brittle', specX+10, specY+specH/2+16);
   } else {
     ctx.fillStyle='#5080a0';
     ctx.fillRect(specX-specW/2, specY-specH/2, specW, specH);
-    // Notch
-    ctx.fillStyle='#1a2030';
+    ctx.strokeStyle='#7090c0'; ctx.lineWidth=1; ctx.strokeRect(specX-specW/2, specY-specH/2, specW, specH);
+    // V-notch on the LEFT face (toward incoming hammer), at mid-height
+    ctx.fillStyle='#0e1020';
     ctx.beginPath();
-    ctx.moveTo(specX-2, specY-specH/2);
-    ctx.lineTo(specX,   specY-specH/2+6);
-    ctx.lineTo(specX+2, specY-specH/2);
+    ctx.moveTo(specX-specW/2,   specY-4);
+    ctx.lineTo(specX-specW/2+6, specY);
+    ctx.lineTo(specX-specW/2,   specY+4);
     ctx.closePath(); ctx.fill();
+    // Notch label
+    ctx.fillStyle='#5a7898'; ctx.font='9px Segoe UI'; ctx.textAlign='right';
+    ctx.fillText('notch', specX-specW/2-4, specY+3);
   }
 
   // Draw pendulum arm + hammer
@@ -788,15 +798,15 @@ function drawCharpy() {
   ctx.strokeStyle='#5070a0'; ctx.lineWidth=6; ctx.lineCap='round';
   ctx.beginPath(); ctx.moveTo(pivX,pivY); ctx.lineTo(tipX,tipY); ctx.stroke();
 
-  // Hammer head (rectangle perpendicular to arm)
-  const hamW=18, hamH=24;
-  ctx.save();
-  ctx.translate(tipX,tipY);
-  ctx.rotate(theta);
+  // Hammer head — axis-aligned rectangle (no rotation), striking face on right side
+  const hamW=22, hamH=20;
   ctx.fillStyle='#4878b0';
-  ctx.fillRect(-hamW/2,-hamH*0.75,hamW,hamH);
-  ctx.strokeStyle='#6090d0'; ctx.lineWidth=1.5; ctx.strokeRect(-hamW/2,-hamH*0.75,hamW,hamH);
-  ctx.restore();
+  ctx.fillRect(tipX-hamW/2, tipY-hamH/2, hamW, hamH);
+  ctx.strokeStyle='#6090d0'; ctx.lineWidth=1.5;
+  ctx.strokeRect(tipX-hamW/2, tipY-hamH/2, hamW, hamH);
+  // Striking face highlight (right edge — the face that hits the specimen)
+  ctx.fillStyle='#80b0e8';
+  ctx.fillRect(tipX+hamW/2-5, tipY-hamH/2, 5, hamH);
 
   // Angle arc showing release and final positions
   ctx.strokeStyle='rgba(80,120,180,0.3)'; ctx.lineWidth=1;
