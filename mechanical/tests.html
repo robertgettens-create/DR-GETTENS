@@ -204,14 +204,95 @@
     </div>
   </div><!-- /pane-charpy-sb -->
 
+  <div id="pane-creep-sb" style="display:none">
+    <div class="section-label">Material</div>
+    <div class="mat-grid">
+      <button class="mat-btn active" id="crm-lc_steel" onclick="setCrMat('lc_steel')">Low Carbon<br>Steel</button>
+      <button class="mat-btn"        id="crm-ni718"    onclick="setCrMat('ni718')">Ni Superalloy<br><span style="font-size:0.55rem;opacity:0.7">IN718</span></button>
+      <button class="mat-btn"        id="crm-al_6061"  onclick="setCrMat('al_6061')">Al 6061-T6</button>
+      <button class="mat-btn"        id="crm-hdpe"     onclick="setCrMat('hdpe')">HDPE</button>
+    </div>
+    <div style="margin-top:12px">
+      <div class="section-label">Homologous Temp. T/Tm</div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-lbl">T/Tm =</span>
+          <span class="ctrl-val" id="v-crTh">0.55</span>
+        </div>
+        <input type="range" id="sl-crTh" min="0.30" max="0.80" step="0.01" value="0.55"
+               oninput="onCreepTempSlider()">
+        <div class="tick-row"><span>0.3</span><span>0.8</span></div>
+      </div>
+    </div>
+    <div style="margin-top:8px">
+      <div class="section-label">Applied Stress Level</div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-lbl">σ/σ_ref</span>
+          <span class="ctrl-val" id="v-crStress">1.00</span>
+        </div>
+        <input type="range" id="sl-crStress" min="0.3" max="1.5" step="0.05" value="1.0"
+               oninput="onCrStressSlider()">
+        <div class="tick-row"><span>Low</span><span>High</span></div>
+      </div>
+    </div>
+    <div class="play-row" style="margin-top:8px">
+      <button class="play-btn primary" id="btn-crplay" onclick="toggleCreepPlay()">▶ Play</button>
+      <button class="play-btn danger"  onclick="resetCreep()">↺ Reset</button>
+    </div>
+  </div><!-- /pane-creep-sb -->
+
+  <div id="pane-relax-sb" style="display:none">
+    <div class="section-label">Material</div>
+    <div class="mat-grid">
+      <button class="mat-btn active" id="srm-pmma"       onclick="setSrMat('pmma')">PMMA<br><span style="font-size:0.55rem;opacity:0.7">glassy polymer</span></button>
+      <button class="mat-btn"        id="srm-hdpe"       onclick="setSrMat('hdpe')">HDPE<br><span style="font-size:0.55rem;opacity:0.7">semi-cryst.</span></button>
+      <button class="mat-btn"        id="srm-pu"         onclick="setSrMat('pu')">Polyurethane<br><span style="font-size:0.55rem;opacity:0.7">foam</span></button>
+      <button class="mat-btn"        id="srm-steel_bolt" onclick="setSrMat('steel_bolt')">Steel Bolt<br><span style="font-size:0.55rem;opacity:0.7">preloaded</span></button>
+    </div>
+    <div class="play-row" style="margin-top:14px">
+      <button class="play-btn primary" id="btn-srplay" onclick="toggleRelaxPlay()">▶ Play</button>
+      <button class="play-btn danger"  onclick="resetRelax()">↺ Reset</button>
+    </div>
+  </div><!-- /pane-relax-sb -->
+
+  <div id="pane-fatigue-sb" style="display:none">
+    <div class="section-label">Material</div>
+    <div class="mat-grid">
+      <button class="mat-btn active" id="fm-lc_steel" onclick="setFatMat('lc_steel')">Low Carbon<br>Steel</button>
+      <button class="mat-btn"        id="fm-al_6061"  onclick="setFatMat('al_6061')">Al 6061-T6</button>
+      <button class="mat-btn"        id="fm-ti64"     onclick="setFatMat('ti64')">Ti-6Al-4V</button>
+      <button class="mat-btn"        id="fm-pmma"     onclick="setFatMat('pmma')">PMMA</button>
+    </div>
+    <div style="margin-top:12px">
+      <div class="section-label">Stress Amplitude σ_a / UTS</div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-lbl">Fraction</span>
+          <span class="ctrl-val" id="v-fatSig">0.60</span>
+        </div>
+        <input type="range" id="sl-fatSig" min="0.10" max="0.95" step="0.01" value="0.60"
+               oninput="onFatSigSlider()">
+        <div class="tick-row"><span>Low σ</span><span>High σ</span></div>
+      </div>
+    </div>
+    <div class="play-row" style="margin-top:8px">
+      <button class="play-btn primary" id="btn-fatplay" onclick="toggleFatPlay()">▶ Play</button>
+      <button class="play-btn danger"  onclick="resetFatigue()">↺ Reset</button>
+    </div>
+  </div><!-- /pane-fatigue-sb -->
+
   <div id="scenario-note">Select a material and drag the slider — or press Play — to simulate the tensile test.</div>
 </div><!-- /sidebar -->
 
 <!-- ══ MAIN ══ -->
 <div id="main">
   <div id="tab-bar">
-    <button class="tab-btn active" onclick="showTab('tensile')">📏 Tensile Test</button>
-    <button class="tab-btn"        onclick="showTab('charpy')">🔨 Charpy / Izod Impact</button>
+    <button class="tab-btn active" onclick="showTab('tensile',this)">📏 Tensile Test</button>
+    <button class="tab-btn"        onclick="showTab('charpy',this)">🔨 Charpy / Izod Impact</button>
+    <button class="tab-btn"        onclick="showTab('creep',this)">📈 Creep</button>
+    <button class="tab-btn"        onclick="showTab('relax',this)">📉 Stress Relaxation</button>
+    <button class="tab-btn"        onclick="showTab('fatigue',this)">⚡ Fatigue</button>
   </div>
 
   <div id="canvas-wrap">
@@ -303,6 +384,54 @@ const CMATS = {
   },
 };
 
+// Creep materials — phenomenological 3-stage model
+const CREMATS = {
+  lc_steel: { name:'Low Carbon Steel', cls:'Metal', color:'#5090e0', Tm:1538,
+    A_p:0.010, tau_p:0.10, sdot_ref:0.028, t_tert:0.65,
+    note:'BCC metal with moderate creep resistance. Creep occurs above ~0.3 Tm (≈550 °C). Primary transient + slow secondary creep. Used in boiler tubes and steam pipes where long-term deformation under load is critical.' },
+  ni718: { name:'Ni Superalloy (IN718)', cls:'Metal', color:'#c0a060', Tm:1336,
+    A_p:0.004, tau_p:0.08, sdot_ref:0.008, t_tert:0.82,
+    note:'γ″-strengthened nickel superalloy. Exceptional creep resistance up to 650 °C. Very small primary strain and extremely low secondary creep rate. Late onset of tertiary creep. Used in turbine disks and blades.' },
+  al_6061: { name:'Al 6061-T6', cls:'Metal', color:'#70b8d8', Tm:652,
+    A_p:0.008, tau_p:0.09, sdot_ref:0.038, t_tert:0.70,
+    note:'Low Tm (652 °C) means room temperature ≈ 0.3 Tm — aluminum alloys are susceptible to creep even at moderate temperatures. Relatively early tertiary creep compared to steels.' },
+  hdpe: { name:'HDPE', cls:'Polymer', color:'#60c870', Tm:130,
+    A_p:0.018, tau_p:0.12, sdot_ref:0.075, t_tert:0.55,
+    note:'Semicrystalline polymer. Very low Tm (130 °C) → room temperature ≈ 0.7 Tm. Creep is significant even at ambient conditions. High secondary creep rate. Important for pipe and tank design.' },
+};
+
+// Stress relaxation — modified Maxwell model: σ(t) = σ₀·[σ_inf + (1−σ_inf)·exp(−t/τ)]
+const SRMATS = {
+  pmma: { name:'PMMA (Acrylic)', cls:'Polymer', color:'#a0b8f0',
+    tau_r:0.12, sigma_inf:0.25, tMax:2.0,
+    note:'Glassy polymer. Fast stress relaxation driven by viscoelastic chain mobility. Most load drops in the first fraction of a time unit. Significant long-term residual stress of ~25% of initial.' },
+  hdpe: { name:'HDPE', cls:'Polymer', color:'#60c870',
+    tau_r:0.08, sigma_inf:0.28, tMax:2.0,
+    note:'Semicrystalline polymer. Rapid relaxation from amorphous chain mobility, partially resisted by crystalline domains. Intermediate long-term stress retention (~28% of initial).' },
+  pu: { name:'Polyurethane (Foam)', cls:'Polymer', color:'#d0a060',
+    tau_r:0.04, sigma_inf:0.08, tMax:1.0,
+    note:'Elastomeric foam. Very rapid relaxation — most stress dissipates almost immediately. Only ~8% residual stress. Critical in cushioning applications where sustained force is undesirable.' },
+  steel_bolt: { name:'Steel Bolt (Preloaded)', cls:'Metal', color:'#5090e0',
+    tau_r:50.0, sigma_inf:0.92, tMax:200.0,
+    note:'High-modulus steel relaxes extremely slowly. Very little relaxation even over long service periods (~8% loss). Small drop in clamping force due to microscopic creep at the bolt/joint interface. Critical for bolted joint preload maintenance.' },
+};
+
+// Fatigue — Basquin equation: σ_a = σ_f′·(2N)^b
+const FATMATS = {
+  lc_steel: { name:'Low Carbon Steel', cls:'BCC Metal', color:'#5090e0',
+    UTS:420, Se:200, hasEndurance:true, sf:490, b:-0.085,
+    note:'BCC steel has a true endurance limit (~200 MPa ≈ 0.48 UTS). Below Se, the material can survive infinite cycles. Rotating shaft design targets operating below Se for infinite life.' },
+  al_6061: { name:'Al 6061-T6', cls:'FCC Metal', color:'#70b8d8',
+    UTS:310, Se:null, hasEndurance:false, sf:330, b:-0.095,
+    note:'FCC aluminum has NO true endurance limit — the S-N curve continuously slopes downward. Fatigue life must be specified at a target cycle count (e.g., 10⁷). Common in aerospace where life-limited design is standard.' },
+  ti64: { name:'Ti-6Al-4V', cls:'HCP Metal', color:'#c060d0',
+    UTS:950, Se:500, hasEndurance:true, sf:1100, b:-0.080,
+    note:'Titanium alloys exhibit a practical endurance limit (~0.5 UTS). Excellent fatigue performance combined with high specific strength. Widely used in aerospace frames and biomedical implants.' },
+  pmma: { name:'PMMA (Acrylic)', cls:'Polymer', color:'#a0b8f0',
+    UTS:70, Se:null, hasEndurance:false, sf:78, b:-0.120,
+    note:'Polymers have no endurance limit and are notch-sensitive. High scatter in fatigue data. PMMA is prone to fatigue crack propagation from surface flaws. Must account for cyclic softening in design.' },
+};
+
 // ══════════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════════
@@ -325,6 +454,14 @@ const S = {
   cPendAngle: -143,  // current pendulum angle (deg from vertical)
   cStruck: false,
   cSpecBroken: false,
+  // Creep
+  crmat: 'lc_steel', crTh: 0.55, crStress: 1.0, crTime: 0,
+  crPlaying: false, crAnimRef: null,
+  // Stress Relaxation
+  srmat: 'pmma', srTime: 0, srPlaying: false, srAnimRef: null,
+  // Fatigue
+  fatmat: 'lc_steel', fatSigFrac: 0.60, fatCycles: 0, fatPhase: 0,
+  fatPlaying: false, fatAnimRef: null, fatFractured: false,
 };
 
 const canvas = document.getElementById('testCanvas');
@@ -384,6 +521,35 @@ function finalAngle(cvn) {
   const mgL = 300; // pendulum capacity (J) — normalised so CVN maps to angle
   const cosF = Math.cos(thetaR) + cvn / mgL;
   return Math.acos(Math.max(-1, Math.min(1, cosF))) * 180 / Math.PI;
+}
+
+// ── Creep: phenomenological 3-stage model ──
+function creepStrain(mat, T_h, sLvl, t) {
+  const tempScale = Math.exp(4 * (T_h - 0.5));
+  const eps_p = mat.A_p * sLvl * (1 - Math.exp(-t / mat.tau_p));
+  const eps_s = mat.sdot_ref * tempScale * sLvl * t;
+  let eps_t = 0;
+  if (t > mat.t_tert) {
+    const dt = (t - mat.t_tert) / (1 - mat.t_tert);
+    eps_t = 0.035 * sLvl * (Math.exp(4.5 * dt) - 1);
+  }
+  return eps_p + eps_s + eps_t;
+}
+
+// ── Stress Relaxation: modified Maxwell model ──
+function relaxSigma(mat, t) {
+  return mat.sigma_inf + (1 - mat.sigma_inf) * Math.exp(-t / mat.tau_r);
+}
+
+// ── Fatigue: Basquin S-N ──
+function snStress(mat, N) {
+  const sa = mat.sf * Math.pow(2 * N, mat.b);
+  if (mat.hasEndurance && sa < mat.Se) return mat.Se;
+  return Math.max(sa, mat.UTS * 0.04);
+}
+function snLife(mat, sigma_a) {
+  if (mat.hasEndurance && sigma_a <= mat.Se) return Infinity;
+  return Math.max(Math.pow(sigma_a / mat.sf, 1 / mat.b) / 2, 1e2);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -999,6 +1165,672 @@ function drawDBTTCurve(sx, W, H, mat, curCVN) {
 }
 
 // ══════════════════════════════════════════════════════════
+//  CREEP DRAWING
+// ══════════════════════════════════════════════════════════
+
+function drawCreep(W, H) {
+  const leftW = Math.floor(W * 0.44);
+  const mat   = CREMATS[S.crmat];
+  const t     = S.crTime;
+  const eps   = creepStrain(mat, S.crTh, S.crStress, t);
+  const ruptured = t >= 1.0;
+
+  // Title
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Creep Test — Constant Load', leftW / 2, 18);
+  ctx.fillStyle = 'rgba(80,140,220,0.25)'; ctx.font = '10px Segoe UI';
+  ctx.fillText(mat.name, leftW / 2, 30);
+
+  // Temperature glow
+  const T_h = S.crTh;
+  const rGlow = Math.floor(60 + T_h * 160), gGlow = Math.floor(30 + T_h * 50);
+  const radGrad = ctx.createRadialGradient(leftW / 2, H / 2, 10, leftW / 2, H / 2, leftW * 0.7);
+  radGrad.addColorStop(0, `rgba(${rGlow},${gGlow},10,${0.05 + T_h * 0.18})`);
+  radGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = radGrad;
+  ctx.fillRect(0, 0, leftW, H);
+
+  // Geometry
+  const gaugeL0   = Math.min(H * 0.27, leftW * 0.50);
+  const gaugeW    = gaugeL0 * 0.18;
+  const tabW      = gaugeL0 * 0.38;
+  const tabH      = gaugeL0 * 0.18;
+  const shoulderH = gaugeL0 * 0.12;
+  const gripH     = tabH * 0.7;
+  const gripW     = tabW * 1.2;
+
+  const maxEps    = creepStrain(mat, S.crTh, S.crStress, 1.0);
+  const visualFrac= Math.min(eps / Math.max(maxEps, 0.001), 1);
+  const gaugeL    = gaugeL0 * (1 + visualFrac * 0.55);
+
+  // Top grip is fixed — anchor at top
+  const anchorY   = H * 0.13; // top grip bottom
+  const specCy    = anchorY + gaugeL / 2 + shoulderH + tabH;
+  const botGripTop= specCy + gaugeL / 2 + shoulderH + tabH;
+
+  // Top grip (fixed to frame with cross-hatch)
+  const cx = leftW / 2;
+  ctx.fillStyle = '#283050'; ctx.strokeStyle = '#384870'; ctx.lineWidth = 1.5;
+  ctx.fillRect(cx - gripW / 2, anchorY - gripH, gripW, gripH);
+  ctx.strokeRect(cx - gripW / 2, anchorY - gripH, gripW, gripH);
+  ctx.save();
+  ctx.strokeStyle = '#404c68'; ctx.lineWidth = 0.8;
+  for (let x = cx - gripW / 2 + 8; x < cx + gripW / 2; x += 8) {
+    ctx.beginPath(); ctx.moveTo(x, anchorY - gripH); ctx.lineTo(x, anchorY); ctx.stroke();
+  }
+  // Fixed-wall hatch above top grip
+  ctx.strokeStyle = '#303050'; ctx.lineWidth = 0.8;
+  for (let x = cx - gripW / 2 - 2; x < cx + gripW / 2 + 2; x += 9) {
+    ctx.beginPath(); ctx.moveTo(x, anchorY - gripH - 2); ctx.lineTo(x - 8, anchorY - gripH - 12); ctx.stroke();
+  }
+  ctx.restore();
+  // Fixed wall line
+  ctx.strokeStyle = '#404860'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx - gripW / 2 - 2, anchorY - gripH - 2);
+  ctx.lineTo(cx + gripW / 2 + 2, anchorY - gripH - 2); ctx.stroke();
+
+  // Specimen
+  if (!ruptured) {
+    drawSpecimenPath(cx, specCy, gaugeL, gaugeW, tabW, tabH, shoulderH, 0);
+    const rf = visualFrac;
+    const r = Math.floor(50 + rf * 180), g = Math.floor(100 - rf * 70), b = Math.floor(180 - rf * 150);
+    ctx.fillStyle = `rgb(${r},${g},${b})`; ctx.fill();
+    ctx.strokeStyle = '#6080a0'; ctx.lineWidth = 1.5; ctx.stroke();
+  } else {
+    const fracGap = 12;
+    ctx.save(); ctx.translate(0, -fracGap);
+    ctx.beginPath(); ctx.rect(0, 0, leftW, specCy); ctx.clip();
+    drawSpecimenPath(cx, specCy, gaugeL, gaugeW, tabW, tabH, shoulderH, 0);
+    ctx.fillStyle = '#4a2010'; ctx.fill(); ctx.strokeStyle = '#703020'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.restore();
+    ctx.save(); ctx.translate(0, fracGap);
+    ctx.beginPath(); ctx.rect(0, specCy, leftW, H); ctx.clip();
+    drawSpecimenPath(cx, specCy, gaugeL, gaugeW, tabW, tabH, shoulderH, 0);
+    ctx.fillStyle = '#4a2010'; ctx.fill(); ctx.strokeStyle = '#703020'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = '#e06030'; ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText('RUPTURE', cx, specCy + 4);
+  }
+
+  // Bottom grip (descends with specimen)
+  ctx.fillStyle = '#283050'; ctx.strokeStyle = '#384870'; ctx.lineWidth = 1.5;
+  ctx.fillRect(cx - gripW / 2, botGripTop, gripW, gripH);
+  ctx.strokeRect(cx - gripW / 2, botGripTop, gripW, gripH);
+  ctx.save(); ctx.strokeStyle = '#404c68'; ctx.lineWidth = 0.8;
+  for (let x = cx - gripW / 2 + 8; x < cx + gripW / 2; x += 8) {
+    ctx.beginPath(); ctx.moveTo(x, botGripTop); ctx.lineTo(x, botGripTop + gripH); ctx.stroke();
+  }
+  ctx.restore();
+
+  // Dead weight
+  const wW = tabW * 0.85, wH = 26;
+  const wY  = botGripTop + gripH;
+  ctx.fillStyle = '#252540'; ctx.strokeStyle = '#3a3a60'; ctx.lineWidth = 1;
+  ctx.fillRect(cx - wW / 2, wY, wW, wH);
+  ctx.strokeRect(cx - wW / 2, wY, wW, wH);
+  ctx.fillStyle = '#5060a0'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('W', cx, wY + wH / 2 + 3);
+  drawArrow(cx, wY + wH, cx, wY + wH + 18, '#f0b040', 1.5);
+
+  // Elongation annotation
+  const origBotY = anchorY + gaugeL0 + 2 * shoulderH + 2 * tabH;
+  if (botGripTop > origBotY + 4) {
+    const aX = cx + gripW / 2 + 14;
+    ctx.strokeStyle = 'rgba(200,200,80,0.45)'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(cx + gripW / 2 + 2, origBotY); ctx.lineTo(aX + 12, origBotY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + gripW / 2 + 2, botGripTop); ctx.lineTo(aX + 12, botGripTop); ctx.stroke();
+    ctx.setLineDash([]);
+    drawArrow(aX + 6, origBotY, aX + 6, botGripTop, 'rgba(200,200,80,0.55)', 1);
+    ctx.fillStyle = 'rgba(200,200,80,0.65)'; ctx.font = '8px Segoe UI'; ctx.textAlign = 'left';
+    ctx.fillText('δ', aX + 14, (origBotY + botGripTop) / 2 + 3);
+  }
+
+  // T/Tm and strain readout
+  ctx.fillStyle = '#5a7090'; ctx.font = '10px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText(`T/Tm = ${S.crTh.toFixed(2)}`, 8, H - 26);
+  ctx.fillText(`ε = ${(eps * 100).toFixed(3)} %`, 8, H - 14);
+
+  // Right: creep curve
+  drawCreepCurve(leftW, W, H, mat);
+}
+
+function drawCreepCurve(sx, W, H, mat) {
+  const pad = { l: 52, r: 20, t: 32, b: 46 };
+  const aw  = W - sx - pad.l - pad.r;
+  const ah  = H - pad.t - pad.b;
+
+  // Compute y-axis max
+  const maxEps = creepStrain(mat, S.crTh, S.crStress, 1.0) * 1.12 + 0.001;
+  const tMax   = 1.0;
+
+  function toC(t, e) {
+    return [
+      sx + pad.l + (t / tMax) * aw,
+      pad.t + ah - (e / maxEps) * ah
+    ];
+  }
+
+  // Separator
+  ctx.strokeStyle = '#1a1d2e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx, 16); ctx.lineTo(sx, H - 16); ctx.stroke();
+
+  // Grid
+  const stepT = 0.2, stepE = niceStep(maxEps * 0.9);
+  ctx.strokeStyle = '#13152a'; ctx.lineWidth = 1;
+  for (let tt = 0; tt <= tMax; tt += stepT) {
+    const [cx] = toC(tt, 0);
+    ctx.beginPath(); ctx.moveTo(cx, pad.t); ctx.lineTo(cx, pad.t + ah); ctx.stroke();
+    ctx.fillStyle = '#3a4060'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText(tt.toFixed(1), cx, pad.t + ah + 14);
+  }
+  for (let e = 0; e <= maxEps; e += stepE) {
+    const [, cy] = toC(0, e);
+    ctx.beginPath(); ctx.moveTo(sx + pad.l, cy); ctx.lineTo(sx + pad.l + aw, cy); ctx.stroke();
+    ctx.fillStyle = '#3a4060'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'right';
+    ctx.fillText((e * 100).toFixed(1), sx + pad.l - 6, cy + 3);
+  }
+
+  // Axes
+  ctx.strokeStyle = '#304060'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx + pad.l, pad.t); ctx.lineTo(sx + pad.l, pad.t + ah + 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx + pad.l - 4, pad.t + ah); ctx.lineTo(sx + pad.l + aw, pad.t + ah); ctx.stroke();
+  ctx.fillStyle = '#6a7898'; ctx.font = '11px Segoe UI';
+  ctx.textAlign = 'center'; ctx.fillText('Normalized Time (t / t_rupture)', sx + pad.l + aw / 2, pad.t + ah + 32);
+  ctx.save(); ctx.translate(sx + pad.l - 38, pad.t + ah / 2); ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center'; ctx.fillText('Strain ε (%)', 0, 0); ctx.restore();
+
+  // Region shading
+  const t_tert = mat.t_tert;
+  const epsAtSecStart = creepStrain(mat, S.crTh, S.crStress, mat.tau_p * 3);
+  const [px1] = toC(0, 0); const [px2] = toC(mat.tau_p * 3, 0); const [px3] = toC(t_tert, 0); const [px4] = toC(tMax, 0);
+  ctx.fillStyle = 'rgba(80,120,200,0.07)';
+  ctx.fillRect(px1, pad.t, px2 - px1, ah);
+  ctx.fillStyle = 'rgba(80,160,80,0.06)';
+  ctx.fillRect(px2, pad.t, px3 - px2, ah);
+  ctx.fillStyle = 'rgba(200,80,50,0.07)';
+  ctx.fillRect(px3, pad.t, px4 - px3, ah);
+
+  // Region labels
+  ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(100,140,220,0.6)';
+  ctx.fillText('Primary', (px1 + px2) / 2, pad.t + 18);
+  ctx.fillStyle = 'rgba(80,180,80,0.6)';
+  ctx.fillText('Secondary', (px2 + px3) / 2, pad.t + 18);
+  ctx.fillStyle = 'rgba(220,100,60,0.7)';
+  ctx.fillText('Tertiary', (px3 + px4) / 2, pad.t + 18);
+
+  // Full curve (faint)
+  const nPts = 200;
+  ctx.strokeStyle = 'rgba(80,100,150,0.30)'; ctx.lineWidth = 1.2; ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  for (let i = 0; i <= nPts; i++) {
+    const tt = (i / nPts) * tMax;
+    const ee = creepStrain(mat, S.crTh, S.crStress, tt);
+    const [cx, cy] = toC(tt, ee);
+    i === 0 ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy);
+  }
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // Traced curve up to current time
+  if (S.crTime > 0) {
+    ctx.strokeStyle = mat.color; ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    const nTrace = Math.ceil(S.crTime * nPts);
+    for (let i = 0; i <= nTrace; i++) {
+      const tt = (i / nPts) * tMax;
+      if (tt > S.crTime) break;
+      const ee = creepStrain(mat, S.crTh, S.crStress, tt);
+      const [cx, cy] = toC(tt, ee);
+      i === 0 ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy);
+    }
+    // Current point
+    const [ex, ey] = toC(S.crTime, creepStrain(mat, S.crTh, S.crStress, S.crTime));
+    ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex, ey, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = mat.color; ctx.beginPath(); ctx.arc(ex, ey, 3.5, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Title
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Creep Curve — Three Stages', sx + pad.l + aw / 2, pad.t - 14);
+}
+
+// ══════════════════════════════════════════════════════════
+//  STRESS RELAXATION DRAWING
+// ══════════════════════════════════════════════════════════
+
+function drawRelax(W, H) {
+  const leftW = Math.floor(W * 0.44);
+  const mat   = SRMATS[S.srmat];
+  const t     = S.srTime;
+  const sigRel= relaxSigma(mat, t);  // σ/σ₀
+
+  const cx = leftW / 2;
+
+  // Title
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Stress Relaxation — Constant Strain', leftW / 2, 18);
+  ctx.fillStyle = 'rgba(80,140,220,0.25)'; ctx.font = '10px Segoe UI';
+  ctx.fillText(mat.name, leftW / 2, 30);
+
+  // Specimen geometry (fixed at both ends)
+  const gaugeL0   = Math.min(H * 0.27, leftW * 0.50);
+  const gaugeW    = gaugeL0 * 0.18;
+  const tabW      = gaugeL0 * 0.38;
+  const tabH      = gaugeL0 * 0.18;
+  const shoulderH = gaugeL0 * 0.12;
+  const gripH     = tabH * 0.7;
+  const gripW     = tabW * 1.2;
+  const specCy    = H * 0.45;
+  const topGripY  = specCy - gaugeL0 / 2 - shoulderH - tabH - gripH;
+  const botGripY  = specCy + gaugeL0 / 2 + shoulderH + tabH;
+
+  // Fixed grips (top and bottom) with wall hatching
+  [topGripY, botGripY].forEach((gy, idx) => {
+    ctx.fillStyle = '#283050'; ctx.strokeStyle = '#384870'; ctx.lineWidth = 1.5;
+    ctx.fillRect(cx - gripW / 2, gy, gripW, gripH);
+    ctx.strokeRect(cx - gripW / 2, gy, gripW, gripH);
+    ctx.save(); ctx.strokeStyle = '#404c68'; ctx.lineWidth = 0.8;
+    for (let x = cx - gripW / 2 + 8; x < cx + gripW / 2; x += 8) {
+      ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(x, gy + gripH); ctx.stroke();
+    }
+    // Wall hatch
+    const wallY = idx === 0 ? gy - 2 : gy + gripH + 2;
+    const wallSign = idx === 0 ? -1 : 1;
+    ctx.strokeStyle = '#303050'; ctx.lineWidth = 0.8;
+    for (let x = cx - gripW / 2 - 2; x < cx + gripW / 2 + 2; x += 9) {
+      ctx.beginPath(); ctx.moveTo(x, wallY); ctx.lineTo(x + wallSign * 8, wallY + wallSign * 10); ctx.stroke();
+    }
+    ctx.strokeStyle = '#404860'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx - gripW / 2 - 2, wallY); ctx.lineTo(cx + gripW / 2 + 2, wallY); ctx.stroke();
+    ctx.restore();
+  });
+
+  // Specimen — tinted by remaining stress (blue→grey)
+  drawSpecimenPath(cx, specCy, gaugeL0, gaugeW, tabW, tabH, shoulderH, 0);
+  const relBlue = Math.floor(50 + sigRel * 130), relG = Math.floor(60 + sigRel * 60);
+  ctx.fillStyle = `rgb(${relBlue},${relG},${Math.floor(80 + sigRel * 100)})`; ctx.fill();
+  ctx.strokeStyle = '#6080a0'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  // Force arrows (proportional to σ/σ₀, pointing outward)
+  const arrowMax = 30;
+  const arrowLen = sigRel * arrowMax;
+  if (arrowLen > 2) {
+    const topAX = topGripY;
+    const botAX = botGripY + gripH;
+    drawArrow(cx, topAX, cx, topAX - arrowLen, '#f0b040', 2);
+    drawArrow(cx, botAX, cx, botAX + arrowLen, '#f0b040', 2);
+    ctx.fillStyle = '#f0b040'; ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText('F', cx, topAX - arrowLen - 5);
+    ctx.fillText('F', cx, botAX + arrowLen + 13);
+  }
+
+  // σ/σ₀ readout
+  ctx.fillStyle = '#7eb8f7'; ctx.font = 'bold 11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText(`σ/σ₀ = ${sigRel.toFixed(3)}`, leftW / 2, H - 40);
+
+  // ── Maxwell schematic (bottom-left) ──
+  const schY = H - 30, schX = leftW / 2;
+  const schW = leftW * 0.6, schH = 14;
+  ctx.strokeStyle = '#3a4a6a'; ctx.lineWidth = 1.2;
+  // Horizontal line - spring side
+  ctx.beginPath(); ctx.moveTo(schX - schW / 2, schY); ctx.lineTo(schX - schW / 6, schY); ctx.stroke();
+  // Spring zigzag
+  const spX0 = schX - schW / 6, spX1 = schX + schW / 12;
+  const nZig = 5;
+  ctx.beginPath(); ctx.moveTo(spX0, schY);
+  for (let i = 0; i < nZig; i++) {
+    const fx = spX0 + (i + 0.5) / nZig * (spX1 - spX0);
+    ctx.lineTo(fx, schY + (i % 2 === 0 ? -schH / 2 : schH / 2));
+  }
+  ctx.lineTo(spX1, schY); ctx.stroke();
+  // Middle connector
+  ctx.beginPath(); ctx.moveTo(spX1, schY); ctx.lineTo(schX + schW / 6, schY); ctx.stroke();
+  // Dashpot
+  const dpX0 = schX + schW / 6, dpX1 = schX + schW / 2;
+  const dpMid = (dpX0 + dpX1) / 2;
+  ctx.strokeStyle = '#3a4a6a';
+  ctx.strokeRect(dpMid - (dpX1 - dpX0) * 0.35, schY - schH / 2, (dpX1 - dpX0) * 0.7, schH);
+  ctx.beginPath(); ctx.moveTo(dpX0, schY); ctx.lineTo(dpMid - (dpX1 - dpX0) * 0.35, schY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(dpMid, schY - schH / 2); ctx.lineTo(dpMid, schY + schH / 2); ctx.stroke();
+  // Right line
+  ctx.beginPath(); ctx.moveTo(dpMid + (dpX1 - dpX0) * 0.35, schY); ctx.lineTo(dpX1, schY); ctx.stroke();
+  // Labels
+  ctx.fillStyle = '#4a5878'; ctx.font = '8px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('E', (spX0 + spX1) / 2, schY - schH / 2 - 3);
+  ctx.fillText('η', dpMid, schY + schH / 2 + 10);
+  ctx.fillStyle = '#3a4868'; ctx.font = '8px Segoe UI';
+  ctx.fillText('Maxwell model', schX, schY + schH / 2 + 20);
+
+  // Right: relaxation curve
+  drawRelaxCurve(leftW, W, H, mat);
+}
+
+function drawRelaxCurve(sx, W, H, mat) {
+  const pad = { l: 52, r: 20, t: 32, b: 46 };
+  const aw  = W - sx - pad.l - pad.r;
+  const ah  = H - pad.t - pad.b;
+  const tMax = mat.tMax;
+
+  function toC(t, sig) {
+    return [
+      sx + pad.l + (t / tMax) * aw,
+      pad.t + ah - sig * ah
+    ];
+  }
+
+  // Separator
+  ctx.strokeStyle = '#1a1d2e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx, 16); ctx.lineTo(sx, H - 16); ctx.stroke();
+
+  // Grid
+  ctx.strokeStyle = '#13152a'; ctx.lineWidth = 1;
+  const stepT = niceStep(tMax * 0.9);
+  for (let tt = 0; tt <= tMax; tt += stepT) {
+    const [cx] = toC(tt, 0);
+    ctx.beginPath(); ctx.moveTo(cx, pad.t); ctx.lineTo(cx, pad.t + ah); ctx.stroke();
+    ctx.fillStyle = '#3a4060'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
+    const lbl = tMax < 10 ? tt.toFixed(1) : tt.toFixed(0);
+    ctx.fillText(lbl, cx, pad.t + ah + 14);
+  }
+  for (let s = 0; s <= 1.05; s += 0.2) {
+    const [, cy] = toC(0, s);
+    ctx.beginPath(); ctx.moveTo(sx + pad.l, cy); ctx.lineTo(sx + pad.l + aw, cy); ctx.stroke();
+    ctx.fillStyle = '#3a4060'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'right';
+    ctx.fillText(s.toFixed(1), sx + pad.l - 6, cy + 3);
+  }
+
+  // Axes
+  ctx.strokeStyle = '#304060'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx + pad.l, pad.t); ctx.lineTo(sx + pad.l, pad.t + ah + 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx + pad.l - 4, pad.t + ah); ctx.lineTo(sx + pad.l + aw, pad.t + ah); ctx.stroke();
+  ctx.fillStyle = '#6a7898'; ctx.font = '11px Segoe UI';
+  ctx.textAlign = 'center'; ctx.fillText('Time', sx + pad.l + aw / 2, pad.t + ah + 32);
+  ctx.save(); ctx.translate(sx + pad.l - 38, pad.t + ah / 2); ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center'; ctx.fillText('σ / σ₀ (normalized stress)', 0, 0); ctx.restore();
+
+  // Asymptote line (sigma_inf)
+  const [, infY] = toC(0, mat.sigma_inf);
+  ctx.strokeStyle = 'rgba(100,160,100,0.4)'; ctx.lineWidth = 1; ctx.setLineDash([5, 5]);
+  ctx.beginPath(); ctx.moveTo(sx + pad.l, infY); ctx.lineTo(sx + pad.l + aw, infY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(100,160,100,0.65)'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText(`σ∞ = ${mat.sigma_inf.toFixed(2)}`, sx + pad.l + 4, infY - 4);
+
+  // Full faint curve
+  const nPts = 300;
+  ctx.strokeStyle = 'rgba(80,100,150,0.30)'; ctx.lineWidth = 1.2; ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  for (let i = 0; i <= nPts; i++) {
+    const tt = (i / nPts) * tMax;
+    const [cx, cy] = toC(tt, relaxSigma(mat, tt));
+    i === 0 ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy);
+  }
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // Traced curve
+  if (S.srTime > 0) {
+    ctx.strokeStyle = mat.color; ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    const nTrace = Math.ceil((S.srTime / tMax) * nPts);
+    for (let i = 0; i <= nTrace; i++) {
+      const tt = (i / nPts) * tMax;
+      if (tt > S.srTime) break;
+      const [cx, cy] = toC(tt, relaxSigma(mat, tt));
+      i === 0 ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy);
+    }
+    const [ex, ey] = toC(S.srTime, relaxSigma(mat, S.srTime));
+    ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex, ey, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = mat.color; ctx.beginPath(); ctx.arc(ex, ey, 3.5, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Title
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Stress Relaxation — σ/σ₀ vs. Time', sx + pad.l + aw / 2, pad.t - 14);
+}
+
+// ══════════════════════════════════════════════════════════
+//  FATIGUE DRAWING
+// ══════════════════════════════════════════════════════════
+
+function drawFatigue(W, H) {
+  const leftW = Math.floor(W * 0.44);
+  const mat   = FATMATS[S.fatmat];
+  const sigma_a = mat.UTS * S.fatSigFrac;
+  const Nf    = snLife(mat, sigma_a);
+  const frac  = isFinite(Nf) ? Math.min(S.fatCycles / Nf, 1) : 0;
+  const fractured = S.fatFractured;
+
+  const cx = leftW / 2;
+
+  // Title
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Cantilever Fatigue Test', leftW / 2, 18);
+  ctx.fillStyle = 'rgba(80,140,220,0.25)'; ctx.font = '10px Segoe UI';
+  ctx.fillText(mat.name, leftW / 2, 30);
+
+  // ── Cantilever beam ──
+  const wallX = 18;
+  const beamY = H * 0.46;
+  const beamL = leftW * 0.72;
+  const beamH = Math.max(14, leftW * 0.045);
+  const beamX = wallX + 18;
+
+  // Fixed wall
+  ctx.fillStyle = '#202030';
+  ctx.fillRect(0, beamY - beamH * 1.4, wallX + 4, beamH * 2.8);
+  ctx.strokeStyle = '#303050'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(0, beamY - beamH * 1.4, wallX + 4, beamH * 2.8);
+  ctx.save(); ctx.strokeStyle = '#404060'; ctx.lineWidth = 0.8;
+  for (let y = beamY - beamH * 1.4; y < beamY + beamH * 1.4; y += 8) {
+    ctx.beginPath(); ctx.moveTo(wallX + 4, y); ctx.lineTo(0, y + 8); ctx.stroke();
+  }
+  ctx.restore();
+
+  // Oscillating deflection
+  const maxDefl = beamH * 2.2;
+  const defl    = fractured ? 0 : Math.sin(S.fatPhase) * maxDefl * (sigma_a / mat.UTS);
+  const tipX    = beamX + beamL;
+  const tipY    = beamY + defl;
+
+  // Beam body
+  if (!fractured) {
+    ctx.fillStyle = mat.color;
+    ctx.save();
+    // Slight bend using transform — draw as trapezoid approximation
+    ctx.beginPath();
+    ctx.moveTo(beamX, beamY - beamH / 2);
+    ctx.lineTo(tipX, tipY - beamH / 2);
+    ctx.lineTo(tipX, tipY + beamH / 2);
+    ctx.lineTo(beamX, beamY + beamH / 2);
+    ctx.closePath();
+    ctx.fillStyle = mat.color + '99';
+    ctx.fill();
+    ctx.strokeStyle = mat.color; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.restore();
+  } else {
+    // Fractured: draw two pieces
+    const crackX = beamX + beamH * 0.8;
+    ctx.fillStyle = mat.color + '80';
+    // Root stub
+    ctx.beginPath();
+    ctx.moveTo(beamX, beamY - beamH / 2);
+    ctx.lineTo(crackX, beamY - beamH * 0.05);
+    ctx.lineTo(crackX, beamY + beamH * 0.05);
+    ctx.lineTo(beamX, beamY + beamH / 2);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = mat.color; ctx.lineWidth = 1; ctx.stroke();
+    // Fallen piece
+    ctx.beginPath();
+    ctx.moveTo(crackX, beamY + beamH * 0.4);
+    ctx.lineTo(tipX, beamY + beamH * 2);
+    ctx.lineTo(tipX, beamY + beamH * 2.8);
+    ctx.lineTo(crackX, beamY + beamH * 0.8);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#e06030'; ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText('FRACTURE', crackX + 20, beamY - beamH - 6);
+  }
+
+  // Crack at root (grows with cycle count)
+  if (frac > 0.05 && !fractured) {
+    const crackDepth = frac * beamH * 0.85;
+    ctx.strokeStyle = '#e03020'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(beamX + beamH * 0.6, beamY - beamH / 2);
+    ctx.lineTo(beamX + beamH * 0.4, beamY - beamH / 2 + crackDepth);
+    ctx.stroke();
+    if (frac > 0.3) {
+      ctx.beginPath();
+      ctx.moveTo(beamX + beamH * 0.4, beamY - beamH / 2 + crackDepth);
+      ctx.lineTo(beamX + beamH * 0.6, beamY - beamH / 2 + crackDepth * 1.25);
+      ctx.stroke();
+    }
+  }
+
+  // Force arrow at tip
+  if (!fractured) {
+    const arrowAmt = 24 * (sigma_a / mat.UTS);
+    if (Math.abs(defl) > 1) {
+      const arrowCol = defl > 0 ? '#f0a040' : '#40a0f0';
+      const arrowDir = defl > 0 ? 1 : -1;
+      drawArrow(tipX - 8, tipY, tipX - 8, tipY + arrowDir * arrowAmt, arrowCol, 2);
+      ctx.fillStyle = arrowCol; ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'center';
+      ctx.fillText('F', tipX - 8, tipY + arrowDir * (arrowAmt + 13));
+    }
+  }
+
+  // Cycle counter
+  ctx.fillStyle = '#5a7090'; ctx.font = '10px Segoe UI'; ctx.textAlign = 'left';
+  const nDisp = isFinite(Nf) ? S.fatCycles.toFixed(0) : '—';
+  const nfDisp= isFinite(Nf) ? Nf.toFixed(0) : '∞';
+  ctx.fillText(`N = ${parseFloat(nDisp).toExponential(2)}`, 8, H - 38);
+  ctx.fillText(`Nf = ${parseFloat(nfDisp).toExponential(2)}`, 8, H - 26);
+  ctx.fillText(`σa = ${sigma_a.toFixed(0)} MPa`, 8, H - 14);
+
+  // Waveform indicator (small sinusoid at top-left)
+  const wvX = beamX, wvY = 48, wvW = 60, wvH = 10;
+  ctx.strokeStyle = 'rgba(120,160,200,0.5)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i <= 40; i++) {
+    const x = wvX + (i / 40) * wvW;
+    const y = wvY + Math.sin((i / 40) * 4 * Math.PI + S.fatPhase) * wvH;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(100,130,180,0.5)'; ctx.font = '8px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText('σ(t)', wvX + wvW + 4, wvY + 3);
+
+  // Right: S-N curve
+  drawSNCurve(leftW, W, H, mat, sigma_a);
+}
+
+function drawSNCurve(sx, W, H, mat, sigma_a) {
+  const pad = { l: 58, r: 20, t: 32, b: 46 };
+  const aw  = W - sx - pad.l - pad.r;
+  const ah  = H - pad.t - pad.b;
+  const Nmin = 1e2, Nmax = 1e9;
+  const logMin = Math.log10(Nmin), logMax = Math.log10(Nmax);
+  const sigMax = mat.UTS * 1.05;
+
+  function toC(N, sig) {
+    const lx = N <= 0 ? logMin : Math.max(logMin, Math.min(logMax, Math.log10(N)));
+    return [
+      sx + pad.l + ((lx - logMin) / (logMax - logMin)) * aw,
+      pad.t + ah - (sig / sigMax) * ah
+    ];
+  }
+
+  // Separator
+  ctx.strokeStyle = '#1a1d2e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx, 16); ctx.lineTo(sx, H - 16); ctx.stroke();
+
+  // Grid (log x)
+  ctx.strokeStyle = '#13152a'; ctx.lineWidth = 1;
+  for (let e = Math.ceil(logMin); e <= logMax; e++) {
+    const [cx] = toC(Math.pow(10, e), 0);
+    ctx.beginPath(); ctx.moveTo(cx, pad.t); ctx.lineTo(cx, pad.t + ah); ctx.stroke();
+    ctx.fillStyle = '#3a4060'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText(`10${['²','³','⁴','⁵','⁶','⁷','⁸','⁹'][e - 2] || e}`, cx, pad.t + ah + 14);
+  }
+  const stepS = niceStep(sigMax * 0.85);
+  for (let s = 0; s <= sigMax; s += stepS) {
+    const [, cy] = toC(Nmin, s);
+    ctx.beginPath(); ctx.moveTo(sx + pad.l, cy); ctx.lineTo(sx + pad.l + aw, cy); ctx.stroke();
+    ctx.fillStyle = '#3a4060'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'right';
+    ctx.fillText(s.toFixed(0), sx + pad.l - 6, cy + 3);
+  }
+
+  // Axes
+  ctx.strokeStyle = '#304060'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx + pad.l, pad.t); ctx.lineTo(sx + pad.l, pad.t + ah + 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx + pad.l - 4, pad.t + ah); ctx.lineTo(sx + pad.l + aw, pad.t + ah); ctx.stroke();
+  ctx.fillStyle = '#6a7898'; ctx.font = '11px Segoe UI';
+  ctx.textAlign = 'center'; ctx.fillText('Cycles to Failure N (log scale)', sx + pad.l + aw / 2, pad.t + ah + 32);
+  ctx.save(); ctx.translate(sx + pad.l - 44, pad.t + ah / 2); ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center'; ctx.fillText('Stress Amplitude σ_a (MPa)', 0, 0); ctx.restore();
+
+  // Endurance limit line
+  if (mat.hasEndurance) {
+    const [, seY] = toC(Nmin, mat.Se);
+    ctx.strokeStyle = 'rgba(80,200,80,0.5)'; ctx.lineWidth = 1; ctx.setLineDash([5, 5]);
+    ctx.beginPath(); ctx.moveTo(sx + pad.l, seY); ctx.lineTo(sx + pad.l + aw, seY); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(80,200,80,0.7)'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'left';
+    ctx.fillText(`Se = ${mat.Se} MPa`, sx + pad.l + 4, seY - 4);
+  }
+
+  // S-N curve
+  const nPts = 300;
+  ctx.strokeStyle = mat.color; ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  for (let i = 0; i <= nPts; i++) {
+    const lN = logMin + (i / nPts) * (logMax - logMin);
+    const N  = Math.pow(10, lN);
+    const sa = snStress(mat, N);
+    const [cx, cy] = toC(N, sa);
+    i === 0 ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy);
+  }
+  ctx.stroke();
+
+  // Current σ_a horizontal line
+  const [, saY] = toC(Nmin, sigma_a);
+  ctx.strokeStyle = 'rgba(240,180,60,0.55)'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(sx + pad.l, saY); ctx.lineTo(sx + pad.l + aw, saY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(240,180,60,0.8)'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'right';
+  ctx.fillText(`σa = ${sigma_a.toFixed(0)}`, sx + pad.l + aw - 4, saY - 4);
+
+  // Operating point
+  const Nf = snLife(mat, sigma_a);
+  if (isFinite(Nf)) {
+    const [opX, opY] = toC(Nf, sigma_a);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(opX, opY, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = mat.color; ctx.beginPath(); ctx.arc(opX, opY, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#aabcdc'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'left';
+    ctx.fillText(`Nf`, opX + 8, opY + 3);
+    // Cycle progress arc overlay
+    if (S.fatCycles > 0) {
+      const curN = S.fatCycles;
+      const [cpX, cpY] = toC(curN, sigma_a);
+      ctx.strokeStyle = 'rgba(240,180,60,0.6)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(sx + pad.l, saY); ctx.lineTo(cpX, saY); ctx.stroke();
+      ctx.fillStyle = '#f0c050'; ctx.beginPath(); ctx.arc(cpX, saY, 4, 0, Math.PI * 2); ctx.fill();
+    }
+  } else {
+    // Infinite life — show green checkmark region
+    ctx.fillStyle = 'rgba(60,200,80,0.12)';
+    ctx.fillRect(sx + pad.l, saY, aw, pad.t + ah - saY);
+    ctx.fillStyle = 'rgba(60,200,80,0.6)'; ctx.font = '10px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText('Infinite life (below Se)', sx + pad.l + aw / 2, saY + 16);
+  }
+
+  // Title
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('S-N Wöhler Curve', sx + pad.l + aw / 2, pad.t - 14);
+}
+
+// ══════════════════════════════════════════════════════════
 //  MAIN DRAW
 // ══════════════════════════════════════════════════════════
 
@@ -1008,8 +1840,11 @@ function draw() {
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle='#0d0f1c'; ctx.fillRect(0,0,leftW,H);
   ctx.fillStyle='#0a0b18'; ctx.fillRect(leftW,0,W-leftW,H);
-  if(S.tab==='tensile') drawTensile();
-  else drawCharpy();
+  if      (S.tab==='tensile') drawTensile();
+  else if (S.tab==='charpy')  drawCharpy();
+  else if (S.tab==='creep')   drawCreep(W, H);
+  else if (S.tab==='relax')   drawRelax(W, H);
+  else if (S.tab==='fatigue') drawFatigue(W, H);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1050,7 +1885,7 @@ function updateInfo() {
     document.getElementById('val5').textContent=mat.cls;
     document.getElementById('card5').className='prop-card';
 
-  } else {
+  } else if (S.tab==='charpy') {
     const mat=CMATS[S.cmat];
     const cvn=getCVN(mat,S.cTemp);
     const fA=finalAngle(cvn);
@@ -1086,6 +1921,116 @@ function updateInfo() {
     document.getElementById('val5').textContent=mat.DBTT;
     document.getElementById('unt5').textContent='°C';
     document.getElementById('card5').className='prop-card';
+
+  } else if (S.tab==='creep') {
+    const mat=CREMATS[S.crmat];
+    const eps=creepStrain(mat,S.crTh,S.crStress,S.crTime);
+    const eps_p=mat.A_p*S.crStress*(1-Math.exp(-S.crTime/mat.tau_p));
+    const stage=S.crTime<mat.tau_p*2.5?'Primary':S.crTime<mat.t_tert?'Secondary':'Tertiary';
+
+    document.getElementById('lbl0').textContent='T / Tm';
+    document.getElementById('val0').textContent=S.crTh.toFixed(2);
+    document.getElementById('unt0').textContent='';
+    document.getElementById('card0').className='prop-card'+(S.crTh>0.6?' warn':'');
+
+    document.getElementById('lbl1').textContent='Creep Strain';
+    document.getElementById('val1').textContent=(eps*100).toFixed(3);
+    document.getElementById('unt1').textContent='%';
+    document.getElementById('card1').className='prop-card'+(S.crTime>mat.t_tert?' alert':S.crTime>0.3?' warn':'');
+
+    document.getElementById('lbl2').textContent='Stage';
+    document.getElementById('val2').style.fontSize='0.72rem';
+    document.getElementById('val2').textContent=stage;
+    document.getElementById('unt2').textContent='';
+    document.getElementById('card2').className='prop-card'+(stage==='Tertiary'?' alert':stage==='Secondary'?' warn':'');
+
+    document.getElementById('lbl3').textContent='σ / σ_ref';
+    document.getElementById('val3').textContent=S.crStress.toFixed(2);
+    document.getElementById('unt3').textContent='';
+    document.getElementById('card3').className='prop-card';
+
+    document.getElementById('lbl4').textContent='Time (norm.)';
+    document.getElementById('val4').textContent=(S.crTime*100).toFixed(0);
+    document.getElementById('unt4').textContent='%';
+    document.getElementById('card4').className='prop-card';
+
+    document.getElementById('lbl5').textContent='Class';
+    document.getElementById('val5').textContent=mat.cls;
+    document.getElementById('unt5').textContent='';
+    document.getElementById('card5').className='prop-card';
+
+  } else if (S.tab==='relax') {
+    const mat=SRMATS[S.srmat];
+    const sig=relaxSigma(mat,S.srTime);
+    const pctLoss=((1-sig)*100).toFixed(1);
+
+    document.getElementById('lbl0').textContent='Time';
+    document.getElementById('val0').textContent=S.srTime.toFixed(2);
+    document.getElementById('unt0').textContent='';
+    document.getElementById('card0').className='prop-card';
+
+    document.getElementById('lbl1').textContent='σ / σ₀';
+    document.getElementById('val1').textContent=sig.toFixed(3);
+    document.getElementById('unt1').textContent='';
+    document.getElementById('card1').className='prop-card'+(sig<0.5?' alert':sig<0.8?' warn':'');
+
+    document.getElementById('lbl2').textContent='Stress Loss';
+    document.getElementById('val2').style.fontSize='0.88rem';
+    document.getElementById('val2').textContent=pctLoss;
+    document.getElementById('unt2').textContent='%';
+    document.getElementById('card2').className='prop-card'+(parseFloat(pctLoss)>50?' alert':parseFloat(pctLoss)>20?' warn':'');
+
+    document.getElementById('lbl3').textContent='τ (relax. time)';
+    document.getElementById('val3').textContent=mat.tau_r.toFixed(mat.tau_r<1?2:0);
+    document.getElementById('unt3').textContent='';
+    document.getElementById('card3').className='prop-card';
+
+    document.getElementById('lbl4').textContent='σ∞ / σ₀';
+    document.getElementById('val4').textContent=mat.sigma_inf.toFixed(2);
+    document.getElementById('unt4').textContent='';
+    document.getElementById('card4').className='prop-card';
+
+    document.getElementById('lbl5').textContent='Class';
+    document.getElementById('val5').textContent=mat.cls;
+    document.getElementById('unt5').textContent='';
+    document.getElementById('card5').className='prop-card';
+
+  } else if (S.tab==='fatigue') {
+    const mat=FATMATS[S.fatmat];
+    const sa=mat.UTS*S.fatSigFrac;
+    const Nf=snLife(mat,sa);
+    const ratio=isFinite(Nf)?S.fatCycles/Nf:0;
+
+    document.getElementById('lbl0').textContent='Stress Amp.';
+    document.getElementById('val0').textContent=sa.toFixed(0);
+    document.getElementById('unt0').textContent='MPa';
+    document.getElementById('card0').className='prop-card'+(sa>mat.UTS*0.7?' alert':sa>mat.UTS*0.4?' warn':'');
+
+    document.getElementById('lbl1').textContent='Nf (cycles)';
+    document.getElementById('val1').textContent=isFinite(Nf)?parseFloat(Nf.toFixed(0)).toExponential(2):'∞';
+    document.getElementById('unt1').textContent='';
+    document.getElementById('card1').className='prop-card'+(isFinite(Nf)&&Nf<1e5?' alert':!isFinite(Nf)?' ok':'');
+
+    document.getElementById('lbl2').textContent='N (current)';
+    document.getElementById('val2').style.fontSize='0.72rem';
+    document.getElementById('val2').textContent=S.fatCycles>0?parseFloat(S.fatCycles.toFixed(0)).toExponential(2):'—';
+    document.getElementById('unt2').textContent='';
+    document.getElementById('card2').className='prop-card'+(ratio>0.9?' alert':ratio>0.6?' warn':'');
+
+    document.getElementById('lbl3').textContent='Life Used';
+    document.getElementById('val3').textContent=isFinite(Nf)?(ratio*100).toFixed(1):'0.0';
+    document.getElementById('unt3').textContent='%';
+    document.getElementById('card3').className='prop-card'+(ratio>0.9?' alert':ratio>0.5?' warn':'');
+
+    document.getElementById('lbl4').textContent='Endurance';
+    document.getElementById('val4').textContent=mat.hasEndurance?(mat.Se+' MPa'):'None';
+    document.getElementById('unt4').textContent='';
+    document.getElementById('card4').className='prop-card'+(mat.hasEndurance?' ok':'');
+
+    document.getElementById('lbl5').textContent='Class';
+    document.getElementById('val5').textContent=mat.cls;
+    document.getElementById('unt5').textContent='';
+    document.getElementById('card5').className='prop-card';
   }
 }
 
@@ -1093,16 +2038,22 @@ function updateInfo() {
 //  EVENT HANDLERS
 // ══════════════════════════════════════════════════════════
 
-function showTab(tab){
-  S.tab=tab;
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
-    b.classList.toggle('active', (i===0&&tab==='tensile')||(i===1&&tab==='charpy'));
+function showTab(tab, btn) {
+  S.tab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  ['tensile','charpy','creep','relax','fatigue'].forEach(t => {
+    const p = document.getElementById('pane-'+t+'-sb');
+    if (p) p.style.display = t === tab ? '' : 'none';
   });
-  document.getElementById('pane-tensile-sb').style.display=tab==='tensile'?'':'none';
-  document.getElementById('pane-charpy-sb').style.display=tab==='charpy'?'':'none';
-  document.getElementById('scenario-note').textContent = tab==='tensile'
-    ? TMATS[S.tmat].note
-    : CMATS[S.cmat].note;
+  const notes = {
+    tensile: TMATS[S.tmat].note,
+    charpy:  CMATS[S.cmat].note,
+    creep:   CREMATS[S.crmat].note,
+    relax:   SRMATS[S.srmat].note,
+    fatigue: FATMATS[S.fatmat].note,
+  };
+  document.getElementById('scenario-note').textContent = notes[tab] || '';
   updateInfo(); draw();
 }
 
@@ -1183,6 +2134,145 @@ function resetTest(){
   pausePlay(); S.tSlider=0;
   document.getElementById('sl-strain').value=0;
   document.getElementById('v-strain').textContent='0.0';
+  updateInfo(); draw();
+}
+
+// ── Creep handlers ──
+function setCrMat(m) {
+  S.crmat = m;
+  document.querySelectorAll('[id^="crm-"]').forEach(b => b.classList.remove('active'));
+  document.getElementById('crm-' + m).classList.add('active');
+  resetCreep();
+  document.getElementById('scenario-note').textContent = CREMATS[m].note;
+  updateInfo(); draw();
+}
+function onCreepTempSlider() {
+  S.crTh = +document.getElementById('sl-crTh').value;
+  document.getElementById('v-crTh').textContent = S.crTh.toFixed(2);
+  resetCreep();
+}
+function onCrStressSlider() {
+  S.crStress = +document.getElementById('sl-crStress').value;
+  document.getElementById('v-crStress').textContent = S.crStress.toFixed(2);
+  resetCreep();
+}
+function toggleCreepPlay() {
+  if (S.crPlaying) {
+    S.crPlaying = false;
+    if (S.crAnimRef) { cancelAnimationFrame(S.crAnimRef); S.crAnimRef = null; }
+    document.getElementById('btn-crplay').textContent = '▶ Play';
+    return;
+  }
+  if (S.crTime >= 1.0) S.crTime = 0;
+  S.crPlaying = true;
+  document.getElementById('btn-crplay').textContent = '⏸ Pause';
+  function step() {
+    S.crTime = Math.min(S.crTime + 0.003, 1.0);
+    updateInfo(); draw();
+    if (S.crTime < 1.0 && S.crPlaying) {
+      S.crAnimRef = requestAnimationFrame(step);
+    } else {
+      S.crPlaying = false;
+      document.getElementById('btn-crplay').textContent = '▶ Play';
+    }
+  }
+  S.crAnimRef = requestAnimationFrame(step);
+}
+function resetCreep() {
+  S.crPlaying = false;
+  if (S.crAnimRef) { cancelAnimationFrame(S.crAnimRef); S.crAnimRef = null; }
+  document.getElementById('btn-crplay').textContent = '▶ Play';
+  S.crTime = 0;
+  updateInfo(); draw();
+}
+
+// ── Stress Relaxation handlers ──
+function setSrMat(m) {
+  S.srmat = m;
+  document.querySelectorAll('[id^="srm-"]').forEach(b => b.classList.remove('active'));
+  document.getElementById('srm-' + m).classList.add('active');
+  resetRelax();
+  document.getElementById('scenario-note').textContent = SRMATS[m].note;
+  updateInfo(); draw();
+}
+function toggleRelaxPlay() {
+  if (S.srPlaying) {
+    S.srPlaying = false;
+    if (S.srAnimRef) { cancelAnimationFrame(S.srAnimRef); S.srAnimRef = null; }
+    document.getElementById('btn-srplay').textContent = '▶ Play';
+    return;
+  }
+  const mat = SRMATS[S.srmat];
+  if (S.srTime >= mat.tMax) S.srTime = 0;
+  S.srPlaying = true;
+  document.getElementById('btn-srplay').textContent = '⏸ Pause';
+  function step() {
+    S.srTime = Math.min(S.srTime + mat.tMax / 400, mat.tMax);
+    updateInfo(); draw();
+    if (S.srTime < mat.tMax && S.srPlaying) {
+      S.srAnimRef = requestAnimationFrame(step);
+    } else {
+      S.srPlaying = false;
+      document.getElementById('btn-srplay').textContent = '▶ Play';
+    }
+  }
+  S.srAnimRef = requestAnimationFrame(step);
+}
+function resetRelax() {
+  S.srPlaying = false;
+  if (S.srAnimRef) { cancelAnimationFrame(S.srAnimRef); S.srAnimRef = null; }
+  document.getElementById('btn-srplay').textContent = '▶ Play';
+  S.srTime = 0;
+  updateInfo(); draw();
+}
+
+// ── Fatigue handlers ──
+function setFatMat(m) {
+  S.fatmat = m;
+  document.querySelectorAll('[id^="fm-"]').forEach(b => b.classList.remove('active'));
+  document.getElementById('fm-' + m).classList.add('active');
+  resetFatigue();
+  document.getElementById('scenario-note').textContent = FATMATS[m].note;
+  updateInfo(); draw();
+}
+function onFatSigSlider() {
+  S.fatSigFrac = +document.getElementById('sl-fatSig').value;
+  document.getElementById('v-fatSig').textContent = S.fatSigFrac.toFixed(2);
+  resetFatigue();
+}
+function toggleFatPlay() {
+  if (S.fatPlaying) {
+    S.fatPlaying = false;
+    if (S.fatAnimRef) { cancelAnimationFrame(S.fatAnimRef); S.fatAnimRef = null; }
+    document.getElementById('btn-fatplay').textContent = '▶ Play';
+    return;
+  }
+  if (S.fatFractured) resetFatigue();
+  const mat = FATMATS[S.fatmat];
+  const sigma_a = mat.UTS * S.fatSigFrac;
+  const Nf = snLife(mat, sigma_a);
+  if (!isFinite(Nf)) { draw(); return; } // infinite life — nothing to animate
+  S.fatPlaying = true;
+  document.getElementById('btn-fatplay').textContent = '⏸ Pause';
+  const cyclesPerFrame = Nf / 380;
+  function step() {
+    S.fatPhase += 0.20;
+    S.fatCycles = Math.min(S.fatCycles + cyclesPerFrame, Nf);
+    if (S.fatCycles >= Nf) {
+      S.fatFractured = true; S.fatCycles = Nf;
+      S.fatPlaying = false;
+      document.getElementById('btn-fatplay').textContent = '▶ Play';
+    }
+    updateInfo(); draw();
+    if (S.fatPlaying) S.fatAnimRef = requestAnimationFrame(step);
+  }
+  S.fatAnimRef = requestAnimationFrame(step);
+}
+function resetFatigue() {
+  S.fatPlaying = false;
+  if (S.fatAnimRef) { cancelAnimationFrame(S.fatAnimRef); S.fatAnimRef = null; }
+  document.getElementById('btn-fatplay').textContent = '▶ Play';
+  S.fatCycles = 0; S.fatPhase = 0; S.fatFractured = false;
   updateInfo(); draw();
 }
 
