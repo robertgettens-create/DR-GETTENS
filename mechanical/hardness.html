@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hardness Testing Explorer</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',Tahoma,sans-serif; background:#12131a; color:#dde1f0; display:flex; height:100vh; overflow:hidden; }
+
+    #sidebar { width:270px; min-width:270px; background:#1a1d2e; border-right:1px solid #2a2d45; display:flex; flex-direction:column; gap:12px; padding:16px 14px; overflow-y:auto; }
+    #sidebar h1 { font-size:0.88rem; font-weight:700; color:#e0a860; text-transform:uppercase; letter-spacing:2px; border-bottom:1px solid #2a2d45; padding-bottom:10px; }
+    #sidebar h1 a { float:right; font-size:0.68rem; color:#4a6090; text-decoration:none; font-weight:400; letter-spacing:0; text-transform:none; }
+    #sidebar h1 a:hover { color:#7a90c0; }
+    .section-label { font-size:0.63rem; font-weight:700; color:#5a6080; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:6px; }
+
+    .mat-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+    .mat-btn { padding:7px 4px; background:#1e2238; border:1px solid #2e3355; border-radius:6px; color:#6a7898; cursor:pointer; font-size:0.64rem; font-weight:600; text-align:center; line-height:1.35; transition:all 0.18s; }
+    .mat-btn:hover { border-color:#a07030; color:#c09050; }
+    .mat-btn.active { background:#241a08; border-color:#c08030; color:#e0b060; }
+
+    .tog-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+    .tog-btn { padding:6px 4px; background:#1e2238; border:1px solid #2e3355; border-radius:6px; color:#5a6888; cursor:pointer; font-size:0.63rem; font-weight:600; text-align:center; line-height:1.35; transition:all 0.18s; }
+    .tog-btn:hover { border-color:#a07030; color:#c09050; }
+    .tog-btn.on { background:#241a08; border-color:#b07820; color:#e0b060; }
+
+    .play-row { display:flex; gap:6px; }
+    .play-btn { flex:1; padding:8px 6px; border-radius:6px; border:1px solid #2e3355; background:#1e2238; color:#e0a860; font-size:0.72rem; font-weight:700; cursor:pointer; transition:all 0.18s; text-align:center; }
+    .play-btn:hover { border-color:#a07030; background:#241a08; }
+    .play-btn.primary { background:#241808; border-color:#a06820; color:#e8b060; }
+    .play-btn.primary:hover { background:#2e2010; border-color:#c08030; }
+    .play-btn.danger { border-color:#602828; color:#e06060; }
+    .play-btn.danger:hover { background:#2a1818; border-color:#903030; }
+
+    #scenario-note { font-size:0.62rem; color:#6a7898; line-height:1.55; padding:7px 9px; background:#141728; border-left:2px solid #5a3a10; border-radius:4px; margin-top:auto; }
+
+    #main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+    #tab-bar { display:flex; gap:0; background:#13152a; border-bottom:1px solid #20233a; padding:0 14px; flex-shrink:0; }
+    .tab-btn { padding:10px 18px; font-size:0.78rem; font-weight:600; background:none; border:none; color:#4a5878; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all 0.18s; letter-spacing:0.3px; }
+    .tab-btn:hover { color:#c09050; }
+    .tab-btn.active { color:#e0a860; border-bottom-color:#c08030; }
+
+    #canvas-wrap { flex:1; position:relative; padding:8px 12px 4px 8px; min-height:0; }
+    #hardnessCanvas { width:100%; height:100%; display:block; border-radius:6px; }
+
+    #info-panel { background:#13152a; border-top:1px solid #22253a; padding:8px 14px; display:grid; grid-template-columns:repeat(6,1fr); gap:6px; flex-shrink:0; }
+    .prop-card { background:#1a1d2e; border:1px solid #252840; border-radius:6px; padding:6px 8px; text-align:center; }
+    .prop-lbl  { font-size:0.56rem; color:#4a5878; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:3px; }
+    .prop-val  { font-size:0.88rem; font-weight:700; color:#e0a860; line-height:1; }
+    .prop-unit { font-size:0.56rem; color:#404c68; margin-top:2px; }
+    .prop-card.ok   { border-color:#2a5a2a; } .prop-card.ok   .prop-val { color:#60d880; }
+    .prop-card.warn { border-color:#5a4a10; } .prop-card.warn .prop-val { color:#e0c050; }
+  </style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<div id="sidebar">
+  <h1>Hardness Testing <a href="index.html">← Hub</a></h1>
+
+  <!-- Brinell -->
+  <div id="pane-brinell-sb">
+    <div class="section-label">Material</div>
+    <div class="mat-grid">
+      <button class="mat-btn active" id="bm-mild_steel" onclick="setBMat('mild_steel')">Mild Steel</button>
+      <button class="mat-btn"        id="bm-al_6061"    onclick="setBMat('al_6061')">Al 6061-T6</button>
+      <button class="mat-btn"        id="bm-copper"     onclick="setBMat('copper')">Copper<br>(annealed)</button>
+      <button class="mat-btn"        id="bm-gray_iron"  onclick="setBMat('gray_iron')">Gray Cast<br>Iron</button>
+    </div>
+    <div style="margin-top:12px">
+      <div class="section-label">Standard Load</div>
+      <div class="tog-grid">
+        <button class="tog-btn"    id="bl-500"  onclick="setBLoad(500)">500 kgf<br><span style="font-size:0.55rem;opacity:0.7">soft metals</span></button>
+        <button class="tog-btn on" id="bl-3000" onclick="setBLoad(3000)">3000 kgf<br><span style="font-size:0.55rem;opacity:0.7">steel / iron</span></button>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <div class="play-row">
+        <button class="play-btn primary" onclick="indentTest()">⬇ Apply Load</button>
+        <button class="play-btn danger"  onclick="resetTest()">↺ Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vickers -->
+  <div id="pane-vickers-sb" style="display:none">
+    <div class="section-label">Material</div>
+    <div class="mat-grid">
+      <button class="mat-btn active" id="vm-mild_steel" onclick="setVMat('mild_steel')">Mild Steel</button>
+      <button class="mat-btn"        id="vm-al_6061"    onclick="setVMat('al_6061')">Al 6061-T6</button>
+      <button class="mat-btn"        id="vm-ti64"       onclick="setVMat('ti64')">Ti-6Al-4V</button>
+      <button class="mat-btn"        id="vm-tool_steel" onclick="setVMat('tool_steel')">Tool Steel<br>(D2)</button>
+    </div>
+    <div style="margin-top:12px">
+      <div class="section-label">Test Load</div>
+      <div class="tog-grid">
+        <button class="tog-btn"    id="vl-1"  onclick="setVLoad(1)">HV1<br><span style="font-size:0.55rem;opacity:0.7">1 kgf</span></button>
+        <button class="tog-btn on" id="vl-10" onclick="setVLoad(10)">HV10<br><span style="font-size:0.55rem;opacity:0.7">10 kgf</span></button>
+        <button class="tog-btn"    id="vl-30" onclick="setVLoad(30)">HV30<br><span style="font-size:0.55rem;opacity:0.7">30 kgf</span></button>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <div class="play-row">
+        <button class="play-btn primary" onclick="indentTest()">⬇ Apply Load</button>
+        <button class="play-btn danger"  onclick="resetTest()">↺ Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rockwell -->
+  <div id="pane-rockwell-sb" style="display:none">
+    <div class="section-label">Scale</div>
+    <div class="tog-grid">
+      <button class="tog-btn on" id="rs-HRC" onclick="setRScale('HRC')">HRC<br><span style="font-size:0.55rem;opacity:0.7">Diamond cone</span></button>
+      <button class="tog-btn"    id="rs-HRB" onclick="setRScale('HRB')">HRB<br><span style="font-size:0.55rem;opacity:0.7">1/16″ ball</span></button>
+    </div>
+    <div style="margin-top:12px">
+      <div class="section-label">Material</div>
+      <div class="mat-grid" id="rockwell-mat-grid"></div>
+    </div>
+    <div style="margin-top:12px">
+      <div class="play-row">
+        <button class="play-btn primary" onclick="indentTest()">⚡ Run Test</button>
+        <button class="play-btn danger"  onclick="resetTest()">↺ Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Durometer -->
+  <div id="pane-durometer-sb" style="display:none">
+    <div class="section-label">Shore Scale</div>
+    <div class="tog-grid">
+      <button class="tog-btn on" id="ds-A" onclick="setShoreScale('A')">Shore A<br><span style="font-size:0.55rem;opacity:0.7">Soft elastomers</span></button>
+      <button class="tog-btn"    id="ds-D" onclick="setShoreScale('D')">Shore D<br><span style="font-size:0.55rem;opacity:0.7">Rigid plastics</span></button>
+    </div>
+    <div style="margin-top:12px">
+      <div class="section-label">Material</div>
+      <div class="mat-grid" id="durometer-mat-grid"></div>
+    </div>
+    <div style="margin-top:8px" id="dur-probe-info">
+      <div style="font-size:0.60rem;color:#4a5878;line-height:1.6;">
+        Probe: truncated frustum (Shore A)<br>Tip dia: 0.79 mm · 35° cone sides
+      </div>
+    </div>
+    <div style="margin-top:10px">
+      <div class="play-row">
+        <button class="play-btn primary" onclick="indentTest()">⬇ Press</button>
+        <button class="play-btn danger"  onclick="resetTest()">↺ Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="scenario-note">Select a material and press Apply Load to simulate the hardness test.</div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div id="main">
+  <div id="tab-bar">
+    <button class="tab-btn active" onclick="showTab('brinell',this)">🔵 Brinell</button>
+    <button class="tab-btn"        onclick="showTab('vickers',this)">🔷 Vickers</button>
+    <button class="tab-btn"        onclick="showTab('rockwell',this)">📏 Rockwell</button>
+    <button class="tab-btn"        onclick="showTab('durometer',this)">🟡 Durometer</button>
+  </div>
+  <div id="canvas-wrap">
+    <canvas id="hardnessCanvas"></canvas>
+  </div>
+  <div id="info-panel">
+    <div class="prop-card" id="card0"><div class="prop-lbl" id="lbl0">Hardness</div><div class="prop-val" id="val0">—</div><div class="prop-unit" id="unt0"></div></div>
+    <div class="prop-card" id="card1"><div class="prop-lbl" id="lbl1">Indenter</div><div class="prop-val" id="val1" style="font-size:0.7rem">—</div><div class="prop-unit" id="unt1"></div></div>
+    <div class="prop-card" id="card2"><div class="prop-lbl" id="lbl2">Load</div><div class="prop-val" id="val2">—</div><div class="prop-unit" id="unt2"></div></div>
+    <div class="prop-card" id="card3"><div class="prop-lbl" id="lbl3">Indent Size</div><div class="prop-val" id="val3">—</div><div class="prop-unit" id="unt3"></div></div>
+    <div class="prop-card" id="card4"><div class="prop-lbl" id="lbl4">~UTS / Equiv.</div><div class="prop-val" id="val4">—</div><div class="prop-unit" id="unt4"></div></div>
+    <div class="prop-card" id="card5"><div class="prop-lbl" id="lbl5">Class</div><div class="prop-val" id="val5" style="font-size:0.7rem">—</div><div class="prop-unit" id="unt5"></div></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  MATERIAL DATA
+// ══════════════════════════════════════════════════════
+const BMATS = {
+  mild_steel: { name:'Mild Steel', cls:'Metal (BCC)', color:'#5090e0', HB:130,
+    note:'Normalized carbon steel. HBN ≈ 3.45 × UTS(MPa). Classic reference material for Brinell.' },
+  al_6061:   { name:'Al 6061-T6', cls:'Metal (FCC)', color:'#70b8d8', HB:95,
+    note:'Heat-treated aluminum alloy. Use 500 kgf load; standard 3000 kgf over-penetrates soft metals.' },
+  copper:    { name:'Copper (annealed)', cls:'Metal (FCC)', color:'#e07040', HB:40,
+    note:'Very soft FCC metal. Use 500 kgf. d/D ratio > 0.6 with 3000 kgf makes result invalid.' },
+  gray_iron: { name:'Gray Cast Iron', cls:'Metal', color:'#909098', HB:210,
+    note:'Hard pearlitic matrix with graphite flakes. Brittle but excellent wear resistance and damping.' },
+};
+const VMATS = {
+  mild_steel: { name:'Mild Steel', cls:'Metal', color:'#5090e0', HV:130,
+    note:'HV ≈ HBN for steels below ~300 HV. Vickers is load-independent for homogeneous materials.' },
+  al_6061:   { name:'Al 6061-T6', cls:'Metal', color:'#70b8d8', HV:107,
+    note:'Very small indent — requires optical microscopy to measure diagonal. Good for thin sections.' },
+  ti64:      { name:'Ti-6Al-4V', cls:'Metal', color:'#a090c8', HV:334,
+    note:'High-strength aerospace alloy. Vickers preferred over Brinell for hard materials.' },
+  tool_steel:{ name:'Tool Steel (D2)', cls:'Metal', color:'#c0a860', HV:750,
+    note:'Hardened tool steel. Very small, precise indent. Used for cutting tools, dies, wear parts.' },
+};
+const RMATS = {
+  HRC: {
+    h4340:      { name:'4340 Steel (H&T)', cls:'Alloy Steel',     color:'#5090e0', HR:50,
+      note:'Heat-treated 4340 steel. HRC 50 balances strength and toughness for structural/aerospace use.' },
+    d2_tool:    { name:'Tool Steel D2',   cls:'Tool Steel',       color:'#c0a860', HR:62,
+      note:'Fully hardened D2. HRC 60–65 typical for cutting tools and wear-resistant dies.' },
+    ss316:      { name:'SS 316 (ann.)',   cls:'Stainless Steel',  color:'#80d0c0', HR:25,
+      note:'Low HRC — near the unreliable range for C scale. HRB or Vickers preferred here.' },
+    carburized: { name:'Case-Hrd. Steel', cls:'Surface Treated',  color:'#d08040', HR:58,
+      note:'Only the hardened case (~0.5 mm) is tested. Rockwell excels at surface-layer quality control.' },
+  },
+  HRB: {
+    al_6061: { name:'Al 6061-T6',     cls:'Aluminum',      color:'#70b8d8', HR:60,
+      note:'HRB covers the range where HRC is unreliable. 1/16″ ball for softer alloys.' },
+    brass:   { name:'Brass (70/30)',  cls:'Copper Alloy',  color:'#d0b040', HR:55,
+      note:'Common structural brass. HRB 45–70 typical for wrought brass alloys.' },
+    copper:  { name:'Copper (ann.)', cls:'Metal',          color:'#e07040', HR:35,
+      note:'Very soft — at the low end of HRB. Brinell may give better accuracy.' },
+    nylon_r: { name:'Nylon 6,6 (R)',  cls:'Polymer',       color:'#d0c090', HR:118,
+      note:'Rockwell R scale (larger 0.5″ ball, 60 kgf) is standard for rigid thermoplastics.' },
+  },
+};
+const DMATS = {
+  A: {
+    nat_rubber:{ name:'Natural Rubber',  cls:'Elastomer',               color:'#d0b030', shore:35,
+      note:'Lightly cross-linked polyisoprene. Shore A 20–40 typical. Very soft, high elongation.' },
+    silicone:  { name:'Silicone Rubber', cls:'Elastomer',               color:'#d8d8c8', shore:60,
+      note:'Wide service temperature range (−60 to +200°C). Used in seals, medical devices, food contact.' },
+    neoprene:  { name:'Neoprene',        cls:'Elastomer',               color:'#585858', shore:55,
+      note:'Good oil, ozone, and weather resistance. Shore A 40–65 for general-purpose neoprene.' },
+    tpu:       { name:'TPU (soft)',      cls:'Thermoplastic Elastomer', color:'#c060a0', shore:85,
+      note:'Shore A 80–95 = semi-rigid TPU. Common in phone cases, industrial wheels, wear pads.' },
+  },
+  D: {
+    hdpe:    { name:'HDPE',           cls:'Semicrystalline Polymer', color:'#60c870', shore:62,
+      note:'When Shore A > ~90 the result is unreliable — switch to Shore D. HDPE sits at ~62D.' },
+    pmma:    { name:'PMMA (Acrylic)', cls:'Glassy Polymer',          color:'#a0b8f0', shore:85,
+      note:'Glassy amorphous polymer below Tg (~105°C). Hard and stiff — Shore D near top of scale.' },
+    nylon66: { name:'Nylon 6,6',      cls:'Semicrystalline Polymer', color:'#d0c090', shore:75,
+      note:'Shore D decreases with moisture absorption. Values shown dry-as-molded condition.' },
+    pc:      { name:'Polycarbonate',  cls:'Glassy Polymer',          color:'#90c8e8', shore:80,
+      note:'High-impact glassy polymer. Shore D similar to PMMA but vastly superior toughness.' },
+  },
+};
+
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+let method='brinell';
+let bMat='mild_steel', bLoad=3000;
+let vMat='mild_steel', vLoad=10;
+let rScale='HRC',      rMat='h4340';
+let dScale='A',        dMat='nat_rubber';
+let phase=0, animating=false, raf=null;
+
+const canvas = document.getElementById('hardnessCanvas');
+const ctx    = canvas.getContext('2d');
+
+// ══════════════════════════════════════════════════════
+//  RESIZE
+// ══════════════════════════════════════════════════════
+function resizeCanvas() {
+  const wrap = document.getElementById('canvas-wrap');
+  canvas.width  = wrap.clientWidth  - 20;
+  canvas.height = wrap.clientHeight - 12;
+  drawAll();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// ══════════════════════════════════════════════════════
+//  TAB / MATERIAL SETTERS
+// ══════════════════════════════════════════════════════
+function showTab(m, btn) {
+  method = m;
+  document.querySelectorAll('[id^=pane-][id$=-sb]').forEach(el => el.style.display='none');
+  document.getElementById('pane-'+m+'-sb').style.display='';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  resetTest();
+}
+function setBMat(k){ bMat=k; document.querySelectorAll('[id^=bm-]').forEach(b=>b.classList.remove('active')); document.getElementById('bm-'+k).classList.add('active'); resetTest(); }
+function setBLoad(v){ bLoad=v; document.querySelectorAll('[id^=bl-]').forEach(b=>b.classList.remove('on')); document.getElementById('bl-'+v).classList.add('on'); resetTest(); }
+function setVMat(k){ vMat=k; document.querySelectorAll('[id^=vm-]').forEach(b=>b.classList.remove('active')); document.getElementById('vm-'+k).classList.add('active'); resetTest(); }
+function setVLoad(v){ vLoad=v; document.querySelectorAll('[id^=vl-]').forEach(b=>b.classList.remove('on')); document.getElementById('vl-'+v).classList.add('on'); resetTest(); }
+function setRMat(k){ rMat=k; document.querySelectorAll('[id^=rm-]').forEach(b=>b.classList.remove('active')); document.getElementById('rm-'+k).classList.add('active'); resetTest(); }
+function setRScale(s) {
+  rScale=s;
+  document.querySelectorAll('[id^=rs-]').forEach(b=>b.classList.remove('on'));
+  document.getElementById('rs-'+s).classList.add('on');
+  const grid=document.getElementById('rockwell-mat-grid'); grid.innerHTML='';
+  const keys=Object.keys(RMATS[s]); rMat=keys[0];
+  keys.forEach((k,i)=>{
+    const btn=document.createElement('button');
+    btn.className='mat-btn'+(i===0?' active':''); btn.id='rm-'+k;
+    btn.innerHTML=RMATS[s][k].name.replace(/\s/,'<br>'); btn.onclick=()=>setRMat(k);
+    grid.appendChild(btn);
+  });
+  resetTest();
+}
+function setDMat(k){ dMat=k; document.querySelectorAll('[id^=dm-]').forEach(b=>b.classList.remove('active')); document.getElementById('dm-'+k).classList.add('active'); resetTest(); }
+function setShoreScale(s) {
+  dScale=s;
+  document.querySelectorAll('[id^=ds-]').forEach(b=>b.classList.remove('on'));
+  document.getElementById('ds-'+s).classList.add('on');
+  document.getElementById('dur-probe-info').innerHTML = s==='A'
+    ? '<div style="font-size:0.60rem;color:#4a5878;line-height:1.6;">Probe: truncated frustum (Shore A)<br>Tip dia: 0.79 mm · 35° cone sides</div>'
+    : '<div style="font-size:0.60rem;color:#4a5878;line-height:1.6;">Probe: sharp cone (Shore D)<br>30° included half-angle · pointed tip</div>';
+  const grid=document.getElementById('durometer-mat-grid'); grid.innerHTML='';
+  const keys=Object.keys(DMATS[s]); dMat=keys[0];
+  keys.forEach((k,i)=>{
+    const btn=document.createElement('button');
+    btn.className='mat-btn'+(i===0?' active':''); btn.id='dm-'+k;
+    btn.innerHTML=DMATS[s][k].name; btn.onclick=()=>setDMat(k);
+    grid.appendChild(btn);
+  });
+  resetTest();
+}
+
+// ══════════════════════════════════════════════════════
+//  ANIMATION
+// ══════════════════════════════════════════════════════
+function indentTest() {
+  if (animating) return;
+  phase=0; animating=true;
+  requestAnimationFrame(animate);
+}
+function animate() {
+  if (!animating) return;
+  phase = Math.min(phase+0.011, 1);
+  drawAll(); updateInfoPanel();
+  if (phase < 1) raf=requestAnimationFrame(animate);
+  else animating=false;
+}
+function resetTest() {
+  animating=false;
+  if (raf) { cancelAnimationFrame(raf); raf=null; }
+  phase=0; drawAll(); updateInfoPanel();
+}
+
+// ══════════════════════════════════════════════════════
+//  CANVAS UTILITIES
+// ══════════════════════════════════════════════════════
+function txt(s,x,y,size,color,align,weight) {
+  ctx.font=`${weight||'normal'} ${size}px 'Segoe UI',sans-serif`;
+  ctx.fillStyle=color; ctx.textAlign=align||'left';
+  ctx.fillText(s,x,y);
+}
+
+function dimArrow(x1,y1,x2,y2,label,off) {
+  off=off||14;
+  const dx=x2-x1,dy=y2-y1, len=Math.sqrt(dx*dx+dy*dy); if(len<2)return;
+  const px=-dy/len*off, py=dx/len*off;
+  ctx.strokeStyle='#6080a8'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x1+px*1.5,y1+py*1.5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2+px*1.5,y2+py*1.5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x1+px,y1+py); ctx.lineTo(x2+px,y2+py); ctx.stroke();
+  ctx.setLineDash([]);
+  const ang=Math.atan2(dy,dx), aw=6;
+  ctx.fillStyle='#6080a8';
+  ctx.beginPath(); ctx.moveTo(x1+px,y1+py); ctx.lineTo(x1+px+Math.cos(ang+0.4)*aw,y1+py+Math.sin(ang+0.4)*aw); ctx.lineTo(x1+px+Math.cos(ang-0.4)*aw,y1+py+Math.sin(ang-0.4)*aw); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x2+px,y2+py); ctx.lineTo(x2+px+Math.cos(ang+Math.PI+0.4)*aw,y2+py+Math.sin(ang+Math.PI+0.4)*aw); ctx.lineTo(x2+px+Math.cos(ang+Math.PI-0.4)*aw,y2+py+Math.sin(ang+Math.PI-0.4)*aw); ctx.fill();
+  txt(label,(x1+x2)/2+px*1.1,(y1+y2)/2+py*1.1+4,11,'#8090b8','center');
+}
+
+function specBlock(x,y,w,h,col) {
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x,y,w,h);
+  ctx.fillStyle=col; ctx.fill();
+  ctx.strokeStyle='#2a3050'; ctx.lineWidth=1; ctx.stroke();
+  ctx.clip();
+  ctx.strokeStyle='rgba(0,0,0,0.14)'; ctx.lineWidth=0.8;
+  for(let i=x-h;i<x+w+h;i+=13){ ctx.beginPath(); ctx.moveTo(i,y); ctx.lineTo(i+h,y+h); ctx.stroke(); }
+  ctx.restore();
+}
+
+function fBox(x,y,w,lines) {
+  const lh=19, totalH=lines.length*lh+18;
+  ctx.fillStyle='rgba(16,18,36,0.9)'; ctx.strokeStyle='#2e3858'; ctx.lineWidth=1;
+  rrect(x,y,w,totalH,6); ctx.fill(); ctx.stroke();
+  lines.forEach((l,i)=>{
+    ctx.font=`${l.bold?'700':'400'} ${l.size||12}px 'Segoe UI',monospace`;
+    ctx.fillStyle=l.color||'#8090b8'; ctx.textAlign='left';
+    ctx.fillText(l.text||'',x+10,y+10+lh*(i+0.78));
+  });
+}
+
+function rrect(x,y,w,h,r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+}
+
+function scaleBar(x,y,h,val,maxVal,label,color) {
+  const bw=14;
+  ctx.fillStyle='#1a1d30'; ctx.strokeStyle='#2a2d45'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.rect(x,y,bw,h); ctx.fill(); ctx.stroke();
+  const fh=Math.min(val/maxVal,1)*h;
+  ctx.fillStyle=color; ctx.globalAlpha=0.65;
+  ctx.beginPath(); ctx.rect(x,y+h-fh,bw,fh); ctx.fill(); ctx.globalAlpha=1;
+  const iy=y+h-fh;
+  ctx.strokeStyle='#fff'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(x-3,iy); ctx.lineTo(x+bw+3,iy); ctx.stroke();
+  txt(label,x+bw/2,y-6,10,'#7080a0','center','700');
+  txt('0',x+bw+5,y+h+4,9,'#5060a0','left');
+  txt(maxVal.toString(),x+bw+5,y+4,9,'#5060a0','left');
+  txt(Math.round(val).toString(),x+bw+5,iy+4,11,'#e0c070','left','700');
+}
+
+function dialGauge(cx,cy,R,val,maxVal,scaleLabel,reading,valLabel) {
+  // Housing
+  ctx.fillStyle='#1a1e30'; ctx.strokeStyle='#3a4060'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(cx,cy,R+7,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  // Face
+  ctx.fillStyle='#f4f0e0';
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#c0b880'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
+  // Ticks
+  for(let v=0;v<=maxVal;v+=maxVal/10) {
+    const a=(v/maxVal)*Math.PI*1.5-Math.PI*0.75;
+    const isMaj=true, r1=R-2, r2=R-12;
+    ctx.strokeStyle='#303030'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(cx+Math.sin(a)*r1,cy-Math.cos(a)*r1); ctx.lineTo(cx+Math.sin(a)*r2,cy-Math.cos(a)*r2); ctx.stroke();
+    txt(Math.round(v).toString(),cx+Math.sin(a)*(r2-9),cy-Math.cos(a)*(r2-9)+3,8,'#303030','center');
+  }
+  for(let v=0;v<=maxVal;v+=maxVal/20) {
+    const a=(v/maxVal)*Math.PI*1.5-Math.PI*0.75;
+    ctx.strokeStyle='#888'; ctx.lineWidth=0.8;
+    ctx.beginPath(); ctx.moveTo(cx+Math.sin(a)*(R-2),cy-Math.cos(a)*(R-2)); ctx.lineTo(cx+Math.sin(a)*(R-7),cy-Math.cos(a)*(R-7)); ctx.stroke();
+  }
+  // Needle
+  const na=(val/maxVal)*Math.PI*1.5-Math.PI*0.75;
+  ctx.strokeStyle='#cc2020'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(cx-Math.sin(na)*7,cy+Math.cos(na)*7); ctx.lineTo(cx+Math.sin(na)*(R-12),cy-Math.cos(na)*(R-12)); ctx.stroke();
+  ctx.fillStyle='#404040'; ctx.beginPath(); ctx.arc(cx,cy,4,0,Math.PI*2); ctx.fill();
+  txt(scaleLabel,cx,cy+14,9,'#602020','center','700');
+  txt(reading,cx,cy+25,13,'#202020','center','700');
+  if(valLabel) txt(valLabel,cx,cy-R-12,10,'#8090a8','center','700');
+}
+
+// ══════════════════════════════════════════════════════
+//  DRAW BRINELL
+// ══════════════════════════════════════════════════════
+function drawBrinell(W,H) {
+  const mat=BMATS[bMat], F=bLoad, Dmm=10;
+  const ballR=38, SCALE=7.6; // px per mm
+  const cx=W*0.32, surfY=H*0.50, specW=230, specH=H*0.35;
+
+  // Compute indent geometry
+  const inner = Dmm - 2*F/(Math.PI*Dmm*mat.HB);
+  const d_mm  = inner<0.1 ? Dmm*0.92 : Math.sqrt(Math.max(0, Dmm*Dmm-inner*inner));
+  const h_mm  = (Dmm - Math.sqrt(Math.max(0, Dmm*Dmm-d_mm*d_mm)))/2;
+  const d_vis = d_mm*SCALE, h_vis=h_mm*SCALE;
+  const dRatio= d_mm/Dmm;
+  const invalid = dRatio>0.60 || dRatio<0.24;
+
+  // Ball position
+  const startY = surfY-ballR-32;
+  let ballY, depthNow=0;
+  if      (phase<=0.35) { ballY=startY+(phase/0.35)*32; }
+  else if (phase<=0.60) { const t=(phase-0.35)/0.25; ballY=surfY-ballR+t*h_vis; depthNow=Math.max(0,ballY+ballR-surfY); }
+  else if (phase<=0.80) { const t=(phase-0.60)/0.20; ballY=surfY-ballR+h_vis*(1-t); depthNow=Math.max(0,ballY+ballR-surfY); }
+  else                  { ballY=startY; }
+
+  const resid = phase>=1 ? h_vis*0.86 : (phase>0.80 ? h_vis*0.86*(phase-0.80)/0.20 : 0);
+  const showM = phase>0.80;
+
+  // Draw specimen with indent
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx-specW/2, surfY);
+  const useDepth = depthNow>0.5 ? depthNow : resid;
+  if(useDepth>0.5) {
+    ctx.lineTo(cx-d_vis/2, surfY);
+    ctx.quadraticCurveTo(cx, surfY+useDepth*1.25, cx+d_vis/2, surfY);
+  }
+  ctx.lineTo(cx+specW/2, surfY);
+  ctx.lineTo(cx+specW/2, surfY+specH);
+  ctx.lineTo(cx-specW/2, surfY+specH);
+  ctx.closePath();
+  ctx.fillStyle=mat.color; ctx.fill();
+  ctx.strokeStyle='#2a3050'; ctx.lineWidth=1; ctx.stroke();
+  ctx.clip();
+  ctx.strokeStyle='rgba(0,0,0,0.14)'; ctx.lineWidth=0.8;
+  for(let i=cx-specW/2-specH;i<cx+specW/2+specH;i+=13){ ctx.beginPath(); ctx.moveTo(i,surfY); ctx.lineTo(i+specH,surfY+specH); ctx.stroke(); }
+  ctx.restore();
+
+  // Draw ball
+  const grad=ctx.createRadialGradient(cx-10,ballY-10,3,cx,ballY,ballR);
+  grad.addColorStop(0,'#c8d8f0'); grad.addColorStop(0.5,'#7080a0'); grad.addColorStop(1,'#303848');
+  ctx.beginPath(); ctx.arc(cx,ballY,ballR,0,Math.PI*2);
+  ctx.fillStyle=grad; ctx.fill();
+  ctx.strokeStyle='#4060a0'; ctx.lineWidth=1.5; ctx.stroke();
+
+  // D label
+  if(phase<0.80) dimArrow(cx-ballR,ballY,cx+ballR,ballY,`D=${Dmm} mm`,-20);
+
+  // d label after indent
+  if(showM && resid>1) {
+    dimArrow(cx-d_vis/2,surfY+5,cx+d_vis/2,surfY+5,`d = ${d_mm.toFixed(2)} mm`,20);
+    // h arrow on side
+    const sx=cx+specW/2+14;
+    ctx.strokeStyle='#e0c050'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(sx,surfY); ctx.lineTo(sx,surfY+resid); ctx.stroke();
+    ctx.fillStyle='#e0c050';
+    ctx.beginPath(); ctx.moveTo(sx,surfY); ctx.lineTo(sx-3,surfY+7); ctx.lineTo(sx+3,surfY+7); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(sx,surfY+resid); ctx.lineTo(sx-3,surfY+resid-7); ctx.lineTo(sx+3,surfY+resid-7); ctx.fill();
+    txt(`h=${h_mm.toFixed(2)}mm`,sx+5,surfY+resid/2+4,10,'#e0c050','left');
+  }
+
+  // Force arrow
+  if(phase>0.05&&phase<0.80) {
+    ctx.strokeStyle='#e08030'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(cx,ballY-ballR-28); ctx.lineTo(cx,ballY-ballR-5); ctx.stroke();
+    ctx.fillStyle='#e08030';
+    ctx.beginPath(); ctx.moveTo(cx,ballY-ballR-5); ctx.lineTo(cx-5,ballY-ballR-15); ctx.lineTo(cx+5,ballY-ballR-15); ctx.fill();
+    txt(`F = ${F} kgf`,cx+8,ballY-ballR-20,11,'#e09040','left');
+  }
+
+  // Titles
+  txt('BRINELL HARDNESS TEST',cx,H*0.08,13,'#6070a0','center','700');
+  txt('10 mm tungsten carbide ball · ASTM E10',cx,H*0.08+18,10,'#405070','center');
+
+  // Right panel
+  const rx=W*0.60, rw=W-rx-20;
+  txt('HBN',rx+rw/2,H*0.10,11,'#8090a8','center','700');
+  txt(mat.HB.toString(),rx+rw/2,H*0.10+40,30,'#e0b060','center','700');
+
+  if(invalid) txt(`⚠ d/D=${dRatio.toFixed(2)} — outside 0.25–0.60`,rx,H*0.10+62,10,'#e06060','left');
+
+  fBox(rx,H*0.22,rw,[
+    {text:'HBN  =       2F         ', size:11, color:'#c0d0f0', bold:true},
+    {text:'       ─────────────────', size:11, color:'#506090'},
+    {text:'       πD(D − √(D²−d²))', size:11, color:'#c0d0f0'},
+    {text:'', size:6},
+    {text:`F = ${F} kgf  (applied load)`,  size:11, color:'#e09040'},
+    {text:`D = ${Dmm} mm  (ball diameter)`, size:11, color:'#9090c0'},
+    {text:`d = ${d_mm.toFixed(2)} mm  (indent dia.)`, size:11, color:'#e0c080'},
+    {text:`h = ${h_mm.toFixed(2)} mm  (indent depth)`, size:11, color:'#e0c080'},
+  ]);
+
+  const uts=Math.round(3.45*mat.HB);
+  txt('~UTS ≈ 3.45 × HBN (steels)',rx+rw/2,H*0.65,10,'#7080a0','center');
+  txt(`≈ ${uts} MPa`,rx+rw/2,H*0.65+18,14,'#b0d870','center','700');
+
+  scaleBar(rx+rw-26,H*0.73,H*0.22,mat.HB,650,'HBN',mat.color);
+}
+
+// ══════════════════════════════════════════════════════
+//  DRAW VICKERS
+// ══════════════════════════════════════════════════════
+function drawVickers(W,H) {
+  const mat=VMATS[vMat], F=vLoad, HV=mat.HV;
+  const d_mm=Math.sqrt(1.854*F/HV);
+  const h_mm=d_mm/(2*Math.sqrt(2)*Math.tan(68*Math.PI/180));
+  const SCALE=130;
+  const d_vis=d_mm*SCALE, h_vis=h_mm*SCALE;
+  const halfAng=68*Math.PI/180;
+
+  const cx=W*0.28, surfY=H*0.52, specW=220, specH=H*0.33;
+
+  let tipY, depthNow=0;
+  const tipRest=surfY-75;
+  if      (phase<=0.35) { tipY=tipRest+(phase/0.35)*35; }
+  else if (phase<=0.60) { const t=(phase-0.35)/0.25; tipY=surfY+t*h_vis; depthNow=Math.max(0,tipY-surfY); }
+  else if (phase<=0.80) { const t=(phase-0.60)/0.20; tipY=surfY+h_vis*(1-t); depthNow=Math.max(0,tipY-surfY); }
+  else                  { tipY=tipRest; }
+
+  const resid=phase>=1?h_vis*0.90:(phase>0.80?h_vis*0.90*(phase-0.80)/0.20:0);
+  const showM=phase>0.80;
+
+  // Specimen
+  ctx.save();
+  const indW=depthNow>0.5?depthNow*1.0:resid;
+  ctx.beginPath();
+  ctx.moveTo(cx-specW/2,surfY);
+  if(indW>0.5){ ctx.lineTo(cx-indW,surfY); ctx.lineTo(cx,surfY+indW*1.8); ctx.lineTo(cx+indW,surfY); }
+  ctx.lineTo(cx+specW/2,surfY);
+  ctx.lineTo(cx+specW/2,surfY+specH); ctx.lineTo(cx-specW/2,surfY+specH);
+  ctx.closePath();
+  ctx.fillStyle=mat.color; ctx.fill();
+  ctx.strokeStyle='#2a3050'; ctx.lineWidth=1; ctx.stroke();
+  ctx.clip();
+  ctx.strokeStyle='rgba(0,0,0,0.14)'; ctx.lineWidth=0.8;
+  for(let i=cx-specW/2-specH;i<cx+specW/2+specH;i+=13){ ctx.beginPath(); ctx.moveTo(i,surfY); ctx.lineTo(i+specH,surfY+specH); ctx.stroke(); }
+  ctx.restore();
+
+  // Pyramid
+  const baseY=Math.min(tipY-55,surfY-8);
+  const hw=(baseY-tipY)*Math.tan(halfAng);
+  ctx.fillStyle='#c8b040'; ctx.strokeStyle='#806810'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(cx,tipY); ctx.lineTo(cx-hw,baseY); ctx.lineTo(cx+hw,baseY); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // face highlight
+  ctx.fillStyle='rgba(255,230,80,0.12)';
+  ctx.beginPath(); ctx.moveTo(cx,tipY); ctx.lineTo(cx-hw,baseY); ctx.lineTo(cx+hw,baseY); ctx.closePath(); ctx.fill();
+
+  // 136° label
+  if(phase<0.40) {
+    ctx.strokeStyle='rgba(200,180,60,0.45)'; ctx.lineWidth=0.8; ctx.setLineDash([2,3]);
+    ctx.beginPath(); ctx.arc(cx,tipY,22,-halfAng,Math.PI+halfAng,true); ctx.stroke(); ctx.setLineDash([]);
+    txt('136°',cx+26,tipY+5,10,'#a08030','left');
+  }
+
+  // Force arrow
+  if(phase>0.05&&phase<0.80){
+    ctx.strokeStyle='#e08030'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(cx,baseY-30); ctx.lineTo(cx,baseY-5); ctx.stroke();
+    ctx.fillStyle='#e08030'; ctx.beginPath(); ctx.moveTo(cx,baseY-5); ctx.lineTo(cx-5,baseY-15); ctx.lineTo(cx+5,baseY-15); ctx.fill();
+    txt(`F = ${F} kgf`,cx+8,baseY-18,11,'#e09040','left');
+  }
+
+  // d measurement
+  if(showM&&resid>0.5) dimArrow(cx-d_vis/2,surfY+6,cx+d_vis/2,surfY+6,`d = ${d_mm.toFixed(4)} mm`,20);
+
+  // Top view inset
+  const tvx=cx+specW/2+70, tvy=surfY-15, tvR=Math.max(d_vis*1.3,18);
+  txt('Top view',tvx,tvy-tvR-10,10,'#506070','center');
+  ctx.fillStyle='rgba('+hexRGB(mat.color)+',0.25)';
+  ctx.strokeStyle='#2a3050'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.rect(tvx-tvR*1.4,tvy-tvR*1.4,tvR*2.8,tvR*2.8); ctx.fill(); ctx.stroke();
+  const id=(showM?d_vis/2:(depthNow/Math.max(h_vis,0.01))*d_vis/2);
+  if(id>2) {
+    ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.strokeStyle='#a09040'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(tvx,tvy-id); ctx.lineTo(tvx+id,tvy); ctx.lineTo(tvx,tvy+id); ctx.lineTo(tvx-id,tvy); ctx.closePath(); ctx.fill(); ctx.stroke();
+    if(showM){ ctx.strokeStyle='#8090c0'; ctx.lineWidth=1; ctx.setLineDash([2,2]); ctx.beginPath(); ctx.moveTo(tvx-id-6,tvy); ctx.lineTo(tvx+id+6,tvy); ctx.stroke(); ctx.setLineDash([]); txt('d',tvx+id+8,tvy+4,10,'#8090c0','left'); }
+  }
+
+  txt('VICKERS HARDNESS TEST',cx,H*0.08,13,'#6070a0','center','700');
+  txt('136° diamond pyramid · ASTM E92',cx,H*0.08+18,10,'#405070','center');
+
+  const rx=W*0.60, rw=W-rx-20;
+  txt('HV'+F,rx+rw/2,H*0.10,11,'#8090a8','center','700');
+  txt(HV.toString(),rx+rw/2,H*0.10+40,30,'#e0b060','center','700');
+
+  fBox(rx,H*0.22,rw,[
+    {text:'HV  =  1.854 × F ', size:12, color:'#c0d0f0', bold:true},
+    {text:'            ────────', size:12, color:'#506090'},
+    {text:'               d²  ', size:12, color:'#c0d0f0'},
+    {text:'', size:6},
+    {text:'d = mean diagonal (mm)',      size:11, color:'#9090c0'},
+    {text:'F = load (kgf)',              size:11, color:'#e09040'},
+    {text:'θ = 136° (face-to-face)',     size:11, color:'#9090c0'},
+    {text:`d = ${d_mm.toFixed(4)} mm`, size:11, color:'#e0c080'},
+    {text:`HV${F} = ${HV}`,            size:11, color:'#e0c080'},
+  ]);
+
+  txt('~UTS ≈ 3.3 × HV (steels)',rx+rw/2,H*0.65,10,'#7080a0','center');
+  txt(`≈ ${Math.round(3.3*HV)} MPa`,rx+rw/2,H*0.65+18,14,'#b0d870','center','700');
+  scaleBar(rx+rw-26,H*0.73,H*0.22,HV,1000,'HV',mat.color);
+}
+
+// ══════════════════════════════════════════════════════
+//  DRAW ROCKWELL
+// ══════════════════════════════════════════════════════
+function drawRockwell(W,H) {
+  const mat=RMATS[rScale][rMat], HR=mat.HR, isC=(rScale==='HRC');
+  const majorLoad=isC?150:100;
+  const e_mm=(((isC?100:130)-HR)*0.002);
+  const e_vis=e_mm*200;
+  const el_vis=e_vis*1.3;
+  const h_minor=8;
+  const h_major=h_minor+e_vis+el_vis;
+
+  const cx=W*0.32, surfY=H*0.58, specW=220, specH=H*0.28;
+
+  let depthNow=0;
+  let phaseLabel;
+  if(phase<=0.18)  { depthNow=0; phaseLabel='Approaching specimen'; }
+  else if(phase<=0.40) { depthNow=h_minor*(phase-0.18)/0.22; phaseLabel='Minor load applied (10 kgf) — zero reference'; }
+  else if(phase<=0.62) { const t=(phase-0.40)/0.22; depthNow=h_minor+(h_major-h_minor)*t; phaseLabel=`Major load applied (${majorLoad} kgf)`; }
+  else if(phase<=0.80) { const t=(phase-0.62)/0.18; depthNow=h_major-el_vis*t; phaseLabel='Removing major load — elastic recovery'; }
+  else                 { depthNow=h_minor+e_vis; phaseLabel=`Reading: HR${rScale} = ${HR}`; }
+
+  // Specimen
+  ctx.save();
+  const cw=depthNow*0.55;
+  ctx.beginPath();
+  ctx.moveTo(cx-specW/2,surfY);
+  if(depthNow>0.5){ ctx.lineTo(cx-cw,surfY); ctx.lineTo(cx,surfY+depthNow); ctx.lineTo(cx+cw,surfY); }
+  ctx.lineTo(cx+specW/2,surfY); ctx.lineTo(cx+specW/2,surfY+specH); ctx.lineTo(cx-specW/2,surfY+specH);
+  ctx.closePath();
+  ctx.fillStyle=mat.color; ctx.fill();
+  ctx.strokeStyle='#2a3050'; ctx.lineWidth=1; ctx.stroke();
+  ctx.clip();
+  ctx.strokeStyle='rgba(0,0,0,0.14)'; ctx.lineWidth=0.8;
+  for(let i=cx-specW/2-specH;i<cx+specW/2+specH;i+=13){ ctx.beginPath(); ctx.moveTo(i,surfY); ctx.lineTo(i+specH,surfY+specH); ctx.stroke(); }
+  ctx.restore();
+
+  // Indenter shaft
+  const tipY=surfY+depthNow-2;
+  const shaftTop=H*0.25;
+  ctx.fillStyle='#404050'; ctx.strokeStyle='#303040'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.rect(cx-5,shaftTop,10,tipY-shaftTop); ctx.fill(); ctx.stroke();
+
+  // Tip
+  if(isC) {
+    ctx.fillStyle='#f0f0c0'; ctx.strokeStyle='#b0b060'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cx,tipY); ctx.lineTo(cx-10,tipY-18); ctx.lineTo(cx+10,tipY-18); ctx.closePath(); ctx.fill(); ctx.stroke();
+    txt('120°',cx+12,tipY-6,9,'#a0a050','left');
+  } else {
+    const br=8;
+    ctx.fillStyle='#d8d8d8'; ctx.strokeStyle='#909090'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(cx,tipY-br+2,br,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  }
+
+  // Spring
+  if(phase>0.15) {
+    const sN=7, sTop=shaftTop-14, sBot=shaftTop;
+    ctx.strokeStyle=phase>0.40?'#e08030':'#6080c0'; ctx.lineWidth=1.8;
+    ctx.beginPath();
+    for(let i=0;i<=sN;i++){ const yy=sTop+(sBot-sTop)*i/sN, xx=cx+(i%2===0?-8:8); if(i===0)ctx.moveTo(cx,yy);else ctx.lineTo(xx,yy); }
+    ctx.lineTo(cx,sBot); ctx.stroke();
+  }
+
+  // Depth reference lines
+  if(phase>0.38) {
+    const refY=surfY+h_minor;
+    ctx.strokeStyle='rgba(90,140,210,0.65)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(cx-specW/2-8,refY); ctx.lineTo(cx+specW/2+40,refY); ctx.stroke(); ctx.setLineDash([]);
+    txt('minor load ref.',cx+specW/2+3,refY+4,9,'#5070a0','left');
+  }
+  if(phase>0.80) {
+    const permY=surfY+depthNow;
+    ctx.strokeStyle='rgba(220,130,40,0.7)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(cx-specW/2-8,permY); ctx.lineTo(cx+specW/2+40,permY); ctx.stroke();
+    const ex=cx+specW/2+35;
+    ctx.strokeStyle='#e0c050'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(ex,surfY+h_minor); ctx.lineTo(ex,permY); ctx.stroke();
+    ctx.fillStyle='#e0c050';
+    ctx.beginPath(); ctx.moveTo(ex,surfY+h_minor); ctx.lineTo(ex-3,surfY+h_minor+7); ctx.lineTo(ex+3,surfY+h_minor+7); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(ex,permY); ctx.lineTo(ex-3,permY-7); ctx.lineTo(ex+3,permY-7); ctx.fill();
+    txt(`e=${e_mm.toFixed(3)}mm`,ex+5,(surfY+h_minor+permY)/2+4,10,'#e0c050','left');
+  }
+
+  // Gauge
+  const gx=W*0.50, gy=H*0.15, gR=42;
+  const gVal=phase>=0.80?HR:(phase>0.40?HR*(phase-0.40)/0.40:0);
+  dialGauge(gx,gy,gR,gVal,(isC?100:130),`HR${rScale}`,phase>=0.80?HR.toString():'–',null);
+
+  txt(phaseLabel,cx,H*0.97,11,'#6070a0','center');
+  txt('ROCKWELL HARDNESS TEST',cx,H*0.08,13,'#6070a0','center','700');
+  txt(isC?'Brale diamond cone · ASTM E18':'1/16″ ball · B scale · ASTM E18',cx,H*0.08+18,10,'#405070','center');
+
+  const rx=W*0.60, rw=W-rx-20;
+  txt('HR'+rScale,rx+rw/2,H*0.10,11,'#8090a8','center','700');
+  txt(HR.toString(),rx+rw/2,H*0.10+40,30,'#e0b060','center','700');
+
+  fBox(rx,H*0.22,rw, isC ? [
+    {text:`HR${rScale} = 100 − e/0.002`, size:11, color:'#c0d0f0', bold:true},
+    {text:'', size:6},
+    {text:'e = permanent depth (mm)',    size:11, color:'#9090c0'},
+    {text:'  from minor load reference', size:11, color:'#9090c0'},
+    {text:'', size:6},
+    {text:'Minor load:  10 kgf',         size:11, color:'#6080b0'},
+    {text:`Major load: ${majorLoad} kgf`, size:11, color:'#e09040'},
+    {text:'Indenter: 120° diamond cone', size:10, color:'#8090b0'},
+    {text:`e = ${e_mm.toFixed(3)} mm`,  size:11, color:'#e0c080'},
+  ] : [
+    {text:`HR${rScale} = 130 − e/0.002`, size:11, color:'#c0d0f0', bold:true},
+    {text:'', size:6},
+    {text:'e = permanent depth (mm)',    size:11, color:'#9090c0'},
+    {text:'  from minor load reference', size:11, color:'#9090c0'},
+    {text:'', size:6},
+    {text:'Minor load:  10 kgf',         size:11, color:'#6080b0'},
+    {text:`Major load: ${majorLoad} kgf`, size:11, color:'#e09040'},
+    {text:'Indenter: 1/16″ steel ball',  size:10, color:'#8090b0'},
+    {text:`e = ${e_mm.toFixed(3)} mm`,  size:11, color:'#e0c080'},
+  ]);
+
+  const hbn_approx=Math.round(2*HR+100);
+  txt('~HBN ≈ 2×HRC+100 (rough)',rx+rw/2,H*0.65,10,'#7080a0','center');
+  txt(`≈ ${hbn_approx} HBN`,rx+rw/2,H*0.65+18,14,'#e0c080','center','700');
+  scaleBar(rx+rw-26,H*0.73,H*0.22,HR,(isC?100:130),'HR'+rScale,mat.color);
+}
+
+// ══════════════════════════════════════════════════════
+//  DRAW DUROMETER
+// ══════════════════════════════════════════════════════
+function drawDurometer(W,H) {
+  const mat=DMATS[dScale][dMat], shore=mat.shore, isA=(dScale==='A');
+  const h_mm=2.5*(100-shore)/100;
+  const SCALE=58;
+  const h_vis=h_mm*SCALE;
+  const F_N=isA ? 0.0098*(550+75*shore) : 0.0098*(445*shore);
+
+  const cx=W*0.30, specTop=H*0.62, specH=H*0.26, specW=240;
+  const footW=64, footH=8, probeH=18;
+  const bodyW=28, bodyH=68, gR=40;
+  const footRestY=specTop-footH-32, footContactY=specTop-footH;
+
+  let footY, depthNow=0;
+  if      (phase<=0.35) { footY=footRestY+(phase/0.35)*(footContactY-footRestY); }
+  else if (phase<=0.72) { footY=footContactY; depthNow=h_vis*(phase-0.35)/0.37; }
+  else                  { footY=footContactY; depthNow=h_vis; }
+
+  const inContact=(footY>=footContactY-1);
+
+  // Specimen
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx-specW/2, specTop);
+  if(isA && depthNow>0.5) {
+    // Rubber: surface deforms / bulges slightly around probe
+    const fw=6, fr=fw*3.5;
+    ctx.lineTo(cx-fr*2,specTop);
+    ctx.quadraticCurveTo(cx-fr,specTop-5,cx-fw,specTop+depthNow*0.25);
+    ctx.lineTo(cx-fw,specTop+depthNow); ctx.lineTo(cx+fw,specTop+depthNow);
+    ctx.lineTo(cx+fw,specTop+depthNow*0.25);
+    ctx.quadraticCurveTo(cx+fr,specTop-5,cx+fr*2,specTop);
+  } else if(!isA && depthNow>0.5) {
+    // Rigid: clean V-indent
+    const cw=depthNow*Math.tan(30*Math.PI/180);
+    ctx.lineTo(cx-cw,specTop); ctx.lineTo(cx,specTop+depthNow); ctx.lineTo(cx+cw,specTop);
+  }
+  ctx.lineTo(cx+specW/2,specTop);
+  ctx.lineTo(cx+specW/2,specTop+specH); ctx.lineTo(cx-specW/2,specTop+specH);
+  ctx.closePath();
+  ctx.fillStyle=mat.color; ctx.fill();
+  ctx.strokeStyle='#2a3050'; ctx.lineWidth=1; ctx.stroke();
+  ctx.clip();
+  if(isA) {
+    // rubber texture: horizontal lines
+    ctx.strokeStyle='rgba(0,0,0,0.08)'; ctx.lineWidth=1;
+    for(let yy=specTop+8;yy<specTop+specH;yy+=10){ ctx.beginPath(); ctx.moveTo(cx-specW/2,yy); ctx.lineTo(cx+specW/2,yy); ctx.stroke(); }
+  } else {
+    ctx.strokeStyle='rgba(0,0,0,0.14)'; ctx.lineWidth=0.8;
+    for(let i=cx-specW/2-specH;i<cx+specW/2+specH;i+=13){ ctx.beginPath(); ctx.moveTo(i,specTop); ctx.lineTo(i+specH,specTop+specH); ctx.stroke(); }
+  }
+  ctx.restore();
+
+  // Device — gauge
+  const gcy=footY-probeH-bodyH-gR-4;
+  ctx.fillStyle='#c8c8b0'; ctx.strokeStyle='#808060'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(cx,gcy,gR+7,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  const shoreNow=phase>=0.72?shore:(depthNow/Math.max(h_vis,0.01))*shore;
+  dialGauge(cx,gcy,gR,shoreNow,100,`Shore ${dScale}`,phase>=0.72?shore.toString():'–',null);
+
+  // Body
+  const bodyTop=gcy+gR+6;
+  ctx.fillStyle='#909090'; ctx.strokeStyle='#606060'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.rect(cx-bodyW/2,bodyTop,bodyW,bodyH); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='rgba(0,0,0,0.1)';
+  for(let yy=bodyTop+5;yy<bodyTop+bodyH;yy+=5){ ctx.beginPath(); ctx.rect(cx-bodyW/2+3,yy,bodyW-6,2); ctx.fill(); }
+
+  // Connector rod (body to foot)
+  ctx.strokeStyle='#505050'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(cx,bodyTop+bodyH); ctx.lineTo(cx,footY); ctx.stroke();
+
+  // Presser foot
+  ctx.fillStyle='#707070'; ctx.strokeStyle='#404040'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.rect(cx-footW/2,footY,footW,footH); ctx.fill(); ctx.stroke();
+
+  // Probe tip
+  const pbY=footY+footH;
+  if(isA) {
+    // Shore A: truncated frustum — wider at base, small flat tip
+    ctx.fillStyle='#d8c870'; ctx.strokeStyle='#a08830'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cx-2,pbY+probeH); ctx.lineTo(cx-6,pbY); ctx.lineTo(cx+6,pbY); ctx.lineTo(cx+2,pbY+probeH); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle='#c0a020'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(cx-2,pbY+probeH); ctx.lineTo(cx+2,pbY+probeH); ctx.stroke();
+    txt('0.79mm tip',cx+10,pbY+probeH+4,9,'#807840','left');
+  } else {
+    // Shore D: sharp cone
+    ctx.fillStyle='#e8e8c0'; ctx.strokeStyle='#a0a058'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cx,pbY+probeH); ctx.lineTo(cx-8,pbY); ctx.lineTo(cx+8,pbY); ctx.closePath(); ctx.fill(); ctx.stroke();
+    txt('30° half-angle',cx+10,pbY+probeH/2,9,'#807840','left');
+  }
+
+  // h depth dimension
+  if(phase>0.70) {
+    const dx=cx+footW/2+20;
+    ctx.strokeStyle='#e0c050'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(dx,specTop); ctx.lineTo(dx,specTop+h_vis); ctx.stroke();
+    ctx.fillStyle='#e0c050';
+    ctx.beginPath(); ctx.moveTo(dx,specTop); ctx.lineTo(dx-3,specTop+7); ctx.lineTo(dx+3,specTop+7); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(dx,specTop+h_vis); ctx.lineTo(dx-3,specTop+h_vis-7); ctx.lineTo(dx+3,specTop+h_vis-7); ctx.fill();
+    txt(`h=${h_mm.toFixed(3)}mm`,dx+5,specTop+h_vis/2+4,10,'#e0c050','left');
+  }
+
+  txt('DUROMETER TEST',cx,H*0.07,13,'#6070a0','center','700');
+  txt(isA?'Shore A — elastomers & soft rubbers  (ASTM D2240)':'Shore D — rigid plastics & hard rubber  (ASTM D2240)',cx,H*0.07+18,10,'#405070','center');
+
+  // Right panel
+  const rx=W*0.60, rw=W-rx-20;
+  txt(`Shore ${dScale}`,rx+rw/2,H*0.10,11,'#8090a8','center','700');
+  txt(shore.toString(),rx+rw/2,H*0.10+40,30,'#e0b060','center','700');
+
+  fBox(rx,H*0.22,rw,[
+    {text:`Shore ${dScale} = 100 − h/0.025`, size:11, color:'#c0d0f0', bold:true},
+    {text:'', size:6},
+    {text:'h = penetration depth (mm)', size:11, color:'#9090c0'},
+    {text:'h ∈ [0, 2.5 mm]',           size:11, color:'#9090c0'},
+    {text:'', size:6},
+    {text:isA?'Probe: truncated frustum':'Probe: sharp 30° cone', size:10, color:'#8090b0'},
+    {text:isA?'Tip: Ø0.79 mm · 35° sides':'Tip: pointed (< 0.1 mm)', size:10, color:'#8090b0'},
+    {text:`Spring F = ${F_N.toFixed(1)} N`, size:11, color:'#e09040'},
+    {text:`h = ${h_mm.toFixed(3)} mm`, size:11, color:'#e0c080'},
+  ]);
+
+  // Typical ranges bar chart
+  const rTop=H*0.64;
+  txt('Typical Shore ranges:',rx,rTop-2,9,'#607080','left','700');
+  const rangesA=[{n:'Gum rubber',lo:20,hi:40},{n:'Silicone/Neoprene',lo:40,hi:65},{n:'Hard rubber',lo:65,hi:85},{n:'TPU/EVA',lo:70,hi:92}];
+  const rangesD=[{n:'LDPE/Foam',lo:40,hi:55},{n:'HDPE/Nylon',lo:55,hi:80},{n:'PMMA/PC',lo:75,hi:92},{n:'Rigid thermoset',lo:85,hi:98}];
+  const ranges=isA?rangesA:rangesD;
+  const bx=rx+86, bww=rw-90;
+  ranges.forEach((r,i)=>{
+    const by=rTop+13+i*16;
+    ctx.fillStyle='#1e2230'; ctx.beginPath(); ctx.rect(bx,by-6,bww,7); ctx.fill();
+    ctx.fillStyle='rgba(160,120,40,0.38)'; ctx.beginPath(); ctx.rect(bx+r.lo/100*bww,by-6,(r.hi-r.lo)/100*bww,7); ctx.fill();
+    if(shore>=r.lo&&shore<=r.hi){ ctx.fillStyle='#e0b060'; ctx.beginPath(); ctx.rect(bx+shore/100*bww-1.5,by-8,3,11); ctx.fill(); }
+    txt(r.n,rx,by,9,'#506070','left');
+    txt(`${r.lo}–${r.hi}`,bx+bww+4,by,9,'#405060','left');
+  });
+
+  scaleBar(rx+rw-26,H*0.82,H*0.14,shore,100,`Shore ${dScale}`,mat.color);
+}
+
+// ══════════════════════════════════════════════════════
+//  DRAW ALL
+// ══════════════════════════════════════════════════════
+function hexRGB(hex){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return `${r},${g},${b}`; }
+
+function drawAll() {
+  const W=canvas.width, H=canvas.height;
+  if(!W||!H) return;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0e1020'; ctx.fillRect(0,0,W,H);
+  if     (method==='brinell')   drawBrinell(W,H);
+  else if(method==='vickers')   drawVickers(W,H);
+  else if(method==='rockwell')  drawRockwell(W,H);
+  else if(method==='durometer') drawDurometer(W,H);
+}
+
+// ══════════════════════════════════════════════════════
+//  INFO PANEL
+// ══════════════════════════════════════════════════════
+function setCard(i,lbl,val,unit,cls){
+  const c=document.getElementById('card'+i);
+  c.className='prop-card'+(cls?' '+cls:'');
+  document.getElementById('lbl'+i).textContent=lbl;
+  document.getElementById('val'+i).textContent=val;
+  document.getElementById('unt'+i).textContent=unit||'';
+}
+function updateInfoPanel() {
+  if(method==='brinell') {
+    const m=BMATS[bMat];
+    const inn=10-2*bLoad/(Math.PI*10*m.HB);
+    const d=(inn<0.1?(10*0.92):Math.sqrt(Math.max(0,100-inn*inn))).toFixed(2);
+    setCard(0,'HBN',m.HB,'');
+    setCard(1,'Indenter','10 mm ball','WC');
+    setCard(2,'Load',bLoad,'kgf');
+    setCard(3,'Indent d',d,'mm');
+    setCard(4,'~UTS',Math.round(3.45*m.HB),'MPa','ok');
+    setCard(5,'Class',m.cls,'');
+    document.getElementById('scenario-note').textContent=m.note;
+  } else if(method==='vickers') {
+    const m=VMATS[vMat];
+    const d=Math.sqrt(1.854*vLoad/m.HV).toFixed(4);
+    setCard(0,'HV'+vLoad,m.HV,'');
+    setCard(1,'Indenter','Diamond','136°');
+    setCard(2,'Load',vLoad,'kgf');
+    setCard(3,'Diagonal d',d,'mm');
+    setCard(4,'~UTS',Math.round(3.3*m.HV),'MPa','ok');
+    setCard(5,'Class',m.cls,'');
+    document.getElementById('scenario-note').textContent=m.note;
+  } else if(method==='rockwell') {
+    const m=RMATS[rScale][rMat];
+    const e=(((rScale==='HRC'?100:130)-m.HR)*0.002).toFixed(3);
+    setCard(0,'HR'+rScale,m.HR,'');
+    setCard(1,'Indenter',rScale==='HRC'?'Brale cone':'1/16″ ball','');
+    setCard(2,'Major Load',rScale==='HRC'?150:100,'kgf');
+    setCard(3,'Depth e',e,'mm');
+    setCard(4,'~HBN',Math.round(2*m.HR+100),'(approx.)');
+    setCard(5,'Class',m.cls,'');
+    document.getElementById('scenario-note').textContent=m.note;
+  } else if(method==='durometer') {
+    const m=DMATS[dScale][dMat];
+    const h=(2.5*(100-m.shore)/100).toFixed(3);
+    const F=(dScale==='A'?0.0098*(550+75*m.shore):0.0098*(445*m.shore)).toFixed(1);
+    setCard(0,'Shore '+dScale,m.shore,'');
+    setCard(1,'Probe',dScale==='A'?'Frustum':'Sharp cone','');
+    setCard(2,'Spring F',F,'N');
+    setCard(3,'Penetration h',h,'mm');
+    setCard(4,'Reading','Instantaneous','');
+    setCard(5,'Class',m.cls,'');
+    document.getElementById('scenario-note').textContent=m.note;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+setRScale('HRC');
+setShoreScale('A');
+window.addEventListener('load', ()=>{ resizeCanvas(); updateInfoPanel(); });
+resizeCanvas();
+updateInfoPanel();
+</script>
+</body>
+</html>
