@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mechanical Tests Explorer</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #12131a; color: #dde1f0;
+      display: flex; height: 100vh; overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 262px; min-width: 262px;
+      background: #1a1d2e; border-right: 1px solid #2a2d45;
+      display: flex; flex-direction: column; gap: 12px;
+      padding: 16px 14px; overflow-y: auto;
+    }
+    #sidebar h1 {
+      font-size: 0.92rem; font-weight: 700; color: #7eb8f7;
+      text-transform: uppercase; letter-spacing: 2px;
+      border-bottom: 1px solid #2a2d45; padding-bottom: 10px;
+    }
+    #sidebar h1 a {
+      float: right; font-size: 0.68rem; color: #4a6090;
+      text-decoration: none; font-weight: 400; letter-spacing: 0; text-transform: none;
+    }
+    #sidebar h1 a:hover { color: #7a90c0; }
+    .section-label {
+      font-size: 0.63rem; font-weight: 700; color: #5a6080;
+      text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px;
+    }
+
+    .mat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .mat-btn {
+      padding: 7px 4px; background: #1e2238; border: 1px solid #2e3355;
+      border-radius: 6px; color: #6a7898; cursor: pointer; font-size: 0.64rem;
+      font-weight: 600; text-align: center; line-height: 1.35; transition: all 0.18s;
+    }
+    .mat-btn:hover { border-color: #4a6bcc; color: #9ba8c8; }
+    .mat-btn.active { background: #182040; border-color: #4a78c8; color: #8ab8f8; }
+
+    /* Slider rows */
+    .ctrl-row { margin-bottom: 10px; }
+    .ctrl-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+    .ctrl-lbl { font-size: 0.78rem; font-weight: 600; color: #9ba8c8; }
+    .ctrl-val { font-size: 0.88rem; font-weight: 700; color: #7eb8f7; }
+    .ctrl-unit { font-size: 0.62rem; color: #5a6880; }
+    input[type=range] {
+      -webkit-appearance: none; width: 100%; height: 4px;
+      background: #2e3355; border-radius: 2px; outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 15px; height: 15px;
+      border-radius: 50%; background: #7eb8f7; cursor: pointer;
+    }
+    .tick-row { display:flex; justify-content:space-between; font-size:0.57rem; color:#404868; margin-top:3px; }
+
+    /* Play controls */
+    .play-row { display: flex; gap: 6px; }
+    .play-btn {
+      flex: 1; padding: 8px 6px; border-radius: 6px; border: 1px solid #2e3355;
+      background: #1e2238; color: #7eb8f7; font-size: 0.72rem; font-weight: 700;
+      cursor: pointer; transition: all 0.18s; text-align: center;
+    }
+    .play-btn:hover { border-color: #4a6bcc; background: #1a2240; }
+    .play-btn.primary { background: #182240; border-color: #3a68c8; color: #90c0f8; }
+    .play-btn.primary:hover { background: #1a2a50; border-color: #5080e0; }
+    .play-btn.danger { border-color: #602828; color: #e06060; }
+    .play-btn.danger:hover { background: #2a1818; border-color: #903030; }
+
+    /* Toggle grid */
+    .tog-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .tog-btn {
+      padding: 6px 4px; background: #1e2238; border: 1px solid #2e3355;
+      border-radius: 6px; color: #5a6888; cursor: pointer; font-size: 0.63rem;
+      font-weight: 600; text-align: center; line-height: 1.35; transition: all 0.18s;
+    }
+    .tog-btn:hover { border-color: #4a6bcc; color: #9ba8c8; }
+    .tog-btn.on { background: #182030; border-color: #4080b8; color: #70b8f8; }
+
+    #scenario-note {
+      font-size: 0.63rem; color: #6a7898; line-height: 1.55;
+      padding: 7px 9px; background: #141728; border-left: 2px solid #2e3a5a;
+      border-radius: 4px; margin-top: auto;
+    }
+
+    /* ── Main ── */
+    #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Tab bar */
+    #tab-bar {
+      display: flex; gap: 0; background: #13152a;
+      border-bottom: 1px solid #20233a; padding: 0 14px; flex-shrink: 0;
+    }
+    .tab-btn {
+      padding: 10px 18px; font-size: 0.78rem; font-weight: 600;
+      background: none; border: none; color: #4a5878; cursor: pointer;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+      transition: all 0.18s; letter-spacing: 0.3px;
+    }
+    .tab-btn:hover { color: #8090b8; }
+    .tab-btn.active { color: #7eb8f7; border-bottom-color: #5090e0; }
+
+    #canvas-wrap { flex: 1; position: relative; padding: 8px 12px 4px 8px; min-height: 0; }
+    #testCanvas { width: 100%; height: 100%; display: block; border-radius: 6px; }
+
+    /* Info panel */
+    #info-panel {
+      background: #13152a; border-top: 1px solid #22253a;
+      padding: 8px 14px;
+      display: grid; grid-template-columns: repeat(6,1fr); gap: 6px; flex-shrink: 0;
+    }
+    .prop-card {
+      background: #1a1d2e; border: 1px solid #252840;
+      border-radius: 6px; padding: 6px 8px; text-align: center;
+    }
+    .prop-lbl  { font-size: 0.56rem; color: #4a5878; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 3px; }
+    .prop-val  { font-size: 0.88rem; font-weight: 700; color: #7eb8f7; line-height: 1; }
+    .prop-unit { font-size: 0.56rem; color: #404c68; margin-top: 2px; }
+    .prop-card.ok    { border-color: #2a5a2a; } .prop-card.ok    .prop-val { color: #60d880; }
+    .prop-card.warn  { border-color: #5a4a10; } .prop-card.warn  .prop-val { color: #e0c050; }
+    .prop-card.alert { border-color: #5a2828; } .prop-card.alert .prop-val { color: #e06060; }
+  </style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<div id="sidebar">
+  <h1>Mech. Tests <a href="index.html">← Hub</a></h1>
+
+  <!-- Material selector (swaps per tab) -->
+  <div id="pane-tensile-sb">
+    <div class="section-label">Material</div>
+    <div class="mat-grid">
+      <button class="mat-btn active" id="tm-lc_steel"  onclick="setTMat('lc_steel')">Low Carbon<br>Steel</button>
+      <button class="mat-btn"        id="tm-al_6061"   onclick="setTMat('al_6061')">Al 6061-T6</button>
+      <button class="mat-btn"        id="tm-hdpe"      onclick="setTMat('hdpe')">HDPE</button>
+      <button class="mat-btn"        id="tm-pmma"      onclick="setTMat('pmma')">PMMA</button>
+      <button class="mat-btn"        id="tm-cast_iron" onclick="setTMat('cast_iron')" style="grid-column:span 2">Gray Cast Iron</button>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="section-label">Test Progress — Strain</div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-lbl">Pull</span>
+          <span><span class="ctrl-val" id="v-strain">0.0</span><span class="ctrl-unit"> %</span></span>
+        </div>
+        <input type="range" id="sl-strain" min="0" max="100" step="0.5" value="0"
+               oninput="onStrainSlider()">
+        <div class="tick-row"><span>Unloaded</span><span>Fracture</span></div>
+      </div>
+      <div class="play-row">
+        <button class="play-btn primary" id="btn-play" onclick="togglePlay()">▶ Play</button>
+        <button class="play-btn danger"  onclick="resetTest()">↺ Reset</button>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="section-label">Display</div>
+      <div class="tog-grid">
+        <button class="tog-btn on" id="tg-extenso" onclick="togT('extenso')">Extenso&shy;meter</button>
+        <button class="tog-btn on" id="tg-grips"   onclick="togT('grips')">Grips &amp;<br>Load</button>
+      </div>
+    </div>
+  </div><!-- /pane-tensile-sb -->
+
+  <div id="pane-charpy-sb" style="display:none">
+    <div class="section-label">Material</div>
+    <div class="mat-grid">
+      <button class="mat-btn active" id="cm-lc_steel" onclick="setCMat('lc_steel')">Low Carbon<br>Steel</button>
+      <button class="mat-btn"        id="cm-hs_steel" onclick="setCMat('hs_steel')">High-Str.<br>Steel</button>
+      <button class="mat-btn"        id="cm-ss304"    onclick="setCMat('ss304')">SS 304<br>(FCC)</button>
+      <button class="mat-btn"        id="cm-hdpe"     onclick="setCMat('hdpe')">HDPE</button>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="section-label">Test Temperature</div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-lbl">T =</span>
+          <span><span class="ctrl-val" id="v-temp">20</span><span class="ctrl-unit"> °C</span></span>
+        </div>
+        <input type="range" id="sl-temp" min="-60" max="120" step="5" value="20"
+               oninput="onTempSlider()">
+        <div class="tick-row"><span>−60°C</span><span>+120°C</span></div>
+      </div>
+      <div class="play-row">
+        <button class="play-btn primary" id="btn-strike" onclick="strikeCharpy()">⚡ Strike!</button>
+        <button class="play-btn danger"  onclick="resetCharpy()">↺ Reset</button>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="section-label">Test Type</div>
+      <div class="mat-grid">
+        <button class="mat-btn active" id="ct-charpy" onclick="setCharpyType('charpy')">Charpy<br>(3-pt)</button>
+        <button class="mat-btn"        id="ct-izod"   onclick="setCharpyType('izod')">Izod<br>(cantilever)</button>
+      </div>
+    </div>
+  </div><!-- /pane-charpy-sb -->
+
+  <div id="scenario-note">Select a material and drag the slider — or press Play — to simulate the tensile test.</div>
+</div><!-- /sidebar -->
+
+<!-- ══ MAIN ══ -->
+<div id="main">
+  <div id="tab-bar">
+    <button class="tab-btn active" onclick="showTab('tensile')">📏 Tensile Test</button>
+    <button class="tab-btn"        onclick="showTab('charpy')">🔨 Charpy / Izod Impact</button>
+  </div>
+
+  <div id="canvas-wrap">
+    <canvas id="testCanvas"></canvas>
+  </div>
+
+  <div id="info-panel">
+    <div class="prop-card" id="card0"><div class="prop-lbl" id="lbl0">Strain ε</div><div class="prop-val" id="val0">—</div><div class="prop-unit" id="unt0">%</div></div>
+    <div class="prop-card" id="card1"><div class="prop-lbl" id="lbl1">Stress σ</div><div class="prop-val" id="val1">—</div><div class="prop-unit" id="unt1">MPa</div></div>
+    <div class="prop-card" id="card2"><div class="prop-lbl" id="lbl2">Phase</div><div class="prop-val" id="val2" style="font-size:0.72rem">—</div><div class="prop-unit" id="unt2"></div></div>
+    <div class="prop-card" id="card3"><div class="prop-lbl" id="lbl3">Neck?</div><div class="prop-val" id="val3">—</div><div class="prop-unit" id="unt3"></div></div>
+    <div class="prop-card" id="card4"><div class="prop-lbl" id="lbl4">Fracture</div><div class="prop-val" id="val4" style="font-size:0.72rem">—</div><div class="prop-unit" id="unt4"></div></div>
+    <div class="prop-card" id="card5"><div class="prop-lbl" id="lbl5">Class</div><div class="prop-val" id="val5" style="font-size:0.72rem">—</div><div class="prop-unit" id="unt5"></div></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  MATERIAL DATA
+// ══════════════════════════════════════════════════════════
+
+// Tensile materials — curve: [strain%, stress MPa]
+const TMATS = {
+  lc_steel: {
+    name:'Low Carbon Steel', cls:'Metal', fracture:'ductile',
+    color:'#5090e0',
+    curve:[[0,0],[0.12,250],[0.14,265],[0.18,250],[0.22,256],[2,268],[8,320],[14,380],[22,420],[26,405],[28,355]],
+    epsUTS:22, epsF:28,
+    note:'Distinct upper and lower yield points from interstitial carbon pinning dislocations. Large plastic elongation (~28%) before fracture. Ductile cup-and-cone fracture surface.'
+  },
+  al_6061: {
+    name:'Al 6061-T6', cls:'Metal', fracture:'ductile',
+    color:'#70b8d8',
+    curve:[[0,0],[0.15,270],[0.22,276],[0.45,285],[1,293],[4,304],[7,309],[9,305],[12,290]],
+    epsUTS:9, epsF:12,
+    note:'No distinct yield point — uses 0.2% offset method. Good strength-to-weight ratio. Ductile fracture with moderate elongation (~12%).'
+  },
+  hdpe: {
+    name:'HDPE', cls:'Polymer', fracture:'ductile',
+    color:'#60c870',
+    curve:[[0,0],[1.5,20],[2.5,27],[3.0,25],[8,26],[40,27],[120,31],[250,38],[350,42],[400,36]],
+    epsUTS:350, epsF:400,
+    note:'Cold drawing: after yield, a neck forms and propagates at nearly constant stress as polymer chains align. Extreme elongation (>300%). Highly ductile fracture.'
+  },
+  pmma: {
+    name:'PMMA (Acrylic)', cls:'Polymer', fracture:'brittle',
+    color:'#a0b8f0',
+    curve:[[0,0],[0.5,28],[1.0,52],[1.5,65],[2.0,70],[2.3,68],[2.6,50]],
+    epsUTS:2.0, epsF:2.7,
+    note:'Brittle fracture with minimal plastic deformation. Flat fracture surface, often with concentric "river marks." No necking observed.'
+  },
+  cast_iron: {
+    name:'Gray Cast Iron', cls:'Metal (brittle)', fracture:'brittle',
+    color:'#909898',
+    curve:[[0,0],[0.06,70],[0.15,135],[0.30,170],[0.50,185],[0.62,185],[0.72,155]],
+    epsUTS:0.62, epsF:0.78,
+    note:'Graphite flakes act as internal stress concentrators → very brittle in tension. Non-linear elastic region due to flake geometry. Low tensile strength, fractures with <1% elongation.'
+  },
+};
+
+// Charpy/Izod materials — CVN energy follows a sigmoid DBTT curve
+const CMATS = {
+  lc_steel: {
+    name:'Low Carbon Steel (AISI 1020)', cls:'BCC Metal',
+    color:'#5090e0',
+    CVNu:120, CVNl:6, DBTT:-10, k:0.12,
+    note:'BCC crystal structure → exhibits a distinct ductile-to-brittle transition. Used in ship hulls; failures (Liberty Ships, Titanic) driven by low-temperature brittleness. Critical for cold-climate structural design.'
+  },
+  hs_steel: {
+    name:'High-Strength Steel (4340)', cls:'BCC Metal',
+    color:'#4070c0',
+    CVNu:65, CVNl:5, DBTT:30, k:0.10,
+    note:'Higher yield strength shifts DBTT to higher temperatures — a key trade-off in high-strength steel design. Structural applications must account for service temperature vs. DBTT.'
+  },
+  ss304: {
+    name:'Stainless Steel 304', cls:'FCC Metal',
+    color:'#80c0d0',
+    CVNu:160, CVNl:130, DBTT:-250, k:0.05,
+    note:'FCC crystal structure has many active slip systems at all temperatures → NO ductile-to-brittle transition. Remains tough at cryogenic temperatures. Used in cryogenic vessels and LNG tanks.'
+  },
+  hdpe: {
+    name:'HDPE', cls:'Semi-cryst. Polymer',
+    color:'#60c870',
+    CVNu:35, CVNl:3, DBTT:-55, k:0.10,
+    note:'Polymer chains become immobile below Tg. DBTT well below room temperature → remains tough for most engineering applications. Impact strength is temperature-dependent.'
+  },
+};
+
+// ══════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════
+const S = {
+  tab: 'tensile',
+  // Tensile
+  tmat: 'lc_steel',
+  tSlider: 0,        // 0-100 (normalized progress)
+  tPlaying: false,
+  tAnimRef: null,
+  tAnimStart: null,
+  tExtinso: true,
+  tGrips: true,
+  // Charpy
+  cmat: 'lc_steel',
+  cTemp: 20,
+  cType: 'charpy',   // 'charpy' | 'izod'
+  cAnimating: false,
+  cAnimRef: null,
+  cPendAngle: -143,  // current pendulum angle (deg from vertical)
+  cStruck: false,
+  cSpecBroken: false,
+};
+
+const canvas = document.getElementById('testCanvas');
+const ctx    = canvas.getContext('2d');
+
+// ══════════════════════════════════════════════════════════
+//  MECHANICS HELPERS
+// ══════════════════════════════════════════════════════════
+
+// Map normalized slider [0,100] → actual strain% for current material
+function sliderToStrain(sv) {
+  const mat = TMATS[S.tmat];
+  return (sv / 100) * mat.epsF;
+}
+
+// Interpolate stress from a material's curve at a given strain%
+function interpStress(mat, strain) {
+  const c = mat.curve;
+  if (strain <= 0) return 0;
+  if (strain >= c[c.length-1][0]) return 0; // past fracture
+  for (let i = 1; i < c.length; i++) {
+    if (strain <= c[i][0]) {
+      const t = (strain - c[i-1][0]) / (c[i][0] - c[i-1][0]);
+      return c[i-1][1] + t * (c[i][1] - c[i-1][1]);
+    }
+  }
+  return c[c.length-1][1];
+}
+
+// Neck factor: 0 = no neck, 1 = fracture
+function neckFactor(mat, strain) {
+  if (mat.fracture === 'brittle') return 0;
+  if (strain <= mat.epsUTS) return 0;
+  return Math.min((strain - mat.epsUTS) / (mat.epsF - mat.epsUTS), 1);
+}
+
+// Tensile phase label
+function tPhase(mat, strain) {
+  const epsY = mat.curve[1][0]; // first yield-ish point
+  if (strain === 0)              return ['Unloaded', ''];
+  if (strain < epsY)             return ['Elastic', 'ok'];
+  if (strain < mat.epsUTS)       return ['Plastic', 'warn'];
+  if (strain < mat.epsF)         return ['Necking', 'alert'];
+  return ['Fractured', 'alert'];
+}
+
+// CVN energy at temperature for charpy material
+function getCVN(mat, temp) {
+  const s = 1 / (1 + Math.exp(-mat.k * (temp - mat.DBTT)));
+  return mat.CVNl + (mat.CVNu - mat.CVNl) * s;
+}
+
+// Charpy pendulum final angle from CVN
+function finalAngle(cvn) {
+  const thetaR = 143 * Math.PI / 180; // release angle from vertical
+  const mgL = 300; // pendulum capacity (J) — normalised so CVN maps to angle
+  const cosF = Math.cos(thetaR) + cvn / mgL;
+  return Math.acos(Math.max(-1, Math.min(1, cosF))) * 180 / Math.PI;
+}
+
+// ══════════════════════════════════════════════════════════
+//  DRAWING HELPERS
+// ══════════════════════════════════════════════════════════
+
+function drawArrow(x1,y1,x2,y2,color,lw) {
+  const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);
+  if(len<3)return;
+  const a=Math.atan2(dy,dx),h=Math.min(9,len*0.3);
+  ctx.save(); ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=lw; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-h*Math.cos(a-Math.PI/7),y2-h*Math.sin(a-Math.PI/7));
+  ctx.lineTo(x2-h*Math.cos(a+Math.PI/7),y2-h*Math.sin(a+Math.PI/7));
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+
+function niceStep(r) {
+  if(r<=0)return 10;
+  const raw=r/4, mag=Math.pow(10,Math.floor(Math.log10(raw))), n=raw/mag;
+  return n<1.5?mag:n<3.5?2*mag:n<7.5?5*mag:10*mag;
+}
+
+// ══════════════════════════════════════════════════════════
+//  TENSILE DRAWING
+// ══════════════════════════════════════════════════════════
+
+function drawSpecimenPath(cx,cy,gaugeL,gaugeW,tabW,tabH,shoulderH,nk) {
+  const hG=gaugeL/2, hS=shoulderH, hT=tabH;
+  const STEPS=50;
+  ctx.beginPath();
+  // Top-left → down left side
+  ctx.moveTo(cx-tabW/2, cy-hG-hS-hT);
+  ctx.lineTo(cx-tabW/2, cy-hG-hS);
+  ctx.bezierCurveTo(cx-tabW/2,cy-hG-hS/2, cx-gaugeW/2,cy-hG-hS/2, cx-gaugeW/2,cy-hG);
+  for(let i=1;i<=STEPS;i++){
+    const ry=-hG+(i/STEPS)*gaugeL;
+    const nx=gaugeW/2*(1-nk*0.65*Math.exp(-5*ry*ry/(hG*hG)));
+    ctx.lineTo(cx-nx,cy+ry);
+  }
+  ctx.bezierCurveTo(cx-gaugeW/2,cy+hG+hS/2, cx-tabW/2,cy+hG+hS/2, cx-tabW/2,cy+hG+hS);
+  ctx.lineTo(cx-tabW/2, cy+hG+hS+hT);
+  // Bottom → up right side
+  ctx.lineTo(cx+tabW/2, cy+hG+hS+hT);
+  ctx.lineTo(cx+tabW/2, cy+hG+hS);
+  ctx.bezierCurveTo(cx+tabW/2,cy+hG+hS/2, cx+gaugeW/2,cy+hG+hS/2, cx+gaugeW/2,cy+hG);
+  for(let i=STEPS-1;i>=0;i--){
+    const ry=-hG+(i/STEPS)*gaugeL;
+    const nx=gaugeW/2*(1-nk*0.65*Math.exp(-5*ry*ry/(hG*hG)));
+    ctx.lineTo(cx+nx,cy+ry);
+  }
+  ctx.bezierCurveTo(cx+gaugeW/2,cy-hG-hS/2, cx+tabW/2,cy-hG-hS/2, cx+tabW/2,cy-hG-hS);
+  ctx.lineTo(cx+tabW/2, cy-hG-hS-hT);
+  ctx.closePath();
+}
+
+function specimenColor(mat, strain) {
+  const epsY  = mat.curve[1][0];
+  const epsUTS = mat.epsUTS;
+  const epsF   = mat.epsF;
+  if (strain <= 0)          return '#2a3a5a';
+  if (strain < epsY)        return '#3060a8'; // elastic – blue
+  if (strain < epsUTS*0.5)  return '#4878a0'; // early plastic – blue-green
+  if (strain < epsUTS)      return '#6a9840'; // plastic – green
+  if (strain < epsF*0.8)    return '#b87028'; // necking – orange
+  return '#903020';                            // near fracture – red
+}
+
+function drawTensile() {
+  const W=canvas.width, H=canvas.height;
+  const leftW = Math.floor(W*0.44);
+  const mat = TMATS[S.tmat];
+
+  const strain = sliderToStrain(S.tSlider);
+  const stress  = interpStress(mat, strain);
+  const nk      = neckFactor(mat, strain);
+  const fractured = strain >= mat.epsF;
+
+  // ── Specimen geometry (pixels) ──
+  const gaugeL0 = Math.min(H*0.30, leftW*0.55); // initial gauge length
+  const maxVisStrain = Math.min(strain, mat.epsF);
+  const dispFrac = Math.min(maxVisStrain / mat.epsF, 1);
+  // Gauge grows up to 1.7× original (visual cap)
+  const gaugeL  = gaugeL0 * (1 + dispFrac * 0.7);
+  const gaugeW  = gaugeL0 * 0.18;
+  const tabW    = gaugeL0 * 0.38;
+  const tabH    = gaugeL0 * 0.18;
+  const shoulderH = gaugeL0 * 0.12;
+
+  const cx = leftW / 2;
+  // Shift center slightly up when fracture splits specimen
+  const cy = H / 2;
+
+  if (fractured) {
+    // Draw two halves with gap
+    const fracGap = 14;
+    // Top half
+    ctx.save();
+    ctx.translate(0, -fracGap);
+    // Clip to upper half
+    ctx.beginPath(); ctx.rect(0,0,leftW,cy); ctx.clip();
+    drawSpecimenPath(cx,cy,gaugeL,gaugeW,tabW,tabH,shoulderH,1.0);
+    ctx.fillStyle = '#4a2010'; ctx.fill();
+    ctx.strokeStyle='#703020'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(0, fracGap);
+    ctx.beginPath(); ctx.rect(0,cy,leftW,H-cy); ctx.clip();
+    drawSpecimenPath(cx,cy,gaugeL,gaugeW,tabW,tabH,shoulderH,1.0);
+    ctx.fillStyle = '#4a2010'; ctx.fill();
+    ctx.strokeStyle='#703020'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.restore();
+
+    // Fracture surface appearance
+    const fracY_top = cy - fracGap;
+    const fracY_bot = cy + fracGap;
+    const halfNeck  = gaugeW/2*0.35;  // necked width at fracture
+    if (mat.fracture === 'ductile') {
+      // Cup-and-cone: ellipse at fracture face
+      ctx.fillStyle = '#c86030';
+      ctx.beginPath(); ctx.ellipse(cx,fracY_top,halfNeck,6,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#a04020';
+      ctx.beginPath(); ctx.ellipse(cx,fracY_bot,halfNeck,6,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#e08050'; ctx.font='bold 10px Segoe UI'; ctx.textAlign='center';
+      ctx.fillText('Cup-and-Cone', cx, cy);
+    } else {
+      // Brittle: flat bright surface
+      const fnk = mat.fracture==='brittle' ? 0 : 1;
+      const fW  = gaugeW/2*(1-fnk*0.65)*2;
+      ctx.fillStyle='#c0c8d0';
+      ctx.fillRect(cx-fW/2, fracY_top-4, fW, 8);
+      ctx.fillRect(cx-fW/2, fracY_bot-4, fW, 8);
+      ctx.fillStyle='#8090a0'; ctx.font='bold 10px Segoe UI'; ctx.textAlign='center';
+      ctx.fillText('Flat / Brittle', cx, cy);
+    }
+  } else {
+    // Draw complete specimen
+    drawSpecimenPath(cx,cy,gaugeL,gaugeW,tabW,tabH,shoulderH,nk);
+    ctx.fillStyle = specimenColor(mat, strain);
+    ctx.fill();
+    ctx.strokeStyle = '#6080a0'; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // Highlight neck region
+    if (nk > 0.05) {
+      const neckW2 = gaugeW/2*(1-nk*0.65)*2;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(cx-gaugeW/2-2, cy-gaugeL0*0.15, gaugeW+4, gaugeL0*0.30);
+      ctx.clip();
+      drawSpecimenPath(cx,cy,gaugeL,gaugeW,tabW,tabH,shoulderH,nk);
+      ctx.strokeStyle='rgba(255,120,30,0.5)'; ctx.lineWidth=3; ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  // ── Grips and load arrows ──
+  if (S.tGrips) {
+    const gripH = tabH * 0.7;
+    const gripW = tabW * 1.2;
+    const topGripY  = cy - gaugeL/2 - shoulderH - tabH - gripH;
+    const botGripY  = cy + gaugeL/2 + shoulderH + tabH;
+    const arrowLen = 28;
+
+    ctx.fillStyle='#283050'; ctx.strokeStyle='#384870'; ctx.lineWidth=1.5;
+    ctx.fillRect(cx-gripW/2, topGripY, gripW, gripH);
+    ctx.strokeRect(cx-gripW/2, topGripY, gripW, gripH);
+    ctx.fillRect(cx-gripW/2, botGripY, gripW, gripH);
+    ctx.strokeRect(cx-gripW/2, botGripY, gripW, gripH);
+
+    // Hatching in grips
+    ctx.save();
+    ctx.strokeStyle='#404c68'; ctx.lineWidth=0.8;
+    for(let x=cx-gripW/2+8; x<cx+gripW/2; x+=8){
+      ctx.beginPath(); ctx.moveTo(x,topGripY); ctx.lineTo(x,topGripY+gripH); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x,botGripY); ctx.lineTo(x,botGripY+gripH); ctx.stroke();
+    }
+    ctx.restore();
+
+    // Load arrows (only if specimen not fractured)
+    if (!fractured) {
+      const arrowColor = stress > 0 ? '#f0b040' : '#8090b0';
+      drawArrow(cx, topGripY, cx, topGripY - arrowLen, arrowColor, 2);
+      drawArrow(cx, botGripY+gripH, cx, botGripY+gripH+arrowLen, arrowColor, 2);
+      if (stress > 0) {
+        ctx.fillStyle='#f0b040'; ctx.font='bold 10px Segoe UI'; ctx.textAlign='center';
+        ctx.fillText('P', cx, topGripY - arrowLen - 5);
+        ctx.fillText('P', cx, botGripY + gripH + arrowLen + 13);
+      }
+    }
+  }
+
+  // ── Extensometer ──
+  if (S.tExtinso && !fractured) {
+    const gageOff = gaugeL0 * 0.30; // gage marks at ±30% of L0 from center
+    const markY1  = cy - gageOff;
+    const markY2  = cy + gageOff;
+    const curGageSpan = gageOff * 2 * (1 + dispFrac * 0.7); // current distance between marks
+    const markY1d = cy - curGageSpan/2;
+    const markY2d = cy + curGageSpan/2;
+    const extX    = cx - gaugeW/2*(1-nk*0.45) - 20;
+
+    // Gage marks on specimen
+    ctx.strokeStyle='#e0e860'; ctx.lineWidth=1.5;
+    [-gaugeW/2-2, gaugeW/2+2].forEach(dx => {
+      ctx.beginPath(); ctx.moveTo(cx+dx-4,markY1d); ctx.lineTo(cx+dx+4,markY1d); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx+dx-4,markY2d); ctx.lineTo(cx+dx+4,markY2d); ctx.stroke();
+    });
+
+    // Extensometer bracket
+    ctx.strokeStyle='rgba(224,232,96,0.6)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(extX,markY1d); ctx.lineTo(extX-12,markY1d); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(extX,markY2d); ctx.lineTo(extX-12,markY2d); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(extX-12,markY1d); ctx.lineTo(extX-12,markY2d); ctx.stroke();
+    // Δl label
+    const dL = (curGageSpan - gageOff*2).toFixed(1);
+    ctx.fillStyle='#e0e860'; ctx.font='9px Segoe UI'; ctx.textAlign='right';
+    ctx.fillText(`Δl = ${dL}px`, extX-16, (markY1d+markY2d)/2 + 4);
+    ctx.fillText('Extensometer', extX-16, (markY1d+markY2d)/2 + 16);
+  }
+
+  // ── Section title ──
+  ctx.fillStyle='#3a4868'; ctx.font='11px Segoe UI'; ctx.textAlign='center';
+  ctx.fillText('Test Specimen', leftW/2, 18);
+  ctx.fillStyle='rgba(80,140,220,0.25)'; ctx.font='10px Segoe UI';
+  ctx.fillText(mat.name, leftW/2, 30);
+
+  // ── Live σ-ε curve (right section) ──
+  drawTensileCurve(leftW, W, H, mat, strain, stress);
+}
+
+function drawTensileCurve(sx, W, H, mat, curStrain, curStress) {
+  const pad = { l:52, r:22, t:32, b:46 };
+  const aw = W - sx - pad.l - pad.r;
+  const ah = H - pad.t - pad.b;
+
+  // Determine axis maxima
+  const maxEps = mat.epsF * 1.08;
+  const maxSig = Math.max(...mat.curve.map(p=>p[1])) * 1.12;
+
+  function toCanvas(eps, sig) {
+    return [
+      sx + pad.l + (eps/maxEps)*aw,
+      pad.t + ah - (sig/maxSig)*ah
+    ];
+  }
+
+  // ── Separator ──
+  ctx.strokeStyle='#1a1d2e'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(sx,16); ctx.lineTo(sx,H-16); ctx.stroke();
+
+  // ── Grid ──
+  const stepE = niceStep(maxEps*0.8), stepS = niceStep(maxSig*0.8);
+  ctx.strokeStyle='#13152a'; ctx.lineWidth=1;
+  for(let e=0;e<=maxEps;e+=stepE){
+    const [cx]=toCanvas(e,0);
+    ctx.beginPath(); ctx.moveTo(cx,pad.t); ctx.lineTo(cx,pad.t+ah); ctx.stroke();
+    ctx.fillStyle='#3a4060'; ctx.font='9px Segoe UI'; ctx.textAlign='center';
+    ctx.fillText(e.toFixed(e<1?1:0),cx,pad.t+ah+14);
+  }
+  for(let s=0;s<=maxSig;s+=stepS){
+    const [,cy]=toCanvas(0,s);
+    ctx.beginPath(); ctx.moveTo(sx+pad.l,cy); ctx.lineTo(sx+pad.l+aw,cy); ctx.stroke();
+    ctx.fillStyle='#3a4060'; ctx.font='9px Segoe UI'; ctx.textAlign='right';
+    ctx.fillText(s.toFixed(0),sx+pad.l-6,cy+3);
+  }
+
+  // ── Axes ──
+  ctx.strokeStyle='#304060'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(sx+pad.l,pad.t); ctx.lineTo(sx+pad.l,pad.t+ah+4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx+pad.l-4,pad.t+ah); ctx.lineTo(sx+pad.l+aw,pad.t+ah); ctx.stroke();
+  ctx.fillStyle='#6a7898'; ctx.font='11px Segoe UI';
+  ctx.textAlign='center'; ctx.fillText('Engineering Strain ε (%)',sx+pad.l+aw/2,pad.t+ah+32);
+  ctx.save(); ctx.translate(sx+pad.l-38,pad.t+ah/2); ctx.rotate(-Math.PI/2);
+  ctx.textAlign='center'; ctx.fillText('Stress σ (MPa)',0,0); ctx.restore();
+
+  // ── Full faint curve ──
+  ctx.save();
+  ctx.strokeStyle='rgba(80,100,150,0.35)'; ctx.lineWidth=1.2; ctx.setLineDash([4,4]);
+  ctx.beginPath();
+  const c=mat.curve;
+  let [px,py]=toCanvas(c[0][0],c[0][1]); ctx.moveTo(px,py);
+  for(let i=1;i<c.length;i++){
+    [px,py]=toCanvas(c[i][0],c[i][1]); ctx.lineTo(px,py);
+  }
+  ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+
+  // ── Traced portion (up to current strain) ──
+  if(curStrain>0){
+    ctx.strokeStyle=TMATS[S.tmat].color; ctx.lineWidth=2;
+    ctx.beginPath();
+    [px,py]=toCanvas(0,0); ctx.moveTo(px,py);
+    // Walk through curve points up to current strain
+    for(let i=0;i<c.length;i++){
+      if(c[i][0]>curStrain) break;
+      [px,py]=toCanvas(c[i][0],c[i][1]); ctx.lineTo(px,py);
+    }
+    // Add the current exact point
+    [px,py]=toCanvas(curStrain,curStress); ctx.lineTo(px,py);
+    ctx.stroke();
+
+    // Current point dot
+    ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=TMATS[S.tmat].color;
+    ctx.beginPath(); ctx.arc(px,py,3.5,0,Math.PI*2); ctx.fill();
+  }
+
+  // ── Key labels on curve ──
+  const epsY=c[1][0];
+  const [yx,yy]=toCanvas(epsY,c[1][1]);
+  if(yx>sx+pad.l+10 && yx<sx+pad.l+aw-10){
+    ctx.fillStyle='#7090c0'; ctx.font='9px Segoe UI'; ctx.textAlign='left';
+    ctx.fillText('σy',yx+5,yy-5);
+    ctx.strokeStyle='rgba(100,140,200,0.4)'; ctx.lineWidth=0.8; ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.moveTo(sx+pad.l,yy); ctx.lineTo(yx,yy); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // UTS label
+  const utsI = mat.curve.reduce((best,p,i)=>p[1]>mat.curve[best][1]?i:best,0);
+  const [ux,uy]=toCanvas(mat.curve[utsI][0],mat.curve[utsI][1]);
+  ctx.fillStyle='#d08030'; ctx.font='9px Segoe UI'; ctx.textAlign='center';
+  ctx.fillText('UTS',ux,uy-10);
+
+  // Title
+  ctx.fillStyle='#3a4868'; ctx.font='11px Segoe UI'; ctx.textAlign='center';
+  ctx.fillText('Engineering σ – ε Curve', sx+pad.l+aw/2, pad.t-14);
+}
+
+// ══════════════════════════════════════════════════════════
+//  CHARPY DRAWING
+// ══════════════════════════════════════════════════════════
+
+function drawCharpy() {
+  const W=canvas.width, H=canvas.height;
+  const leftW=Math.floor(W*0.44);
+  const mat=CMATS[S.cmat];
+  const cvn=getCVN(mat,S.cTemp);
+  const fAngle=finalAngle(cvn);
+
+  // ── Section title ──
+  ctx.fillStyle='#3a4868'; ctx.font='11px Segoe UI'; ctx.textAlign='center';
+  ctx.fillText(S.cType==='charpy'?'Charpy Impact Test':'Izod Impact Test', leftW/2, 18);
+
+  // ── Pendulum apparatus ──
+  const pivX = leftW/2, pivY = H*0.20;
+  const armL = Math.min(H*0.48, leftW*0.42);
+
+  // Specimen position (bottom of swing)
+  const specX=pivX, specY=pivY+armL;
+  const specW=32, specH=10;
+
+  // Draw support frame
+  ctx.strokeStyle='#283040'; ctx.lineWidth=3; ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(pivX-leftW*0.35,pivY+2); ctx.lineTo(pivX+leftW*0.35,pivY+2);
+  ctx.stroke();
+  // Pivot circle
+  ctx.fillStyle='#404860';
+  ctx.beginPath(); ctx.arc(pivX,pivY,9,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#5060a0'; ctx.lineWidth=1.5; ctx.stroke();
+
+  // Draw anvil/support at specimen base
+  const anvilY=specY+specH/2+4;
+  ctx.fillStyle='#283040';
+  ctx.beginPath();
+  ctx.moveTo(specX-24,anvilY); ctx.lineTo(specX+24,anvilY);
+  ctx.lineTo(specX+28,anvilY+16); ctx.lineTo(specX-28,anvilY+16);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#384860'; ctx.lineWidth=1; ctx.stroke();
+
+  // Charpy specimen (notched bar, broken if struck)
+  if(S.cSpecBroken){
+    const fracType = cvn > mat.CVNu*0.5 ? 'ductile' : 'brittle';
+    const col = fracType==='ductile' ? '#c87030' : '#a8b0b8';
+    // Left half
+    ctx.fillStyle=col;
+    ctx.fillRect(specX-specW/2, specY-specH/2, specW/2-3, specH);
+    // Right half
+    ctx.fillRect(specX+3, specY-specH/2, specW/2-3, specH);
+    // Fracture surface
+    ctx.fillStyle = fracType==='ductile'?'#e09050':'#c8d0d8';
+    ctx.fillRect(specX-3, specY-specH/2, 6, specH);
+    ctx.fillStyle=col; ctx.font='bold 9px Segoe UI'; ctx.textAlign='center';
+    ctx.fillText(fracType==='ductile'?'Ductile':'Brittle', specX, specY+specH/2+14);
+  } else {
+    ctx.fillStyle='#5080a0';
+    ctx.fillRect(specX-specW/2, specY-specH/2, specW, specH);
+    // Notch
+    ctx.fillStyle='#1a2030';
+    ctx.beginPath();
+    ctx.moveTo(specX-2, specY-specH/2);
+    ctx.lineTo(specX,   specY-specH/2+6);
+    ctx.lineTo(specX+2, specY-specH/2);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // Draw pendulum arm + hammer
+  const theta=S.cPendAngle*Math.PI/180;
+  const tipX=pivX+armL*Math.sin(theta);
+  const tipY=pivY+armL*Math.cos(theta);
+
+  // Arm
+  ctx.strokeStyle='#5070a0'; ctx.lineWidth=6; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(pivX,pivY); ctx.lineTo(tipX,tipY); ctx.stroke();
+
+  // Hammer head (rectangle perpendicular to arm)
+  const hamW=18, hamH=24;
+  ctx.save();
+  ctx.translate(tipX,tipY);
+  ctx.rotate(theta);
+  ctx.fillStyle='#4878b0';
+  ctx.fillRect(-hamW/2,-hamH*0.75,hamW,hamH);
+  ctx.strokeStyle='#6090d0'; ctx.lineWidth=1.5; ctx.strokeRect(-hamW/2,-hamH*0.75,hamW,hamH);
+  ctx.restore();
+
+  // Angle arc showing release and final positions
+  ctx.strokeStyle='rgba(80,120,180,0.3)'; ctx.lineWidth=1;
+  ctx.setLineDash([4,5]);
+  // Release position line (ghost)
+  const rTheta=-143*Math.PI/180;
+  const rX=pivX+armL*Math.sin(rTheta), rY=pivY+armL*Math.cos(rTheta);
+  ctx.beginPath(); ctx.moveTo(pivX,pivY); ctx.lineTo(rX,rY); ctx.stroke();
+  // Final position ghost
+  const fTheta=fAngle*Math.PI/180;
+  const fX=pivX+armL*Math.sin(fTheta), fY=pivY+armL*Math.cos(fTheta);
+  ctx.beginPath(); ctx.moveTo(pivX,pivY); ctx.lineTo(fX,fY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Labels: release height, final height
+  ctx.fillStyle='#4a6080'; ctx.font='9px Segoe UI'; ctx.textAlign='left';
+  ctx.fillText(`h₀`, rX+5, rY);
+  ctx.fillStyle='#50a050';
+  ctx.fillText(`hf`, fX+5, fY);
+
+  // Energy absorbed display
+  const ductPct = (cvn-mat.CVNl)/(mat.CVNu-mat.CVNl)*100;
+  ctx.fillStyle='#7eb8f7'; ctx.font='bold 12px Segoe UI'; ctx.textAlign='center';
+  ctx.fillText(`CVN = ${cvn.toFixed(0)} J`, leftW/2, H*0.85);
+  ctx.fillStyle='#5a7898'; ctx.font='10px Segoe UI';
+  ctx.fillText(`Ductility index: ${ductPct.toFixed(0)}%`, leftW/2, H*0.85+16);
+
+  // ── DBTT Curve (right section) ──
+  drawDBTTCurve(leftW, W, H, mat, cvn);
+}
+
+function drawDBTTCurve(sx, W, H, mat, curCVN) {
+  const pad={l:52,r:22,t:32,b:46};
+  const aw=W-sx-pad.l-pad.r, ah=H-pad.t-pad.b;
+  const Tmin=-60, Tmax=120;
+  const Emax=Math.max(mat.CVNu,curCVN)*1.15;
+
+  function toC(T,E){
+    return [
+      sx+pad.l+(T-Tmin)/(Tmax-Tmin)*aw,
+      pad.t+ah-(E/Emax)*ah
+    ];
+  }
+
+  // Separator
+  ctx.strokeStyle='#1a1d2e'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(sx,16); ctx.lineTo(sx,H-16); ctx.stroke();
+
+  // Grid
+  ctx.strokeStyle='#13152a'; ctx.lineWidth=1;
+  for(let T=Tmin;T<=Tmax;T+=40){
+    const [cx]=toC(T,0);
+    ctx.beginPath(); ctx.moveTo(cx,pad.t); ctx.lineTo(cx,pad.t+ah); ctx.stroke();
+    ctx.fillStyle='#3a4060'; ctx.font='9px Segoe UI'; ctx.textAlign='center';
+    ctx.fillText(T+'°',cx,pad.t+ah+14);
+  }
+  for(let E=0;E<=Emax;E+=niceStep(Emax*0.8)){
+    const [,cy]=toC(Tmin,E);
+    ctx.beginPath(); ctx.moveTo(sx+pad.l,cy); ctx.lineTo(sx+pad.l+aw,cy); ctx.stroke();
+    ctx.fillStyle='#3a4060'; ctx.font='9px Segoe UI'; ctx.textAlign='right';
+    ctx.fillText(E.toFixed(0),sx+pad.l-6,cy+3);
+  }
+
+  // Axes
+  ctx.strokeStyle='#304060'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(sx+pad.l,pad.t); ctx.lineTo(sx+pad.l,pad.t+ah+4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx+pad.l-4,pad.t+ah); ctx.lineTo(sx+pad.l+aw,pad.t+ah); ctx.stroke();
+  ctx.fillStyle='#6a7898'; ctx.font='11px Segoe UI';
+  ctx.textAlign='center'; ctx.fillText('Temperature (°C)',sx+pad.l+aw/2,pad.t+ah+32);
+  ctx.save(); ctx.translate(sx+pad.l-38,pad.t+ah/2); ctx.rotate(-Math.PI/2);
+  ctx.textAlign='center'; ctx.fillText('CVN Energy (J)',0,0); ctx.restore();
+
+  // DBTT sigmoid curve
+  const nPts=200;
+  ctx.strokeStyle=CMATS[S.cmat].color; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  for(let i=0;i<=nPts;i++){
+    const T=Tmin+(i/nPts)*(Tmax-Tmin);
+    const E=getCVN(mat,T);
+    const [cx,cy]=toC(T,E);
+    i===0?ctx.moveTo(cx,cy):ctx.lineTo(cx,cy);
+  }
+  ctx.stroke();
+
+  // Shelf levels (dashed)
+  ctx.strokeStyle='rgba(120,150,180,0.35)'; ctx.lineWidth=1; ctx.setLineDash([5,5]);
+  ctx.beginPath(); const [,uY]=toC(Tmin,mat.CVNu); ctx.moveTo(sx+pad.l,uY); ctx.lineTo(sx+pad.l+aw,uY); ctx.stroke();
+  ctx.beginPath(); const [,lY]=toC(Tmin,mat.CVNl); ctx.moveTo(sx+pad.l,lY); ctx.lineTo(sx+pad.l+aw,lY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(120,150,180,0.6)'; ctx.font='9px Segoe UI'; ctx.textAlign='left';
+  ctx.fillText('Upper shelf',sx+pad.l+4,uY-4);
+  ctx.fillText('Lower shelf',sx+pad.l+4,lY-4);
+
+  // DBTT vertical line
+  const [dtX]=toC(mat.DBTT,0);
+  if(dtX>sx+pad.l && dtX<sx+pad.l+aw){
+    ctx.strokeStyle='rgba(200,160,50,0.5)'; ctx.lineWidth=1.2; ctx.setLineDash([4,5]);
+    ctx.beginPath(); ctx.moveTo(dtX,pad.t); ctx.lineTo(dtX,pad.t+ah); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#b0a040'; ctx.font='bold 9px Segoe UI'; ctx.textAlign='center';
+    ctx.fillText(`DBTT = ${mat.DBTT}°C`,dtX,pad.t+ah+30);
+  }
+
+  // Room temperature reference line
+  const [rtX]=toC(20,0);
+  ctx.strokeStyle='rgba(80,180,80,0.35)'; ctx.lineWidth=1; ctx.setLineDash([3,4]);
+  ctx.beginPath(); ctx.moveTo(rtX,pad.t); ctx.lineTo(rtX,pad.t+ah); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(80,180,80,0.6)'; ctx.font='9px Segoe UI'; ctx.textAlign='center';
+  ctx.fillText('RT',rtX,pad.t-4);
+
+  // Current temperature + CVN dot
+  const [cx_,cy_]=toC(S.cTemp,curCVN);
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(cx_,cy_,6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=CMATS[S.cmat].color;
+  ctx.beginPath(); ctx.arc(cx_,cy_,4,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#7eb8f7'; ctx.font='bold 10px Segoe UI'; ctx.textAlign='left';
+  ctx.fillText(`${curCVN.toFixed(0)} J @ ${S.cTemp}°C`,cx_+9,cy_+4);
+
+  // Current T vertical line
+  ctx.strokeStyle='rgba(120,184,248,0.5)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(cx_,pad.t); ctx.lineTo(cx_,pad.t+ah); ctx.stroke();
+
+  // Title
+  ctx.fillStyle='#3a4868'; ctx.font='11px Segoe UI'; ctx.textAlign='center';
+  ctx.fillText('CVN Energy vs. Temperature (DBTT Curve)',sx+pad.l+aw/2,pad.t-14);
+}
+
+// ══════════════════════════════════════════════════════════
+//  MAIN DRAW
+// ══════════════════════════════════════════════════════════
+
+function draw() {
+  const W=canvas.width, H=canvas.height;
+  const leftW=Math.floor(W*0.44);
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0d0f1c'; ctx.fillRect(0,0,leftW,H);
+  ctx.fillStyle='#0a0b18'; ctx.fillRect(leftW,0,W-leftW,H);
+  if(S.tab==='tensile') drawTensile();
+  else drawCharpy();
+}
+
+// ══════════════════════════════════════════════════════════
+//  INFO PANEL
+// ══════════════════════════════════════════════════════════
+
+function updateInfo() {
+  if(S.tab==='tensile'){
+    const mat=TMATS[S.tmat];
+    const strain=sliderToStrain(S.tSlider);
+    const stress=interpStress(mat,strain);
+    const nk=neckFactor(mat,strain);
+    const [phase,cls]=tPhase(mat,strain);
+
+    document.getElementById('lbl0').textContent='Strain ε';
+    document.getElementById('val0').textContent=strain.toFixed(2);
+    document.getElementById('unt0').textContent='%';
+    document.getElementById('card0').className='prop-card'+(strain>=mat.epsF?' alert':strain>mat.epsUTS?' warn':'');
+
+    document.getElementById('lbl1').textContent='Stress σ';
+    document.getElementById('val1').textContent=stress.toFixed(0);
+    document.getElementById('unt1').textContent='MPa';
+
+    document.getElementById('lbl2').textContent='Phase';
+    document.getElementById('val2').textContent=phase;
+    document.getElementById('unt2').textContent='';
+    document.getElementById('card2').className='prop-card '+(cls||'');
+
+    document.getElementById('lbl3').textContent='Necking';
+    document.getElementById('val3').textContent=nk>0.05?'Yes':'No';
+    document.getElementById('card3').className='prop-card'+(nk>0.05?' warn':'');
+
+    document.getElementById('lbl4').textContent='Fracture Type';
+    document.getElementById('val4').textContent=mat.fracture.charAt(0).toUpperCase()+mat.fracture.slice(1);
+    document.getElementById('card4').className='prop-card';
+
+    document.getElementById('lbl5').textContent='Class';
+    document.getElementById('val5').textContent=mat.cls;
+    document.getElementById('card5').className='prop-card';
+
+  } else {
+    const mat=CMATS[S.cmat];
+    const cvn=getCVN(mat,S.cTemp);
+    const fA=finalAngle(cvn);
+    const shelf=cvn>mat.CVNu*0.75?'Upper':cvn<mat.CVNl*2?'Lower':'Transition';
+    const fracType=cvn>mat.CVNu*0.5?'Ductile':cvn<mat.CVNl*3?'Brittle':'Mixed';
+
+    document.getElementById('lbl0').textContent='Temperature';
+    document.getElementById('val0').textContent=S.cTemp;
+    document.getElementById('unt0').textContent='°C';
+    document.getElementById('card0').className='prop-card'+(S.cTemp<mat.DBTT?' alert':'');
+
+    document.getElementById('lbl1').textContent='CVN Energy';
+    document.getElementById('val1').textContent=cvn.toFixed(0);
+    document.getElementById('unt1').textContent='J';
+    document.getElementById('card1').className='prop-card'+(shelf==='Upper'?' ok':shelf==='Lower'?' alert':'');
+
+    document.getElementById('lbl2').textContent='Region';
+    document.getElementById('val2').textContent=shelf;
+    document.getElementById('unt2').textContent='shelf';
+    document.getElementById('card2').className='prop-card'+(shelf==='Upper'?' ok':shelf==='Lower'?' alert':' warn');
+
+    document.getElementById('lbl3').textContent='Fracture Mode';
+    document.getElementById('val3').textContent=fracType;
+    document.getElementById('unt3').textContent='';
+    document.getElementById('card3').className='prop-card'+(fracType==='Brittle'?' alert':fracType==='Ductile'?' ok':' warn');
+
+    document.getElementById('lbl4').textContent='Final Angle θf';
+    document.getElementById('val4').textContent=fA.toFixed(0);
+    document.getElementById('unt4').textContent='degrees';
+    document.getElementById('card4').className='prop-card';
+
+    document.getElementById('lbl5').textContent='DBTT';
+    document.getElementById('val5').textContent=mat.DBTT;
+    document.getElementById('unt5').textContent='°C';
+    document.getElementById('card5').className='prop-card';
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  EVENT HANDLERS
+// ══════════════════════════════════════════════════════════
+
+function showTab(tab){
+  S.tab=tab;
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active', (i===0&&tab==='tensile')||(i===1&&tab==='charpy'));
+  });
+  document.getElementById('pane-tensile-sb').style.display=tab==='tensile'?'':'none';
+  document.getElementById('pane-charpy-sb').style.display=tab==='charpy'?'':'none';
+  document.getElementById('scenario-note').textContent = tab==='tensile'
+    ? TMATS[S.tmat].note
+    : CMATS[S.cmat].note;
+  updateInfo(); draw();
+}
+
+function setTMat(m){
+  S.tmat=m; S.tSlider=0; S.tPlaying=false;
+  if(S.tAnimRef){cancelAnimationFrame(S.tAnimRef);S.tAnimRef=null;}
+  document.getElementById('btn-play').textContent='▶ Play';
+  document.querySelectorAll('[id^="tm-"]').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tm-'+m).classList.add('active');
+  document.getElementById('sl-strain').value=0;
+  document.getElementById('v-strain').textContent='0.0';
+  document.getElementById('scenario-note').textContent=TMATS[m].note;
+  updateInfo(); draw();
+}
+
+function setCMat(m){
+  S.cmat=m;
+  document.querySelectorAll('[id^="cm-"]').forEach(b=>b.classList.remove('active'));
+  document.getElementById('cm-'+m).classList.add('active');
+  resetCharpy();
+  document.getElementById('scenario-note').textContent=CMATS[m].note;
+  updateInfo(); draw();
+}
+
+function setCharpyType(t){
+  S.cType=t;
+  document.querySelectorAll('[id^="ct-"]').forEach(b=>b.classList.remove('active'));
+  document.getElementById('ct-'+t).classList.add('active');
+  draw();
+}
+
+function onStrainSlider(){
+  S.tSlider=+document.getElementById('sl-strain').value;
+  const strain=sliderToStrain(S.tSlider);
+  document.getElementById('v-strain').textContent=strain.toFixed(2);
+  updateInfo(); draw();
+}
+
+function onTempSlider(){
+  S.cTemp=+document.getElementById('sl-temp').value;
+  document.getElementById('v-temp').textContent=S.cTemp;
+  S.cStruck=false; S.cSpecBroken=false;
+  S.cPendAngle=-143;
+  updateInfo(); draw();
+}
+
+function togT(key){
+  S['t'+key.charAt(0).toUpperCase()+key.slice(1)]=!S['t'+key.charAt(0).toUpperCase()+key.slice(1)];
+  document.getElementById('tg-'+key).classList.toggle('on');
+  draw();
+}
+
+// ── Tensile animation ──
+function togglePlay(){
+  if(S.tPlaying){ pausePlay(); return; }
+  if(S.tSlider>=100) S.tSlider=0;
+  S.tPlaying=true;
+  document.getElementById('btn-play').textContent='⏸ Pause';
+  const dur=9000;
+  S.tAnimStart=Date.now()-S.tSlider/100*dur;
+  function step(){
+    const t=(Date.now()-S.tAnimStart)/dur;
+    S.tSlider=Math.min(t*100,100);
+    document.getElementById('sl-strain').value=S.tSlider;
+    const strain=sliderToStrain(S.tSlider);
+    document.getElementById('v-strain').textContent=strain.toFixed(2);
+    updateInfo(); draw();
+    if(S.tSlider<100){ S.tAnimRef=requestAnimationFrame(step); }
+    else { S.tPlaying=false; document.getElementById('btn-play').textContent='▶ Play'; }
+  }
+  S.tAnimRef=requestAnimationFrame(step);
+}
+function pausePlay(){
+  S.tPlaying=false; cancelAnimationFrame(S.tAnimRef); S.tAnimRef=null;
+  document.getElementById('btn-play').textContent='▶ Play';
+}
+function resetTest(){
+  pausePlay(); S.tSlider=0;
+  document.getElementById('sl-strain').value=0;
+  document.getElementById('v-strain').textContent='0.0';
+  updateInfo(); draw();
+}
+
+// ── Charpy animation ──
+function strikeCharpy(){
+  if(S.cAnimating) return;
+  S.cAnimating=true; S.cStruck=false; S.cSpecBroken=false;
+  S.cPendAngle=-143;
+  const mat=CMATS[S.cmat];
+  const cvn=getCVN(mat,S.cTemp);
+  const fAngle=finalAngle(cvn);
+  const dur=2800;
+  const startTime=Date.now();
+
+  function step(){
+    const t=(Date.now()-startTime)/dur;
+    if(t<0.45){
+      // Swing from release to bottom (ease-in with sin)
+      const f=Math.sin(t/0.45*Math.PI/2);
+      S.cPendAngle=-143+143*f;
+    } else if(t<0.50){
+      // At/near bottom — impact
+      S.cPendAngle=0;
+      S.cStruck=true; S.cSpecBroken=true;
+    } else {
+      // Swing to final angle
+      const f=Math.sin((t-0.50)/0.50*Math.PI/2);
+      S.cPendAngle=fAngle*f;
+    }
+    draw();
+    if(t<1.0){ S.cAnimRef=requestAnimationFrame(step); }
+    else{ S.cPendAngle=fAngle; S.cAnimating=false; draw(); }
+  }
+  S.cAnimRef=requestAnimationFrame(step);
+}
+function resetCharpy(){
+  if(S.cAnimRef){cancelAnimationFrame(S.cAnimRef);S.cAnimRef=null;}
+  S.cAnimating=false; S.cPendAngle=-143; S.cStruck=false; S.cSpecBroken=false;
+  draw();
+}
+
+// ══════════════════════════════════════════════════════════
+//  RESIZE + INIT
+// ══════════════════════════════════════════════════════════
+
+function resizeCanvas(){
+  const wrap=document.getElementById('canvas-wrap');
+  canvas.width =wrap.clientWidth -20;
+  canvas.height=wrap.clientHeight-12;
+  draw();
+}
+window.addEventListener('resize',resizeCanvas);
+
+function init(){
+  document.getElementById('scenario-note').textContent=TMATS[S.tmat].note;
+  updateInfo();
+  resizeCanvas();
+}
+init();
+</script>
+</body>
+</html>
