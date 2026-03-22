@@ -138,9 +138,9 @@
     <div class="mat-grid">
       <button class="mat-btn active" id="tm-lc_steel"  onclick="setTMat('lc_steel')">Low Carbon<br>Steel</button>
       <button class="mat-btn"        id="tm-al_6061"   onclick="setTMat('al_6061')">Al 6061-T6</button>
-      <button class="mat-btn"        id="tm-hdpe"      onclick="setTMat('hdpe')">HDPE</button>
-      <button class="mat-btn"        id="tm-pmma"      onclick="setTMat('pmma')">PMMA</button>
-      <button class="mat-btn"        id="tm-cast_iron" onclick="setTMat('cast_iron')" style="grid-column:span 2">Gray Cast Iron</button>
+      <button class="mat-btn"        id="tm-hdpe"      onclick="setTMat('hdpe')">HDPE<br><span style="font-size:0.55rem;opacity:0.7">semicrystalline</span></button>
+      <button class="mat-btn"        id="tm-pmma"      onclick="setTMat('pmma')">PMMA<br><span style="font-size:0.55rem;opacity:0.7">glassy</span></button>
+      <button class="mat-btn"        id="tm-nat_rubber" onclick="setTMat('nat_rubber')" style="grid-column:span 2">Natural Rubber &nbsp;<span style="font-size:0.55rem;opacity:0.7">elastomer</span></button>
     </div>
 
     <div style="margin-top:12px">
@@ -250,11 +250,13 @@ const TMATS = {
     note:'No distinct yield point — uses 0.2% offset method. Good strength-to-weight ratio. Ductile fracture with moderate elongation (~12%).'
   },
   hdpe: {
-    name:'HDPE', cls:'Polymer', fracture:'ductile',
+    name:'HDPE', cls:'Polymer (semicrystalline)', fracture:'ductile',
     color:'#60c870',
-    curve:[[0,0],[1.5,20],[2.5,27],[3.0,25],[8,26],[40,27],[120,31],[250,38],[350,42],[400,36]],
-    epsUTS:350, epsF:400,
-    note:'Cold drawing: after yield, a neck forms and propagates at nearly constant stress as polymer chains align. Extreme elongation (>300%). Highly ductile fracture.'
+    // Upper yield point → yield drop → cold drawing plateau → strain hardening → fracture
+    curve:[[0,0],[1.2,18],[2.0,26],[2.6,22],[4,23],[15,23.5],[60,24],[130,25],[250,29],[360,38],[420,43],[440,38]],
+    epsUTS:420, epsF:445,
+    coldDraw:true,   // flag: use neck-propagation animation instead of Gaussian neck
+    note:'Cold drawing: upper yield point → yield drop → neck forms at one point and propagates along the gauge at nearly constant stress as chains align → strain hardening → fracture. Semicrystalline structure enables this unique behavior.'
   },
   pmma: {
     name:'PMMA (Acrylic)', cls:'Polymer', fracture:'brittle',
@@ -263,12 +265,13 @@ const TMATS = {
     epsUTS:2.0, epsF:2.7,
     note:'Brittle fracture with minimal plastic deformation. Flat fracture surface, often with concentric "river marks." No necking observed.'
   },
-  cast_iron: {
-    name:'Gray Cast Iron', cls:'Metal (brittle)', fracture:'brittle',
-    color:'#909898',
-    curve:[[0,0],[0.06,70],[0.15,135],[0.30,170],[0.50,185],[0.62,185],[0.72,155]],
-    epsUTS:0.62, epsF:0.78,
-    note:'Graphite flakes act as internal stress concentrators → very brittle in tension. Non-linear elastic region due to flake geometry. Low tensile strength, fractures with <1% elongation.'
+  nat_rubber: {
+    name:'Natural Rubber', cls:'Elastomer', fracture:'elastic',
+    color:'#d0b030',
+    // Hyperelastic S-curve: low initial modulus, network stiffening at high strains
+    curve:[[0,0],[20,0.12],[50,0.35],[100,0.7],[200,1.4],[350,3.5],[450,8],[520,14],[560,18],[590,16]],
+    epsUTS:560, epsF:600,
+    note:'Hyperelastic (elastomeric): cross-linked polymer network stretches reversibly to >500% strain. No yield point, no necking. S-shaped curve — low modulus initially, then stiffens as chains approach full extension (entropic spring). Fracture is abrupt.'
   },
 };
 
@@ -354,6 +357,7 @@ function interpStress(mat, strain) {
 // Neck factor: 0 = no neck, 1 = fracture
 function neckFactor(mat, strain) {
   if (mat.fracture === 'brittle') return 0;
+  if (mat.fracture === 'elastic') return 0; // elastomers: no neck, uniform stretch
   if (strain <= mat.epsUTS) return 0;
   return Math.min((strain - mat.epsUTS) / (mat.epsF - mat.epsUTS), 1);
 }
@@ -408,29 +412,30 @@ function niceStep(r) {
 //  TENSILE DRAWING
 // ══════════════════════════════════════════════════════════
 
-function drawSpecimenPath(cx,cy,gaugeL,gaugeW,tabW,tabH,shoulderH,nk) {
+// profileFn(ry, hG) → half-width at that position (optional; overrides Gaussian neck)
+function drawSpecimenPath(cx,cy,gaugeL,gaugeW,tabW,tabH,shoulderH,nk,profileFn) {
   const hG=gaugeL/2, hS=shoulderH, hT=tabH;
-  const STEPS=50;
+  const STEPS=60;
+  function hw(ry){ // half-width at relative y position
+    if(profileFn) return profileFn(ry,hG);
+    return gaugeW/2*(1-nk*0.65*Math.exp(-5*ry*ry/(hG*hG)));
+  }
   ctx.beginPath();
-  // Top-left → down left side
   ctx.moveTo(cx-tabW/2, cy-hG-hS-hT);
   ctx.lineTo(cx-tabW/2, cy-hG-hS);
   ctx.bezierCurveTo(cx-tabW/2,cy-hG-hS/2, cx-gaugeW/2,cy-hG-hS/2, cx-gaugeW/2,cy-hG);
   for(let i=1;i<=STEPS;i++){
     const ry=-hG+(i/STEPS)*gaugeL;
-    const nx=gaugeW/2*(1-nk*0.65*Math.exp(-5*ry*ry/(hG*hG)));
-    ctx.lineTo(cx-nx,cy+ry);
+    ctx.lineTo(cx-hw(ry),cy+ry);
   }
   ctx.bezierCurveTo(cx-gaugeW/2,cy+hG+hS/2, cx-tabW/2,cy+hG+hS/2, cx-tabW/2,cy+hG+hS);
   ctx.lineTo(cx-tabW/2, cy+hG+hS+hT);
-  // Bottom → up right side
   ctx.lineTo(cx+tabW/2, cy+hG+hS+hT);
   ctx.lineTo(cx+tabW/2, cy+hG+hS);
   ctx.bezierCurveTo(cx+tabW/2,cy+hG+hS/2, cx+gaugeW/2,cy+hG+hS/2, cx+gaugeW/2,cy+hG);
   for(let i=STEPS-1;i>=0;i--){
     const ry=-hG+(i/STEPS)*gaugeL;
-    const nx=gaugeW/2*(1-nk*0.65*Math.exp(-5*ry*ry/(hG*hG)));
-    ctx.lineTo(cx+nx,cy+ry);
+    ctx.lineTo(cx+hw(ry),cy+ry);
   }
   ctx.bezierCurveTo(cx+gaugeW/2,cy-hG-hS/2, cx+tabW/2,cy-hG-hS/2, cx+tabW/2,cy-hG-hS);
   ctx.lineTo(cx+tabW/2, cy-hG-hS-hT);
@@ -438,13 +443,18 @@ function drawSpecimenPath(cx,cy,gaugeL,gaugeW,tabW,tabH,shoulderH,nk) {
 }
 
 function specimenColor(mat, strain) {
+  if (mat.fracture === 'elastic') {
+    // Elastomer: stays amber, lightens slightly under strain
+    const f = Math.min(strain / mat.epsF, 1);
+    return `hsl(44,${Math.round(80-20*f)}%,${Math.round(36+18*f)}%)`;
+  }
   const epsY  = mat.curve[1][0];
   const epsUTS = mat.epsUTS;
   const epsF   = mat.epsF;
   if (strain <= 0)          return '#2a3a5a';
   if (strain < epsY)        return '#3060a8'; // elastic – blue
   if (strain < epsUTS*0.5)  return '#4878a0'; // early plastic – blue-green
-  if (strain < epsUTS)      return '#6a9840'; // plastic – green
+  if (strain < epsUTS)      return mat.coldDraw ? '#70b858' : '#6a9840'; // HDPE stays greener
   if (strain < epsF*0.8)    return '#b87028'; // necking – orange
   return '#903020';                            // near fracture – red
 }
@@ -518,22 +528,74 @@ function drawTensile() {
       ctx.fillText('Flat / Brittle', cx, cy);
     }
   } else {
-    // Draw complete specimen
-    drawSpecimenPath(cx,cy,gaugeL,gaugeW,tabW,tabH,shoulderH,nk);
-    ctx.fillStyle = specimenColor(mat, strain);
-    ctx.fill();
-    ctx.strokeStyle = '#6080a0'; ctx.lineWidth = 1.5; ctx.stroke();
+    // ── Build profile function ──
+    let profileFn = null;
 
-    // Highlight neck region
-    if (nk > 0.05) {
-      const neckW2 = gaugeW/2*(1-nk*0.65)*2;
+    if (mat.coldDraw && nk > 0.01) {
+      // HDPE cold drawing: neck propagates outward from center
+      const drawnHW   = gaugeW/2 * 0.40;  // drawn section half-width (~60% area reduction)
+      const frontPos  = Math.min(nk, 0.97); // draw front position (0=center, 1=ends)
+      const transW    = 0.06;              // transition zone half-width (fraction of hG)
+      profileFn = (ry, hG) => {
+        const absRel = Math.abs(ry)/hG;
+        if (absRel < frontPos - transW)   return drawnHW;              // fully drawn
+        if (absRel < frontPos + transW) { // shoulder transition
+          const t = (absRel-(frontPos-transW))/(2*transW);
+          return drawnHW + (gaugeW/2-drawnHW)*t;
+        }
+        return gaugeW/2;                                               // undrawn
+      };
+    }
+
+    drawSpecimenPath(cx,cy,gaugeL,gaugeW,tabW,tabH,shoulderH,nk,profileFn);
+
+    // For HDPE with a propagating neck, fill drawn + undrawn zones separately
+    if (mat.coldDraw && nk > 0.01) {
+      const frontPos = Math.min(nk, 0.97);
+      const hG = gaugeL/2;
+      // Drawn zone: clip center band
       ctx.save();
       ctx.beginPath();
-      ctx.rect(cx-gaugeW/2-2, cy-gaugeL0*0.15, gaugeW+4, gaugeL0*0.30);
+      ctx.rect(cx-gaugeW, cy - frontPos*hG - 4, gaugeW*2, (frontPos*hG+4)*2);
       ctx.clip();
-      drawSpecimenPath(cx,cy,gaugeL,gaugeW,tabW,tabH,shoulderH,nk);
-      ctx.strokeStyle='rgba(255,120,30,0.5)'; ctx.lineWidth=3; ctx.stroke();
+      drawSpecimenPath(cx,cy,gaugeL,gaugeW,tabW,tabH,shoulderH,nk,profileFn);
+      ctx.fillStyle = '#a8d870'; ctx.fill(); // drawn zone: lighter green (stress whitening)
       ctx.restore();
+      // Undrawn zone
+      ctx.save();
+      ctx.beginPath();
+      // Top undrawn
+      ctx.rect(cx-gaugeW, cy-hG-shoulderH-tabH, gaugeW*2, hG*(1-frontPos)+shoulderH+tabH);
+      ctx.rect(cx-gaugeW, cy+frontPos*hG,        gaugeW*2, hG*(1-frontPos)+shoulderH+tabH);
+      ctx.clip();
+      drawSpecimenPath(cx,cy,gaugeL,gaugeW,tabW,tabH,shoulderH,nk,profileFn);
+      ctx.fillStyle = specimenColor(mat,strain); ctx.fill();
+      ctx.restore();
+      // Outline
+      drawSpecimenPath(cx,cy,gaugeL,gaugeW,tabW,tabH,shoulderH,nk,profileFn);
+      ctx.strokeStyle='#70c850'; ctx.lineWidth=1.5; ctx.stroke();
+      // Draw front indicators (arrows showing propagation direction)
+      if (frontPos > 0.05 && frontPos < 0.93) {
+        ctx.fillStyle='rgba(180,220,100,0.8)'; ctx.font='bold 9px Segoe UI'; ctx.textAlign='center';
+        const frontY1 = cy - frontPos*hG;
+        const frontY2 = cy + frontPos*hG;
+        ctx.fillText('▼ draw front', cx, frontY1 - 6);
+        ctx.fillText('▲ draw front', cx, frontY2 + 14);
+      }
+    } else {
+      ctx.fillStyle = specimenColor(mat, strain);
+      ctx.fill();
+      ctx.strokeStyle = '#6080a0'; ctx.lineWidth = 1.5; ctx.stroke();
+      // Highlight neck for standard metals
+      if (nk > 0.05 && !mat.coldDraw) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(cx-gaugeW/2-2, cy-gaugeL0*0.15, gaugeW+4, gaugeL0*0.30);
+        ctx.clip();
+        drawSpecimenPath(cx,cy,gaugeL,gaugeW,tabW,tabH,shoulderH,nk);
+        ctx.strokeStyle='rgba(255,120,30,0.5)'; ctx.lineWidth=3; ctx.stroke();
+        ctx.restore();
+      }
     }
   }
 
