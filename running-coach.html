@@ -754,17 +754,25 @@ COACHING PRINCIPLES:
 
       useEffect(() => {
         async function init() {
-          // Check for implicit grant response (access_token in URL hash)
-          const hash = window.location.hash;
-          let freshImplicitToken = null;
-          if (hash.includes("access_token=")) {
+          // Check for PKCE callback (?code= in URL params)
+          const urlParams = new URLSearchParams(window.location.search);
+          const authCode = urlParams.get("code");
+          const authState = urlParams.get("state");
+          let freshPKCEToken = null;
+          if (authCode && authState === "fitbit_pkce") {
             window.history.replaceState({}, "", window.location.pathname);
-            const hp = new URLSearchParams(hash.slice(1));
-            const at = hp.get("access_token");
-            const expiresIn = parseInt(hp.get("expires_in") || "3600");
-            if (at) {
-              freshImplicitToken = { access_token: at, refresh_token: null, expires_at: Date.now() + expiresIn * 1000 };
-              await sset("rc_fitbit_token", freshImplicitToken);
+            const verifier = await sget("rc_fitbit_verifier");
+            const pendingClientId = await sget("rc_fitbit_pending_client");
+            if (verifier && pendingClientId) {
+              try {
+                const tokens = await fitbitExchangeCode(authCode, verifier, pendingClientId, window.location.origin + window.location.pathname);
+                freshPKCEToken = { access_token: tokens.access_token, refresh_token: tokens.refresh_token, expires_at: Date.now() + tokens.expires_in * 1000 };
+                await sset("rc_fitbit_token", freshPKCEToken);
+                await sdel("rc_fitbit_verifier");
+                await sdel("rc_fitbit_pending_client");
+              } catch (err) {
+                setSyncError(`Fitbit auth failed: ${err.message}`);
+              }
             }
           }
 
@@ -773,13 +781,24 @@ COACHING PRINCIPLES:
           if (savedWorkouts) setWorkouts(savedWorkouts);
           if (savedSettings) setSettings(savedSettings);
 
-          const tokenToUse = freshImplicitToken || savedToken;
+          const tokenToUse = freshPKCEToken || savedToken;
           if (tokenToUse?.access_token) {
             setFitbitToken(tokenToUse);
             if (tokenToUse.expires_at > Date.now()) {
               await doFitbitSyncInner(tokenToUse.access_token, savedSettings, savedWorkouts || []);
+            } else if (tokenToUse.refresh_token && savedSettings?.fitbitClientId) {
+              try {
+                const refreshed = await fitbitRefreshToken(tokenToUse.refresh_token, savedSettings.fitbitClientId);
+                const newToken = { access_token: refreshed.access_token, refresh_token: refreshed.refresh_token || tokenToUse.refresh_token, expires_at: Date.now() + refreshed.expires_in * 1000 };
+                await sset("rc_fitbit_token", newToken);
+                setFitbitToken(newToken);
+                await doFitbitSyncInner(newToken.access_token, savedSettings, savedWorkouts || []);
+              } catch {
+                setSyncError("Fitbit token expired — please reconnect in ⚙️ Settings.");
+                setFitbitToken(null);
+                await sdel("rc_fitbit_token");
+              }
             } else {
-              // Implicit grant tokens can't be refreshed — prompt reconnect
               setSyncError("Fitbit token expired — please reconnect in ⚙️ Settings.");
               setFitbitToken(null);
               await sdel("rc_fitbit_token");
@@ -811,13 +830,18 @@ COACHING PRINCIPLES:
       }
 
       async function handleFitbitConnect(clientId) {
-        // Implicit grant — access token comes back in URL hash, no CORS token-exchange needed
+        // PKCE flow — required for Personal app type
+        const { verifier, challenge } = await makePKCE();
+        await sset("rc_fitbit_verifier", verifier);
+        await sset("rc_fitbit_pending_client", clientId);
         const params = new URLSearchParams({
-          response_type: "token",
+          response_type: "code",
           client_id: clientId,
           redirect_uri: redirectUri,
           scope: "activity heartrate profile",
-          expires_in: "31536000",
+          code_challenge: challenge,
+          code_challenge_method: "S256",
+          state: "fitbit_pkce",
         });
         window.location.href = `${FITBIT_AUTH_URL}?${params}`;
       }
