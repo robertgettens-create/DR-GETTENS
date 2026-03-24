@@ -1,0 +1,1196 @@
+import { useState, useEffect, useRef } from "react";
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+const RACE_DATE = new Date("2026-05-10T07:00:00");
+const TODAY = new Date();
+const DAYS_LEFT = Math.max(0, Math.ceil((RACE_DATE - TODAY) / (1000 * 60 * 60 * 24)));
+const WEEKS_LEFT = Math.floor(DAYS_LEFT / 7);
+const FITBIT_AUTH_URL = "https://www.fitbit.com/oauth2/authorize";
+const FITBIT_TOKEN_URL = "https://api.fitbit.com/oauth2/token";
+const FITBIT_API = "https://api.fitbit.com/1";
+const WORKOUT_ICONS = { Run: "🏃", Bike: "🚴", Kayak: "🛶", Gardening: "🌱", Walk: "🚶", Rest: "😴", Other: "⚡" };
+
+// ─── PKCE helpers ─────────────────────────────────────────────────────────────
+function b64url(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+}
+async function makePKCE() {
+  const v = new Uint8Array(32);
+  crypto.getRandomValues(v);
+  const verifier = b64url(v);
+  const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
+  return { verifier, challenge };
+}
+
+// ─── Storage (window.storage with localStorage fallback) ──────────────────────
+async function sget(key) {
+  try { const r = await window.storage?.get(key); if (r?.value) return JSON.parse(r.value); } catch {}
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; }
+}
+async function sset(key, val) {
+  const s = JSON.stringify(val);
+  try { await window.storage?.set(key, s); } catch {}
+  try { localStorage.setItem(key, s); } catch {}
+}
+async function sdel(key) {
+  try { await window.storage?.delete(key); } catch {}
+  try { localStorage.removeItem(key); } catch {}
+}
+
+// ─── Claude API ────────────────────────────────────────────────────────────────
+function makeSystemPrompt(fitbitStats) {
+  const fb = fitbitStats;
+  const fbSection = fb
+    ? `\n\nRECENT FITBIT DATA (last 30 days):\n- Runs: ${fb.runCount} runs, ${fb.totalMiles.toFixed(1)} miles total\n- Most recent pace: ${fb.avgPace || "N/A"}\n- Avg resting HR: ${fb.restingHR ?? "N/A"} bpm\n- Avg HR during runs: ${fb.avgRunHR ?? "N/A"} bpm\n- Longest recent run: ${fb.longestRun?.toFixed(1) ?? "N/A"} miles\nUse this real data when giving specific advice about pacing, effort, and readiness.`
+    : "";
+  return `You are a warm, encouraging personal running coach for a 54-year-old recreational runner in Western Massachusetts.
+
+RUNNER PROFILE:
+- Age: 54 · Running for fun and personal satisfaction
+- Goal: 5K to half marathon; long-term dream of a marathon
+- Training style: Hal Higdon — gradual mileage increase, long slow distance, adequate rest
+- Next race: Western Mass Mother's Day Half Marathon, May 10 2026 (${WEEKS_LEFT} weeks away)
+- Recent race: Holyoke 10K — completed without stopping, went very slow — solid endurance base
+- Cross-training: gardening, kayaking, biking (all count as active recovery)
+- Devices: Fitbit Charge 6, Runkeeper app (pace gradually slowing with age — completely normal)
+- Location: Western Massachusetts — variable spring weather${fbSection}
+
+COACHING PRINCIPLES:
+- Max HR ~166 bpm; Zone 2 (easy/conversational) = 116–133 bpm (Karvonen)
+- MOST runs at easy/conversational pace — the "talk test"
+- Half marathon goal: COMFORTABLE COMPLETION, not a PR
+- 10% weekly mileage increase rule — essential injury prevention
+- Recovery takes longer at 54 — rest days are not optional
+- Cross-training (gardening, kayaking, biking) counts as active recovery
+- Be specific with distances and paces, not vague. Be encouraging — running is for joy.
+- Never suggest faster-than-conversational paces unless explicitly asked.`;
+}
+
+async function callClaude(messages, apiKey, fitbitStats) {
+  if (!apiKey) return "Please add your Anthropic API key in ⚙️ Settings to enable AI coaching.";
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1500,
+        system: makeSystemPrompt(fitbitStats),
+        messages,
+      }),
+    });
+    const data = await res.json();
+    if (data.error) return `Error: ${data.error.message}`;
+    return data.content?.[0]?.text || "No response. Please try again.";
+  } catch {
+    return "Connection error. Check your API key in Settings and try again.";
+  }
+}
+
+// ─── Fitbit API ────────────────────────────────────────────────────────────────
+async function fitbitFetch(path, token) {
+  const res = await fetch(`${FITBIT_API}${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) { const e = new Error("expired"); e.status = 401; throw e; }
+  if (!res.ok) throw new Error(`Fitbit API error ${res.status}`);
+  return res.json();
+}
+
+async function fitbitExchangeCode(code, verifier, clientId, redirectUri) {
+  const res = await fetch(FITBIT_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      client_id: clientId,
+      code,
+      redirect_uri: redirectUri,
+      code_verifier: verifier,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.errors?.[0]?.message || `Token exchange failed (${res.status})`);
+  }
+  return res.json();
+}
+
+async function fitbitRefreshToken(refreshToken, clientId) {
+  const res = await fetch(FITBIT_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ grant_type: "refresh_token", client_id: clientId, refresh_token: refreshToken }),
+  });
+  if (!res.ok) throw new Error("Token refresh failed");
+  return res.json();
+}
+
+async function loadFitbitStats(token) {
+  const since = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
+  const to = TODAY.toISOString().split("T")[0];
+  const [actRes, hrRes] = await Promise.all([
+    fitbitFetch(`/user/-/activities/list.json?afterDate=${since}&sort=desc&limit=100&offset=0`, token),
+    fitbitFetch(`/user/-/activities/heart/date/${since}/${to}.json`, token),
+  ]);
+
+  const activities = actRes.activities || [];
+  const runs = activities.filter(a => {
+    const n = (a.activityName || "").toLowerCase();
+    return n.includes("run") || n.includes("jog") || a.activityTypeId === 90009;
+  });
+
+  const totalMiles = runs.reduce((s, r) => s + (r.distance || 0), 0);
+  const longestRun = runs.length ? Math.max(...runs.map(r => r.distance || 0)) : 0;
+
+  // Most recent pace — Fitbit averageSpeed is in km/h
+  const paceRun = runs.find(r => r.averageSpeed > 0);
+  let avgPace = null;
+  if (paceRun) {
+    const mph = paceRun.averageSpeed * 0.621371;
+    const mpm = 60 / mph;
+    avgPace = `${Math.floor(mpm)}:${String(Math.round((mpm % 1) * 60)).padStart(2, "0")}/mi`;
+  }
+
+  const hrDays = (hrRes["activities-heart"] || []).filter(d => d.value?.restingHeartRate);
+  const restingHR = hrDays.length
+    ? Math.round(hrDays.reduce((s, d) => s + d.value.restingHeartRate, 0) / hrDays.length)
+    : null;
+
+  const runsWithHR = runs.filter(r => r.averageHeartRate);
+  const avgRunHR = runsWithHR.length
+    ? Math.round(runsWithHR.reduce((s, r) => s + r.averageHeartRate, 0) / runsWithHR.length)
+    : null;
+
+  // Pace history (last 10 runs with pace)
+  const paceHistory = runs
+    .filter(r => r.averageSpeed > 0 && r.distance > 0)
+    .slice(0, 10)
+    .map(r => {
+      const mph = r.averageSpeed * 0.621371;
+      const mpm = 60 / mph;
+      return {
+        date: (r.startTime || "").split("T")[0],
+        distance: parseFloat(r.distance.toFixed(2)),
+        pace: `${Math.floor(mpm)}:${String(Math.round((mpm % 1) * 60)).padStart(2, "0")}`,
+        hr: r.averageHeartRate || null,
+      };
+    });
+
+  return { activities, runs, runCount: runs.length, totalMiles, avgPace, restingHR, avgRunHR, longestRun, paceHistory };
+}
+
+function fitbitActToWorkout(act) {
+  const n = (act.activityName || "").toLowerCase();
+  const type = n.includes("run") || n.includes("jog") ? "Run"
+    : n.includes("walk") ? "Walk"
+    : n.includes("cycl") || n.includes("bike") ? "Bike"
+    : n.includes("kayak") || n.includes("paddle") ? "Kayak"
+    : n.includes("garden") ? "Gardening" : "Other";
+  const date = (act.startTime || act.originalStartTime || "").split("T")[0];
+  if (!date) return null;
+  return {
+    id: `fb_${act.logId}`,
+    type,
+    date,
+    distance: act.distance ? parseFloat(act.distance.toFixed(2)) : "",
+    duration: act.duration ? Math.round(act.duration / 60000) : "",
+    notes: ["Fitbit", act.averageHeartRate && `${act.averageHeartRate} bpm avg`, act.calories && `${act.calories} cal`].filter(Boolean).join(" · "),
+    source: "fitbit",
+  };
+}
+
+// ─── Runkeeper CSV import ──────────────────────────────────────────────────────
+// Parses cardioActivities.csv from the Runkeeper data export
+function parseRunkeeperCSV(csv) {
+  const lines = csv.split("\n").filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim());
+  return lines.slice(1).map((line, i) => {
+    const vals = [];
+    let cur = "", inQ = false;
+    for (const ch of line + ",") {
+      if (ch === '"') inQ = !inQ;
+      else if (ch === "," && !inQ) { vals.push(cur.trim()); cur = ""; }
+      else cur += ch;
+    }
+    const row = Object.fromEntries(headers.map((h, j) => [h, vals[j] || ""]));
+    if (!row["Date"] || !row["Type"]) return null;
+    const parts = (row["Duration"] || "").split(":").map(Number);
+    let mins = 0;
+    if (parts.length === 3) mins = parts[0] * 60 + parts[1] + parts[2] / 60;
+    else if (parts.length === 2) mins = parts[0] + parts[1] / 60;
+    const t = row["Type"].toLowerCase();
+    return {
+      id: `rk_${Date.now()}_${i}`,
+      type: t.includes("run") ? "Run" : t.includes("cycl") ? "Bike" : t.includes("kayak") ? "Kayak" : "Other",
+      date: row["Date"].split(" ")[0].replace(/\//g, "-"),
+      distance: parseFloat(row["Distance (mi)"]) || "",
+      duration: Math.round(mins) || "",
+      notes: ["Runkeeper", row["Average Pace"] && `${row["Average Pace"]}/mi`, row["Average Heart Rate (bpm)"] && `${row["Average Heart Rate (bpm)"]} bpm avg`].filter(Boolean).join(" · "),
+      heartRate: parseFloat(row["Average Heart Rate (bpm)"]) || null,
+      source: "runkeeper",
+    };
+  }).filter(Boolean);
+}
+
+// ─── Styles ────────────────────────────────────────────────────────────────────
+const styles = `
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .app { max-width: 430px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; background: #0f1117; color: #f0ede8; }
+  .header { padding: 16px 20px 12px; background: #0f1117; border-bottom: 1px solid #1e2030; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; color: #f0ede8; }
+  .logo span { color: #f07030; }
+  .race-badge { background: #1e2030; border: 1px solid #2a2d3e; border-radius: 20px; padding: 4px 12px; font-size: 12px; color: #a0a8c0; }
+  .race-badge b { color: #f07030; }
+  .content { flex: 1; overflow-y: auto; padding-bottom: 80px; }
+  .tab-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: #161820; border-top: 1px solid #1e2030; display: flex; padding: 8px 0 20px; z-index: 100; }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 0; cursor: pointer; border: none; background: none; color: #5a6080; font-size: 9px; letter-spacing: 0.2px; transition: color 0.15s; }
+  .tab.active { color: #f07030; }
+  .tab-icon { font-size: 20px; line-height: 1; }
+  .section { padding: 20px; }
+  .card { background: #161820; border: 1px solid #1e2030; border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+  .card-title { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #5a6080; margin-bottom: 10px; }
+  .stat-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .stat { flex: 1; background: #1a1d2a; border-radius: 12px; padding: 12px 8px; text-align: center; }
+  .stat-num { font-size: 22px; font-weight: 700; color: #f07030; line-height: 1; }
+  .stat-label { font-size: 10px; color: #5a6080; margin-top: 4px; letter-spacing: 0.2px; }
+  .countdown-bar { background: #1a1d2a; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+  .countdown-label { font-size: 13px; color: #a0a8c0; margin-bottom: 10px; }
+  .progress-track { background: #0f1117; border-radius: 8px; height: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #f07030, #f09050); border-radius: 8px; transition: width 0.5s; }
+  .progress-text { font-size: 12px; color: #5a6080; margin-top: 6px; text-align: right; }
+  .btn { display: block; width: 100%; padding: 14px; border-radius: 12px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.15s, transform 0.1s; text-align: center; }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: #f07030; color: white; }
+  .btn-secondary { background: #1e2030; color: #f0ede8; border: 1px solid #2a2d3e; }
+  .btn-danger { background: #3a1010; color: #f05050; border: 1px solid #5a1010; }
+  .btn-fitbit { background: #00b0b9; color: white; }
+  .btn-sm { padding: 8px 16px; font-size: 13px; border-radius: 8px; width: auto; display: inline-block; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .plan-output { font-size: 14px; line-height: 1.7; color: #c0c8e0; }
+  .shoe-card { background: #161820; border: 1px solid #1e2030; border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+  .shoe-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+  .shoe-miles { font-size: 24px; font-weight: 700; color: #f07030; }
+  .shoe-meter { height: 6px; border-radius: 4px; background: #1e2030; overflow: hidden; margin: 8px 0; }
+  .shoe-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+  .shoe-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .add-miles-btns { display: flex; gap: 6px; }
+  .miles-btn { background: #1e2030; border: 1px solid #2a2d3e; border-radius: 8px; padding: 6px 10px; color: #f0ede8; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .miles-btn:active { background: #2a2d3e; }
+  .input { width: 100%; background: #1a1d2a; border: 1px solid #2a2d3e; border-radius: 10px; padding: 12px; color: #f0ede8; font-size: 15px; margin-bottom: 10px; outline: none; -webkit-appearance: none; }
+  .input:focus { border-color: #f07030; }
+  select.input { cursor: pointer; }
+  .label { font-size: 12px; color: #5a6080; margin-bottom: 4px; font-weight: 500; }
+  .chat-messages { padding: 16px 16px 0; display: flex; flex-direction: column; gap: 12px; min-height: 300px; }
+  .msg { max-width: 88%; }
+  .msg-user { align-self: flex-end; background: #f07030; color: white; border-radius: 18px 18px 4px 18px; padding: 10px 14px; font-size: 14px; line-height: 1.5; }
+  .msg-ai { align-self: flex-start; background: #1e2030; color: #c0c8e0; border-radius: 18px 18px 18px 4px; padding: 10px 14px; font-size: 14px; line-height: 1.6; }
+  .chat-input-row { display: flex; gap: 10px; padding: 12px 16px 16px; position: sticky; bottom: 80px; background: #0f1117; border-top: 1px solid #1e2030; }
+  .chat-input { flex: 1; background: #1a1d2a; border: 1px solid #2a2d3e; border-radius: 24px; padding: 10px 16px; color: #f0ede8; font-size: 14px; outline: none; -webkit-appearance: none; }
+  .chat-input:focus { border-color: #f07030; }
+  .send-btn { background: #f07030; border: none; border-radius: 50%; width: 40px; height: 40px; color: white; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .send-btn:disabled { opacity: 0.4; }
+  .workout-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #1e2030; }
+  .workout-item:last-child { border-bottom: none; }
+  .workout-icon { width: 36px; height: 36px; border-radius: 10px; background: #1e2030; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .workout-info { flex: 1; min-width: 0; }
+  .workout-type { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 5px; }
+  .workout-meta { font-size: 11px; color: #5a6080; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .workout-dist { font-size: 16px; font-weight: 700; color: #f07030; flex-shrink: 0; }
+  .empty-state { text-align: center; padding: 40px 20px; color: #5a6080; }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .tip-card { background: #1a1d2a; border-left: 3px solid #f07030; border-radius: 0 10px 10px 0; padding: 12px 14px; font-size: 13px; color: #a0a8c0; line-height: 1.6; margin-bottom: 12px; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; display: flex; align-items: flex-end; justify-content: center; }
+  .modal { background: #161820; border-radius: 20px 20px 0 0; padding: 24px; width: 100%; max-width: 430px; max-height: 90vh; overflow-y: auto; }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+  .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #2a2d3e; border-top-color: #f07030; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-row { display: flex; align-items: center; gap: 10px; padding: 20px; color: #5a6080; font-size: 14px; }
+  .suggested-pill { display: inline-block; background: #1e2030; border: 1px solid #2a2d3e; border-radius: 20px; padding: 6px 12px; font-size: 12px; color: #a0a8c0; margin: 4px; cursor: pointer; }
+  .suggested-pill:active { background: #2a2d3e; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .section-title { font-size: 18px; font-weight: 700; }
+  .connected-badge { background: #0a2a1a; border: 1px solid #1a5a2a; border-radius: 20px; padding: 4px 10px; font-size: 11px; color: #40c070; font-weight: 600; }
+  .source-tag { font-size: 10px; padding: 1px 5px; border-radius: 4px; font-weight: 600; }
+  .source-fitbit { color: #00b0b9; background: #0a2030; }
+  .source-rk { color: #8080f0; background: #101028; }
+  .alert { border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 10px; line-height: 1.5; }
+  .alert-warn { background: #2a1f10; border: 1px solid #5a3010; color: #c09050; }
+  .alert-success { background: #0a2a1a; border: 1px solid #1a5a2a; color: #40c070; }
+  .alert-info { background: #101a2a; border: 1px solid #1a305a; color: #4080c0; }
+  .filter-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .filter-pill { background: #1e2030; color: #a0a8c0; border: none; border-radius: 20px; padding: 4px 12px; font-size: 12px; cursor: pointer; }
+  .filter-pill.active { background: #f07030; color: white; }
+  .pace-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #1e2030; font-size: 13px; }
+  .hr-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: middle; }
+`;
+
+// ─── Dashboard ─────────────────────────────────────────────────────────────────
+function Dashboard({ workouts, fitbitStats, onAddWorkout }) {
+  const totalRuns = workouts.filter(w => w.type === "Run").length;
+  const totalMiles = workouts.filter(w => w.type === "Run").reduce((s, w) => s + (parseFloat(w.distance) || 0), 0);
+  const progress = Math.min(100, Math.round((1 - DAYS_LEFT / 47) * 100));
+  const fb = fitbitStats;
+
+  const hrColor = fb?.avgRunHR
+    ? fb.avgRunHR > 133 ? "#c05010" : fb.avgRunHR < 116 ? "#4080c0" : "#40c070"
+    : "#5a6080";
+  const hrMsg = fb?.avgRunHR
+    ? fb.avgRunHR > 133
+      ? `Your run HR of ${fb.avgRunHR} bpm is above Zone 2. Try slowing down — if you can't hold a conversation, you're going too fast. Easy runs build the most endurance!`
+      : fb.avgRunHR < 116
+      ? `Your run HR of ${fb.avgRunHR} bpm is below Zone 2. You can pick up the pace slightly on easy runs — aim for 116–133 bpm.`
+      : `Your run HR of ${fb.avgRunHR} bpm is right in Zone 2 (116–133 bpm). Perfect conversational pace — your training is dialed in!`
+    : null;
+
+  return (
+    <div className="section">
+      <div className="countdown-bar">
+        <div className="countdown-label">🎯 Western Mass Mother's Day Half Marathon — May 10, 2026</div>
+        <div className="progress-track"><div className="progress-fill" style={{ width: `${progress}%` }} /></div>
+        <div className="progress-text">{DAYS_LEFT} days remaining · {WEEKS_LEFT} full weeks of training</div>
+      </div>
+
+      <div className="stat-row">
+        <div className="stat">
+          <div className="stat-num">{DAYS_LEFT}</div>
+          <div className="stat-label">Days to Race</div>
+        </div>
+        <div className="stat">
+          <div className="stat-num">{fb ? fb.runCount : totalRuns}</div>
+          <div className="stat-label">Runs {fb ? "(30d)" : "Logged"}</div>
+        </div>
+        <div className="stat">
+          <div className="stat-num">{fb ? fb.totalMiles.toFixed(1) : totalMiles.toFixed(1)}</div>
+          <div className="stat-label">Miles {fb ? "(30d)" : "This App"}</div>
+        </div>
+      </div>
+
+      {fb && (
+        <div className="stat-row">
+          <div className="stat">
+            <div className="stat-num" style={{ fontSize: 18 }}>{fb.avgPace || "—"}</div>
+            <div className="stat-label">Recent Pace</div>
+          </div>
+          <div className="stat">
+            <div className="stat-num" style={{ fontSize: 18, color: "#60a0ff" }}>{fb.restingHR ?? "—"}</div>
+            <div className="stat-label">Resting HR</div>
+          </div>
+          <div className="stat">
+            <div className="stat-num" style={{ fontSize: 18, color: hrColor }}>{fb.avgRunHR ?? "—"}</div>
+            <div className="stat-label">Run HR Avg</div>
+          </div>
+        </div>
+      )}
+
+      {hrMsg && (
+        <div className="tip-card">
+          <strong style={{ color: hrColor }}>Heart Rate Insight: </strong>{hrMsg}
+        </div>
+      )}
+      {!fb && (
+        <div className="tip-card">
+          <strong style={{ color: "#f07030" }}>This week's focus: </strong>
+          With {WEEKS_LEFT} weeks to go, keep your long run at a comfortable conversational pace.
+          Your Holyoke 10K shows you have the endurance base. Connect Fitbit in ⚙️ Settings for personalized HR insights.
+        </div>
+      )}
+
+      {fb?.paceHistory?.length > 0 && (
+        <div className="card">
+          <div className="card-title">Recent Run Pace History</div>
+          {fb.paceHistory.slice(0, 5).map((r, i) => (
+            <div className="pace-row" key={i}>
+              <span style={{ color: "#5a6080" }}>{r.date}</span>
+              <span style={{ color: "#f07030", fontWeight: 600 }}>{r.pace}/mi</span>
+              <span style={{ color: "#a0a8c0" }}>{r.distance} mi</span>
+              {r.hr && <span style={{ color: "#60a0ff", fontSize: 12 }}>{r.hr} bpm</span>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="card">
+        <div className="section-header">
+          <div className="card-title" style={{ marginBottom: 0 }}>Recent Activity</div>
+          <button className="btn btn-secondary btn-sm" onClick={onAddWorkout}>+ Log</button>
+        </div>
+        {workouts.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "20px 0", color: "#5a6080", fontSize: 14 }}>
+            No workouts logged yet. Tap + Log to start!
+          </div>
+        ) : workouts.slice(0, 6).map(w => (
+          <div className="workout-item" key={w.id}>
+            <div className="workout-icon">{WORKOUT_ICONS[w.type] || "⚡"}</div>
+            <div className="workout-info">
+              <div className="workout-type">
+                {w.type}
+                {w.source === "fitbit" && <span className="source-tag source-fitbit">Fitbit</span>}
+                {w.source === "runkeeper" && <span className="source-tag source-rk">RK</span>}
+              </div>
+              <div className="workout-meta">
+                {new Date(w.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                {w.duration ? ` · ${Math.round(w.duration)} min` : ""}
+                {w.notes ? ` · ${w.notes}` : ""}
+              </div>
+            </div>
+            {w.distance && <div className="workout-dist">{typeof w.distance === "number" ? w.distance.toFixed(1) : w.distance}mi</div>}
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <div className="card-title">Your Profile</div>
+        {[
+          ["Age", "54 years old"],
+          ["Target Race", "Mother's Day Half Marathon"],
+          ["Training Style", "Hal Higdon"],
+          ["Cross-Training", "Gardening, Kayaking, Biking"],
+          ["Devices", "Fitbit Charge 6 · Runkeeper"],
+          ["Zone 2 HR", "116–133 bpm (conversational pace)"],
+        ].map(([k, v]) => (
+          <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid #1e2030", fontSize: 13 }}>
+            <span style={{ color: "#5a6080" }}>{k}</span>
+            <span style={{ color: "#c0c8e0", textAlign: "right", maxWidth: "60%" }}>{v}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Plan Tab ──────────────────────────────────────────────────────────────────
+function PlanTab({ fitbitStats, apiKey }) {
+  const [plan, setPlan] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  async function generate() {
+    setLoading(true);
+    const today = TODAY.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    const fb = fitbitStats;
+    const dataCtx = fb
+      ? `\n\nMy recent Fitbit data (last 30 days): ${fb.runCount} runs totaling ${fb.totalMiles.toFixed(1)} miles, most recent pace ${fb.avgPace || "unknown"}, average run heart rate ${fb.avgRunHR ?? "unknown"} bpm, resting HR ${fb.restingHR ?? "unknown"} bpm, longest recent run ${fb.longestRun?.toFixed(1) ?? "unknown"} miles.`
+      : "";
+    const text = await callClaude(
+      [{
+        role: "user",
+        content: `Generate a ${WEEKS_LEFT}-week training plan for the Mother's Day Half Marathon on May 10, 2026. Today is ${today}.${dataCtx}\n\nFormat with clear week headings and daily breakdown. For each day give: activity type, distance/duration, and one brief tip. Use plain text only (no markdown symbols). Make it practical and encouraging for a 54-year-old running for fun.`,
+      }],
+      apiKey,
+      fitbitStats,
+    );
+    setPlan(text);
+    setLoading(false);
+  }
+
+  return (
+    <div className="section">
+      <div className="section-header">
+        <div className="section-title">Training Plan</div>
+      </div>
+      {fitbitStats ? (
+        <div className="alert alert-success" style={{ marginBottom: 12 }}>
+          ✓ Fitbit connected — plan will be personalized to your actual pace and heart rate data.
+        </div>
+      ) : (
+        <div className="tip-card">
+          Connect Fitbit in ⚙️ Settings for a plan built around your real pace and HR data.
+        </div>
+      )}
+      <div className="tip-card">
+        Your AI coach will generate a personalized {WEEKS_LEFT}-week plan using the Hal Higdon method — tailored for comfortable half marathon completion at 54.
+      </div>
+      <button className="btn btn-primary" style={{ marginBottom: 16 }} onClick={generate} disabled={loading}>
+        {loading ? "Generating your plan..." : plan ? "Regenerate Plan" : "Generate My Training Plan"}
+      </button>
+      {loading && <div className="loading-row"><div className="spinner" /><span>Building your personalized plan...</span></div>}
+      {plan && !loading && (
+        <div className="card">
+          <div style={{ whiteSpace: "pre-wrap", fontSize: 13, lineHeight: 1.8 }}>
+            {plan.split("\n").map((line, i) => {
+              if (line.startsWith("Week") || line.startsWith("## ") || line.match(/^\*\*Week/)) {
+                return <div key={i} style={{ color: "#f07030", fontWeight: 700, fontSize: 15, marginTop: 20, marginBottom: 6, borderBottom: "1px solid #1e2030", paddingBottom: 6 }}>{line.replace(/[*#]/g, "").trim()}</div>;
+              }
+              if (line.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i)) {
+                return <div key={i} style={{ color: "#f0ede8", fontWeight: 600, marginTop: 12, fontSize: 14 }}>{line}</div>;
+              }
+              return <div key={i} style={{ color: "#a0a8c0", fontSize: 13, paddingLeft: line.trim().startsWith("-") ? 12 : 0 }}>{line}</div>;
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Activity Log Tab ──────────────────────────────────────────────────────────
+function LogTab({ workouts, onAddWorkout }) {
+  const [filter, setFilter] = useState("All");
+  const types = ["All", "Run", "Walk", "Bike", "Kayak", "Gardening", "Rest", "Other"];
+  const filtered = filter === "All" ? workouts : workouts.filter(w => w.type === filter);
+
+  return (
+    <div className="section">
+      <div className="section-header">
+        <div className="section-title">Activity Log</div>
+        <button className="btn btn-primary btn-sm" onClick={onAddWorkout}>+ Log</button>
+      </div>
+      <div className="filter-pills">
+        {types.map(t => (
+          <button key={t} className={`filter-pill ${filter === t ? "active" : ""}`} onClick={() => setFilter(t)}>{t}</button>
+        ))}
+      </div>
+      {filtered.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">🏃</div>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>No activities yet</div>
+          <div style={{ fontSize: 13 }}>{filter === "All" ? "Tap + Log above, sync Fitbit, or import Runkeeper data in ⚙️ Settings." : `No ${filter} activities logged.`}</div>
+        </div>
+      ) : (
+        <div className="card">
+          {filtered.map(w => (
+            <div className="workout-item" key={w.id}>
+              <div className="workout-icon">{WORKOUT_ICONS[w.type] || "⚡"}</div>
+              <div className="workout-info">
+                <div className="workout-type">
+                  {w.type}
+                  {w.source === "fitbit" && <span className="source-tag source-fitbit">Fitbit</span>}
+                  {w.source === "runkeeper" && <span className="source-tag source-rk">RK</span>}
+                </div>
+                <div className="workout-meta">
+                  {new Date(w.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                  {w.duration ? ` · ${Math.round(w.duration)} min` : ""}
+                  {w.notes ? ` · ${w.notes}` : ""}
+                </div>
+              </div>
+              {w.distance && (
+                <div className="workout-dist">
+                  {typeof w.distance === "number" ? w.distance.toFixed(1) : w.distance}mi
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Shoes Tab ─────────────────────────────────────────────────────────────────
+function ShoesTab({ shoes, onSave }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [name, setName] = useState("");
+  const [miles, setMiles] = useState("");
+  const [adding, setAdding] = useState(null);
+  const [addMiles, setAddMiles] = useState("");
+
+  function getStatus(m) {
+    if (m < 200) return { text: "Good condition", color: "#3b8a3a" };
+    if (m < 350) return { text: "Monitor wear", color: "#c07820" };
+    if (m < 450) return { text: "Getting worn", color: "#c05010" };
+    return { text: "Replace soon!", color: "#c03020" };
+  }
+
+  return (
+    <div className="section">
+      <div className="section-header">
+        <div className="section-title">Shoe Tracker</div>
+        <button className="btn btn-secondary btn-sm" onClick={() => setShowAdd(true)}>+ Add Shoe</button>
+      </div>
+      <div className="tip-card">Running shoes typically last 300–500 miles. Track yours here to know when it's time for a new pair — worn shoes are a leading cause of running injuries.</div>
+      {shoes.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-icon">👟</div>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>No shoes added yet</div>
+          <div style={{ fontSize: 13 }}>Add your running shoes to track mileage and know when to replace them.</div>
+        </div>
+      )}
+      {shoes.map(shoe => {
+        const status = getStatus(shoe.miles);
+        const pct = Math.min(100, Math.round((shoe.miles / 450) * 100));
+        const fillColor = pct < 50 ? "#3b8a3a" : pct < 75 ? "#c07820" : "#c03020";
+        return (
+          <div className="shoe-card" key={shoe.id}>
+            <div className="shoe-row">
+              <div>
+                <div className="shoe-name">{shoe.name}</div>
+                <div className="shoe-miles">{shoe.miles.toFixed(1)} <span style={{ fontSize: 14, fontWeight: 400, color: "#a0a8c0" }}>miles</span></div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 12, color: status.color, fontWeight: 600 }}>{status.text}</div>
+                <div style={{ fontSize: 11, color: "#5a6080", marginTop: 3 }}>{450 - shoe.miles > 0 ? `~${Math.round(450 - shoe.miles)} mi left` : "Past recommended limit"}</div>
+              </div>
+            </div>
+            <div className="shoe-meter"><div className="shoe-fill" style={{ width: `${pct}%`, background: fillColor }} /></div>
+            {adding === shoe.id ? (
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <input className="input" style={{ margin: 0, flex: 1, padding: "8px 12px" }} placeholder="Miles to add" type="number" value={addMiles} onChange={e => setAddMiles(e.target.value)} />
+                <button className="btn btn-primary btn-sm" onClick={() => {
+                  const m = parseFloat(addMiles);
+                  if (m > 0) onSave(shoes.map(s => s.id === shoe.id ? { ...s, miles: s.miles + m } : s));
+                  setAdding(null); setAddMiles("");
+                }}>Add</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => { setAdding(null); setAddMiles(""); }}>✕</button>
+              </div>
+            ) : (
+              <div className="add-miles-btns" style={{ marginTop: 8 }}>
+                {[3, 5, 6, 8].map(m => (
+                  <button key={m} className="miles-btn" onClick={() => onSave(shoes.map(s => s.id === shoe.id ? { ...s, miles: s.miles + m } : s))}>+{m}mi</button>
+                ))}
+                <button className="miles-btn" onClick={() => setAdding(shoe.id)}>+other</button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {showAdd && (
+        <div className="modal-overlay" onClick={e => e.target.className === "modal-overlay" && setShowAdd(false)}>
+          <div className="modal">
+            <div className="modal-title">Add Running Shoes</div>
+            <div className="label">Shoe name / model</div>
+            <input className="input" placeholder="e.g. Brooks Ghost 16" value={name} onChange={e => setName(e.target.value)} />
+            <div className="label">Current mileage (if used)</div>
+            <input className="input" placeholder="0" type="number" value={miles} onChange={e => setMiles(e.target.value)} />
+            <button className="btn btn-primary" onClick={() => {
+              if (name.trim()) {
+                onSave([...shoes, { id: Date.now(), name: name.trim(), miles: parseFloat(miles) || 0 }]);
+                setName(""); setMiles(""); setShowAdd(false);
+              }
+            }}>Add Shoes</button>
+            <button className="btn btn-secondary" style={{ marginTop: 8 }} onClick={() => setShowAdd(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Coach Tab ─────────────────────────────────────────────────────────────────
+function CoachTab({ fitbitStats, apiKey }) {
+  const fbIntro = fitbitStats
+    ? ` I can see your Fitbit data: ${fitbitStats.runCount} runs in the last 30 days, ${fitbitStats.totalMiles.toFixed(1)} miles total, most recent pace ${fitbitStats.avgPace || "unknown"}.`
+    : " Connect Fitbit in Settings for even more personalized advice.";
+  const [messages, setMessages] = useState([
+    { role: "assistant", content: `Hi! I'm your personal running coach. You're 54 years old, targeting the Mother's Day Half Marathon in ${WEEKS_LEFT} weeks, and you finished the Holyoke 10K.${fbIntro} What questions do you have about your training?` }
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const endRef = useRef(null);
+
+  async function send(msg) {
+    const text = msg || input.trim();
+    if (!text || loading) return;
+    const newMessages = [...messages, { role: "user", content: text }];
+    setMessages(newMessages);
+    setInput("");
+    setLoading(true);
+    const reply = await callClaude(newMessages, apiKey, fitbitStats);
+    setMessages(m => [...m, { role: "assistant", content: reply }]);
+    setLoading(false);
+    setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+  }
+
+  const suggestions = [
+    "Am I ready for the half marathon?",
+    "What should I do this week?",
+    "How should I handle cold rainy weather?",
+    "I'm traveling for work — what do I do?",
+    "My knees are feeling sore",
+    "What pace should I run the half marathon at?",
+    "Does gardening count as cross-training?",
+    "How do I use my Fitbit heart rate zones?",
+    "I did a lot of kayaking this week",
+    "Should I do a long run this weekend?",
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 130px)" }}>
+      <div style={{ flex: 1, overflowY: "auto" }}>
+        <div className="chat-messages">
+          {messages.map((m, i) => (
+            <div key={i} className={`msg msg-${m.role === "user" ? "user" : "ai"}`} style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start" }}>
+              <span style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{m.content}</span>
+            </div>
+          ))}
+          {loading && (
+            <div className="msg msg-ai" style={{ alignSelf: "flex-start" }}>
+              <span style={{ color: "#5a6080" }}>Thinking... </span>
+              <span className="spinner" style={{ width: 14, height: 14, display: "inline-block", verticalAlign: "middle" }} />
+            </div>
+          )}
+          <div ref={endRef} />
+        </div>
+        {messages.length <= 1 && (
+          <div style={{ padding: "0 16px" }}>
+            <div style={{ fontSize: 11, color: "#5a6080", marginBottom: 8, letterSpacing: 0.5 }}>SUGGESTED QUESTIONS</div>
+            <div style={{ display: "flex", flexWrap: "wrap" }}>
+              {suggestions.map(q => <span key={q} className="suggested-pill" onClick={() => send(q)}>{q}</span>)}
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="chat-input-row">
+        <input
+          className="chat-input"
+          placeholder="Ask your coach anything..."
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
+        />
+        <button className="send-btn" onClick={() => send()} disabled={!input.trim() || loading}>↑</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Settings Tab ──────────────────────────────────────────────────────────────
+function SettingsTab({ settings, onSaveSettings, fitbitToken, fitbitStats, onFitbitConnect, onFitbitDisconnect, onFitbitSync, syncing, workouts, onImportWorkouts, redirectUri }) {
+  const [apiKey, setApiKey] = useState(settings.apiKey || "");
+  const [fitbitClientId, setFitbitClientId] = useState(settings.fitbitClientId || "");
+  const [showKey, setShowKey] = useState(false);
+  const [status, setStatus] = useState(null);
+  const fileRef = useRef(null);
+
+  function showMsg(type, msg) {
+    setStatus({ type, msg });
+    setTimeout(() => setStatus(null), 4000);
+  }
+
+  function saveApiKey() {
+    onSaveSettings({ ...settings, apiKey, fitbitClientId });
+    showMsg("success", "Settings saved!");
+  }
+
+  function handleFileImport(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const imported = parseRunkeeperCSV(ev.target.result);
+        if (imported.length === 0) {
+          showMsg("warn", "No activities found. Make sure you're uploading cardioActivities.csv from your Runkeeper export ZIP.");
+          return;
+        }
+        const existingIds = new Set(workouts.map(w => `${w.date}_${w.type}`));
+        const fresh = imported.filter(a => !existingIds.has(`${a.date}_${a.type}`));
+        onImportWorkouts(fresh);
+        showMsg("success", `Imported ${fresh.length} new activities (${imported.length - fresh.length} duplicates skipped).`);
+      } catch (err) {
+        showMsg("warn", `Import error: ${err.message}`);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
+
+  return (
+    <div className="section">
+      <div className="section-title" style={{ marginBottom: 16 }}>Settings</div>
+
+      {status && <div className={`alert alert-${status.type === "success" ? "success" : "warn"}`}>{status.msg}</div>}
+
+      {/* Anthropic API Key */}
+      <div className="card">
+        <div className="card-title">AI Coach — Anthropic API Key</div>
+        <div style={{ fontSize: 13, color: "#5a6080", marginBottom: 10, lineHeight: 1.5 }}>
+          Get your free API key at <strong style={{ color: "#a0a8c0" }}>console.anthropic.com</strong>. It's stored only on this device.
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            className="input"
+            style={{ flex: 1, marginBottom: 0 }}
+            type={showKey ? "text" : "password"}
+            placeholder="sk-ant-..."
+            value={apiKey}
+            onChange={e => setApiKey(e.target.value)}
+          />
+          <button className="btn btn-secondary btn-sm" onClick={() => setShowKey(v => !v)}>{showKey ? "Hide" : "Show"}</button>
+        </div>
+        <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={saveApiKey}>Save API Key</button>
+      </div>
+
+      {/* Fitbit OAuth */}
+      <div className="card">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div className="card-title" style={{ marginBottom: 0 }}>Fitbit Integration</div>
+          {fitbitToken && <span className="connected-badge">✓ Connected</span>}
+        </div>
+        {!fitbitToken ? (
+          <>
+            <div className="alert alert-info" style={{ marginBottom: 12 }}>
+              <strong>One-time setup:</strong> Go to <strong>dev.fitbit.com → Manage → Register an App</strong>.
+              Set "OAuth 2.0 Application Type" to <strong>Personal</strong>.
+              Set "Redirect URL" to exactly:<br />
+              <span style={{ color: "#f0ede8", fontSize: 11, wordBreak: "break-all", display: "block", marginTop: 4, background: "#0a1020", padding: "4px 8px", borderRadius: 6 }}>{redirectUri}</span>
+            </div>
+            <div className="label">Fitbit Client ID (from dev.fitbit.com)</div>
+            <input className="input" placeholder="e.g. 23ABCD" value={fitbitClientId} onChange={e => setFitbitClientId(e.target.value)} />
+            <button
+              className="btn btn-fitbit"
+              onClick={() => { onSaveSettings({ ...settings, apiKey, fitbitClientId }); onFitbitConnect(fitbitClientId); }}
+              disabled={!fitbitClientId.trim()}
+            >
+              Connect Fitbit →
+            </button>
+          </>
+        ) : (
+          <>
+            {fitbitStats && (
+              <div style={{ marginBottom: 12 }}>
+                {[
+                  ["Last 30d runs", fitbitStats.runCount],
+                  ["Total miles", `${fitbitStats.totalMiles.toFixed(1)} mi`],
+                  ["Recent pace", fitbitStats.avgPace || "N/A"],
+                  ["Avg resting HR", fitbitStats.restingHR != null ? `${fitbitStats.restingHR} bpm` : "N/A"],
+                  ["Avg run HR", fitbitStats.avgRunHR != null ? `${fitbitStats.avgRunHR} bpm` : "N/A"],
+                  ["Longest recent run", fitbitStats.longestRun > 0 ? `${fitbitStats.longestRun.toFixed(1)} mi` : "N/A"],
+                ].map(([k, v]) => (
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #1e2030", fontSize: 13 }}>
+                    <span style={{ color: "#5a6080" }}>{k}</span>
+                    <span style={{ color: "#c0c8e0" }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button className="btn btn-fitbit btn-sm" onClick={onFitbitSync} disabled={syncing}>
+                {syncing ? <><span className="spinner" style={{ width: 14, height: 14, marginRight: 6, verticalAlign: "middle" }} />Syncing...</> : "Sync Now"}
+              </button>
+              <button className="btn btn-danger btn-sm" onClick={onFitbitDisconnect}>Disconnect</button>
+            </div>
+            {!fitbitStats && !syncing && (
+              <div style={{ fontSize: 12, color: "#5a6080", marginTop: 8 }}>Tap Sync Now to load your data.</div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Runkeeper Import */}
+      <div className="card">
+        <div className="card-title">Runkeeper — Import Past Data</div>
+        <div className="tip-card" style={{ marginBottom: 12 }}>
+          Runkeeper's developer API is no longer available to new apps. To import your history:
+          open Runkeeper → <strong>More → Export Data</strong> (or go to runkeeper.com → account settings → Export Data).
+          You'll receive a ZIP file — upload the <strong>cardioActivities.csv</strong> file below.
+        </div>
+        <input ref={fileRef} type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={handleFileImport} />
+        <button className="btn btn-secondary" onClick={() => fileRef.current?.click()}>
+          📁 Import cardioActivities.csv
+        </button>
+        {workouts.filter(w => w.source === "runkeeper").length > 0 && (
+          <div style={{ fontSize: 12, color: "#40c070", marginTop: 8 }}>
+            ✓ {workouts.filter(w => w.source === "runkeeper").length} Runkeeper activities imported
+          </div>
+        )}
+      </div>
+
+      {/* HR Zones Reference */}
+      <div className="card">
+        <div className="card-title">Your Heart Rate Zones</div>
+        <div style={{ fontSize: 12, color: "#5a6080", marginBottom: 10 }}>Karvonen formula · Max HR ~166 bpm · Resting ~60 bpm</div>
+        {[
+          { name: "Zone 1 · Very Easy", range: "< 116 bpm", color: "#3b8a3a" },
+          { name: "Zone 2 · Easy (target)", range: "116–133 bpm", color: "#60c040", bold: true },
+          { name: "Zone 3 · Moderate", range: "134–142 bpm", color: "#c0a020" },
+          { name: "Zone 4 · Hard", range: "143–157 bpm", color: "#c05010" },
+          { name: "Zone 5 · Max", range: "158+ bpm", color: "#c02020" },
+        ].map(z => (
+          <div key={z.name} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid #1e2030", fontSize: 12 }}>
+            <span style={{ color: z.bold ? "#60c040" : "#a0a8c0", fontWeight: z.bold ? 700 : 400 }}>{z.name}</span>
+            <span style={{ color: z.color, fontWeight: 600 }}>{z.range}</span>
+          </div>
+        ))}
+        <div style={{ fontSize: 11, color: "#5a6080", marginTop: 8, lineHeight: 1.5 }}>
+          Most training runs should stay in Zone 2. If you can't hold a conversation, slow down.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Add Workout Modal ─────────────────────────────────────────────────────────
+function AddWorkoutModal({ onAdd, onClose }) {
+  const [type, setType] = useState("Run");
+  const [date, setDate] = useState(TODAY.toISOString().split("T")[0]);
+  const [distance, setDistance] = useState("");
+  const [duration, setDuration] = useState("");
+  const [notes, setNotes] = useState("");
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target.className === "modal-overlay" && onClose()}>
+      <div className="modal">
+        <div className="modal-title">Log Activity</div>
+        <div className="label">Activity type</div>
+        <select className="input" value={type} onChange={e => setType(e.target.value)}>
+          {Object.keys(WORKOUT_ICONS).map(t => <option key={t}>{t}</option>)}
+        </select>
+        <div className="label">Date</div>
+        <input className="input" type="date" value={date} onChange={e => setDate(e.target.value)} />
+        {(type === "Run" || type === "Walk" || type === "Bike") && <>
+          <div className="label">Distance (miles)</div>
+          <input className="input" type="number" step="0.1" placeholder="e.g. 4.5" value={distance} onChange={e => setDistance(e.target.value)} />
+        </>}
+        <div className="label">Duration (minutes)</div>
+        <input className="input" type="number" placeholder="e.g. 45" value={duration} onChange={e => setDuration(e.target.value)} />
+        <div className="label">Notes (optional)</div>
+        <input className="input" placeholder="How'd it feel? Weather? Route?" value={notes} onChange={e => setNotes(e.target.value)} />
+        <button className="btn btn-primary" onClick={() => {
+          onAdd({ id: Date.now(), type, date, distance: distance ? parseFloat(distance) : "", duration, notes });
+          onClose();
+        }}>Save Activity</button>
+        <button className="btn btn-secondary" style={{ marginTop: 8 }} onClick={onClose}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── App Root ──────────────────────────────────────────────────────────────────
+export default function App() {
+  const [tab, setTab] = useState("home");
+  const [shoes, setShoes] = useState([]);
+  const [workouts, setWorkouts] = useState([]);
+  const [showAddWorkout, setShowAddWorkout] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [settings, setSettings] = useState({ apiKey: "", fitbitClientId: "" });
+  const [fitbitToken, setFitbitToken] = useState(null);
+  const [fitbitStats, setFitbitStats] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState(null);
+
+  const redirectUri = window.location.origin + window.location.pathname;
+
+  // Handle Fitbit OAuth callback + initial load
+  useEffect(() => {
+    async function init() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const state = params.get("state");
+
+      // Clear OAuth params from URL immediately
+      if (code) window.history.replaceState({}, "", window.location.pathname);
+
+      const [savedShoes, savedWorkouts, savedSettings, savedToken] = await Promise.all([
+        sget("rc_shoes"),
+        sget("rc_workouts"),
+        sget("rc_settings"),
+        sget("rc_fitbit_token"),
+      ]);
+
+      if (savedShoes) setShoes(savedShoes);
+      if (savedWorkouts) setWorkouts(savedWorkouts);
+      if (savedSettings) setSettings(savedSettings);
+
+      // Handle OAuth callback
+      if (code && state === "fitbit_auth") {
+        const verifier = await sget("rc_fitbit_verifier");
+        if (savedSettings?.fitbitClientId && verifier) {
+          try {
+            const tokens = await fitbitExchangeCode(code, verifier, savedSettings.fitbitClientId, redirectUri);
+            const tokenData = { access_token: tokens.access_token, refresh_token: tokens.refresh_token, expires_at: Date.now() + tokens.expires_in * 1000 };
+            await sset("rc_fitbit_token", tokenData);
+            await sdel("rc_fitbit_verifier");
+            setFitbitToken(tokenData);
+            await doFitbitSync(tokenData.access_token, savedSettings, savedWorkouts || []);
+          } catch (err) {
+            setSyncError(`Fitbit auth failed: ${err.message}. Try connecting again in Settings.`);
+          }
+        }
+      } else if (savedToken?.access_token) {
+        setFitbitToken(savedToken);
+        if (savedToken.expires_at > Date.now()) {
+          await doFitbitSync(savedToken.access_token, savedSettings, savedWorkouts || []);
+        } else if (savedToken.refresh_token && savedSettings?.fitbitClientId) {
+          try {
+            const fresh = await fitbitRefreshToken(savedToken.refresh_token, savedSettings.fitbitClientId);
+            const tokenData = { access_token: fresh.access_token, refresh_token: fresh.refresh_token || savedToken.refresh_token, expires_at: Date.now() + fresh.expires_in * 1000 };
+            await sset("rc_fitbit_token", tokenData);
+            setFitbitToken(tokenData);
+            await doFitbitSync(tokenData.access_token, savedSettings, savedWorkouts || []);
+          } catch {
+            setSyncError("Fitbit token expired — please reconnect in Settings.");
+            setFitbitToken(null);
+            await sdel("rc_fitbit_token");
+          }
+        }
+      }
+
+      setLoaded(true);
+    }
+    init();
+  }, []);
+
+  async function doFitbitSync(token, sett, existingWorkouts) {
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      const stats = await loadFitbitStats(token);
+      setFitbitStats(stats);
+
+      // Merge Fitbit activities into workout log
+      const fbWorkouts = stats.activities.map(fitbitActToWorkout).filter(Boolean);
+      const base = existingWorkouts !== undefined ? existingWorkouts : workouts;
+      const existingIds = new Set(base.map(w => w.id));
+      const newOnes = fbWorkouts.filter(w => !existingIds.has(w.id));
+      if (newOnes.length) {
+        const merged = [...base, ...newOnes].sort((a, b) => new Date(b.date) - new Date(a.date));
+        setWorkouts(merged);
+        await sset("rc_workouts", merged);
+      }
+    } catch (err) {
+      if (err.status === 401) {
+        const storedToken = await sget("rc_fitbit_token");
+        const currentSettings = sett || settings;
+        if (storedToken?.refresh_token && currentSettings?.fitbitClientId) {
+          try {
+            const fresh = await fitbitRefreshToken(storedToken.refresh_token, currentSettings.fitbitClientId);
+            const tokenData = { access_token: fresh.access_token, refresh_token: fresh.refresh_token || storedToken.refresh_token, expires_at: Date.now() + fresh.expires_in * 1000 };
+            await sset("rc_fitbit_token", tokenData);
+            setFitbitToken(tokenData);
+            // Retry once
+            const stats = await loadFitbitStats(fresh.access_token);
+            setFitbitStats(stats);
+          } catch {
+            setSyncError("Fitbit token expired — please reconnect in ⚙️ Settings.");
+            setFitbitToken(null);
+            await sdel("rc_fitbit_token");
+          }
+        } else {
+          setSyncError("Fitbit token expired — please reconnect in ⚙️ Settings.");
+          setFitbitToken(null);
+          await sdel("rc_fitbit_token");
+        }
+      } else {
+        setSyncError(`Fitbit sync failed: ${err.message}`);
+      }
+    }
+    setSyncing(false);
+  }
+
+  async function handleFitbitConnect(clientId) {
+    const { verifier, challenge } = await makePKCE();
+    await sset("rc_fitbit_verifier", verifier);
+    const url = `${FITBIT_AUTH_URL}?response_type=code&client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent("activity heartrate profile")}&code_challenge=${challenge}&code_challenge_method=S256&state=fitbit_auth`;
+    window.location.href = url;
+  }
+
+  async function handleFitbitDisconnect() {
+    setFitbitToken(null);
+    setFitbitStats(null);
+    await sdel("rc_fitbit_token");
+    await sdel("rc_fitbit_verifier");
+    const filtered = workouts.filter(w => w.source !== "fitbit");
+    setWorkouts(filtered);
+    await sset("rc_workouts", filtered);
+  }
+
+  async function saveSettings(newSettings) {
+    setSettings(newSettings);
+    await sset("rc_settings", newSettings);
+  }
+
+  async function saveShoes(newShoes) {
+    setShoes(newShoes);
+    await sset("rc_shoes", newShoes);
+  }
+
+  async function addWorkout(w) {
+    const updated = [...workouts, w].sort((a, b) => new Date(b.date) - new Date(a.date));
+    setWorkouts(updated);
+    await sset("rc_workouts", updated);
+  }
+
+  async function importWorkouts(newOnes) {
+    const updated = [...workouts, ...newOnes].sort((a, b) => new Date(b.date) - new Date(a.date));
+    setWorkouts(updated);
+    await sset("rc_workouts", updated);
+  }
+
+  const tabs = [
+    { id: "home", icon: "🏠", label: "Home" },
+    { id: "plan", icon: "📋", label: "Plan" },
+    { id: "coach", icon: "💬", label: "Coach" },
+    { id: "log", icon: "📊", label: "Log" },
+    { id: "shoes", icon: "👟", label: "Shoes" },
+    { id: "settings", icon: "⚙️", label: "Settings" },
+  ];
+
+  if (!loaded) return (
+    <>
+      <style>{styles}</style>
+      <div className="app" style={{ justifyContent: "center", alignItems: "center" }}>
+        <div className="spinner" style={{ width: 36, height: 36, borderWidth: 3 }} />
+      </div>
+    </>
+  );
+
+  return (
+    <>
+      <style>{styles}</style>
+      <div className="app">
+        <div className="header">
+          <div className="header-top">
+            <div className="logo">Stride<span>AI</span></div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              {syncing && <div className="spinner" style={{ width: 16, height: 16 }} />}
+              {fitbitToken && !syncing && (
+                <span
+                  style={{ fontSize: 11, color: "#00b0b9", cursor: "pointer", fontWeight: 600 }}
+                  onClick={() => doFitbitSync(fitbitToken.access_token, settings)}
+                >
+                  ↻ Fitbit
+                </span>
+              )}
+              <div className="race-badge">🏁 <b>{DAYS_LEFT}d</b> to race</div>
+            </div>
+          </div>
+        </div>
+        {syncError && (
+          <div className="alert alert-warn" style={{ margin: "8px 16px 0", fontSize: 12 }}>
+            ⚠️ {syncError}
+          </div>
+        )}
+        <div className="content">
+          {tab === "home" && <Dashboard workouts={workouts} fitbitStats={fitbitStats} onAddWorkout={() => setShowAddWorkout(true)} />}
+          {tab === "plan" && <PlanTab fitbitStats={fitbitStats} apiKey={settings.apiKey} />}
+          {tab === "coach" && <CoachTab fitbitStats={fitbitStats} apiKey={settings.apiKey} />}
+          {tab === "log" && <LogTab workouts={workouts} onAddWorkout={() => setShowAddWorkout(true)} />}
+          {tab === "shoes" && <ShoesTab shoes={shoes} onSave={saveShoes} />}
+          {tab === "settings" && (
+            <SettingsTab
+              settings={settings}
+              onSaveSettings={saveSettings}
+              fitbitToken={fitbitToken}
+              fitbitStats={fitbitStats}
+              onFitbitConnect={handleFitbitConnect}
+              onFitbitDisconnect={handleFitbitDisconnect}
+              onFitbitSync={() => doFitbitSync(fitbitToken?.access_token, settings)}
+              syncing={syncing}
+              workouts={workouts}
+              onImportWorkouts={importWorkouts}
+              redirectUri={redirectUri}
+            />
+          )}
+        </div>
+        <div className="tab-bar">
+          {tabs.map(t => (
+            <button key={t.id} className={`tab ${tab === t.id ? "active" : ""}`} onClick={() => setTab(t.id)}>
+              <span className="tab-icon">{t.icon}</span>
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </div>
+        {showAddWorkout && <AddWorkoutModal onAdd={addWorkout} onClose={() => setShowAddWorkout(false)} />}
+      </div>
+    </>
+  );
+}
