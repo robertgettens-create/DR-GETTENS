@@ -119,7 +119,10 @@ COACHING PRINCIPLES:
     async function fitbitExchangeCode(code, verifier, clientId, redirectUri) {
       const res = await fetch(FITBIT_TOKEN_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Authorization": `Basic ${btoa(clientId + ":")}`,
+        },
         body: new URLSearchParams({
           grant_type: "authorization_code", client_id: clientId,
           code, redirect_uri: redirectUri, code_verifier: verifier,
@@ -127,7 +130,8 @@ COACHING PRINCIPLES:
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.errors?.[0]?.message || `Token exchange failed (${res.status})`);
+        const msg = err.errors?.[0]?.message || err.error_description || `Token exchange failed (${res.status})`;
+        throw new Error(msg);
       }
       return res.json();
     }
@@ -135,10 +139,16 @@ COACHING PRINCIPLES:
     async function fitbitRefreshToken(refreshToken, clientId) {
       const res = await fetch(FITBIT_TOKEN_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Authorization": `Basic ${btoa(clientId + ":")}`,
+        },
         body: new URLSearchParams({ grant_type: "refresh_token", client_id: clientId, refresh_token: refreshToken }),
       });
-      if (!res.ok) throw new Error("Token refresh failed");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.errors?.[0]?.message || "Token refresh failed");
+      }
       return res.json();
     }
 
@@ -402,15 +412,21 @@ COACHING PRINCIPLES:
     }
 
     // ─── Plan Tab ────────────────────────────────────────────────────────────────
+    const ALL_DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
     function PlanTab({ fitbitStats, apiKey }) {
       const [plan, setPlan] = useState(null);
       const [loading, setLoading] = useState(false);
+      const [restDays, setRestDays] = useState(["Wednesday"]);
+      function toggleDay(day) {
+        setRestDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
+      }
       async function generate() {
         setLoading(true);
         const today = TODAY.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
         const fb = fitbitStats;
         const dataCtx = fb ? `\n\nMy recent Fitbit data (last 30 days): ${fb.runCount} runs totaling ${fb.totalMiles.toFixed(1)} miles, most recent pace ${fb.avgPace || "unknown"}, average run HR ${fb.avgRunHR ?? "unknown"} bpm, resting HR ${fb.restingHR ?? "unknown"} bpm, longest recent run ${fb.longestRun?.toFixed(1) ?? "unknown"} miles.` : "";
-        const text = await callClaude([{ role: "user", content: `Generate a ${WEEKS_LEFT}-week training plan for the Mother's Day Half Marathon on May 10, 2026. Today is ${today}.${dataCtx}\n\nFormat with clear week headings and daily breakdown. For each day give: activity type, distance/duration, and one brief tip. Use plain text only. Make it practical and encouraging for a 54-year-old running for fun.` }], apiKey, fitbitStats);
+        const restCtx = restDays.length > 0 ? `\n\nPreferred rest days this cycle: ${restDays.join(", ")}. Schedule complete rest or very light cross-training (stretching, easy walk) on those days.` : "";
+        const text = await callClaude([{ role: "user", content: `Generate a ${WEEKS_LEFT}-week training plan for the Mother's Day Half Marathon on May 10, 2026. Today is ${today}.${dataCtx}${restCtx}\n\nIMPORTANT FORMATTING RULES:\n- Weeks start on Monday\n- Show all 7 days: Monday through Sunday\n- Use plain text only, no markdown symbols\n- Each day: "DayName — Activity: distance/duration. Tip: one brief tip."\n- Week heading: "Week N (dates)"\n\nMake it practical and encouraging for a 54-year-old running for fun and aiming for comfortable half marathon completion.` }], apiKey, fitbitStats);
         setPlan(text);
         setLoading(false);
       }
@@ -421,7 +437,21 @@ COACHING PRINCIPLES:
             ? <div className="alert alert-success" style={{marginBottom:12}}>✓ Fitbit connected — plan personalized to your actual fitness data.</div>
             : <div className="tip-card">Connect Fitbit in ⚙️ Settings for a plan built around your real pace and HR.</div>
           }
-          <div className="tip-card">Your AI coach generates a personalized {WEEKS_LEFT}-week plan using the Hal Higdon method — tailored for comfortable half marathon completion at 54.</div>
+          <div className="card" style={{marginBottom:12}}>
+            <div className="card-title">Rest Days for This Plan</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+              {ALL_DAYS.map(day => (
+                <button key={day} onClick={()=>toggleDay(day)} style={{
+                  background: restDays.includes(day) ? "#3a1010" : "#1e2030",
+                  color: restDays.includes(day) ? "#f07060" : "#a0a8c0",
+                  border: restDays.includes(day) ? "1px solid #f07060" : "1px solid #2a2d3e",
+                  borderRadius:20, padding:"5px 12px", fontSize:12, cursor:"pointer", fontWeight: restDays.includes(day)?700:400
+                }}>{day.slice(0,3)}{restDays.includes(day)?" ✕":""}</button>
+              ))}
+            </div>
+            <div style={{fontSize:11,color:"#5a6080",marginTop:6}}>{restDays.length===0?"No rest days selected — add at least one.":restDays.length===1?`${restDays[0]} will be your rest day.`:`${restDays.join(", ")} will be rest days.`}</div>
+          </div>
+          <div className="tip-card">Your AI coach generates a personalized {WEEKS_LEFT}-week plan using the Hal Higdon method — weeks start Monday, tailored for comfortable half marathon completion at 54.</div>
           <button className="btn btn-primary" style={{marginBottom:16}} onClick={generate} disabled={loading}>
             {loading ? "Generating your plan..." : plan ? "Regenerate Plan" : "Generate My Training Plan"}
           </button>
@@ -631,8 +661,9 @@ COACHING PRINCIPLES:
             {!fitbitToken ? (
               <>
                 <div className="alert alert-info" style={{marginBottom:12}}>
-                  <strong>One-time setup:</strong> Go to <strong>dev.fitbit.com → Manage → Register an App</strong>. Set type to <strong>Personal</strong>. Set Redirect URL to exactly:<br/>
+                  <strong>One-time setup:</strong> Go to <strong>dev.fitbit.com → Manage → Register an App</strong>. Set type to <strong>Personal</strong>, OAuth 2.0 Application Type to <strong>Personal</strong>. Set Redirect URL to exactly:<br/>
                   <span style={{color:"#f0ede8",fontSize:11,wordBreak:"break-all",display:"block",marginTop:4,background:"#0a1020",padding:"4px 8px",borderRadius:6}}>{redirectUri}</span>
+                  <span style={{display:"block",marginTop:6,fontSize:11,color:"#a0a8c0"}}>After connecting, you'll be sent to Fitbit to authorize, then redirected back automatically.</span>
                 </div>
                 <div className="label">Fitbit Client ID</div>
                 <input className="input" placeholder="e.g. 23ABCD" value={fitbitClientId} onChange={e=>setFitbitClientId(e.target.value)} />
@@ -720,38 +751,35 @@ COACHING PRINCIPLES:
 
       useEffect(() => {
         async function init() {
-          const params = new URLSearchParams(window.location.search);
-          const code = params.get("code");
-          const state = params.get("state");
-          if (code) window.history.replaceState({}, "", window.location.pathname);
+          // Check for implicit grant response (access_token in URL hash)
+          const hash = window.location.hash;
+          let freshImplicitToken = null;
+          if (hash.includes("access_token=")) {
+            window.history.replaceState({}, "", window.location.pathname);
+            const hp = new URLSearchParams(hash.slice(1));
+            const at = hp.get("access_token");
+            const expiresIn = parseInt(hp.get("expires_in") || "3600");
+            if (at) {
+              freshImplicitToken = { access_token: at, refresh_token: null, expires_at: Date.now() + expiresIn * 1000 };
+              await sset("rc_fitbit_token", freshImplicitToken);
+            }
+          }
+
           const [savedShoes, savedWorkouts, savedSettings, savedToken] = await Promise.all([sget("rc_shoes"), sget("rc_workouts"), sget("rc_settings"), sget("rc_fitbit_token")]);
           if (savedShoes) setShoes(savedShoes);
           if (savedWorkouts) setWorkouts(savedWorkouts);
           if (savedSettings) setSettings(savedSettings);
-          if (code && state === "fitbit_auth") {
-            const verifier = await sget("rc_fitbit_verifier");
-            if (savedSettings?.fitbitClientId && verifier) {
-              try {
-                const tokens = await fitbitExchangeCode(code, verifier, savedSettings.fitbitClientId, redirectUri);
-                const td = { access_token: tokens.access_token, refresh_token: tokens.refresh_token, expires_at: Date.now() + tokens.expires_in * 1000 };
-                await sset("rc_fitbit_token", td);
-                await sdel("rc_fitbit_verifier");
-                setFitbitToken(td);
-                await doFitbitSyncInner(td.access_token, savedSettings, savedWorkouts || []);
-              } catch (err) { setSyncError(`Fitbit auth failed: ${err.message}`); }
-            }
-          } else if (savedToken?.access_token) {
-            setFitbitToken(savedToken);
-            if (savedToken.expires_at > Date.now()) {
-              await doFitbitSyncInner(savedToken.access_token, savedSettings, savedWorkouts || []);
-            } else if (savedToken.refresh_token && savedSettings?.fitbitClientId) {
-              try {
-                const fresh = await fitbitRefreshToken(savedToken.refresh_token, savedSettings.fitbitClientId);
-                const td = { access_token: fresh.access_token, refresh_token: fresh.refresh_token || savedToken.refresh_token, expires_at: Date.now() + fresh.expires_in * 1000 };
-                await sset("rc_fitbit_token", td);
-                setFitbitToken(td);
-                await doFitbitSyncInner(td.access_token, savedSettings, savedWorkouts || []);
-              } catch { setSyncError("Fitbit token expired — please reconnect in ⚙️ Settings."); setFitbitToken(null); await sdel("rc_fitbit_token"); }
+
+          const tokenToUse = freshImplicitToken || savedToken;
+          if (tokenToUse?.access_token) {
+            setFitbitToken(tokenToUse);
+            if (tokenToUse.expires_at > Date.now()) {
+              await doFitbitSyncInner(tokenToUse.access_token, savedSettings, savedWorkouts || []);
+            } else {
+              // Implicit grant tokens can't be refreshed — prompt reconnect
+              setSyncError("Fitbit token expired — please reconnect in ⚙️ Settings.");
+              setFitbitToken(null);
+              await sdel("rc_fitbit_token");
             }
           }
           setLoaded(true);
@@ -780,9 +808,15 @@ COACHING PRINCIPLES:
       }
 
       async function handleFitbitConnect(clientId) {
-        const { verifier, challenge } = await makePKCE();
-        await sset("rc_fitbit_verifier", verifier);
-        window.location.href = `${FITBIT_AUTH_URL}?response_type=code&client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent("activity heartrate profile")}&code_challenge=${challenge}&code_challenge_method=S256&state=fitbit_auth`;
+        // Implicit grant — access token comes back in URL hash, no CORS token-exchange needed
+        const params = new URLSearchParams({
+          response_type: "token",
+          client_id: clientId,
+          redirect_uri: redirectUri,
+          scope: "activity heartrate profile",
+          expires_in: "31536000",
+        });
+        window.location.href = `${FITBIT_AUTH_URL}?${params}`;
       }
       async function handleFitbitDisconnect() {
         setFitbitToken(null); setFitbitStats(null);
