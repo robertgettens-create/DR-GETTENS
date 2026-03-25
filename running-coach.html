@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>StrideAI v3 — Personal Running Coach</title>
+  <title>StrideAI v4 — Personal Running Coach</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -440,15 +440,49 @@ COACHING PRINCIPLES:
       );
     }
 
+    // ─── Week Adjust Modal ────────────────────────────────────────────────────────
+    function WeekAdjustModal({ weekNum, weekText, existingNotes, onSaveNotes, onRegenerate, onClose, regenLoading }) {
+      const [notes, setNotes] = useState(existingNotes || "");
+      const examples = ["Traveling Mon–Wed, hotel treadmill only","Rest Saturday — family event","Knee is sore — make it a lighter week","Doing a 5K race on Sunday","Want an extra rest day this weekend","Very busy week — shorten all runs by 1 mile"];
+      return (
+        <div className="modal-overlay" onClick={e=>e.target.className==="modal-overlay"&&onClose()}>
+          <div className="modal">
+            <div className="modal-title">Adjust Week {weekNum}</div>
+            <div style={{fontSize:11,color:"#5a6080",marginBottom:6,letterSpacing:0.5}}>CURRENT PLAN</div>
+            <div style={{background:"#0f1117",borderRadius:8,padding:10,fontSize:12,color:"#a0a8c0",marginBottom:14,maxHeight:160,overflowY:"auto",lineHeight:1.7,whiteSpace:"pre-wrap"}}>{weekText}</div>
+            <div className="label">What's different this week?</div>
+            <textarea
+              style={{width:"100%",background:"#1a1d2a",border:"1px solid #2a2d3e",borderRadius:10,padding:"10px 12px",color:"#f0ede8",fontSize:14,lineHeight:1.6,minHeight:80,resize:"vertical",outline:"none",marginBottom:6}}
+              placeholder="Describe any changes, constraints, or goals for this week..."
+              value={notes} onChange={e=>setNotes(e.target.value)}
+            />
+            <div style={{fontSize:11,color:"#5a6080",marginBottom:12}}>
+              <strong style={{color:"#a0a8c0"}}>Examples: </strong>
+              {examples.map(ex=>(
+                <span key={ex} style={{cursor:"pointer",color:"#4080c0",marginRight:8}} onClick={()=>setNotes(n=>n?(n+", "+ex):ex)}>{ex}</span>
+              ))}
+            </div>
+            <button className="btn btn-primary" style={{marginBottom:8}} onClick={()=>onRegenerate(notes)} disabled={regenLoading||!notes.trim()}>
+              {regenLoading ? <span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><span className="spinner" style={{width:16,height:16}} />Regenerating week {weekNum}...</span> : `Regenerate Week ${weekNum} with These Notes`}
+            </button>
+            <button className="btn btn-secondary" style={{marginBottom:8}} onClick={()=>onSaveNotes(notes)} disabled={!notes.trim()}>Save Notes (no regenerate)</button>
+            <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          </div>
+        </div>
+      );
+    }
+
     // ─── Plan Tab ────────────────────────────────────────────────────────────────
     const ALL_DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-    function PlanTab({ fitbitStats, apiKey, savedPlan, onSavePlan, weather }) {
+    function PlanTab({ fitbitStats, apiKey, savedPlan, onSavePlan, weather, weekNotes, onSaveWeekNotes }) {
       const [plan, setPlan] = useState(savedPlan || null);
       const [loading, setLoading] = useState(false);
       const [restDays, setRestDays] = useState(["Wednesday"]);
       const [editIdx, setEditIdx] = useState(null);
       const [editText, setEditText] = useState("");
       const [planLines, setPlanLines] = useState(savedPlan ? savedPlan.split("\n") : []);
+      const [adjustWeek, setAdjustWeek] = useState(null); // { weekNum, weekText, startIdx, endIdx }
+      const [regenLoading, setRegenLoading] = useState(false);
 
       function toggleDay(day) {
         setRestDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
@@ -457,11 +491,45 @@ COACHING PRINCIPLES:
       function saveEdit() {
         const updated = [...planLines];
         updated[editIdx] = editText;
-        setPlanLines(updated);
         const newPlan = updated.join("\n");
-        setPlan(newPlan);
-        onSavePlan(newPlan);
-        setEditIdx(null);
+        setPlanLines(updated); setPlan(newPlan); onSavePlan(newPlan); setEditIdx(null);
+      }
+
+      // Parse planLines into week segments for the adjust buttons
+      function getWeekSegments(lines) {
+        const segs = []; let start = -1; let num = 0;
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].match(/^Week\s+\d+/i)) {
+            if (start >= 0) segs.push({ weekNum: num, startIdx: start, endIdx: i - 1 });
+            num = parseInt(lines[i].match(/\d+/)?.[0] || "0"); start = i;
+          }
+        }
+        if (start >= 0) segs.push({ weekNum: num, startIdx: start, endIdx: lines.length - 1 });
+        return segs;
+      }
+
+      function openAdjust(seg) {
+        const weekText = planLines.slice(seg.startIdx, seg.endIdx + 1).join("\n");
+        setAdjustWeek({ ...seg, weekText });
+      }
+
+      async function handleRegenWeek(notes) {
+        setRegenLoading(true);
+        const { weekNum, weekText, startIdx, endIdx } = adjustWeek;
+        const notesCtx = weekNotes[weekNum] ? `Previously saved notes: ${weekNotes[weekNum]}\nNew notes: ${notes}` : notes;
+        const newWeekText = await callClaude([{ role: "user", content: `Rewrite only Week ${weekNum} of my half marathon training plan.\n\nCurrent Week ${weekNum}:\n${weekText}\n\nChanges for this week:\n${notesCtx}\n\nFORMATTING: Keep same format — Week heading line, then Monday through Sunday, each as "DayName — Activity: distance/duration. Tip: brief tip." Plain text only. Output ONLY Week ${weekNum} content, nothing before or after.` }], apiKey, fitbitStats);
+        onSaveWeekNotes(weekNum, notes);
+        const updated = [...planLines];
+        const newLines = newWeekText.split("\n");
+        updated.splice(startIdx, endIdx - startIdx + 1, ...newLines);
+        const newPlan = updated.join("\n");
+        setPlanLines(updated); setPlan(newPlan); onSavePlan(newPlan);
+        setRegenLoading(false); setAdjustWeek(null);
+      }
+
+      function handleSaveNotesOnly(notes) {
+        onSaveWeekNotes(adjustWeek.weekNum, notes);
+        setAdjustWeek(null);
       }
 
       async function generate() {
@@ -472,11 +540,10 @@ COACHING PRINCIPLES:
         const restCtx = restDays.length > 0 ? `\n\nPreferred rest days: ${restDays.join(", ")}.` : "";
         const wxCtx = weather?.length ? `\n\nThis week's 7AM forecast for Western MA (runner goes out at 7AM):\n${weather.slice(0,7).map(d=>`${d.dayName}: ${d.am7Temp}°F, ${wmoText(d.am7Code)}${d.am7Rain>30?`, ${d.am7Rain}% rain chance`:""}${d.maxWind>15?`, ${d.maxWind}mph wind`:""}`).join("\n")}\nNote any days with bad weather and suggest treadmill or schedule adjustments.` : "";
         const text = await callClaude([{ role: "user", content: `Generate a ${WEEKS_LEFT}-week training plan for the Mother's Day Half Marathon on May 10, 2026. Today is ${today}.${dataCtx}${restCtx}${wxCtx}\n\nFORMATTING RULES:\n- Weeks start on Monday\n- Show all 7 days: Monday through Sunday\n- Plain text only, no markdown symbols\n- Each day: "DayName — Activity: distance/duration. Tip: one brief tip."\n- Week heading: "Week N (dates)"\n\nMake it practical and encouraging for a 54-year-old running for fun.` }], apiKey, fitbitStats);
-        setPlan(text);
-        setPlanLines(text.split("\n"));
-        onSavePlan(text);
-        setLoading(false);
+        setPlan(text); setPlanLines(text.split("\n")); onSavePlan(text); setLoading(false);
       }
+
+      const weekSegs = plan ? getWeekSegments(planLines) : [];
 
       return (
         <div className="section">
@@ -515,16 +582,17 @@ COACHING PRINCIPLES:
             <div style={{fontSize:11,color:"#5a6080",marginTop:6}}>{restDays.length===0?"No rest days selected.":restDays.length===1?`${restDays[0]} will be your rest day.`:`${restDays.join(", ")} will be rest days.`}</div>
           </div>
           <button className="btn btn-primary" style={{marginBottom:12}} onClick={generate} disabled={loading}>
-            {loading ? "Generating your plan..." : plan ? "Regenerate Plan" : "Generate My Training Plan"}
+            {loading ? "Generating your plan..." : plan ? "Regenerate Full Plan" : "Generate My Training Plan"}
           </button>
-          {!plan && !loading && <div className="tip-card">Your AI coach builds a {WEEKS_LEFT}-week Hal Higdon-style plan. Once generated it's saved — tap any day to edit it.</div>}
+          {!plan && !loading && <div className="tip-card">Your AI coach builds a {WEEKS_LEFT}-week Hal Higdon-style plan. Once generated it's saved — tap ✏️ on any day to edit, or use "Adjust Week" to modify a whole week with notes.</div>}
           {loading && <div className="loading-row"><div className="spinner" /><span>Building your personalized plan...</span></div>}
           {plan && !loading && (
             <div className="card">
-              <div style={{fontSize:11,color:"#5a6080",marginBottom:8}}>TAP ANY DAY TO EDIT · CHANGES SAVED AUTOMATICALLY</div>
+              <div style={{fontSize:11,color:"#5a6080",marginBottom:8}}>TAP ✏️ ON ANY DAY TO EDIT · USE ADJUST WEEK FOR BIGGER CHANGES</div>
               {planLines.map((line, i) => {
-                const isWeek = line.startsWith("Week") || line.match(/^\*\*Week/);
+                const isWeek = line.match(/^Week\s+\d+/i);
                 const isDay = line.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i);
+                const seg = isWeek ? weekSegs.find(s => s.startIdx === i) : null;
                 if (editIdx === i) return (
                   <div key={i} style={{margin:"4px 0"}}>
                     <textarea style={{width:"100%",background:"#1a1d2a",border:"1px solid #f07030",borderRadius:8,padding:"8px",color:"#f0ede8",fontSize:13,lineHeight:1.6,minHeight:60,resize:"vertical"}} value={editText} onChange={e=>setEditText(e.target.value)} autoFocus />
@@ -534,16 +602,37 @@ COACHING PRINCIPLES:
                     </div>
                   </div>
                 );
-                if (isWeek) return <div key={i} style={{color:"#f07030",fontWeight:700,fontSize:15,marginTop:20,marginBottom:6,borderBottom:"1px solid #1e2030",paddingBottom:6,cursor:"pointer"}} onClick={()=>startEdit(i,line)}>{line.replace(/[*#]/g,"").trim()}</div>;
-                if (isDay) return (
-                  <div key={i} style={{display:"flex",alignItems:"flex-start",gap:6,marginTop:12,cursor:"pointer"}} onClick={()=>startEdit(i,line)}>
-                    <span style={{color:"#f0ede8",fontWeight:600,fontSize:14,flex:1}}>{line}</span>
-                    <span style={{fontSize:14,color:"#5a6080",flexShrink:0}}>✏️</span>
+                if (isWeek && seg) return (
+                  <div key={i} style={{marginTop:i>0?20:0}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid #1e2030",paddingBottom:6,marginBottom:4}}>
+                      <span style={{color:"#f07030",fontWeight:700,fontSize:15}}>{line.replace(/[*#]/g,"").trim()}</span>
+                      <button onClick={()=>openAdjust(seg)} style={{background:"#1e2030",border:"1px solid #2a2d3e",borderRadius:8,padding:"3px 10px",fontSize:11,color:"#a0a8c0",cursor:"pointer",fontWeight:600}}>
+                        {weekNotes[seg.weekNum] ? "📝 Adjust" : "Adjust Week"}
+                      </button>
+                    </div>
+                    {weekNotes[seg.weekNum] && <div style={{fontSize:11,color:"#6080a0",background:"#101a2a",borderRadius:6,padding:"4px 8px",marginBottom:6}}>📝 {weekNotes[seg.weekNum]}</div>}
                   </div>
                 );
-                return <div key={i} style={{color:"#a0a8c0",fontSize:13,paddingLeft:line.trim().startsWith("-")?12:0,cursor: line.trim() ? "pointer" : "default"}} onClick={()=>line.trim()&&startEdit(i,line)}>{line}</div>;
+                if (isDay) return (
+                  <div key={i} style={{display:"flex",alignItems:"flex-start",gap:6,marginTop:10,cursor:"pointer"}} onClick={()=>startEdit(i,line)}>
+                    <span style={{color:"#f0ede8",fontWeight:600,fontSize:14,flex:1}}>{line}</span>
+                    <span style={{fontSize:12,color:"#5a6080",flexShrink:0}}>✏️</span>
+                  </div>
+                );
+                return <div key={i} style={{color:"#a0a8c0",fontSize:13,paddingLeft:line.trim().startsWith("-")?12:0,cursor:line.trim()?"pointer":"default"}} onClick={()=>line.trim()&&startEdit(i,line)}>{line}</div>;
               })}
             </div>
+          )}
+          {adjustWeek && (
+            <WeekAdjustModal
+              weekNum={adjustWeek.weekNum}
+              weekText={adjustWeek.weekText}
+              existingNotes={weekNotes[adjustWeek.weekNum] || ""}
+              onSaveNotes={handleSaveNotesOnly}
+              onRegenerate={handleRegenWeek}
+              onClose={()=>setAdjustWeek(null)}
+              regenLoading={regenLoading}
+            />
           )}
         </div>
       );
@@ -842,6 +931,7 @@ COACHING PRINCIPLES:
       const [syncError, setSyncError] = useState(null);
       const [savedPlan, setSavedPlan] = useState(null);
       const [weather, setWeather] = useState(null);
+      const [weekNotes, setWeekNotes] = useState({});
       const redirectUri = window.location.origin + window.location.pathname;
 
       useEffect(() => {
@@ -868,12 +958,13 @@ COACHING PRINCIPLES:
             }
           }
 
-          const [savedShoes, savedWorkouts, savedSettings, savedToken, savedPlanData] = await Promise.all([sget("rc_shoes"), sget("rc_workouts"), sget("rc_settings"), sget("rc_fitbit_token"), sget("rc_plan")]);
+          const [savedShoes, savedWorkouts, savedSettings, savedToken, savedPlanData, savedWeekNotes] = await Promise.all([sget("rc_shoes"), sget("rc_workouts"), sget("rc_settings"), sget("rc_fitbit_token"), sget("rc_plan"), sget("rc_week_notes")]);
           fetchWeather().then(wx => { if (wx) setWeather(wx); });
           if (savedShoes) setShoes(savedShoes);
           if (savedWorkouts) setWorkouts(savedWorkouts);
           if (savedSettings) setSettings(savedSettings);
           if (savedPlanData) setSavedPlan(savedPlanData);
+          if (savedWeekNotes) setWeekNotes(savedWeekNotes);
 
           const tokenToUse = freshPKCEToken || savedToken;
           if (tokenToUse?.access_token) {
@@ -959,6 +1050,10 @@ COACHING PRINCIPLES:
         }
       }
       async function savePlan(text) { setSavedPlan(text); await sset("rc_plan", text); }
+      async function saveWeekNotes(weekNum, notes) {
+        const updated = { ...weekNotes, [weekNum]: notes };
+        setWeekNotes(updated); await sset("rc_week_notes", updated);
+      }
       async function importWorkouts(newOnes) {
         const updated = [...workouts, ...newOnes].sort((a, b) => new Date(b.date) - new Date(a.date));
         setWorkouts(updated); await sset("rc_workouts", updated);
@@ -981,7 +1076,7 @@ COACHING PRINCIPLES:
           <div className="app">
             <div className="header">
               <div className="header-top">
-                <div className="logo">Stride<span>AI</span> <span style={{fontSize:10,color:"#5a6080",fontWeight:400}}>v3</span></div>
+                <div className="logo">Stride<span>AI</span> <span style={{fontSize:10,color:"#5a6080",fontWeight:400}}>v4</span></div>
                 <div style={{display:"flex",gap:8,alignItems:"center"}}>
                   {syncing && <div className="spinner" style={{width:16,height:16}} />}
                   {fitbitToken && !syncing && <span style={{fontSize:11,color:"#00b0b9",cursor:"pointer",fontWeight:600}} onClick={()=>doFitbitSyncInner(fitbitToken.access_token,settings,workouts)}>↻ Fitbit</span>}
@@ -992,7 +1087,7 @@ COACHING PRINCIPLES:
             {syncError && <div className="alert alert-warn" style={{margin:"8px 16px 0",fontSize:12}}>⚠️ {syncError}</div>}
             <div className="content">
               {tab==="home" && <Dashboard workouts={workouts} fitbitStats={fitbitStats} onAddWorkout={()=>setShowAddWorkout(true)} />}
-              {tab==="plan" && <PlanTab fitbitStats={fitbitStats} apiKey={settings.apiKey} savedPlan={savedPlan} onSavePlan={savePlan} weather={weather} />}
+              {tab==="plan" && <PlanTab fitbitStats={fitbitStats} apiKey={settings.apiKey} savedPlan={savedPlan} onSavePlan={savePlan} weather={weather} weekNotes={weekNotes} onSaveWeekNotes={saveWeekNotes} />}
               {tab==="coach" && <CoachTab fitbitStats={fitbitStats} apiKey={settings.apiKey} />}
               {tab==="log" && <LogTab workouts={workouts} onAddWorkout={()=>setShowAddWorkout(true)} shoes={shoes} />}
               {tab==="shoes" && <ShoesTab shoes={shoes} onSave={saveShoes} />}
