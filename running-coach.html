@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>StrideAI v2 — Personal Running Coach</title>
+  <title>StrideAI v3 — Personal Running Coach</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -29,6 +29,38 @@
     const FITBIT_TOKEN_URL = "https://api.fitbit.com/oauth2/token";
     const FITBIT_API = "https://api.fitbit.com/1";
     const WORKOUT_ICONS = { Run: "🏃", Bike: "🚴", Kayak: "🛶", Gardening: "🌱", Walk: "🚶", Rest: "😴", Other: "⚡" };
+
+    // ─── Weather helpers (Open-Meteo, no API key needed) ───────────────────────
+    function wmoEmoji(c) {
+      if (c === 0) return "☀️"; if (c <= 2) return "⛅"; if (c <= 3) return "☁️";
+      if (c <= 48) return "🌫️"; if (c <= 57) return "🌦️"; if (c <= 67) return "🌧️";
+      if (c <= 77) return "❄️"; if (c <= 82) return "🌦️"; return "⛈️";
+    }
+    function wmoText(c) {
+      if (c === 0) return "Clear"; if (c <= 2) return "Partly cloudy"; if (c <= 3) return "Overcast";
+      if (c <= 48) return "Foggy"; if (c <= 57) return "Drizzle"; if (c <= 67) return "Rain";
+      if (c <= 77) return "Snow"; if (c <= 82) return "Showers"; return "Thunderstorm";
+    }
+    async function fetchWeather() {
+      try {
+        const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=42.2&longitude=-72.6&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum,windspeed_10m_max&hourly=temperature_2m,precipitation_probability,weathercode&timezone=America%2FNew_York&forecast_days=7&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch");
+        const d = await res.json();
+        const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+        return d.daily.time.map((date, i) => {
+          const hi = i * 24 + 7; // 7 AM hourly index
+          return {
+            date, dayName: dayNames[new Date(date + "T12:00:00").getDay()],
+            maxTemp: Math.round(d.daily.temperature_2m_max[i]),
+            minTemp: Math.round(d.daily.temperature_2m_min[i]),
+            precip: d.daily.precipitation_sum[i],
+            maxWind: Math.round(d.daily.windspeed_10m_max[i]),
+            am7Temp: Math.round(d.hourly.temperature_2m[hi]),
+            am7Rain: d.hourly.precipitation_probability[hi],
+            am7Code: d.hourly.weathercode[hi],
+          };
+        });
+      } catch { return null; }
+    }
 
     // ─── PKCE helpers ───────────────────────────────────────────────────────────
     function b64url(buf) {
@@ -410,30 +442,64 @@ COACHING PRINCIPLES:
 
     // ─── Plan Tab ────────────────────────────────────────────────────────────────
     const ALL_DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-    function PlanTab({ fitbitStats, apiKey }) {
-      const [plan, setPlan] = useState(null);
+    function PlanTab({ fitbitStats, apiKey, savedPlan, onSavePlan, weather }) {
+      const [plan, setPlan] = useState(savedPlan || null);
       const [loading, setLoading] = useState(false);
       const [restDays, setRestDays] = useState(["Wednesday"]);
+      const [editIdx, setEditIdx] = useState(null);
+      const [editText, setEditText] = useState("");
+      const [planLines, setPlanLines] = useState(savedPlan ? savedPlan.split("\n") : []);
+
       function toggleDay(day) {
         setRestDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
       }
+      function startEdit(i, text) { setEditIdx(i); setEditText(text); }
+      function saveEdit() {
+        const updated = [...planLines];
+        updated[editIdx] = editText;
+        setPlanLines(updated);
+        const newPlan = updated.join("\n");
+        setPlan(newPlan);
+        onSavePlan(newPlan);
+        setEditIdx(null);
+      }
+
       async function generate() {
         setLoading(true);
         const today = TODAY.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
         const fb = fitbitStats;
         const dataCtx = fb ? `\n\nMy recent Fitbit data (last 30 days): ${fb.runCount} runs totaling ${fb.totalMiles.toFixed(1)} miles, most recent pace ${fb.avgPace || "unknown"}, average run HR ${fb.avgRunHR ?? "unknown"} bpm, resting HR ${fb.restingHR ?? "unknown"} bpm, longest recent run ${fb.longestRun?.toFixed(1) ?? "unknown"} miles.` : "";
-        const restCtx = restDays.length > 0 ? `\n\nPreferred rest days this cycle: ${restDays.join(", ")}. Schedule complete rest or very light cross-training (stretching, easy walk) on those days.` : "";
-        const text = await callClaude([{ role: "user", content: `Generate a ${WEEKS_LEFT}-week training plan for the Mother's Day Half Marathon on May 10, 2026. Today is ${today}.${dataCtx}${restCtx}\n\nIMPORTANT FORMATTING RULES:\n- Weeks start on Monday\n- Show all 7 days: Monday through Sunday\n- Use plain text only, no markdown symbols\n- Each day: "DayName — Activity: distance/duration. Tip: one brief tip."\n- Week heading: "Week N (dates)"\n\nMake it practical and encouraging for a 54-year-old running for fun and aiming for comfortable half marathon completion.` }], apiKey, fitbitStats);
+        const restCtx = restDays.length > 0 ? `\n\nPreferred rest days: ${restDays.join(", ")}.` : "";
+        const wxCtx = weather?.length ? `\n\nThis week's 7AM forecast for Western MA (runner goes out at 7AM):\n${weather.slice(0,7).map(d=>`${d.dayName}: ${d.am7Temp}°F, ${wmoText(d.am7Code)}${d.am7Rain>30?`, ${d.am7Rain}% rain chance`:""}${d.maxWind>15?`, ${d.maxWind}mph wind`:""}`).join("\n")}\nNote any days with bad weather and suggest treadmill or schedule adjustments.` : "";
+        const text = await callClaude([{ role: "user", content: `Generate a ${WEEKS_LEFT}-week training plan for the Mother's Day Half Marathon on May 10, 2026. Today is ${today}.${dataCtx}${restCtx}${wxCtx}\n\nFORMATTING RULES:\n- Weeks start on Monday\n- Show all 7 days: Monday through Sunday\n- Plain text only, no markdown symbols\n- Each day: "DayName — Activity: distance/duration. Tip: one brief tip."\n- Week heading: "Week N (dates)"\n\nMake it practical and encouraging for a 54-year-old running for fun.` }], apiKey, fitbitStats);
         setPlan(text);
+        setPlanLines(text.split("\n"));
+        onSavePlan(text);
         setLoading(false);
       }
+
       return (
         <div className="section">
           <div className="section-header"><div className="section-title">Training Plan</div></div>
           {fitbitStats
-            ? <div className="alert alert-success" style={{marginBottom:12}}>✓ Fitbit connected — plan personalized to your actual fitness data.</div>
+            ? <div className="alert alert-success" style={{marginBottom:12}}>✓ Fitbit connected — plan uses your real fitness data.</div>
             : <div className="tip-card">Connect Fitbit in ⚙️ Settings for a plan built around your real pace and HR.</div>
           }
+          {weather && weather.length > 0 && (
+            <div className="card" style={{marginBottom:12}}>
+              <div className="card-title">7-Day Forecast · 7AM Conditions</div>
+              {weather.map(d => (
+                <div key={d.date} style={{display:"flex",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #1e2030",gap:8}}>
+                  <span style={{width:34,fontSize:12,color:"#5a6080",fontWeight:600}}>{d.dayName.slice(0,3)}</span>
+                  <span style={{fontSize:18,width:26}}>{wmoEmoji(d.am7Code)}</span>
+                  <span style={{fontSize:14,color:"#f07030",fontWeight:700,width:36}}>{d.am7Temp}°F</span>
+                  <span style={{fontSize:12,color:"#a0a8c0",flex:1}}>{wmoText(d.am7Code)}</span>
+                  {d.am7Rain > 30 && <span style={{fontSize:11,color:"#6090f0"}}>{d.am7Rain}% rain</span>}
+                  {d.maxWind > 15 && <span style={{fontSize:11,color:"#a0a8c0"}}>{d.maxWind}mph</span>}
+                </div>
+              ))}
+            </div>
+          )}
           <div className="card" style={{marginBottom:12}}>
             <div className="card-title">Rest Days for This Plan</div>
             <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
@@ -446,22 +512,37 @@ COACHING PRINCIPLES:
                 }}>{day.slice(0,3)}{restDays.includes(day)?" ✕":""}</button>
               ))}
             </div>
-            <div style={{fontSize:11,color:"#5a6080",marginTop:6}}>{restDays.length===0?"No rest days selected — add at least one.":restDays.length===1?`${restDays[0]} will be your rest day.`:`${restDays.join(", ")} will be rest days.`}</div>
+            <div style={{fontSize:11,color:"#5a6080",marginTop:6}}>{restDays.length===0?"No rest days selected.":restDays.length===1?`${restDays[0]} will be your rest day.`:`${restDays.join(", ")} will be rest days.`}</div>
           </div>
-          <div className="tip-card">Your AI coach generates a personalized {WEEKS_LEFT}-week plan using the Hal Higdon method — weeks start Monday, tailored for comfortable half marathon completion at 54.</div>
-          <button className="btn btn-primary" style={{marginBottom:16}} onClick={generate} disabled={loading}>
+          <button className="btn btn-primary" style={{marginBottom:12}} onClick={generate} disabled={loading}>
             {loading ? "Generating your plan..." : plan ? "Regenerate Plan" : "Generate My Training Plan"}
           </button>
+          {!plan && !loading && <div className="tip-card">Your AI coach builds a {WEEKS_LEFT}-week Hal Higdon-style plan. Once generated it's saved — tap any day to edit it.</div>}
           {loading && <div className="loading-row"><div className="spinner" /><span>Building your personalized plan...</span></div>}
           {plan && !loading && (
             <div className="card">
-              <div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.8}}>
-                {plan.split("\n").map((line, i) => {
-                  if (line.startsWith("Week") || line.match(/^\*\*Week/)) return <div key={i} style={{color:"#f07030",fontWeight:700,fontSize:15,marginTop:20,marginBottom:6,borderBottom:"1px solid #1e2030",paddingBottom:6}}>{line.replace(/[*#]/g,"").trim()}</div>;
-                  if (line.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i)) return <div key={i} style={{color:"#f0ede8",fontWeight:600,marginTop:12,fontSize:14}}>{line}</div>;
-                  return <div key={i} style={{color:"#a0a8c0",fontSize:13,paddingLeft:line.trim().startsWith("-")?12:0}}>{line}</div>;
-                })}
-              </div>
+              <div style={{fontSize:11,color:"#5a6080",marginBottom:8}}>TAP ANY DAY TO EDIT · CHANGES SAVED AUTOMATICALLY</div>
+              {planLines.map((line, i) => {
+                const isWeek = line.startsWith("Week") || line.match(/^\*\*Week/);
+                const isDay = line.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i);
+                if (editIdx === i) return (
+                  <div key={i} style={{margin:"4px 0"}}>
+                    <textarea style={{width:"100%",background:"#1a1d2a",border:"1px solid #f07030",borderRadius:8,padding:"8px",color:"#f0ede8",fontSize:13,lineHeight:1.6,minHeight:60,resize:"vertical"}} value={editText} onChange={e=>setEditText(e.target.value)} autoFocus />
+                    <div style={{display:"flex",gap:8,marginTop:4}}>
+                      <button className="btn btn-primary btn-sm" onClick={saveEdit}>Save</button>
+                      <button className="btn btn-secondary btn-sm" onClick={()=>setEditIdx(null)}>Cancel</button>
+                    </div>
+                  </div>
+                );
+                if (isWeek) return <div key={i} style={{color:"#f07030",fontWeight:700,fontSize:15,marginTop:20,marginBottom:6,borderBottom:"1px solid #1e2030",paddingBottom:6,cursor:"pointer"}} onClick={()=>startEdit(i,line)}>{line.replace(/[*#]/g,"").trim()}</div>;
+                if (isDay) return (
+                  <div key={i} style={{display:"flex",alignItems:"flex-start",gap:6,marginTop:12,cursor:"pointer"}} onClick={()=>startEdit(i,line)}>
+                    <span style={{color:"#f0ede8",fontWeight:600,fontSize:14,flex:1}}>{line}</span>
+                    <span style={{fontSize:14,color:"#5a6080",flexShrink:0}}>✏️</span>
+                  </div>
+                );
+                return <div key={i} style={{color:"#a0a8c0",fontSize:13,paddingLeft:line.trim().startsWith("-")?12:0,cursor: line.trim() ? "pointer" : "default"}} onClick={()=>line.trim()&&startEdit(i,line)}>{line}</div>;
+              })}
             </div>
           )}
         </div>
@@ -469,7 +550,7 @@ COACHING PRINCIPLES:
     }
 
     // ─── Log Tab ──────────────────────────────────────────────────────────────────
-    function LogTab({ workouts, onAddWorkout }) {
+    function LogTab({ workouts, onAddWorkout, shoes }) {
       const [filter, setFilter] = useState("All");
       const types = ["All","Run","Walk","Bike","Kayak","Gardening","Rest","Other"];
       const filtered = filter === "All" ? workouts : workouts.filter(w => w.type === filter);
@@ -489,7 +570,7 @@ COACHING PRINCIPLES:
                 <div className="workout-icon">{WORKOUT_ICONS[w.type] || "⚡"}</div>
                 <div className="workout-info">
                   <div className="workout-type">{w.type}{w.source==="fitbit"&&<span className="source-tag source-fitbit">Fitbit</span>}{w.source==="runkeeper"&&<span className="source-tag source-rk">RK</span>}</div>
-                  <div className="workout-meta">{new Date(w.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} {w.duration?`· ${Math.round(w.duration)} min`:""} {w.notes?`· ${w.notes}`:""}</div>
+                  <div className="workout-meta">{new Date(w.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} {w.duration?`· ${Math.round(w.duration)} min`:""} {w.shoeId&&shoes?.find(s=>s.id==w.shoeId)?`· 👟 ${shoes.find(s=>s.id==w.shoeId).name}`:""} {w.notes?`· ${w.notes}`:""}</div>
                 </div>
                 {w.distance && <div className="workout-dist">{typeof w.distance==="number"?w.distance.toFixed(1):w.distance}mi</div>}
               </div>
@@ -617,6 +698,10 @@ COACHING PRINCIPLES:
       const [fitbitClientId, setFitbitClientId] = useState(settings.fitbitClientId || "");
       const [showKey, setShowKey] = useState(false);
       const [status, setStatus] = useState(null);
+      useEffect(() => {
+        setApiKey(settings.apiKey || "");
+        setFitbitClientId(settings.fitbitClientId || "");
+      }, [settings.apiKey, settings.fitbitClientId]);
       const fileRef = useRef(null);
       function showMsg(type, msg) { setStatus({ type, msg }); setTimeout(() => setStatus(null), 4000); }
       function saveApiKey() { onSaveSettings({ ...settings, apiKey, fitbitClientId }); showMsg("success", "Settings saved!"); }
@@ -706,12 +791,14 @@ COACHING PRINCIPLES:
     }
 
     // ─── Add Workout Modal ────────────────────────────────────────────────────────
-    function AddWorkoutModal({ onAdd, onClose }) {
+    function AddWorkoutModal({ onAdd, onClose, shoes }) {
       const [type, setType] = useState("Run");
       const [date, setDate] = useState(TODAY.toISOString().split("T")[0]);
       const [distance, setDistance] = useState("");
       const [duration, setDuration] = useState("");
       const [notes, setNotes] = useState("");
+      const [shoeId, setShoeId] = useState("");
+      const runShoes = (shoes || []).filter(s => s.active !== false);
       return (
         <div className="modal-overlay" onClick={e=>e.target.className==="modal-overlay"&&onClose()}>
           <div className="modal">
@@ -721,11 +808,20 @@ COACHING PRINCIPLES:
             <div className="label">Date</div>
             <input className="input" type="date" value={date} onChange={e=>setDate(e.target.value)} />
             {(type==="Run"||type==="Walk"||type==="Bike")&&<><div className="label">Distance (miles)</div><input className="input" type="number" step="0.1" placeholder="e.g. 4.5" value={distance} onChange={e=>setDistance(e.target.value)} /></>}
+            {type==="Run" && runShoes.length > 0 && (
+              <>
+                <div className="label">Shoe — auto-tracks mileage (optional)</div>
+                <select className="input" value={shoeId} onChange={e=>setShoeId(e.target.value)}>
+                  <option value="">No shoe selected</option>
+                  {runShoes.map(s=><option key={s.id} value={s.id}>{s.name} ({s.miles.toFixed(1)} mi)</option>)}
+                </select>
+              </>
+            )}
             <div className="label">Duration (minutes)</div>
             <input className="input" type="number" placeholder="e.g. 45" value={duration} onChange={e=>setDuration(e.target.value)} />
             <div className="label">Notes (optional)</div>
             <input className="input" placeholder="How'd it feel? Weather? Route?" value={notes} onChange={e=>setNotes(e.target.value)} />
-            <button className="btn btn-primary" onClick={()=>{onAdd({id:Date.now(),type,date,distance:distance?parseFloat(distance):"",duration,notes});onClose();}}>Save Activity</button>
+            <button className="btn btn-primary" onClick={()=>{onAdd({id:Date.now(),type,date,distance:distance?parseFloat(distance):"",duration,notes,shoeId:shoeId||null});onClose();}}>Save Activity</button>
             <button className="btn btn-secondary" style={{marginTop:8}} onClick={onClose}>Cancel</button>
           </div>
         </div>
@@ -744,6 +840,8 @@ COACHING PRINCIPLES:
       const [fitbitStats, setFitbitStats] = useState(null);
       const [syncing, setSyncing] = useState(false);
       const [syncError, setSyncError] = useState(null);
+      const [savedPlan, setSavedPlan] = useState(null);
+      const [weather, setWeather] = useState(null);
       const redirectUri = window.location.origin + window.location.pathname;
 
       useEffect(() => {
@@ -770,10 +868,12 @@ COACHING PRINCIPLES:
             }
           }
 
-          const [savedShoes, savedWorkouts, savedSettings, savedToken] = await Promise.all([sget("rc_shoes"), sget("rc_workouts"), sget("rc_settings"), sget("rc_fitbit_token")]);
+          const [savedShoes, savedWorkouts, savedSettings, savedToken, savedPlanData] = await Promise.all([sget("rc_shoes"), sget("rc_workouts"), sget("rc_settings"), sget("rc_fitbit_token"), sget("rc_plan")]);
+          fetchWeather().then(wx => { if (wx) setWeather(wx); });
           if (savedShoes) setShoes(savedShoes);
           if (savedWorkouts) setWorkouts(savedWorkouts);
           if (savedSettings) setSettings(savedSettings);
+          if (savedPlanData) setSavedPlan(savedPlanData);
 
           const tokenToUse = freshPKCEToken || savedToken;
           if (tokenToUse?.access_token) {
@@ -850,7 +950,15 @@ COACHING PRINCIPLES:
       async function addWorkout(w) {
         const updated = [...workouts, w].sort((a, b) => new Date(b.date) - new Date(a.date));
         setWorkouts(updated); await sset("rc_workouts", updated);
+        if (w.shoeId && w.distance) {
+          const miles = parseFloat(w.distance) || 0;
+          if (miles > 0) {
+            const updatedShoes = shoes.map(s => s.id == w.shoeId ? {...s, miles: s.miles + miles} : s);
+            setShoes(updatedShoes); await sset("rc_shoes", updatedShoes);
+          }
+        }
       }
+      async function savePlan(text) { setSavedPlan(text); await sset("rc_plan", text); }
       async function importWorkouts(newOnes) {
         const updated = [...workouts, ...newOnes].sort((a, b) => new Date(b.date) - new Date(a.date));
         setWorkouts(updated); await sset("rc_workouts", updated);
@@ -873,7 +981,7 @@ COACHING PRINCIPLES:
           <div className="app">
             <div className="header">
               <div className="header-top">
-                <div className="logo">Stride<span>AI</span> <span style={{fontSize:10,color:"#5a6080",fontWeight:400}}>v2</span></div>
+                <div className="logo">Stride<span>AI</span> <span style={{fontSize:10,color:"#5a6080",fontWeight:400}}>v3</span></div>
                 <div style={{display:"flex",gap:8,alignItems:"center"}}>
                   {syncing && <div className="spinner" style={{width:16,height:16}} />}
                   {fitbitToken && !syncing && <span style={{fontSize:11,color:"#00b0b9",cursor:"pointer",fontWeight:600}} onClick={()=>doFitbitSyncInner(fitbitToken.access_token,settings,workouts)}>↻ Fitbit</span>}
@@ -884,16 +992,16 @@ COACHING PRINCIPLES:
             {syncError && <div className="alert alert-warn" style={{margin:"8px 16px 0",fontSize:12}}>⚠️ {syncError}</div>}
             <div className="content">
               {tab==="home" && <Dashboard workouts={workouts} fitbitStats={fitbitStats} onAddWorkout={()=>setShowAddWorkout(true)} />}
-              {tab==="plan" && <PlanTab fitbitStats={fitbitStats} apiKey={settings.apiKey} />}
+              {tab==="plan" && <PlanTab fitbitStats={fitbitStats} apiKey={settings.apiKey} savedPlan={savedPlan} onSavePlan={savePlan} weather={weather} />}
               {tab==="coach" && <CoachTab fitbitStats={fitbitStats} apiKey={settings.apiKey} />}
-              {tab==="log" && <LogTab workouts={workouts} onAddWorkout={()=>setShowAddWorkout(true)} />}
+              {tab==="log" && <LogTab workouts={workouts} onAddWorkout={()=>setShowAddWorkout(true)} shoes={shoes} />}
               {tab==="shoes" && <ShoesTab shoes={shoes} onSave={saveShoes} />}
               {tab==="settings" && <SettingsTab settings={settings} onSaveSettings={saveSettings} fitbitToken={fitbitToken} fitbitStats={fitbitStats} onFitbitConnect={handleFitbitConnect} onFitbitDisconnect={handleFitbitDisconnect} onFitbitSync={()=>doFitbitSyncInner(fitbitToken?.access_token,settings,workouts)} syncing={syncing} workouts={workouts} onImportWorkouts={importWorkouts} redirectUri={redirectUri} />}
             </div>
             <div className="tab-bar">
               {tabs.map(t => <button key={t.id} className={`tab ${tab===t.id?"active":""}`} onClick={()=>setTab(t.id)}><span className="tab-icon">{t.icon}</span><span>{t.label}</span></button>)}
             </div>
-            {showAddWorkout && <AddWorkoutModal onAdd={addWorkout} onClose={()=>setShowAddWorkout(false)} />}
+            {showAddWorkout && <AddWorkoutModal onAdd={addWorkout} onClose={()=>setShowAddWorkout(false)} shoes={shoes} />}
           </div>
         </>
       );
