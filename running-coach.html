@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>StrideAI v7 — Personal Running Coach</title>
+  <title>StrideAI v8 — Personal Running Coach</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -92,11 +92,15 @@
     }
 
     // ─── Claude API ─────────────────────────────────────────────────────────────
-    function makeSystemPrompt(fitbitStats) {
+    function makeSystemPrompt(fitbitStats, races, feeling) {
       const fb = fitbitStats;
       const fbSection = fb
         ? `\n\nRECENT FITBIT DATA (last 30 days):\n- Runs: ${fb.runCount} runs, ${fb.totalMiles.toFixed(1)} miles total\n- Most recent pace: ${fb.avgPace || "N/A"}\n- Avg resting HR: ${fb.restingHR ?? "N/A"} bpm\n- Avg HR during runs: ${fb.avgRunHR ?? "N/A"} bpm\n- Longest recent run: ${fb.longestRun?.toFixed(1) ?? "N/A"} miles\nUse this real data when giving specific advice about pacing, effort, and readiness.`
         : "";
+      const todayKey = new Date().toISOString().split("T")[0];
+      const todayFeeling = feeling?.date === todayKey ? feeling.feeling : null;
+      const feelingSection = todayFeeling ? `\n\nTODAY'S CHECK-IN: Runner is feeling ${todayFeeling.toUpperCase()} today. Factor this into your recommendations.` : "";
+      const racesSection = races?.length ? `\n\nRACE HISTORY:\n${races.sort((a,b)=>b.date.localeCompare(a.date)).map(r=>`- ${r.name} (${r.date}): ${r.distance} in ${r.time}${r.notes?` — ${r.notes}`:""}`).join("\n")}` : "";
       return `You are a warm, encouraging personal running coach for a 54-year-old recreational runner in Western Massachusetts.
 
 RUNNER PROFILE:
@@ -117,10 +121,10 @@ COACHING PRINCIPLES:
 - Recovery takes longer at 54 — rest days are not optional
 - Cross-training (gardening, kayaking, biking) counts as active recovery
 - Be specific with distances and paces, not vague. Be encouraging — running is for joy.
-- Never suggest faster-than-conversational paces unless explicitly asked.`;
+- Never suggest faster-than-conversational paces unless explicitly asked.${feelingSection}${racesSection}`;
     }
 
-    async function callClaude(messages, apiKey, fitbitStats) {
+    async function callClaude(messages, apiKey, fitbitStats, races, feeling) {
       if (!apiKey) return "Please add your Anthropic API key in ⚙️ Settings to enable AI coaching.";
       try {
         const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -134,7 +138,7 @@ COACHING PRINCIPLES:
           body: JSON.stringify({
             model: "claude-sonnet-4-20250514",
             max_tokens: 1500,
-            system: makeSystemPrompt(fitbitStats),
+            system: makeSystemPrompt(fitbitStats, races, feeling),
             messages,
           }),
         });
@@ -363,8 +367,76 @@ COACHING PRINCIPLES:
       .pace-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #1e2030; font-size: 13px; }
     `;
 
+    // ─── Weekly Mileage Chart ────────────────────────────────────────────────────
+    function WeeklyMileageChart({ workouts }) {
+      function getMondayKey(dateStr) {
+        const d = new Date(dateStr + "T12:00:00");
+        const day = d.getDay(); // 0=Sun
+        const diff = day === 0 ? -6 : 1 - day;
+        const mon = new Date(d); mon.setDate(d.getDate() + diff);
+        return mon.toISOString().split("T")[0];
+      }
+      const weeks = {};
+      workouts.filter(w => w.type === "Run" && w.distance).forEach(w => {
+        const k = getMondayKey(w.date);
+        weeks[k] = (weeks[k] || 0) + (parseFloat(w.distance) || 0);
+      });
+      const sorted = Object.entries(weeks).sort(([a],[b]) => a.localeCompare(b)).slice(-8);
+      if (sorted.length === 0) return null;
+      const maxMiles = Math.max(...sorted.map(([,m]) => m), 1);
+      return (
+        <div className="card" style={{marginBottom:12}}>
+          <div className="card-title">Weekly Mileage (last 8 weeks)</div>
+          {sorted.map(([weekStart, miles]) => {
+            const label = new Date(weekStart + "T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});
+            const pct = Math.round((miles / maxMiles) * 100);
+            const color = miles < 10 ? "#3b8a3a" : miles < 20 ? "#c0a020" : "#c05010";
+            return (
+              <div key={weekStart} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid #1e2030"}}>
+                <span style={{fontSize:11,color:"#5a6080",width:50,flexShrink:0}}>{label}</span>
+                <div style={{flex:1,background:"#1a1d2a",borderRadius:4,height:12,overflow:"hidden"}}>
+                  <div style={{width:`${pct}%`,height:"100%",background:color,borderRadius:4,transition:"width 0.4s"}} />
+                </div>
+                <span style={{fontSize:12,color:"#f07030",fontWeight:700,width:36,textAlign:"right"}}>{miles.toFixed(1)}</span>
+                <span style={{fontSize:11,color:"#5a6080"}}>mi</span>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // ─── Feeling Check-In ────────────────────────────────────────────────────────
+    const FEELINGS = [
+      { id:"great", label:"Great", emoji:"💪", color:"#40c070" },
+      { id:"good",  label:"Good",  emoji:"😊", color:"#60a0f0" },
+      { id:"tired", label:"Tired", emoji:"😴", color:"#c0a020" },
+      { id:"sore",  label:"Sore",  emoji:"😬", color:"#c07020" },
+      { id:"injured",label:"Injured",emoji:"🤕",color:"#c03020"},
+    ];
+
+    function FeelingCheckIn({ feeling, onSetFeeling }) {
+      const todayKey = new Date().toISOString().split("T")[0];
+      const todayFeeling = feeling?.date === todayKey ? feeling.feeling : null;
+      return (
+        <div className="card" style={{marginBottom:12}}>
+          <div className="card-title">How Are You Feeling Today?</div>
+          <div style={{display:"flex",gap:6,justifyContent:"space-between"}}>
+            {FEELINGS.map(f => (
+              <button key={f.id} onClick={()=>onSetFeeling({feeling:f.id, date:todayKey})}
+                style={{flex:1,background:todayFeeling===f.id?f.color+"33":"#1a1d2a",border:`1px solid ${todayFeeling===f.id?f.color:"#2a2d3e"}`,borderRadius:10,padding:"8px 4px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                <span style={{fontSize:20}}>{f.emoji}</span>
+                <span style={{fontSize:10,color:todayFeeling===f.id?f.color:"#5a6080",fontWeight:todayFeeling===f.id?700:400}}>{f.label}</span>
+              </button>
+            ))}
+          </div>
+          {todayFeeling && <div style={{fontSize:11,color:"#5a6080",marginTop:6,textAlign:"center"}}>Logged for today · your coach will take this into account</div>}
+        </div>
+      );
+    }
+
     // ─── Dashboard ──────────────────────────────────────────────────────────────
-    function Dashboard({ workouts, fitbitStats, onAddWorkout }) {
+    function Dashboard({ workouts, fitbitStats, onAddWorkout, feeling, onSetFeeling }) {
       const totalRuns = workouts.filter(w => w.type === "Run").length;
       const totalMiles = workouts.filter(w => w.type === "Run").reduce((s, w) => s + (parseFloat(w.distance) || 0), 0);
       const progress = Math.min(100, Math.round((1 - DAYS_LEFT / 47) * 100));
@@ -383,6 +455,7 @@ COACHING PRINCIPLES:
             <div className="progress-track"><div className="progress-fill" style={{ width: `${progress}%` }} /></div>
             <div className="progress-text">{DAYS_LEFT} days remaining · {WEEKS_LEFT} full weeks of training</div>
           </div>
+          <FeelingCheckIn feeling={feeling} onSetFeeling={onSetFeeling} />
           <div className="stat-row">
             <div className="stat"><div className="stat-num">{DAYS_LEFT}</div><div className="stat-label">Days to Race</div></div>
             <div className="stat"><div className="stat-num">{fb ? fb.runCount : totalRuns}</div><div className="stat-label">Runs {fb ? "(30d)" : "Logged"}</div></div>
@@ -410,6 +483,7 @@ COACHING PRINCIPLES:
               ))}
             </div>
           )}
+          <WeeklyMileageChart workouts={workouts} />
           <div className="card">
             <div className="section-header">
               <div className="card-title" style={{marginBottom:0}}>Recent Activity</div>
@@ -523,7 +597,7 @@ COACHING PRINCIPLES:
         setRegenLoading(true);
         const { weekNum, weekText, startIdx, endIdx } = adjustWeek;
         const notesCtx = weekNotes[weekNum] ? `Previously saved notes: ${weekNotes[weekNum]}\nNew notes: ${notes}` : notes;
-        const newWeekText = await callClaude([{ role: "user", content: `Rewrite only Week ${weekNum} of my half marathon training plan.\n\nCurrent Week ${weekNum}:\n${weekText}\n\nChanges for this week:\n${notesCtx}\n\nFORMATTING: Keep same format — Week heading line, then Monday through Sunday, each as "DayName — Activity: distance/duration. Tip: brief tip." Plain text only. Output ONLY Week ${weekNum} content, nothing before or after.` }], apiKey, fitbitStats);
+        const newWeekText = await callClaude([{ role: "user", content: `Rewrite only Week ${weekNum} of my half marathon training plan.\n\nCurrent Week ${weekNum}:\n${weekText}\n\nChanges for this week:\n${notesCtx}\n\nFORMATTING: Keep same format — Week heading line, then Monday through Sunday, each as "DayName — Activity: distance/duration. Tip: brief tip." Plain text only. Output ONLY Week ${weekNum} content, nothing before or after.` }], apiKey, fitbitStats, null, null);
         onSaveWeekNotes(weekNum, notes);
         const updated = [...planLines];
         const newLines = newWeekText.split("\n");
@@ -545,7 +619,7 @@ COACHING PRINCIPLES:
         const dataCtx = fb ? `\n\nMy recent Fitbit data (last 30 days): ${fb.runCount} runs totaling ${fb.totalMiles.toFixed(1)} miles, most recent pace ${fb.avgPace || "unknown"}, average run HR ${fb.avgRunHR ?? "unknown"} bpm, resting HR ${fb.restingHR ?? "unknown"} bpm, longest recent run ${fb.longestRun?.toFixed(1) ?? "unknown"} miles.` : "";
         const restCtx = restDays.length > 0 ? `\n\nPreferred rest days: ${restDays.join(", ")}.` : "";
         const wxCtx = weather?.length ? `\n\nThis week's 7AM forecast for Western MA (runner goes out at 7AM):\n${weather.slice(0,7).map(d=>`${d.dayName}: ${d.am7Temp}°F, ${wmoText(d.am7Code)}${d.am7Rain>30?`, ${d.am7Rain}% rain chance`:""}${d.maxWind>15?`, ${d.maxWind}mph wind`:""}`).join("\n")}\nNote any days with bad weather and suggest treadmill or schedule adjustments.` : "";
-        const text = await callClaude([{ role: "user", content: `Generate a ${WEEKS_LEFT}-week training plan for the Mother's Day Half Marathon on May 10, 2026. Today is ${today}.${dataCtx}${restCtx}${wxCtx}\n\nFORMATTING RULES:\n- Weeks start on Monday\n- Show all 7 days: Monday through Sunday\n- Plain text only, no markdown symbols\n- Each day: "DayName — Activity: distance/duration. Tip: one brief tip."\n- Week heading: "Week N (dates)"\n\nMake it practical and encouraging for a 54-year-old running for fun.` }], apiKey, fitbitStats);
+        const text = await callClaude([{ role: "user", content: `Generate a ${WEEKS_LEFT}-week training plan for the Mother's Day Half Marathon on May 10, 2026. Today is ${today}.${dataCtx}${restCtx}${wxCtx}\n\nFORMATTING RULES:\n- Weeks start on Monday\n- Show all 7 days: Monday through Sunday\n- Plain text only, no markdown symbols\n- Each day: "DayName — Activity: distance/duration. Tip: one brief tip."\n- Week heading: "Week N (dates)"\n\nMake it practical and encouraging for a 54-year-old running for fun.` }], apiKey, fitbitStats, null, null);
         setPlan(text); setPlanLines(text.split("\n")); onSavePlan(text); setLoading(false);
       }
 
@@ -669,7 +743,7 @@ COACHING PRINCIPLES:
                 <div className="workout-icon">{WORKOUT_ICONS[w.type] || "⚡"}</div>
                 <div className="workout-info">
                   <div className="workout-type">{w.type}{w.source==="fitbit"&&<span className="source-tag source-fitbit">Fitbit</span>}{w.source==="runkeeper"&&<span className="source-tag source-rk">RK</span>}</div>
-                  <div className="workout-meta">{new Date(w.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} {w.duration?`· ${Math.round(w.duration)} min`:""} {w.shoeId&&shoes?.find(s=>s.id==w.shoeId)?`· 👟 ${shoes.find(s=>s.id==w.shoeId).name}`:""} {w.notes?`· ${w.notes}`:""}</div>
+                  <div className="workout-meta">{new Date(w.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} {w.duration?`· ${Math.round(w.duration)} min`:""} {w.shoeId&&shoes?.find(s=>s.id==w.shoeId)?`· 👟 ${shoes.find(s=>s.id==w.shoeId).name}`:""}{w.effort && <span style={{fontSize:11, color:["","#40c070","#80c040","#c0a020","#c05010","#c02020"][w.effort], fontWeight:600}}> · RPE {w.effort}</span>} {w.notes?`· ${w.notes}`:""}</div>
                 </div>
                 {w.distance && <div className="workout-dist">{typeof w.distance==="number"?w.distance.toFixed(1):w.distance}mi</div>}
                 {confirmDelete === w.id
@@ -749,8 +823,131 @@ COACHING PRINCIPLES:
       );
     }
 
+    // ─── Race History ─────────────────────────────────────────────────────────────
+    const RACE_DISTANCES = ["5K","10K","15K","10 Miles","Half Marathon","Marathon","Other"];
+
+    function RaceHistory({ races, onAddRace, onDeleteRace }) {
+      const [showAdd, setShowAdd] = useState(false);
+      const [name, setName] = useState("");
+      const [date, setDate] = useState("");
+      const [dist, setDist] = useState("Half Marathon");
+      const [time, setTime] = useState("");
+      const [notes, setNotes] = useState("");
+
+      function add() {
+        if (!name.trim() || !date || !time.trim()) return;
+        onAddRace({ id: Date.now(), name: name.trim(), date, distance: dist, time: time.trim(), notes: notes.trim() });
+        setName(""); setDate(""); setTime(""); setNotes(""); setShowAdd(false);
+      }
+
+      return (
+        <div className="card" style={{marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+            <div className="card-title" style={{marginBottom:0}}>Race History</div>
+            <button className="btn btn-secondary btn-sm" onClick={()=>setShowAdd(v=>!v)}>{showAdd?"Cancel":"+ Add Race"}</button>
+          </div>
+          {showAdd && (
+            <div style={{background:"#1a1d2a",borderRadius:10,padding:12,marginBottom:10}}>
+              <div className="label">Race name</div>
+              <input className="input" placeholder="e.g. Holyoke 10K 2025" value={name} onChange={e=>setName(e.target.value)} />
+              <div style={{display:"flex",gap:8}}>
+                <div style={{flex:1}}>
+                  <div className="label">Date</div>
+                  <input className="input" type="date" value={date} onChange={e=>setDate(e.target.value)} />
+                </div>
+                <div style={{flex:1}}>
+                  <div className="label">Distance</div>
+                  <select className="input" value={dist} onChange={e=>setDist(e.target.value)}>
+                    {RACE_DISTANCES.map(d=><option key={d}>{d}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="label">Finish time (e.g. 1:12:34)</div>
+              <input className="input" placeholder="H:MM:SS or MM:SS" value={time} onChange={e=>setTime(e.target.value)} />
+              <div className="label">Notes (optional)</div>
+              <input className="input" placeholder="How did it go?" value={notes} onChange={e=>setNotes(e.target.value)} />
+              <button className="btn btn-primary btn-sm" onClick={add} disabled={!name.trim()||!date||!time.trim()}>Save Race</button>
+            </div>
+          )}
+          {races.length === 0
+            ? <div style={{fontSize:13,color:"#5a6080",textAlign:"center",padding:"12px 0"}}>No race history yet — add past races so your coach knows your performance history.</div>
+            : races.sort((a,b)=>b.date.localeCompare(a.date)).map(r=>(
+              <div key={r.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid #1e2030"}}>
+                <span style={{fontSize:20}}>🏅</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600,color:"#f0ede8"}}>{r.name}</div>
+                  <div style={{fontSize:11,color:"#5a6080"}}>{new Date(r.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})} · {r.distance}</div>
+                  {r.notes && <div style={{fontSize:11,color:"#a0a8c0"}}>{r.notes}</div>}
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:16,fontWeight:700,color:"#f07030"}}>{r.time}</div>
+                  <button onClick={()=>onDeleteRace(r.id)} style={{background:"none",border:"none",color:"#5a6080",fontSize:16,cursor:"pointer",padding:"0 4px"}}>×</button>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      );
+    }
+
+    // ─── Pace Calculator ──────────────────────────────────────────────────────────
+    const CALC_DISTANCES = [
+      { label:"5K", miles: 3.107 },
+      { label:"10K", miles: 6.214 },
+      { label:"Half Marathon", miles: 13.109 },
+      { label:"Marathon", miles: 26.219 },
+    ];
+
+    function PaceCalculator() {
+      const [hours, setHours] = useState("1");
+      const [mins, setMins] = useState("45");
+      const [secs, setSecs] = useState("00");
+      const [distIdx, setDistIdx] = useState(2); // Half by default
+
+      const totalSecs = (parseInt(hours)||0)*3600 + (parseInt(mins)||0)*60 + (parseInt(secs)||0);
+      const miles = CALC_DISTANCES[distIdx].miles;
+      const secsPerMile = miles > 0 ? totalSecs / miles : 0;
+      const paceMin = Math.floor(secsPerMile / 60);
+      const paceSec = Math.round(secsPerMile % 60);
+      const paceStr = secsPerMile > 0 ? `${paceMin}:${String(paceSec).padStart(2,"0")}/mi` : "—";
+
+      return (
+        <div className="card" style={{marginBottom:12}}>
+          <div className="card-title">Pace Calculator</div>
+          <div style={{fontSize:12,color:"#5a6080",marginBottom:10}}>Enter a goal finish time to find your required pace per mile.</div>
+          <div style={{display:"flex",gap:6,marginBottom:10,alignItems:"flex-end"}}>
+            <div style={{flex:1}}>
+              <div className="label">Hours</div>
+              <input className="input" type="number" min="0" max="9" value={hours} onChange={e=>setHours(e.target.value)} style={{textAlign:"center"}} />
+            </div>
+            <div style={{flex:1}}>
+              <div className="label">Minutes</div>
+              <input className="input" type="number" min="0" max="59" value={mins} onChange={e=>setMins(e.target.value)} style={{textAlign:"center"}} />
+            </div>
+            <div style={{flex:1}}>
+              <div className="label">Seconds</div>
+              <input className="input" type="number" min="0" max="59" value={secs} onChange={e=>setSecs(e.target.value)} style={{textAlign:"center"}} />
+            </div>
+          </div>
+          <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+            {CALC_DISTANCES.map((d,i)=>(
+              <button key={d.label} onClick={()=>setDistIdx(i)} style={{
+                background:distIdx===i?"#f07030":"#1e2030", color:distIdx===i?"white":"#a0a8c0",
+                border:"none",borderRadius:20,padding:"4px 12px",fontSize:12,cursor:"pointer",fontWeight:distIdx===i?700:400
+              }}>{d.label}</button>
+            ))}
+          </div>
+          <div style={{background:"#1a1d2a",borderRadius:12,padding:"14px 16px",textAlign:"center"}}>
+            <div style={{fontSize:11,color:"#5a6080",marginBottom:4}}>REQUIRED PACE</div>
+            <div style={{fontSize:32,fontWeight:700,color:"#f07030"}}>{paceStr}</div>
+            <div style={{fontSize:12,color:"#5a6080",marginTop:4}}>to finish {CALC_DISTANCES[distIdx].label} in {hours||"0"}:{String(mins||"0").padStart(2,"0")}:{String(secs||"0").padStart(2,"0")}</div>
+          </div>
+        </div>
+      );
+    }
+
     // ─── Coach Tab ────────────────────────────────────────────────────────────────
-    function CoachTab({ fitbitStats, apiKey }) {
+    function CoachTab({ fitbitStats, apiKey, races, onAddRace, onDeleteRace }) {
       const fbIntro = fitbitStats ? ` I can see your Fitbit data: ${fitbitStats.runCount} runs in the last 30 days, ${fitbitStats.totalMiles.toFixed(1)} miles, most recent pace ${fitbitStats.avgPace || "unknown"}.` : " Connect Fitbit in Settings for even more personalized advice.";
       const [messages, setMessages] = useState([
         { role: "assistant", content: `Hi! I'm your personal running coach. You're 54 years old, targeting the Mother's Day Half Marathon in ${WEEKS_LEFT} weeks, and you finished the Holyoke 10K.${fbIntro} What questions do you have?` }
@@ -765,7 +962,7 @@ COACHING PRINCIPLES:
         setMessages(newMessages);
         setInput("");
         setLoading(true);
-        const reply = await callClaude(newMessages, apiKey, fitbitStats);
+        const reply = await callClaude(newMessages, apiKey, fitbitStats, races, null);
         setMessages(m => [...m, { role: "assistant", content: reply }]);
         setLoading(false);
         setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
@@ -783,12 +980,16 @@ COACHING PRINCIPLES:
               {loading && <div className="msg msg-ai" style={{alignSelf:"flex-start"}}><span style={{color:"#5a6080"}}>Thinking... </span><span className="spinner" style={{width:14,height:14,display:"inline-block",verticalAlign:"middle"}} /></div>}
               <div ref={endRef} />
             </div>
-            {messages.length <= 1 && (
-              <div style={{padding:"0 16px"}}>
-                <div style={{fontSize:11,color:"#5a6080",marginBottom:8,letterSpacing:0.5}}>SUGGESTED QUESTIONS</div>
-                <div style={{display:"flex",flexWrap:"wrap"}}>{suggestions.map(q=><span key={q} className="suggested-pill" onClick={()=>send(q)}>{q}</span>)}</div>
-              </div>
-            )}
+            <div style={{padding:"0 16px 16px"}}>
+              <RaceHistory races={races} onAddRace={onAddRace} onDeleteRace={onDeleteRace} />
+              <PaceCalculator />
+              {messages.length <= 1 && (
+                <>
+                  <div style={{fontSize:11,color:"#5a6080",marginBottom:8,letterSpacing:0.5}}>SUGGESTED QUESTIONS</div>
+                  <div style={{display:"flex",flexWrap:"wrap"}}>{suggestions.map(q=><span key={q} className="suggested-pill" onClick={()=>send(q)}>{q}</span>)}</div>
+                </>
+              )}
+            </div>
           </div>
           <div className="chat-input-row">
             <input className="chat-input" placeholder="Ask your coach anything..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send()} />
@@ -928,6 +1129,7 @@ COACHING PRINCIPLES:
       const [date, setDate] = useState(TODAY.toISOString().split("T")[0]);
       const [distance, setDistance] = useState("");
       const [duration, setDuration] = useState("");
+      const [effort, setEffort] = useState(null);
       const [notes, setNotes] = useState("");
       const [shoeId, setShoeId] = useState("");
       const runShoes = (shoes || []).filter(s => s.active !== false);
@@ -951,9 +1153,26 @@ COACHING PRINCIPLES:
             )}
             <div className="label">Duration (minutes)</div>
             <input className="input" type="number" placeholder="e.g. 45" value={duration} onChange={e=>setDuration(e.target.value)} />
+            <div className="label">Effort (optional)</div>
+            <div style={{display:"flex",gap:6,marginBottom:10}}>
+              {[1,2,3,4,5].map(n => {
+                const colors = {1:"#40c070",2:"#80c040",3:"#c0a020",4:"#c05010",5:"#c02020"};
+                const labels = {1:"Easy",2:"Moderate",3:"Hard",4:"Very Hard",5:"Max"};
+                return (
+                  <button key={n} onClick={()=>setEffort(effort===n?null:n)} style={{
+                    flex:1, background:effort===n?colors[n]+"33":"#1a1d2a",
+                    border:`1px solid ${effort===n?colors[n]:"#2a2d3e"}`, borderRadius:10,
+                    padding:"8px 2px", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2
+                  }}>
+                    <span style={{fontSize:16,fontWeight:700,color:effort===n?colors[n]:"#5a6080"}}>{n}</span>
+                    <span style={{fontSize:9,color:effort===n?colors[n]:"#5a6080"}}>{labels[n]}</span>
+                  </button>
+                );
+              })}
+            </div>
             <div className="label">Notes (optional)</div>
             <input className="input" placeholder="How'd it feel? Weather? Route?" value={notes} onChange={e=>setNotes(e.target.value)} />
-            <button className="btn btn-primary" onClick={()=>{onAdd({id:Date.now(),type,date,distance:distance?parseFloat(distance):"",duration,notes,shoeId:shoeId||null});onClose();}}>Save Activity</button>
+            <button className="btn btn-primary" onClick={()=>{onAdd({id:Date.now(),type,date,distance:distance?parseFloat(distance):"",duration,effort,notes,shoeId:shoeId||null});onClose();}}>Save Activity</button>
             <button className="btn btn-secondary" style={{marginTop:8}} onClick={onClose}>Cancel</button>
           </div>
         </div>
@@ -976,6 +1195,8 @@ COACHING PRINCIPLES:
       const [weather, setWeather] = useState(null);
       const [weatherLocation, setWeatherLocation] = useState(PRESET_LOCATIONS[0]);
       const [weekNotes, setWeekNotes] = useState({});
+      const [races, setRaces] = useState([]);
+      const [feeling, setFeeling] = useState(null);
       const redirectUri = window.location.origin + window.location.pathname;
 
       useEffect(() => {
@@ -1002,7 +1223,7 @@ COACHING PRINCIPLES:
             }
           }
 
-          const [savedShoes, savedWorkouts, savedSettings, savedToken, savedPlanData, savedWeekNotes] = await Promise.all([sget("rc_shoes"), sget("rc_workouts"), sget("rc_settings"), sget("rc_fitbit_token"), sget("rc_plan"), sget("rc_week_notes")]);
+          const [savedShoes, savedWorkouts, savedSettings, savedToken, savedPlanData, savedWeekNotes, savedRaces, savedFeeling] = await Promise.all([sget("rc_shoes"), sget("rc_workouts"), sget("rc_settings"), sget("rc_fitbit_token"), sget("rc_plan"), sget("rc_week_notes"), sget("rc_races"), sget("rc_feeling")]);
           const savedLoc = await sget("rc_weather_location");
           const loc = savedLoc || PRESET_LOCATIONS[0];
           if (savedLoc) setWeatherLocation(savedLoc);
@@ -1012,6 +1233,8 @@ COACHING PRINCIPLES:
           if (savedSettings) setSettings(savedSettings);
           if (savedPlanData) setSavedPlan(savedPlanData);
           if (savedWeekNotes) setWeekNotes(savedWeekNotes);
+          if (savedRaces) setRaces(savedRaces);
+          if (savedFeeling) setFeeling(savedFeeling);
 
           const tokenToUse = freshPKCEToken || savedToken;
           if (tokenToUse?.access_token) {
@@ -1103,6 +1326,9 @@ COACHING PRINCIPLES:
         const updated = { ...weekNotes, [weekNum]: notes };
         setWeekNotes(updated); await sset("rc_week_notes", updated);
       }
+      async function addRace(r) { const u=[...races,r]; setRaces(u); await sset("rc_races",u); }
+      async function deleteRace(id) { const u=races.filter(r=>r.id!==id); setRaces(u); await sset("rc_races",u); }
+      async function saveFeeeling(f) { setFeeling(f); await sset("rc_feeling",f); }
       async function importWorkouts(newOnes) {
         const updated = [...workouts, ...newOnes].sort((a, b) => new Date(b.date) - new Date(a.date));
         setWorkouts(updated); await sset("rc_workouts", updated);
@@ -1135,7 +1361,7 @@ COACHING PRINCIPLES:
           <div className="app">
             <div className="header">
               <div className="header-top">
-                <div className="logo">Stride<span>AI</span> <span style={{fontSize:10,color:"#5a6080",fontWeight:400}}>v4</span></div>
+                <div className="logo">Stride<span>AI</span> <span style={{fontSize:10,color:"#5a6080",fontWeight:400}}>v8</span></div>
                 <div style={{display:"flex",gap:8,alignItems:"center"}}>
                   {syncing && <div className="spinner" style={{width:16,height:16}} />}
                   {fitbitToken && !syncing && <span style={{fontSize:11,color:"#00b0b9",cursor:"pointer",fontWeight:600}} onClick={()=>doFitbitSyncInner(fitbitToken.access_token,settings,workouts)}>↻ Fitbit</span>}
@@ -1145,9 +1371,9 @@ COACHING PRINCIPLES:
             </div>
             {syncError && <div className="alert alert-warn" style={{margin:"8px 16px 0",fontSize:12}}>⚠️ {syncError}</div>}
             <div className="content">
-              {tab==="home" && <Dashboard workouts={workouts} fitbitStats={fitbitStats} onAddWorkout={()=>setShowAddWorkout(true)} />}
+              {tab==="home" && <Dashboard workouts={workouts} fitbitStats={fitbitStats} onAddWorkout={()=>setShowAddWorkout(true)} feeling={feeling} onSetFeeling={saveFeeeling} />}
               {tab==="plan" && <PlanTab fitbitStats={fitbitStats} apiKey={settings.apiKey} savedPlan={savedPlan} onSavePlan={savePlan} weather={weather} weatherLocation={weatherLocation} onRefreshWeather={()=>fetchWeather(weatherLocation.lat,weatherLocation.lon,weatherLocation.tz).then(wx=>{if(wx)setWeather(wx);})} weekNotes={weekNotes} onSaveWeekNotes={saveWeekNotes} />}
-              {tab==="coach" && <CoachTab fitbitStats={fitbitStats} apiKey={settings.apiKey} />}
+              {tab==="coach" && <CoachTab fitbitStats={fitbitStats} apiKey={settings.apiKey} races={races} onAddRace={addRace} onDeleteRace={deleteRace} />}
               {tab==="log" && <LogTab workouts={workouts} onAddWorkout={()=>setShowAddWorkout(true)} onDeleteWorkout={deleteWorkout} shoes={shoes} />}
               {tab==="shoes" && <ShoesTab shoes={shoes} onSave={saveShoes} />}
               {tab==="settings" && <SettingsTab settings={settings} onSaveSettings={saveSettings} fitbitToken={fitbitToken} fitbitStats={fitbitStats} onFitbitConnect={handleFitbitConnect} onFitbitDisconnect={handleFitbitDisconnect} onFitbitSync={()=>doFitbitSyncInner(fitbitToken?.access_token,settings,workouts)} onClearAndResync={clearAndResync} syncing={syncing} workouts={workouts} onImportWorkouts={importWorkouts} redirectUri={redirectUri} weatherLocation={weatherLocation} setWeatherLocation={setWeatherLocation} setWeather={setWeather} />}
