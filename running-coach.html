@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>StrideAI v6 — Personal Running Coach</title>
+  <title>StrideAI v7 — Personal Running Coach</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -799,7 +799,7 @@ COACHING PRINCIPLES:
     }
 
     // ─── Settings Tab ─────────────────────────────────────────────────────────────
-    function SettingsTab({ settings, onSaveSettings, fitbitToken, fitbitStats, onFitbitConnect, onFitbitDisconnect, onFitbitSync, syncing, workouts, onImportWorkouts, redirectUri, weatherLocation, setWeatherLocation, setWeather }) {
+    function SettingsTab({ settings, onSaveSettings, fitbitToken, fitbitStats, onFitbitConnect, onFitbitDisconnect, onFitbitSync, onClearAndResync, syncing, workouts, onImportWorkouts, redirectUri, weatherLocation, setWeatherLocation, setWeather }) {
       const [apiKey, setApiKey] = useState(settings.apiKey || "");
       const [fitbitClientId, setFitbitClientId] = useState(settings.fitbitClientId || "");
       const [showKey, setShowKey] = useState(false);
@@ -868,8 +868,9 @@ COACHING PRINCIPLES:
                     ))}
                   </div>
                 )}
-                <div style={{display:"flex",gap:8}}>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                   <button className="btn btn-fitbit btn-sm" onClick={onFitbitSync} disabled={syncing}>{syncing?"Syncing...":"Sync Now"}</button>
+                  <button className="btn btn-secondary btn-sm" onClick={onClearAndResync} disabled={syncing} style={{color:"#f09050",borderColor:"#5a3010"}}>↺ Clear & Re-sync</button>
                   <button className="btn btn-danger btn-sm" onClick={onFitbitDisconnect}>Disconnect</button>
                 </div>
               </>
@@ -1110,6 +1111,12 @@ COACHING PRINCIPLES:
         const updated = workouts.filter(w => w.id !== id);
         setWorkouts(updated); await sset("rc_workouts", updated);
       }
+      async function clearAndResync() {
+        // Remove all Fitbit-sourced entries, then re-sync fresh
+        const kept = workouts.filter(w => w.source !== "fitbit");
+        setWorkouts(kept); await sset("rc_workouts", kept);
+        if (fitbitToken?.access_token) doFitbitSyncInner(fitbitToken.access_token, settings, kept);
+      }
 
       const tabs = [
         { id: "home", icon: "🏠", label: "Home" },
@@ -1143,7 +1150,7 @@ COACHING PRINCIPLES:
               {tab==="coach" && <CoachTab fitbitStats={fitbitStats} apiKey={settings.apiKey} />}
               {tab==="log" && <LogTab workouts={workouts} onAddWorkout={()=>setShowAddWorkout(true)} onDeleteWorkout={deleteWorkout} shoes={shoes} />}
               {tab==="shoes" && <ShoesTab shoes={shoes} onSave={saveShoes} />}
-              {tab==="settings" && <SettingsTab settings={settings} onSaveSettings={saveSettings} fitbitToken={fitbitToken} fitbitStats={fitbitStats} onFitbitConnect={handleFitbitConnect} onFitbitDisconnect={handleFitbitDisconnect} onFitbitSync={()=>doFitbitSyncInner(fitbitToken?.access_token,settings,workouts)} syncing={syncing} workouts={workouts} onImportWorkouts={importWorkouts} redirectUri={redirectUri} weatherLocation={weatherLocation} setWeatherLocation={setWeatherLocation} setWeather={setWeather} />}
+              {tab==="settings" && <SettingsTab settings={settings} onSaveSettings={saveSettings} fitbitToken={fitbitToken} fitbitStats={fitbitStats} onFitbitConnect={handleFitbitConnect} onFitbitDisconnect={handleFitbitDisconnect} onFitbitSync={()=>doFitbitSyncInner(fitbitToken?.access_token,settings,workouts)} onClearAndResync={clearAndResync} syncing={syncing} workouts={workouts} onImportWorkouts={importWorkouts} redirectUri={redirectUri} weatherLocation={weatherLocation} setWeatherLocation={setWeatherLocation} setWeather={setWeather} />}
             </div>
             <div className="tab-bar">
               {tabs.map(t => <button key={t.id} className={`tab ${tab===t.id?"active":""}`} onClick={()=>setTab(t.id)}><span className="tab-icon">{t.icon}</span><span>{t.label}</span></button>)}
