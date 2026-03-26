@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>StrideAI v4 — Personal Running Coach</title>
+  <title>StrideAI v5 — Personal Running Coach</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -144,7 +144,7 @@ COACHING PRINCIPLES:
     // ─── Fitbit API ──────────────────────────────────────────────────────────────
     async function fitbitFetch(path, token) {
       const res = await fetch(`${FITBIT_API}${path}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, "Accept-Language": "en_US" },
       });
       if (res.status === 401) { const e = new Error("expired"); e.status = 401; throw e; }
       if (!res.ok) throw new Error(`Fitbit API error ${res.status}`);
@@ -203,7 +203,8 @@ COACHING PRINCIPLES:
         avgPace = `${Math.floor(mpm)}:${String(Math.round((mpm % 1) * 60)).padStart(2, "0")}/mi`;
       }
       const hrDays = (hrRes["activities-heart"] || []).filter(d => d.value?.restingHeartRate);
-      const restingHR = hrDays.length ? Math.round(hrDays.reduce((s, d) => s + d.value.restingHeartRate, 0) / hrDays.length) : null;
+      // Use most recent day's resting HR to match what Fitbit app shows
+      const restingHR = hrDays.length ? hrDays[hrDays.length - 1].value.restingHeartRate : null;
       const runsWithHR = runs.filter(r => r.averageHeartRate);
       const avgRunHR = runsWithHR.length ? Math.round(runsWithHR.reduce((s, r) => s + r.averageHeartRate, 0) / runsWithHR.length) : null;
       const paceHistory = runs.filter(r => r.averageSpeed > 0 && r.distance > 0).slice(0, 10).map(r => {
@@ -474,7 +475,7 @@ COACHING PRINCIPLES:
 
     // ─── Plan Tab ────────────────────────────────────────────────────────────────
     const ALL_DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-    function PlanTab({ fitbitStats, apiKey, savedPlan, onSavePlan, weather, weekNotes, onSaveWeekNotes }) {
+    function PlanTab({ fitbitStats, apiKey, savedPlan, onSavePlan, weather, onRefreshWeather, weekNotes, onSaveWeekNotes }) {
       const [plan, setPlan] = useState(savedPlan || null);
       const [loading, setLoading] = useState(false);
       const [restDays, setRestDays] = useState(["Wednesday"]);
@@ -554,7 +555,10 @@ COACHING PRINCIPLES:
           }
           {weather && weather.length > 0 && (
             <div className="card" style={{marginBottom:12}}>
-              <div className="card-title">7-Day Forecast · 7AM Conditions</div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                <div className="card-title" style={{marginBottom:0}}>7-Day Forecast · 7AM Conditions</div>
+                <button onClick={onRefreshWeather} style={{background:"none",border:"1px solid #2a2d3e",borderRadius:8,color:"#a0a8c0",fontSize:11,padding:"3px 8px",cursor:"pointer"}}>↻ Refresh</button>
+              </div>
               {weather.map(d => (
                 <div key={d.date} style={{display:"flex",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #1e2030",gap:8}}>
                   <span style={{width:34,fontSize:12,color:"#5a6080",fontWeight:600}}>{d.dayName.slice(0,3)}</span>
@@ -639,8 +643,9 @@ COACHING PRINCIPLES:
     }
 
     // ─── Log Tab ──────────────────────────────────────────────────────────────────
-    function LogTab({ workouts, onAddWorkout, shoes }) {
+    function LogTab({ workouts, onAddWorkout, onDeleteWorkout, shoes }) {
       const [filter, setFilter] = useState("All");
+      const [confirmDelete, setConfirmDelete] = useState(null);
       const types = ["All","Run","Walk","Bike","Kayak","Gardening","Rest","Other"];
       const filtered = filter === "All" ? workouts : workouts.filter(w => w.type === filter);
       return (
@@ -655,13 +660,20 @@ COACHING PRINCIPLES:
           {filtered.length === 0
             ? <div className="empty-state"><div className="empty-icon">🏃</div><div style={{fontWeight:600,marginBottom:6}}>No activities yet</div><div style={{fontSize:13}}>{filter==="All"?"Tap + Log, sync Fitbit, or import Runkeeper data in ⚙️ Settings.":`No ${filter} activities.`}</div></div>
             : <div className="card">{filtered.map(w => (
-              <div className="workout-item" key={w.id}>
+              <div className="workout-item" key={w.id} style={{position:"relative"}}>
                 <div className="workout-icon">{WORKOUT_ICONS[w.type] || "⚡"}</div>
                 <div className="workout-info">
                   <div className="workout-type">{w.type}{w.source==="fitbit"&&<span className="source-tag source-fitbit">Fitbit</span>}{w.source==="runkeeper"&&<span className="source-tag source-rk">RK</span>}</div>
                   <div className="workout-meta">{new Date(w.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} {w.duration?`· ${Math.round(w.duration)} min`:""} {w.shoeId&&shoes?.find(s=>s.id==w.shoeId)?`· 👟 ${shoes.find(s=>s.id==w.shoeId).name}`:""} {w.notes?`· ${w.notes}`:""}</div>
                 </div>
                 {w.distance && <div className="workout-dist">{typeof w.distance==="number"?w.distance.toFixed(1):w.distance}mi</div>}
+                {confirmDelete === w.id
+                  ? <div style={{display:"flex",gap:4,marginLeft:6}}>
+                      <button onClick={()=>{onDeleteWorkout(w.id);setConfirmDelete(null);}} style={{background:"#c03020",border:"none",borderRadius:6,color:"white",padding:"4px 8px",fontSize:11,cursor:"pointer",fontWeight:700}}>Delete</button>
+                      <button onClick={()=>setConfirmDelete(null)} style={{background:"#1e2030",border:"none",borderRadius:6,color:"#a0a8c0",padding:"4px 8px",fontSize:11,cursor:"pointer"}}>Cancel</button>
+                    </div>
+                  : <button onClick={()=>setConfirmDelete(w.id)} style={{background:"none",border:"none",color:"#5a6080",fontSize:18,cursor:"pointer",padding:"4px 6px",marginLeft:4}} title="Delete">×</button>
+                }
               </div>
             ))}</div>
           }
@@ -1001,7 +1013,9 @@ COACHING PRINCIPLES:
           setFitbitStats(stats);
           const fbWorkouts = stats.activities.map(fitbitActToWorkout).filter(Boolean);
           const existingIds = new Set(existingWorkouts.map(w => w.id));
-          const newOnes = fbWorkouts.filter(w => !existingIds.has(w.id));
+          // Also skip Fitbit entries where a manual entry already exists for same date+type
+          const manualKeys = new Set(existingWorkouts.filter(w => w.source !== "fitbit").map(w => `${w.date}_${w.type}`));
+          const newOnes = fbWorkouts.filter(w => !existingIds.has(w.id) && !manualKeys.has(`${w.date}_${w.type}`));
           if (newOnes.length) {
             const merged = [...existingWorkouts, ...newOnes].sort((a, b) => new Date(b.date) - new Date(a.date));
             setWorkouts(merged);
@@ -1058,6 +1072,10 @@ COACHING PRINCIPLES:
         const updated = [...workouts, ...newOnes].sort((a, b) => new Date(b.date) - new Date(a.date));
         setWorkouts(updated); await sset("rc_workouts", updated);
       }
+      async function deleteWorkout(id) {
+        const updated = workouts.filter(w => w.id !== id);
+        setWorkouts(updated); await sset("rc_workouts", updated);
+      }
 
       const tabs = [
         { id: "home", icon: "🏠", label: "Home" },
@@ -1087,9 +1105,9 @@ COACHING PRINCIPLES:
             {syncError && <div className="alert alert-warn" style={{margin:"8px 16px 0",fontSize:12}}>⚠️ {syncError}</div>}
             <div className="content">
               {tab==="home" && <Dashboard workouts={workouts} fitbitStats={fitbitStats} onAddWorkout={()=>setShowAddWorkout(true)} />}
-              {tab==="plan" && <PlanTab fitbitStats={fitbitStats} apiKey={settings.apiKey} savedPlan={savedPlan} onSavePlan={savePlan} weather={weather} weekNotes={weekNotes} onSaveWeekNotes={saveWeekNotes} />}
+              {tab==="plan" && <PlanTab fitbitStats={fitbitStats} apiKey={settings.apiKey} savedPlan={savedPlan} onSavePlan={savePlan} weather={weather} onRefreshWeather={()=>fetchWeather().then(wx=>{if(wx)setWeather(wx);})} weekNotes={weekNotes} onSaveWeekNotes={saveWeekNotes} />}
               {tab==="coach" && <CoachTab fitbitStats={fitbitStats} apiKey={settings.apiKey} />}
-              {tab==="log" && <LogTab workouts={workouts} onAddWorkout={()=>setShowAddWorkout(true)} shoes={shoes} />}
+              {tab==="log" && <LogTab workouts={workouts} onAddWorkout={()=>setShowAddWorkout(true)} onDeleteWorkout={deleteWorkout} shoes={shoes} />}
               {tab==="shoes" && <ShoesTab shoes={shoes} onSave={saveShoes} />}
               {tab==="settings" && <SettingsTab settings={settings} onSaveSettings={saveSettings} fitbitToken={fitbitToken} fitbitStats={fitbitStats} onFitbitConnect={handleFitbitConnect} onFitbitDisconnect={handleFitbitDisconnect} onFitbitSync={()=>doFitbitSyncInner(fitbitToken?.access_token,settings,workouts)} syncing={syncing} workouts={workouts} onImportWorkouts={importWorkouts} redirectUri={redirectUri} />}
             </div>
