@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>StrideAI v8 — Personal Running Coach</title>
+  <title>StrideAI v9 — Personal Running Coach</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -765,6 +765,7 @@ COACHING PRINCIPLES:
       const [showAdd, setShowAdd] = useState(false);
       const [name, setName] = useState("");
       const [miles, setMiles] = useState("");
+      const [makeActive, setMakeActive] = useState(true);
       const [adding, setAdding] = useState(null);
       const [addMiles, setAddMiles] = useState("");
       function getStatus(m) {
@@ -779,30 +780,39 @@ COACHING PRINCIPLES:
             <div className="section-title">Shoe Tracker</div>
             <button className="btn btn-secondary btn-sm" onClick={()=>setShowAdd(true)}>+ Add Shoe</button>
           </div>
-          <div className="tip-card">Running shoes typically last 300–500 miles. Track yours here to know when it's time for a new pair.</div>
-          {shoes.length===0 && <div className="empty-state"><div className="empty-icon">👟</div><div style={{fontWeight:600,marginBottom:6}}>No shoes added yet</div><div style={{fontSize:13}}>Add your running shoes to track mileage.</div></div>}
+          <div className="tip-card">Mark one shoe as <strong style={{color:"#40c070"}}>⭐ Active</strong> and every run — including Fitbit syncs — will automatically count toward its mileage. Running shoes typically last 300–500 miles.</div>
+          {shoes.length===0 && <div className="empty-state"><div className="empty-icon">👟</div><div style={{fontWeight:600,marginBottom:6}}>No shoes added yet</div><div style={{fontSize:13}}>Add your running shoes to auto-track mileage.</div></div>}
           {shoes.map(shoe => {
             const status = getStatus(shoe.miles);
             const pct = Math.min(100, Math.round((shoe.miles/450)*100));
             const fillColor = pct<50?"#3b8a3a":pct<75?"#c07820":"#c03020";
             return (
-              <div className="shoe-card" key={shoe.id}>
+              <div className="shoe-card" key={shoe.id} style={{border: shoe.active?"1px solid #2a5a2a":"1px solid #1e2030"}}>
                 <div className="shoe-row">
-                  <div><div className="shoe-name">{shoe.name}</div><div className="shoe-miles">{shoe.miles.toFixed(1)} <span style={{fontSize:14,fontWeight:400,color:"#a0a8c0"}}>miles</span></div></div>
+                  <div>
+                    <div className="shoe-name" style={{display:"flex",alignItems:"center",gap:6}}>
+                      {shoe.name}
+                      {shoe.active && <span style={{fontSize:10,background:"#0a2a1a",color:"#40c070",border:"1px solid #1a5a2a",borderRadius:10,padding:"1px 7px",fontWeight:700}}>⭐ ACTIVE</span>}
+                    </div>
+                    <div className="shoe-miles">{shoe.miles.toFixed(1)} <span style={{fontSize:14,fontWeight:400,color:"#a0a8c0"}}>miles</span></div>
+                  </div>
                   <div style={{textAlign:"right"}}><div style={{fontSize:12,color:status.color,fontWeight:600}}>{status.text}</div><div style={{fontSize:11,color:"#5a6080",marginTop:3}}>{450-shoe.miles>0?`~${Math.round(450-shoe.miles)} mi left`:"Past recommended limit"}</div></div>
                 </div>
                 <div className="shoe-meter"><div className="shoe-fill" style={{width:`${pct}%`,background:fillColor}} /></div>
-                {adding===shoe.id
-                  ? <div style={{display:"flex",gap:8,marginTop:8}}>
-                      <input className="input" style={{margin:0,flex:1,padding:"8px 12px"}} placeholder="Miles to add" type="number" value={addMiles} onChange={e=>setAddMiles(e.target.value)} />
-                      <button className="btn btn-primary btn-sm" onClick={()=>{const m=parseFloat(addMiles);if(m>0)onSave(shoes.map(s=>s.id===shoe.id?{...s,miles:s.miles+m}:s));setAdding(null);setAddMiles("");}}>Add</button>
-                      <button className="btn btn-secondary btn-sm" onClick={()=>{setAdding(null);setAddMiles("");}}>✕</button>
-                    </div>
-                  : <div className="add-miles-btns" style={{marginTop:8}}>
-                      {[3,5,6,8].map(m=><button key={m} className="miles-btn" onClick={()=>onSave(shoes.map(s=>s.id===shoe.id?{...s,miles:s.miles+m}:s))}>+{m}mi</button>)}
-                      <button className="miles-btn" onClick={()=>setAdding(shoe.id)}>+other</button>
-                    </div>
-                }
+                <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap",alignItems:"center"}}>
+                  {!shoe.active && <button className="miles-btn" style={{color:"#40c070",borderColor:"#1a5a2a"}} onClick={()=>onSave(shoes.map(s=>({...s,active:s.id===shoe.id})))}>⭐ Set Active</button>}
+                  {adding===shoe.id
+                    ? <>
+                        <input className="input" style={{margin:0,flex:1,padding:"8px 12px",minWidth:60}} placeholder="Miles to add" type="number" value={addMiles} onChange={e=>setAddMiles(e.target.value)} />
+                        <button className="btn btn-primary btn-sm" onClick={()=>{const m=parseFloat(addMiles);if(m>0)onSave(shoes.map(s=>s.id===shoe.id?{...s,miles:s.miles+m}:s));setAdding(null);setAddMiles("");}}>Add</button>
+                        <button className="btn btn-secondary btn-sm" onClick={()=>{setAdding(null);setAddMiles("");}}>✕</button>
+                      </>
+                    : <>
+                        {[3,5,6,8].map(m=><button key={m} className="miles-btn" onClick={()=>onSave(shoes.map(s=>s.id===shoe.id?{...s,miles:s.miles+m}:s))}>+{m}mi</button>)}
+                        <button className="miles-btn" onClick={()=>setAdding(shoe.id)}>+other</button>
+                      </>
+                  }
+                </div>
               </div>
             );
           })}
@@ -812,9 +822,19 @@ COACHING PRINCIPLES:
                 <div className="modal-title">Add Running Shoes</div>
                 <div className="label">Shoe name / model</div>
                 <input className="input" placeholder="e.g. Brooks Ghost 16" value={name} onChange={e=>setName(e.target.value)} />
-                <div className="label">Current mileage (if used)</div>
+                <div className="label">Current mileage (if already used)</div>
                 <input className="input" placeholder="0" type="number" value={miles} onChange={e=>setMiles(e.target.value)} />
-                <button className="btn btn-primary" onClick={()=>{if(name.trim()){onSave([...shoes,{id:Date.now(),name:name.trim(),miles:parseFloat(miles)||0}]);setName("");setMiles("");setShowAdd(false);}}}>Add Shoes</button>
+                <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",marginBottom:10,borderTop:"1px solid #1e2030",borderBottom:"1px solid #1e2030"}}>
+                  <input type="checkbox" id="chkActive" checked={makeActive} onChange={e=>setMakeActive(e.target.checked)} style={{width:18,height:18,cursor:"pointer",accentColor:"#40c070"}} />
+                  <label htmlFor="chkActive" style={{fontSize:14,color:"#f0ede8",cursor:"pointer"}}>Set as <strong>Active</strong> shoe — auto-tracks all runs</label>
+                </div>
+                <button className="btn btn-primary" onClick={()=>{
+                  if (name.trim()) {
+                    const newShoe = { id: Date.now(), name: name.trim(), miles: parseFloat(miles)||0, active: makeActive };
+                    const updated = makeActive ? [...shoes.map(s=>({...s,active:false})), newShoe] : [...shoes, newShoe];
+                    onSave(updated); setName(""); setMiles(""); setMakeActive(true); setShowAdd(false);
+                  }
+                }}>Add Shoes</button>
                 <button className="btn btn-secondary" style={{marginTop:8}} onClick={()=>setShowAdd(false)}>Cancel</button>
               </div>
             </div>
@@ -1271,11 +1291,23 @@ COACHING PRINCIPLES:
           setFitbitStats(stats);
           const fbWorkouts = stats.activities.map(fitbitActToWorkout).filter(Boolean);
           const existingIds = new Set(existingWorkouts.map(w => w.id));
-          // Also skip Fitbit entries where a manual entry already exists for same date+type
           const manualKeys = new Set(existingWorkouts.filter(w => w.source !== "fitbit").map(w => `${w.date}_${w.type}`));
           const newOnes = fbWorkouts.filter(w => !existingIds.has(w.id) && !manualKeys.has(`${w.date}_${w.type}`));
           if (newOnes.length) {
-            const merged = [...existingWorkouts, ...newOnes].sort((a, b) => new Date(b.date) - new Date(a.date));
+            // Auto-assign runs to active shoe and update its mileage
+            const currentShoes = await sget("rc_shoes") || [];
+            const activeShoe = currentShoes.find(s => s.active);
+            let updatedShoes = [...currentShoes];
+            const withShoes = newOnes.map(w => {
+              if (w.type === "Run" && w.distance && activeShoe) {
+                const miles = parseFloat(w.distance) || 0;
+                if (miles > 0) updatedShoes = updatedShoes.map(s => s.id === activeShoe.id ? {...s, miles: s.miles + miles} : s);
+                return { ...w, shoeId: activeShoe.id };
+              }
+              return w;
+            });
+            if (activeShoe) { setShoes(updatedShoes); await sset("rc_shoes", updatedShoes); }
+            const merged = [...existingWorkouts, ...withShoes].sort((a, b) => new Date(b.date) - new Date(a.date));
             setWorkouts(merged);
             await sset("rc_workouts", merged);
           }
@@ -1311,12 +1343,16 @@ COACHING PRINCIPLES:
       async function saveSettings(ns) { setSettings(ns); await sset("rc_settings", ns); }
       async function saveShoes(ns) { setShoes(ns); await sset("rc_shoes", ns); }
       async function addWorkout(w) {
-        const updated = [...workouts, w].sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Auto-assign to active shoe if it's a run and no shoe manually chosen
+        const activeShoe = shoes.find(s => s.active);
+        const shoeId = w.shoeId || (w.type === "Run" && activeShoe ? activeShoe.id : null);
+        const workout = { ...w, shoeId: shoeId || undefined };
+        const updated = [...workouts, workout].sort((a, b) => new Date(b.date) - new Date(a.date));
         setWorkouts(updated); await sset("rc_workouts", updated);
-        if (w.shoeId && w.distance) {
+        if (shoeId && w.distance) {
           const miles = parseFloat(w.distance) || 0;
           if (miles > 0) {
-            const updatedShoes = shoes.map(s => s.id == w.shoeId ? {...s, miles: s.miles + miles} : s);
+            const updatedShoes = shoes.map(s => s.id == shoeId ? {...s, miles: s.miles + miles} : s);
             setShoes(updatedShoes); await sset("rc_shoes", updatedShoes);
           }
         }
