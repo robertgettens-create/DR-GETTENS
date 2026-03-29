@@ -173,6 +173,57 @@
     .gbtn{padding:8px 20px;border-radius:8px;border:1px solid #2a2d45;background:#22253a;color:#8a9ab5;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;}
     .gbtn:hover{border-color:#7eb8f7;color:#dde1f0;}
 
+    /* ── EXPLAIN IT ── */
+    #screen-explain{padding:22px;gap:14px;}
+    #ex-hdr{width:100%;max-width:700px;display:flex;flex-direction:column;gap:8px;}
+    #ex-stats{display:flex;gap:20px;font-size:.82rem;flex-wrap:wrap;}
+    #ex-stats span{color:#5a6080;}#ex-stats strong{color:#7eb8f7;}
+    #ex-prog-wrap{height:5px;background:#2a2d45;border-radius:3px;overflow:hidden;}
+    #ex-prog-bar{height:100%;width:0%;background:linear-gradient(90deg,#4caf50,#7eb8f7);border-radius:3px;transition:width .3s;}
+    #ex-topic-lbl{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4a5a70;border:1px solid #2a2d45;border-radius:20px;padding:2px 10px;}
+    #ex-prompt{max-width:700px;text-align:center;font-size:1.2rem;font-weight:600;color:#dde1f0;line-height:1.5;}
+    #ex-textarea{width:100%;max-width:700px;min-height:100px;background:#1a1d2e;border:1px solid #2a2d45;border-radius:10px;color:#dde1f0;font-size:.9rem;padding:14px 16px;resize:vertical;font-family:inherit;line-height:1.6;transition:border-color .15s;}
+    #ex-textarea:focus{outline:none;border-color:#7eb8f755;}
+    #ex-textarea:disabled{opacity:.7;}
+    #ex-reveal-btn{padding:9px 28px;background:#1e3a5f;border:1px solid #7eb8f7;color:#7eb8f7;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .15s;}
+    #ex-reveal-btn:hover{background:#254a7a;}
+    #ex-reveal-btn:disabled{opacity:.4;cursor:default;}
+    #ex-model{max-width:700px;background:#1c2035;border:1px solid #2a2d45;border-radius:10px;padding:16px 20px;font-size:.9rem;color:#b8cce8;line-height:1.65;white-space:pre-line;border-left:3px solid #7eb8f7;}
+    #ex-rate-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+    .exrb{padding:10px 22px;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;border:2px solid transparent;transition:all .15s;}
+    .exrb:hover{filter:brightness(1.1);transform:scale(1.02);}
+    .exrb.got{background:#27ae60;color:#fff;}.exrb.part{background:#c07b00;color:#fff;}.exrb.miss{background:#c0392b;color:#fff;}
+    #ex-end{display:none;flex-direction:column;align-items:center;gap:14px;text-align:center;}
+    #ex-end h2{font-size:1.6rem;color:#7eb8f7;}
+    .ex-score-grid{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;}
+    .ex-score-box{background:#1a1d2e;border:1px solid #2a2d45;border-radius:10px;padding:16px 24px;text-align:center;}
+    .ex-score-box .esnum{font-size:2.4rem;font-weight:800;}
+    .ex-score-box .eslbl{font-size:.72rem;color:#5a6080;text-transform:uppercase;letter-spacing:1px;margin-top:4px;}
+    .esnum.got{color:#27ae60;}.esnum.part{color:#e8c87a;}.esnum.miss{color:#f44336;}
+
+    /* ── FILL IN BLANK ── */
+    #screen-fib{padding:24px;gap:18px;}
+    #fib-hdr{display:flex;gap:20px;font-size:.82rem;flex-wrap:wrap;}
+    #fib-hdr span{color:#5a6080;}#fib-hdr strong{color:#7eb8f7;}
+    #fib-prompt{max-width:700px;text-align:center;font-size:1.15rem;font-weight:500;color:#dde1f0;line-height:2.4;}
+    .fib-input{background:#22253a;border:1px solid #4a6a8a;border-radius:5px;color:#7eb8f7;font-size:.95rem;padding:4px 8px;width:130px;font-family:inherit;text-align:center;outline:none;transition:border-color .15s;}
+    .fib-input:focus{border-color:#7eb8f7;}
+    .fib-input.correct{border-color:#4caf50;color:#4caf50;background:#182818;}
+    .fib-input.wrong{border-color:#f44336;color:#f44336;background:#2a1818;}
+    .fib-input:disabled{opacity:.8;}
+    #fib-submit{padding:9px 28px;background:#1e3a5f;border:1px solid #7eb8f7;color:#7eb8f7;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .15s;}
+    #fib-submit:hover{background:#254a7a;}
+    #fib-exp{max-width:700px;font-size:.84rem;color:#7ab0d8;line-height:1.6;background:#1a1d2e;padding:12px 16px;border-radius:8px;border-left:3px solid #7eb8f7;text-align:center;}
+    #fib-next{padding:8px 22px;background:#22253a;border:1px solid #2a2d45;color:#8a9ab5;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;}
+    #fib-next:hover{border-color:#7eb8f7;color:#dde1f0;}
+    #fib-end{display:none;flex-direction:column;align-items:center;gap:12px;text-align:center;}
+    #fib-end h2{font-size:1.6rem;color:#7eb8f7;}
+
+    /* ── FC WEAK-CARD BANNER ── */
+    #fc-review-banner{display:none;align-items:center;gap:10px;background:#1e3558;border:1px solid #7eb8f755;border-radius:8px;padding:8px 14px;width:100%;max-width:680px;}
+    #fc-review-banner span{font-size:.8rem;color:#9ab8d8;flex:1;}
+    #fc-review-banner button{white-space:nowrap;border-color:#7eb8f7;color:#7eb8f7;}
+
     ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:#12131a;}::-webkit-scrollbar-thumb{background:#2a2d45;border-radius:3px;}
     @media(max-width:680px){#quiz-opts,#proj-opts{grid-template-columns:1fr;}#sidebar{width:220px;min-width:220px;}}
   </style>
@@ -200,6 +251,8 @@
     <button class="mode-btn" data-m="quiz" onclick="setMode('quiz')"><span>⚡</span> Quiz (Kahoot Style)</button>
     <button class="mode-btn" data-m="matching" onclick="setMode('matching')"><span>🔗</span> Matching</button>
     <button class="mode-btn" data-m="tf" onclick="setMode('tf')"><span>✓✗</span> True / False</button>
+    <button class="mode-btn" data-m="explain" onclick="setMode('explain')"><span>✍</span> Explain It</button>
+    <button class="mode-btn" data-m="fib" onclick="setMode('fib')"><span>📝</span> Fill in Blank</button>
     <button class="mode-btn proj-btn" data-m="projector" onclick="openProj()"><span>📽</span> Class Mode</button>
   </div>
 
@@ -209,6 +262,8 @@
     <div class="stat-row"><span class="stat-lbl">Quiz (MC)</span><span class="stat-val" id="smc">—</span></div>
     <div class="stat-row"><span class="stat-lbl">True/False</span><span class="stat-val" id="stf">—</span></div>
     <div class="stat-row"><span class="stat-lbl">Matching pairs</span><span class="stat-val" id="smt">—</span></div>
+    <div class="stat-row"><span class="stat-lbl">Explain It</span><span class="stat-val" id="sex">—</span></div>
+    <div class="stat-row"><span class="stat-lbl">Fill in Blank</span><span class="stat-val" id="sfb">—</span></div>
   </div>
 </div>
 
@@ -225,6 +280,8 @@
         <div class="wcard"><h4>⚡ Quiz</h4><p>Timed Kahoot-style MC — colored tiles, countdown bar, streak bonus, and confetti.</p></div>
         <div class="wcard"><h4>🔗 Matching</h4><p>Click a term, then its definition. Clear all pairs to advance to the next set.</p></div>
         <div class="wcard"><h4>✓✗ True / False</h4><p>Fast-fire T/F with streak counter and answer explanations.</p></div>
+        <div class="wcard"><h4>✍ Explain It</h4><p>Short-answer practice. Write your explanation, reveal the model answer, then self-rate. Best prep for conceptual exam questions.</p></div>
+        <div class="wcard"><h4>📝 Fill in Blank</h4><p>Key sentences with blanks — type the missing term and check your answer. Great for vocabulary and definitions.</p></div>
         <div class="wcard" style="grid-column:1/-1"><h4>📽 Class Mode</h4><p>Full-screen projector view. Shows question + colored tiles (answers hidden). Click <em>Show Answer</em> to reveal. Use ← → keys or buttons to navigate. Press Space to reveal, Esc to exit.</p></div>
       </div>
     </div>
@@ -235,6 +292,10 @@
     <div id="fc-prog-row">
       <div id="fc-prog-wrap"><div id="fc-prog-bar"></div></div>
       <span id="fc-prog-txt">0 / 0</span>
+    </div>
+    <div id="fc-review-banner">
+      <span id="fc-review-msg"></span>
+      <button class="fcb" onclick="fcReviewWeak()">Review Weak Cards →</button>
     </div>
     <div id="fc-wrap">
       <div id="fc-card" onclick="fcFlip()">
@@ -313,6 +374,57 @@
       <button class="tfb tff" id="tfF" onclick="tfAns(false)">FALSE</button>
     </div>
     <div id="tf-exp"></div>
+  </div>
+
+  <!-- EXPLAIN IT -->
+  <div class="screen" id="screen-explain">
+    <div id="ex-hdr">
+      <div id="ex-stats">
+        <span>Got It: <strong id="ex-got">0</strong></span>
+        <span>Partially: <strong id="ex-part">0</strong></span>
+        <span>Missed: <strong id="ex-miss">0</strong></span>
+        <span><strong id="ex-n">0</strong> / <strong id="ex-tot">0</strong></span>
+      </div>
+      <div id="ex-prog-wrap"><div id="ex-prog-bar"></div></div>
+    </div>
+    <div id="ex-topic-lbl">—</div>
+    <div id="ex-prompt">Select topics and click Explain It</div>
+    <textarea id="ex-textarea" placeholder="Write your explanation here — try to be thorough…"></textarea>
+    <button id="ex-reveal-btn" onclick="exReveal()">Reveal Model Answer</button>
+    <div id="ex-model" style="display:none"></div>
+    <div id="ex-rate-row" style="display:none">
+      <button class="exrb got" onclick="exRate('got')">✓ Got It</button>
+      <button class="exrb part" onclick="exRate('part')">🤔 Partially</button>
+      <button class="exrb miss" onclick="exRate('miss')">✗ Missed It</button>
+    </div>
+    <div id="ex-end">
+      <div style="font-size:2rem">🎉</div>
+      <h2>Deck Complete!</h2>
+      <div class="ex-score-grid">
+        <div class="ex-score-box"><div class="esnum got" id="ex-end-got">0</div><div class="eslbl">Got It</div></div>
+        <div class="ex-score-box"><div class="esnum part" id="ex-end-part">0</div><div class="eslbl">Partially</div></div>
+        <div class="ex-score-box"><div class="esnum miss" id="ex-end-miss">0</div><div class="eslbl">Missed It</div></div>
+      </div>
+      <button class="gbtn" onclick="initExplain()" style="margin-top:6px">↺ Retry</button>
+    </div>
+  </div>
+
+  <!-- FILL IN BLANK -->
+  <div class="screen" id="screen-fib">
+    <div id="fib-hdr">
+      <span>Correct: <strong id="fib-cor">0</strong></span>
+      <span><strong id="fib-n">0</strong> / <strong id="fib-tot">0</strong></span>
+    </div>
+    <div id="fib-prompt">Select topics and click Fill in Blank</div>
+    <button id="fib-submit" onclick="fibSubmit()" style="display:none">Check Answers</button>
+    <div id="fib-exp" style="display:none"></div>
+    <button id="fib-next" onclick="fibNext()" style="display:none">Next →</button>
+    <div id="fib-end">
+      <div style="font-size:2rem">🎉</div>
+      <h2>Complete!</h2>
+      <div class="score-big" id="fib-final"></div>
+      <button class="gbtn" onclick="initFIB()" style="margin-top:8px">↺ Retry</button>
+    </div>
   </div>
 
 </div><!-- /main -->
@@ -898,6 +1010,92 @@ const Q=[
   {id:'mt15d',t:['15'],type:'match',term:'IRB',def:'Institutional Review Board — oversees ethics of human subjects research'},
   {id:'mt15e',t:['15'],type:'match',term:'Intrinsic ethical concern',def:'Inherent worry about what the technology IS (altering human-nature relationship)'},
   {id:'mt15f',t:['15'],type:'match',term:'Dual-use dilemma',def:'Technology developed for good purposes is later used for harm'},
+
+  /* ── FILL IN BLANK ── */
+  {id:'fib01a',t:['01'],type:'fib',
+    q:'A ___ is a material intended to interface with ___ systems to evaluate, treat, augment, or replace tissue, organ, or function.',
+    blanks:['biomaterial','biological'],
+    exp:'Society for Biomaterials definition — key word is "interface with biological systems"'},
+  {id:'fib01b',t:['01'],type:'fib',
+    q:'The materials science tetrahedron links ___, Properties, ___, and Performance.',
+    blanks:['structure','processing'],
+    exp:'Structure → Properties → Performance, with Processing influencing all stages'},
+  {id:'fib04a',t:['04'],type:'fib',
+    q:'___ bonding involves electron transfer between atoms; ___ bonding involves electron sharing.',
+    blanks:['ionic','covalent'],
+    exp:'Ionic: electropositive→electronegative atom (e.g. NaCl). Covalent: shared valence electrons (e.g. diamond, polymers)'},
+  {id:'fib04b',t:['04'],type:'fib',
+    q:'Hydrogen bonding requires H to be directly bonded to ___, ___, or ___.',
+    blanks:['f','n','o'],
+    exp:'H bonded to F, N, or O creates a strong permanent dipole → strong H-bond to adjacent electronegative atom'},
+  {id:'fib05a',t:['05'],type:'fib',
+    q:'FCC has ___ atoms per unit cell, APF = ___, and close-packed {111} planes (ABCABC stacking).',
+    blanks:['4','0.74'],
+    exp:'FCC: 4 atoms/cell, CN=12, APF=0.74. Examples: Al, Cu, Au, Ag'},
+  {id:'fib05b',t:['05'],type:'fib',
+    q:'BCC has ___ atoms per unit cell and coordination number ___.',
+    blanks:['2','8'],
+    exp:'BCC: 2 atoms/cell, CN=8, APF=0.68. Examples: Fe(α), W, Cr'},
+  {id:'fib06a',t:['06'],type:'fib',
+    q:"In Bragg's Law nλ = 2d·sinθ, the variable d represents ___ spacing between crystal planes.",
+    blanks:['interplanar'],
+    exp:'d-spacing measured from XRD peak angle θ using Bragg\'s Law — reveals crystal structure'},
+  {id:'fib07a',t:['07'],type:'fib',
+    q:'A ___ polymer softens reversibly on heating; a ___ forms permanent covalent crosslinks on heating.',
+    blanks:['thermoplastic','thermoset'],
+    exp:'Thermoplastic: re-meltable (secondary bonds break). Thermoset: irreversible network (e.g. vulcanized rubber, epoxy)'},
+  {id:'fib07b',t:['07'],type:'fib',
+    q:'The four sterilization methods for medical devices are autoclave, ___, ___, and e-beam.',
+    blanks:['gamma','eo'],
+    exp:'Autoclave (steam/heat/pressure), Gamma (Co-60), EO (ethylene oxide gas), E-Beam (electron beam)'},
+  {id:'fib08a',t:['08'],type:'fib',
+    q:'The three stages of free radical polymerization are ___, ___, and ___.',
+    blanks:['initiation','propagation','termination'],
+    exp:'Initiation: radical generation. Propagation: chain growth. Termination: combination or disproportionation'},
+  {id:'fib08b',t:['08'],type:'fib',
+    q:'PDI = Mw / ___. For a perfectly monodisperse polymer PDI = ___.',
+    blanks:['mn','1'],
+    exp:'Polydispersity Index = Mw/Mn. PDI=1 is theoretical ideal; real polymers always PDI > 1 (chains terminate randomly)'},
+  {id:'fib08c',t:['08'],type:'fib',
+    q:'___ tacticity places all R-groups on the same side → most ___ polymer.',
+    blanks:['isotactic','crystalline'],
+    exp:'Isotactic = regular arrangement → crystalline → higher Tm, harder. Atactic = random → amorphous → softer'},
+  {id:'fib08d',t:['08'],type:'fib',
+    q:'Tg is the ___ transition; Tm is the ___ transition. Always: Tg ___ Tm.',
+    blanks:['glass','melting','<'],
+    exp:'Tg: onset of segmental motion in amorphous regions (2nd order). Tm: crystalline melt (1st order). Tg always < Tm'},
+  {id:'fib11a',t:['11'],type:'fib',
+    q:"Young's modulus E = ___ ÷ ___ in the linear elastic region.",
+    blanks:['stress','strain'],
+    exp:'E = σ/ε — slope of the linear portion of the stress-strain curve. Units: Pa or GPa'},
+  {id:'fib11b',t:['11'],type:'fib',
+    q:'___ strength marks the onset of permanent deformation; ___ strength is the stress at fracture.',
+    blanks:['yield','ultimate tensile'],
+    exp:'Yield strength (0.2% offset method) → plastic deformation begins. UTS → highest point on curve before fracture'},
+  {id:'fib12a',t:['12'],type:'fib',
+    q:'Class ___ devices carry the highest risk and require ___ (Pre-Market Approval) for marketing.',
+    blanks:['iii','pma'],
+    exp:'Class III: life-sustaining/life-supporting. ~10% of devices. Full clinical trial evidence required'},
+  {id:'fib12b',t:['12'],type:'fib',
+    q:'A 510(k) clears a device by demonstrating ___ equivalence to a ___ device.',
+    blanks:['substantial','predicate'],
+    exp:'510(k): same intended use + same (or equivalently safe) technical characteristics as an already-cleared device'},
+  {id:'fib13a',t:['13'],type:'fib',
+    q:'___ (MS-DRG) is the fixed ___ payment system; ___ (APC) is the fixed ___ payment system.',
+    blanks:['medicare','inpatient','medicare','outpatient'],
+    exp:'MS-DRG = inpatient fixed payment per diagnosis. APC = outpatient fixed payment per procedure'},
+  {id:'fib14a',t:['14'],type:'fib',
+    q:'The four cardinal signs of inflammation: ___, ___, ___, and ___.',
+    blanks:['rubor','tumor','calor','dolor'],
+    exp:'Rubor=redness, Tumor=swelling, Calor=heat, Dolor=pain. Caused by vasodilation and increased capillary permeability'},
+  {id:'fib14b',t:['14'],type:'fib',
+    q:'Protein ___ onto a biomaterial surface occurs within ___ of implantation, before cells arrive.',
+    blanks:['adsorption','milliseconds'],
+    exp:'Adsorption = surface binding (2D). First event post-implantation. Vroman effect: small proteins displaced by high-affinity ones'},
+  {id:'fib15a',t:['15'],type:'fib',
+    q:'The three Belmont Report principles are ___, ___, and ___.',
+    blanks:['autonomy','beneficence','justice'],
+    exp:'Respect for Persons (autonomy) + Beneficence (maximize benefit/minimize harm) + Justice (fair distribution)'},
 ];
 
 // ════════════════════════ STATE ════════════════════════
@@ -907,6 +1105,8 @@ let quizQs=[], quizIdx=0, quizScore=0, quizStreak=0, quizTimer=null, quizAnswere
 let matchSets=[], matchSetIdx=0, matchSelected=null, matchDone=new Set();
 let tfQs=[], tfIdx=0, tfCor=0, tfStr=0, tfAnswered=false;
 let projQs=[], projIdx=0, projTimer=null;
+let exDeck=[], exIdx=0, exGot=0, exPart=0, exMiss=0, exRevealed=false;
+let fibQs=[], fibIdx=0, fibCor=0, fibAnswered=false;
 
 // ════════════════════════ INIT ════════════════════════
 function init() {
@@ -947,11 +1147,14 @@ function refreshTopicUI() {
   });
   document.getElementById('tbadge').textContent = selectedTopics.size + '/15';
   const fc=getFiltered('fc').length, mc=getFiltered('mc').length,
-        tf=getFiltered('tf').length, mt=getFiltered('match').length;
+        tf=getFiltered('tf').length, mt=getFiltered('match').length,
+        fib=getFiltered('fib').length;
   document.getElementById('sfc').textContent = fc||'—';
   document.getElementById('smc').textContent = mc||'—';
   document.getElementById('stf').textContent = tf||'—';
   document.getElementById('smt').textContent = mt||'—';
+  document.getElementById('sex').textContent = fc||'—';
+  document.getElementById('sfb').textContent = fib||'—';
 }
 
 function getFiltered(type) {
@@ -973,12 +1176,21 @@ function setMode(mode) {
   else if (mode==='quiz') initQuiz();
   else if (mode==='matching') initMatching();
   else if (mode==='tf') initTF();
+  else if (mode==='explain') initExplain();
+  else if (mode==='fib') initFIB();
 }
+
+// ════════════════════════ localStorage ════════════════════════
+function lsKey(){return 'bme240_known_'+[...selectedTopics].sort().join(',');}
+function lsSave(){try{localStorage.setItem(lsKey(),JSON.stringify([...fcKnown]));}catch(e){}}
+function lsLoad(){try{const r=localStorage.getItem(lsKey());fcKnown=r?new Set(JSON.parse(r)):new Set();}catch(e){fcKnown=new Set();}}
 
 // ════════════════════════ FLASHCARDS ════════════════════════
 function initFlashcard() {
-  fcDeck=shuffle(getFiltered('fc')); fcIdx=0; fcFlipped=false; fcFilter='all'; fcKnown=new Set();
+  fcDeck=shuffle(getFiltered('fc')); fcIdx=0; fcFlipped=false; fcFilter='all';
+  lsLoad();
   document.getElementById('fc-filter-btn').textContent='Show: All';
+  document.getElementById('fc-review-banner').style.display='none';
   renderFC();
 }
 
@@ -1021,6 +1233,15 @@ function renderFC() {
   document.getElementById('fc-badge-b').textContent=lbl;
   document.getElementById('fc-prog-txt').textContent=`${fcIdx+1} / ${deck.length}`;
   document.getElementById('fc-prog-bar').style.width=`${((fcIdx+1)/deck.length)*100}%`;
+  // Weak-card review banner
+  const banner=document.getElementById('fc-review-banner');
+  if(fcIdx===deck.length-1 && fcFilter==='all'){
+    const learningCount=fcDeck.filter(c=>!fcKnown.has(c.id)).length;
+    if(learningCount>0){
+      document.getElementById('fc-review-msg').textContent=`End of deck — ${learningCount} card${learningCount>1?'s':''} still in "Still Learning". Review them?`;
+      banner.style.display='flex';
+    } else { banner.style.display='none'; }
+  } else { banner.style.display='none'; }
 }
 
 function fcFlip(){document.getElementById('fc-card').classList.toggle('flipped');fcFlipped=!fcFlipped;}
@@ -1029,6 +1250,7 @@ function fcMark(know){
   const deck=getFilteredDeck();
   if(!deck[fcIdx])return;
   if(know)fcKnown.add(deck[fcIdx].id);else fcKnown.delete(deck[fcIdx].id);
+  lsSave();
   fcNav(1);
 }
 function fcShuffle(){fcDeck=shuffle(fcDeck);fcIdx=0;renderFC();}
@@ -1047,7 +1269,21 @@ function fcToggleDir(){
   btn.style.color=fcDir==='fwd'?'#9b7ec8':'#7eb8f7';
   fcIdx=0;renderFC();
 }
-function fcReset(){fcKnown=new Set();fcFilter='all';fcIdx=0;fcDir='fwd';document.getElementById('fc-filter-btn').textContent='Show: All';document.getElementById('fc-dir-btn').textContent='▶ Term → Def';document.getElementById('fc-dir-btn').style.borderColor='#9b7ec855';document.getElementById('fc-dir-btn').style.color='#9b7ec8';fcDeck=shuffle(fcDeck);renderFC();}
+function fcReviewWeak(){
+  fcFilter='learning';
+  document.getElementById('fc-filter-btn').textContent='Show: Still Learning';
+  document.getElementById('fc-review-banner').style.display='none';
+  fcIdx=0;renderFC();
+}
+function fcReset(){
+  fcKnown=new Set();lsSave();fcFilter='all';fcIdx=0;fcDir='fwd';
+  document.getElementById('fc-filter-btn').textContent='Show: All';
+  document.getElementById('fc-dir-btn').textContent='▶ Term → Def';
+  document.getElementById('fc-dir-btn').style.borderColor='#9b7ec855';
+  document.getElementById('fc-dir-btn').style.color='#9b7ec8';
+  document.getElementById('fc-review-banner').style.display='none';
+  fcDeck=shuffle(fcDeck);renderFC();
+}
 
 // ════════════════════════ QUIZ ════════════════════════
 function initQuiz() {
@@ -1215,6 +1451,161 @@ function tfAns(ans) {
   document.getElementById('tf-str').textContent=tfStr;
   if(q.exp){const e=document.getElementById('tf-exp');e.textContent=(correct?'✓ Correct! ':'✗ Incorrect. ')+q.exp;e.style.display='';}
   setTimeout(()=>{tfIdx++;renderTF();},2000);
+}
+
+// ════════════════════════ EXPLAIN IT ════════════════════════
+function initExplain() {
+  exDeck=shuffle(getFiltered('fc')); exIdx=0; exGot=0; exPart=0; exMiss=0; exRevealed=false;
+  document.getElementById('ex-end').style.display='none';
+  document.getElementById('ex-topic-lbl').style.display='';
+  document.getElementById('ex-prompt').style.display='';
+  document.getElementById('ex-textarea').style.display='';
+  document.getElementById('ex-reveal-btn').style.display='';
+  if(!exDeck.length){
+    document.getElementById('ex-prompt').textContent='No cards for selected topics.';
+    document.getElementById('ex-textarea').style.display='none';
+    document.getElementById('ex-reveal-btn').style.display='none';
+    return;
+  }
+  renderExplain();
+}
+
+function renderExplain() {
+  if(exIdx>=exDeck.length){showExplainEnd();return;}
+  exRevealed=false;
+  const q=exDeck[exIdx];
+  const topic=TOPICS.find(t=>t.id===q.t[0]);
+  document.getElementById('ex-topic-lbl').textContent=topic?`L${q.t[0]} — ${topic.label}`:q.t[0];
+  document.getElementById('ex-prompt').textContent=q.fr;
+  const ta=document.getElementById('ex-textarea');
+  ta.value=''; ta.disabled=false; ta.style.borderColor='';
+  document.getElementById('ex-model').style.display='none';
+  document.getElementById('ex-rate-row').style.display='none';
+  document.getElementById('ex-reveal-btn').disabled=false;
+  document.getElementById('ex-got').textContent=exGot;
+  document.getElementById('ex-part').textContent=exPart;
+  document.getElementById('ex-miss').textContent=exMiss;
+  document.getElementById('ex-n').textContent=exIdx+1;
+  document.getElementById('ex-tot').textContent=exDeck.length;
+  document.getElementById('ex-prog-bar').style.width=`${(exIdx/exDeck.length)*100}%`;
+}
+
+function exReveal() {
+  if(exRevealed)return;
+  exRevealed=true;
+  const q=exDeck[exIdx];
+  const modelEl=document.getElementById('ex-model');
+  if(q.bkhtml) modelEl.innerHTML=q.bkhtml;
+  else modelEl.textContent=q.bk||'';
+  modelEl.style.display='';
+  document.getElementById('ex-textarea').disabled=true;
+  document.getElementById('ex-textarea').style.borderColor='#2a2d45';
+  document.getElementById('ex-reveal-btn').disabled=true;
+  document.getElementById('ex-rate-row').style.display='flex';
+}
+
+function exRate(rating) {
+  if(rating==='got') exGot++;
+  else if(rating==='part') exPart++;
+  else exMiss++;
+  exIdx++;
+  renderExplain();
+}
+
+function showExplainEnd() {
+  document.getElementById('ex-end').style.display='flex';
+  document.getElementById('ex-topic-lbl').style.display='none';
+  document.getElementById('ex-prompt').style.display='none';
+  document.getElementById('ex-textarea').style.display='none';
+  document.getElementById('ex-reveal-btn').style.display='none';
+  document.getElementById('ex-model').style.display='none';
+  document.getElementById('ex-rate-row').style.display='none';
+  document.getElementById('ex-end-got').textContent=exGot;
+  document.getElementById('ex-end-part').textContent=exPart;
+  document.getElementById('ex-end-miss').textContent=exMiss;
+  document.getElementById('ex-prog-bar').style.width='100%';
+  spawnConfetti(30);
+}
+
+// ════════════════════════ FILL IN BLANK ════════════════════════
+function initFIB() {
+  fibQs=shuffle(getFiltered('fib')); fibIdx=0; fibCor=0; fibAnswered=false;
+  document.getElementById('fib-end').style.display='none';
+  document.getElementById('fib-prompt').style.display='';
+  document.getElementById('fib-submit').style.display='';
+  document.getElementById('fib-cor').textContent='0';
+  document.getElementById('fib-tot').textContent=fibQs.length;
+  if(!fibQs.length){
+    document.getElementById('fib-prompt').textContent='No fill-in-blank questions for selected topics.';
+    document.getElementById('fib-submit').style.display='none';
+    return;
+  }
+  renderFIB();
+}
+
+function renderFIB() {
+  if(fibIdx>=fibQs.length){showFIBEnd();return;}
+  fibAnswered=false;
+  const q=fibQs[fibIdx];
+  document.getElementById('fib-n').textContent=fibIdx+1;
+  document.getElementById('fib-exp').style.display='none';
+  document.getElementById('fib-next').style.display='none';
+  document.getElementById('fib-submit').style.display='';
+  // Build prompt with inline inputs replacing each ___
+  let html=q.q; let blankIdx=0;
+  html=html.replace(/___/g,()=>{
+    const w=Math.max(80,(q.blanks[blankIdx]||'').length*12+40);
+    const inp=`<input class="fib-input" data-bi="${blankIdx}" style="width:${w}px" placeholder="?" autocomplete="off">`;
+    blankIdx++; return inp;
+  });
+  document.getElementById('fib-prompt').innerHTML=html;
+  // Focus first input
+  const first=document.querySelector('.fib-input');
+  if(first) setTimeout(()=>first.focus(),50);
+  // Enter key submits
+  document.querySelectorAll('.fib-input').forEach(inp=>{
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')fibSubmit();});
+  });
+}
+
+function fibSubmit() {
+  if(fibAnswered)return;
+  fibAnswered=true;
+  const q=fibQs[fibIdx];
+  const inputs=document.querySelectorAll('.fib-input');
+  let allCorrect=true;
+  inputs.forEach(inp=>{
+    const bi=parseInt(inp.dataset.bi);
+    const expected=(q.blanks[bi]||'').toLowerCase().trim();
+    const given=inp.value.toLowerCase().trim();
+    const correct=(given===expected)||(given.length>2&&expected.includes(given))||(given.length>2&&given.includes(expected));
+    inp.classList.add(correct?'correct':'wrong');
+    inp.disabled=true;
+    if(!correct){allCorrect=false; inp.title=`Expected: ${q.blanks[bi]}`;}
+  });
+  if(allCorrect){fibCor++;document.getElementById('fib-cor').textContent=fibCor;spawnConfetti(6);}
+  if(q.exp){
+    const e=document.getElementById('fib-exp');
+    e.textContent=(allCorrect?'✓ Correct! ':'✗ Review: ')+q.exp;
+    e.style.display='';
+  }
+  document.getElementById('fib-submit').style.display='none';
+  document.getElementById('fib-next').style.display='';
+}
+
+function fibNext() {
+  fibIdx++;
+  renderFIB();
+}
+
+function showFIBEnd() {
+  document.getElementById('fib-end').style.display='flex';
+  document.getElementById('fib-prompt').style.display='none';
+  document.getElementById('fib-submit').style.display='none';
+  document.getElementById('fib-exp').style.display='none';
+  document.getElementById('fib-next').style.display='none';
+  document.getElementById('fib-final').textContent=`${fibCor} / ${fibQs.length}`;
+  spawnConfetti(35);
 }
 
 // ════════════════════════ PROJECTOR / CLASS MODE ════════════════════════
