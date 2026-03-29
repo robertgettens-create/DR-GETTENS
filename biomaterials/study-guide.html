@@ -455,6 +455,19 @@ const Q=[
   {id:'f11e',t:['11'],type:'fc',fr:'True stress vs. engineering stress',bk:'σ_T = F/Ai (instantaneous area) | ε_T = ln(Li/L₀)\nBefore necking: σ_T = σ_E(1+ε_E) and ε_T = ln(1+ε_E)\nAfter necking: only true stress is meaningful (area changes drastically in one location)\nTrue stress always > engineering stress past yield'},
   {id:'f11f',t:['11'],type:'fc',fr:'Poisson\'s ratio (ν)',bk:'ν = −ε_lateral / ε_axial\nTypical metals: 0.25–0.35 | Rubber/soft tissue: ≈0.5 (incompressible = no volume change)\nAuxetic materials: negative ν (expand laterally when stretched)\nMaximum theoretical value: 0.5'},
   {id:'f11g',t:['11'],type:'fc',fr:'Four requirements for an elastomer',bk:'1) Amorphous structure\n2) Temperature above Tg\n3) Cross-linked (prevents flow)\n4) Free bond rotation (flexible backbone)\nMechanism: entropic recoil — stretching increases order (↓S); release → disorder restores (↑S)'},
+  {id:'f11i',t:['11'],type:'fc',fr:'Tension',bk:'A "pulling" force or stress — applied NORMAL (perpendicular) to the longitudinal surface\nPositive force on a positive face → positive (tensile) stress\nElongates the material; cross-section decreases (Poisson effect)\nRepresented by positive values on the stress-strain curve'},
+  {id:'f11j',t:['11'],type:'fc',fr:'Compression',bk:'A "pushing" or squeezing stress — applied NORMAL to the longitudinal surface\nNegative force on a positive face → negative (compressive) stress\nShortens the material; cross-section increases\nBrittle materials are often stronger in compression than tension'},
+  {id:'f11k',t:['11'],type:'fc',fr:'Shear stress (τ)',bk:'TANGENTIAL force per unit area acting on a surface\nτ = F_tangential / A\nCauses angular deformation (shear strain γ)\nShear modulus: G = τ/γ (analogous to E = σ/ε for normal stress)\nRelated to E by: G = E / [2(1+ν)]'},
+  {id:'f11l',t:['11'],type:'fc',fr:'Torsion',bk:'Stress due to TWISTING forces exerted on a body\nCombination of shear stresses distributed across the cross-section\nMaximum shear stress at the outer surface, zero at the center\nCommon in: drive shafts, bone screws, dental instruments, surgical drills'},
+  {id:'f11m',t:['11'],type:'fc',fr:'Where does tension/compression occur in a bent beam?',bk:'Loading a beam from above (3-point bending):\nTOP surface → COMPRESSION (fibers shorten)\nBOTTOM surface → TENSION (fibers lengthen)\nNEUTRAL AXIS (center) → zero normal stress\nClinical relevance: bone plates placed on tension side of fracture to counteract tensile failure'},
+  {id:'f11n',t:['11'],type:'fc',fr:'Why convert force and displacement into stress and strain?',bk:'To create INTRINSIC properties — independent of sample size and shape\nForce depends on cross-section; displacement depends on gauge length\nStress (σ = F/A₀) and strain (ε = ΔL/L₀) normalize for geometry\nResult: material property curves that allow comparison between different specimen sizes, enabling design of any part geometry'},
+  {id:'f11o',t:['11'],type:'fc',fr:'SI units — stress and strain',bk:'Stress: Pa (Pascal) = N/m²\nMPa = 10⁶ Pa | GPa = 10⁹ Pa (common for metals)\nStrain: UNITLESS (m/m) — often reported as % or mm/mm\nYoung\'s Modulus E: same units as stress (Pa, GPa)\nToughness: energy/volume = J/m³ = Pa'},
+  {id:'f11p',t:['11'],type:'fc',fr:'Brittle fracture — describe the appearance',
+   bk:'Flat fracture surface perpendicular (90°) to loading axis. No necking — uniform cross-section up to failure. Little plastic deformation, low energy absorbed.\nExamples: ceramics, glass, cast iron, polymers below Tg',
+   bkhtml:'<div style="font-size:.8rem;color:#b8cce8;line-height:1.5;margin-bottom:8px">Flat fracture surface 90° to loading axis. No necking. Low energy absorbed.<br><span style="color:#7a9ab8;font-size:.73rem">e.g., ceramics, glass, cast iron, polymers below T<sub>g</sub></span></div><svg viewBox="0 0 200 54" style="max-width:220px;height:54px;display:block;margin:0 auto"><rect x="8" y="13" width="76" height="28" rx="3" fill="#1a2d48" stroke="#5080b0" stroke-width="1.5"/><rect x="116" y="13" width="76" height="28" rx="3" fill="#1a2d48" stroke="#5080b0" stroke-width="1.5"/><line x1="84" y1="10" x2="84" y2="44" stroke="#e8c87a" stroke-width="2.5"/><line x1="116" y1="10" x2="116" y2="44" stroke="#e8c87a" stroke-width="2.5"/><polygon points="0,27 10,23 10,31" fill="#f44336"/><polygon points="200,27 190,23 190,31" fill="#f44336"/></svg><div style="font-size:.7rem;color:#e8c87a;text-align:center;margin-top:4px">Flat 90° surface &bull; no necking &bull; low energy absorbed</div>'},
+  {id:'f11q',t:['11'],type:'fc',fr:'Ductile fracture — describe the appearance',
+   bk:'Cup-and-cone fracture with significant necking before failure. 45° shear lip visible at outer edge. High energy absorbed — material deforms extensively before breaking.\nExamples: most metals above Tg, ductile polymers',
+   bkhtml:'<div style="font-size:.8rem;color:#b8cce8;line-height:1.5;margin-bottom:8px">Cup-and-cone fracture with significant necking. 45° shear lip. High energy absorbed.<br><span style="color:#7a9ab8;font-size:.73rem">e.g., low-carbon steel, Al, Cu — most structural metals</span></div><svg viewBox="0 0 200 56" style="max-width:220px;height:56px;display:block;margin:0 auto"><path d="M8,13 L76,13 L94,25 L94,31 L76,43 L8,43 Z" fill="#1a2d48" stroke="#5080b0" stroke-width="1.5"/><path d="M192,13 L124,13 L106,23 L106,33 L124,43 L192,43 Z" fill="#1a2d48" stroke="#5080b0" stroke-width="1.5"/><line x1="94" y1="25" x2="106" y2="23" stroke="#e8c87a" stroke-width="1.5"/><line x1="94" y1="31" x2="106" y2="33" stroke="#4caf50" stroke-width="1.5"/><line x1="94" y1="25" x2="94" y2="31" stroke="#e8c87a" stroke-width="2"/><line x1="106" y1="23" x2="106" y2="33" stroke="#4caf50" stroke-width="2"/><polygon points="0,28 10,24 10,32" fill="#f44336"/><polygon points="200,28 190,24 190,32" fill="#f44336"/></svg><div style="font-size:.7rem;color:#4caf50;text-align:center;margin-top:4px">Cup-and-cone &bull; significant necking &bull; high energy absorbed</div>'},
   {id:'f11h',t:['11'],type:'fc',fr:'Viscoelastic behavior — two manifestations',bk:'Time AND temperature dependent mechanical response (polymers)\n1) Stress relaxation: apply constant strain → stress decreases over time\n   σ(t) = σ₀·exp(−t/τ)\n2) Creep: apply constant stress → strain increases over time\nBoth described by relaxation time τ'},
   // 12 FDA
   {id:'f12a',t:['12'],type:'fc',fr:'FDA device classification system',bk:'Class I (~50%): low risk; most exempt or minimal regulation (register, follow QSR + labeling)\nClass II (~40%): moderate risk; 510(k) clearance required\nClass III (~10%): high risk, life-sustaining; PMA approval required'},
@@ -572,6 +585,18 @@ const Q=[
   {id:'m11b',t:['11'],type:'mc',q:'The area under the ENTIRE stress-strain curve represents:',
    opts:['Young\'s modulus','Resilience','Toughness','Ductility'],
    ans:2,exp:'Toughness = total energy absorbed per unit volume to fracture = total area. Resilience = elastic area only. Ductility = %EL (strain at fracture). Modulus = slope of elastic region.'},
+  {id:'m11d',t:['11'],type:'mc',q:'What are the SI units of stress?',
+   opts:['Unitless (reported as %)','N·m (Newton-meters)','Pa (N/m²)','kg/m'],
+   ans:2,exp:'Stress = Force / Area = N / m² = Pascal (Pa). Common multiples: MPa (10⁶ Pa) for yield strength, GPa (10⁹ Pa) for Young\'s modulus of stiff materials. Strain is unitless (ΔL/L₀).'},
+  {id:'m11e',t:['11'],type:'mc',q:'In a beam loaded from above (3-point bending), which surface experiences TENSION?',
+   opts:['Top surface','Neutral axis (center)','Bottom surface','Both top and bottom equally'],
+   ans:2,exp:'Bottom surface is in tension (fibers are stretched/elongated). Top surface is in compression (fibers are shortened). Neutral axis has zero normal stress. This is critical for bone plate placement — plates go on the tension side.'},
+  {id:'m11f',t:['11'],type:'mc',q:'Which type of stress acts TANGENTIALLY to a surface?',
+   opts:['Normal stress','Tensile stress','Compressive stress','Shear stress'],
+   ans:3,exp:'Shear stress (τ) acts tangentially (parallel to the surface). Normal stress (σ) acts perpendicular to the surface — it can be tensile (positive) or compressive (negative). Torsion creates shear stresses distributed across the cross-section.'},
+  {id:'m11g',t:['11'],type:'mc',q:'Toughness is best described as:',
+   opts:['The slope of the elastic region of the stress-strain curve','The stress at which plastic deformation begins','The total area under the stress-strain curve through failure (J/m³)','The maximum stress before necking begins'],
+   ans:2,exp:'Toughness = total energy absorbed per unit volume to fracture = total area under σ-ε curve. Requires BOTH high strength AND high ductility. Units: J/m³. Compare: Resilience = elastic area only; Modulus = slope; Yield strength = onset of plasticity.'},
   {id:'m11c',t:['11'],type:'mc',q:'For a polymer at T < Tg, what mechanical behavior is expected?',
    opts:['Elastomeric (large reversible deformation)','Rubbery and ductile','Glassy and brittle (little plastic deformation)','Viscous flow'],
    ans:2,exp:'Below Tg: chains are frozen (insufficient thermal energy for large-scale chain motion) → glassy state → brittle. Above Tg: chains mobile → rubbery/plastic. With crosslinks and T >> Tg: elastomeric.'},
@@ -627,6 +652,9 @@ const Q=[
   {id:'t10b',t:['10'],type:'tf',q:'Dislocation movement is responsible for ELASTIC deformation in metals.',ans:false,exp:'Dislocation movement causes PLASTIC (permanent) deformation — this is slip. Elastic deformation = reversible stretching of atomic bonds, with NO dislocation motion.'},
   {id:'t11a',t:['11'],type:'tf',q:'True stress is always greater than engineering stress beyond the yield point.',ans:true,exp:'After yielding, cross-sectional area decreases. Engineering stress uses fixed A₀ (underestimates force/area). True stress uses actual Aᵢ → always σ_T > σ_E post-yield.'},
   {id:'t11b',t:['11'],type:'tf',q:'All elastomers must be cross-linked.',ans:true,exp:'Without crosslinks, polymer chains slide past each other under load (viscous flow) with no recovery. Crosslinks act as anchor points that allow large deformation but ensure entropic recoil when the load is removed.'},
+  {id:'t11c',t:['11'],type:'tf',q:'Strain has units of Pa (Pascal).',ans:false,exp:'Strain is UNITLESS — it is a ratio of two lengths (ΔL/L₀). It is often reported as a percentage or mm/mm, but has no physical unit. Stress has units of Pa. A common exam trap.'},
+  {id:'t11d',t:['11'],type:'tf',q:'In 3-point bending, the top surface of a beam experiences tension.',ans:false,exp:'When loaded from above, the TOP surface is in COMPRESSION (shortened fibers) and the BOTTOM surface is in TENSION (elongated fibers). The neutral axis at the center has zero normal stress.'},
+  {id:'t11e',t:['11'],type:'tf',q:'Toughness and resilience both measure the area under the entire stress-strain curve.',ans:false,exp:'Resilience = area under the ELASTIC region only (energy stored and recovered). Toughness = area under the ENTIRE curve through fracture (total energy absorbed). A tough material needs both strength and ductility.'},
   {id:'t12a',t:['12'],type:'tf',q:'The FDA approves biomaterials (as raw materials) for use in medical devices.',ans:false,exp:'FDA approves/clears DEVICES, not materials. ISO 10993 biocompatibility testing is done on the complete device in final finished form. There is no such thing as an "FDA approved biomaterial."'},
   {id:'t12b',t:['12'],type:'tf',q:'A 510(k) cleared device is described as "FDA approved."',ans:false,exp:'510(k) devices are "CLEARED," not "approved." Only PMA (Class III) devices are formally "approved." The distinction matters legally and in marketing communications.'},
   {id:'t13a',t:['13'],type:'tf',q:'Medicaid is a federal insurance program for Americans aged 65 and older.',ans:false,exp:'MEDICARE is for age ≥65 (or qualifying disability). MEDICAID is for low-income patients of any age. ~70 million (~20% of US population) are on Medicaid.'},
@@ -692,6 +720,14 @@ const Q=[
   {id:'mt10d',t:['10'],type:'match',term:'Schottky defect',def:'Ceramic defect — paired cation-anion vacancies'},
   {id:'mt10e',t:['10'],type:'match',term:'Frenkel defect',def:'Ceramic defect — ion displaced from site to an interstitial position'},
   {id:'mt10f',t:['10'],type:'match',term:'Inclusion',def:'Volume / bulk defect — trapped foreign particle in material'},
+  // 11 Mechanical — loading types & fracture
+  {id:'mt11a',t:['11'],type:'match',term:'Tension',def:'Pulling normal stress — positive force on positive face, elongates material'},
+  {id:'mt11b',t:['11'],type:'match',term:'Compression',def:'Squeezing normal stress — negative force on positive face, shortens material'},
+  {id:'mt11c',t:['11'],type:'match',term:'Shear stress (τ)',def:'Tangential force per unit area — causes angular deformation'},
+  {id:'mt11d',t:['11'],type:'match',term:'Torsion',def:'Stress from twisting forces — maximum shear at outer surface, zero at center'},
+  {id:'mt11e',t:['11'],type:'match',term:'Brittle fracture',def:'Flat 90° fracture surface, no necking, low energy absorbed'},
+  {id:'mt11f',t:['11'],type:'match',term:'Ductile fracture',def:'Cup-and-cone fracture, significant necking, high energy absorbed'},
+
   // 12 FDA
   {id:'mt12a',t:['12'],type:'match',term:'Class I (~50%)',def:'Low risk — exempt or minimal regulation (QSR, labeling, register)'},
   {id:'mt12b',t:['12'],type:'match',term:'Class II (~40%)',def:'Moderate risk — cleared via 510(k) pre-market notification'},
@@ -820,7 +856,8 @@ function renderFC() {
   const topic=TOPICS.find(t=>t.id===q.t[0]);
   const lbl=topic?`L${q.t[0]} — ${topic.label}`:q.t[0];
   document.getElementById('fc-front').textContent=q.fr;
-  document.getElementById('fc-back').textContent=q.bk;
+  if(q.bkhtml) document.getElementById('fc-back').innerHTML=q.bkhtml;
+  else document.getElementById('fc-back').textContent=q.bk||'';
   document.getElementById('fc-badge').textContent=lbl;
   document.getElementById('fc-badge-b').textContent=lbl;
   document.getElementById('fc-prog-txt').textContent=`${fcIdx+1} / ${deck.length}`;
