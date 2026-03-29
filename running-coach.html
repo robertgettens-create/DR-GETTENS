@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>StrideAI v10 — Personal Running Coach</title>
+  <title>StrideAI v11 — Personal Running Coach</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -597,7 +597,8 @@ COACHING PRINCIPLES:
         setRegenLoading(true);
         const { weekNum, weekText, startIdx, endIdx } = adjustWeek;
         const notesCtx = weekNotes[weekNum] ? `Previously saved notes: ${weekNotes[weekNum]}\nNew notes: ${notes}` : notes;
-        const newWeekText = await callClaude([{ role: "user", content: `Rewrite only Week ${weekNum} of my half marathon training plan.\n\nCurrent Week ${weekNum}:\n${weekText}\n\nChanges for this week:\n${notesCtx}\n\nFORMATTING: Keep same format — Week heading line, then Monday through Sunday, each as "DayName — Activity: distance/duration. Tip: brief tip." Plain text only. Output ONLY Week ${weekNum} content, nothing before or after.` }], apiKey, fitbitStats, null, null);
+        const intervalCtx = weekNum >= 3 ? `\n\nWORKOUT VARIETY FOR THIS WEEK: Include 1 interval session (e.g. "6 x 400m hard effort with 2 min WALK recovery") and 1 tempo run (comfortably hard, 20–30 min, Zone 3–4). WALK recoveries only — never jog. Hard effort = hard to hold a conversation, not all-out sprint.` : "";
+        const newWeekText = await callClaude([{ role: "user", content: `Rewrite only Week ${weekNum} of my half marathon training plan.\n\nCurrent Week ${weekNum}:\n${weekText}\n\nChanges for this week:\n${notesCtx}${intervalCtx}\n\nFORMATTING: Keep same format — Week heading line, then Monday through Sunday, each as "DayName — Activity: distance/duration. Tip: brief tip." Plain text only. Output ONLY Week ${weekNum} content, nothing before or after.` }], apiKey, fitbitStats, null, null);
         onSaveWeekNotes(weekNum, notes);
         const updated = [...planLines];
         const newLines = newWeekText.split("\n");
@@ -919,10 +920,12 @@ COACHING PRINCIPLES:
     ];
 
     function PaceCalculator() {
-      const [hours, setHours] = useState("1");
-      const [mins, setMins] = useState("45");
-      const [secs, setSecs] = useState("00");
-      const [distIdx, setDistIdx] = useState(2); // Half by default
+      const saved = (() => { try { return JSON.parse(localStorage.getItem("rc_pace_calc")||"{}"); } catch(e) { return {}; } })();
+      const [hours, setHours] = useState(saved.hours ?? "1");
+      const [mins, setMins] = useState(saved.mins ?? "45");
+      const [secs, setSecs] = useState(saved.secs ?? "00");
+      const [distIdx, setDistIdx] = useState(saved.distIdx ?? 2);
+      function persist(h, m, s, d) { try { localStorage.setItem("rc_pace_calc", JSON.stringify({hours:h,mins:m,secs:s,distIdx:d})); } catch(e){} }
 
       const totalSecs = (parseInt(hours)||0)*3600 + (parseInt(mins)||0)*60 + (parseInt(secs)||0);
       const miles = CALC_DISTANCES[distIdx].miles;
@@ -938,20 +941,20 @@ COACHING PRINCIPLES:
           <div style={{display:"flex",gap:6,marginBottom:10,alignItems:"flex-end"}}>
             <div style={{flex:1}}>
               <div className="label">Hours</div>
-              <input className="input" type="number" min="0" max="9" value={hours} onChange={e=>setHours(e.target.value)} style={{textAlign:"center"}} />
+              <input className="input" type="number" min="0" max="9" value={hours} onChange={e=>{setHours(e.target.value);persist(e.target.value,mins,secs,distIdx);}} style={{textAlign:"center"}} />
             </div>
             <div style={{flex:1}}>
               <div className="label">Minutes</div>
-              <input className="input" type="number" min="0" max="59" value={mins} onChange={e=>setMins(e.target.value)} style={{textAlign:"center"}} />
+              <input className="input" type="number" min="0" max="59" value={mins} onChange={e=>{setMins(e.target.value);persist(hours,e.target.value,secs,distIdx);}} style={{textAlign:"center"}} />
             </div>
             <div style={{flex:1}}>
               <div className="label">Seconds</div>
-              <input className="input" type="number" min="0" max="59" value={secs} onChange={e=>setSecs(e.target.value)} style={{textAlign:"center"}} />
+              <input className="input" type="number" min="0" max="59" value={secs} onChange={e=>{setSecs(e.target.value);persist(hours,mins,e.target.value,distIdx);}} style={{textAlign:"center"}} />
             </div>
           </div>
           <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
             {CALC_DISTANCES.map((d,i)=>(
-              <button key={d.label} onClick={()=>setDistIdx(i)} style={{
+              <button key={d.label} onClick={()=>{setDistIdx(i);persist(hours,mins,secs,i);}} style={{
                 background:distIdx===i?"#f07030":"#1e2030", color:distIdx===i?"white":"#a0a8c0",
                 border:"none",borderRadius:20,padding:"4px 12px",fontSize:12,cursor:"pointer",fontWeight:distIdx===i?700:400
               }}>{d.label}</button>
@@ -967,14 +970,15 @@ COACHING PRINCIPLES:
     }
 
     // ─── Coach Tab ────────────────────────────────────────────────────────────────
-    function CoachTab({ fitbitStats, apiKey, races, onAddRace, onDeleteRace }) {
+    const COACH_MSG_LIMIT = 20;
+    function CoachTab({ fitbitStats, apiKey, races, onAddRace, onDeleteRace, savedMessages, onSaveMessages }) {
       const fbIntro = fitbitStats ? ` I can see your Fitbit data: ${fitbitStats.runCount} runs in the last 30 days, ${fitbitStats.totalMiles.toFixed(1)} miles, most recent pace ${fitbitStats.avgPace || "unknown"}.` : " Connect Fitbit in Settings for even more personalized advice.";
-      const [messages, setMessages] = useState([
-        { role: "assistant", content: `Hi! I'm your personal running coach. You're 54 years old, targeting the Mother's Day Half Marathon in ${WEEKS_LEFT} weeks, and you finished the Holyoke 10K.${fbIntro} What questions do you have?` }
-      ]);
+      const defaultMsg = { role: "assistant", content: `Hi! I'm your personal running coach. You're 54 years old, targeting the Mother's Day Half Marathon in ${WEEKS_LEFT} weeks, and you finished the Holyoke 10K.${fbIntro} What questions do you have?` };
+      const [messages, setMessages] = useState(savedMessages?.length ? savedMessages : [defaultMsg]);
       const [input, setInput] = useState("");
       const [loading, setLoading] = useState(false);
       const endRef = useRef(null);
+
       async function send(msg) {
         const text = msg || input.trim();
         if (!text || loading) return;
@@ -983,15 +987,34 @@ COACHING PRINCIPLES:
         setInput("");
         setLoading(true);
         const reply = await callClaude(newMessages, apiKey, fitbitStats, races, null);
-        setMessages(m => [...m, { role: "assistant", content: reply }]);
+        const finalMessages = [...newMessages, { role: "assistant", content: reply }];
+        // Keep last COACH_MSG_LIMIT messages (always keep first greeting)
+        const trimmed = finalMessages.length > COACH_MSG_LIMIT
+          ? [finalMessages[0], ...finalMessages.slice(-(COACH_MSG_LIMIT - 1))]
+          : finalMessages;
+        setMessages(trimmed);
+        onSaveMessages(trimmed);
         setLoading(false);
         setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
       }
+
+      function clearChat() {
+        const fresh = [defaultMsg];
+        setMessages(fresh);
+        onSaveMessages(fresh);
+      }
+
       const suggestions = ["Am I ready for the half marathon?","What should I do this week?","How should I handle cold rainy weather?","I'm traveling for work — what do I do?","My knees are feeling sore","What pace should I run the half marathon at?","Does gardening count as cross-training?","How do I use my Fitbit heart rate zones?"];
+      const hasHistory = messages.length > 1;
       return (
         <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 130px)"}}>
           <div style={{flex:1,overflowY:"auto"}}>
             <div className="chat-messages">
+              {hasHistory && (
+                <div style={{textAlign:"center",padding:"6px 0 2px"}}>
+                  <span style={{fontSize:11,color:"#3a5a3a",background:"#0a2a1a",border:"1px solid #1a4a2a",borderRadius:10,padding:"2px 10px"}}>💬 Conversation continues from last session</span>
+                </div>
+              )}
               {messages.map((m,i) => (
                 <div key={i} className={`msg msg-${m.role==="user"?"user":"ai"}`} style={{alignSelf:m.role==="user"?"flex-end":"flex-start"}}>
                   <span style={{whiteSpace:"pre-wrap",lineHeight:1.6}}>{m.content}</span>
@@ -1003,11 +1026,16 @@ COACHING PRINCIPLES:
             <div style={{padding:"0 16px 16px"}}>
               <RaceHistory races={races} onAddRace={onAddRace} onDeleteRace={onDeleteRace} />
               <PaceCalculator />
-              {messages.length <= 1 && (
+              {!hasHistory && (
                 <>
                   <div style={{fontSize:11,color:"#5a6080",marginBottom:8,letterSpacing:0.5}}>SUGGESTED QUESTIONS</div>
                   <div style={{display:"flex",flexWrap:"wrap"}}>{suggestions.map(q=><span key={q} className="suggested-pill" onClick={()=>send(q)}>{q}</span>)}</div>
                 </>
+              )}
+              {hasHistory && (
+                <div style={{textAlign:"center",marginTop:8}}>
+                  <button onClick={clearChat} style={{background:"none",border:"1px solid #2a2d3e",borderRadius:8,color:"#5a6080",fontSize:12,padding:"5px 14px",cursor:"pointer"}}>Clear chat history</button>
+                </div>
               )}
             </div>
           </div>
@@ -1217,6 +1245,7 @@ COACHING PRINCIPLES:
       const [weekNotes, setWeekNotes] = useState({});
       const [races, setRaces] = useState([]);
       const [feeling, setFeeling] = useState(null);
+      const [coachMessages, setCoachMessages] = useState([]);
       const redirectUri = window.location.origin + window.location.pathname;
 
       useEffect(() => {
@@ -1243,7 +1272,7 @@ COACHING PRINCIPLES:
             }
           }
 
-          const [savedShoes, savedWorkouts, savedSettings, savedToken, savedPlanData, savedWeekNotes, savedRaces, savedFeeling] = await Promise.all([sget("rc_shoes"), sget("rc_workouts"), sget("rc_settings"), sget("rc_fitbit_token"), sget("rc_plan"), sget("rc_week_notes"), sget("rc_races"), sget("rc_feeling")]);
+          const [savedShoes, savedWorkouts, savedSettings, savedToken, savedPlanData, savedWeekNotes, savedRaces, savedFeeling, savedCoachMsgs] = await Promise.all([sget("rc_shoes"), sget("rc_workouts"), sget("rc_settings"), sget("rc_fitbit_token"), sget("rc_plan"), sget("rc_week_notes"), sget("rc_races"), sget("rc_feeling"), sget("rc_coach_messages")]);
           const savedLoc = await sget("rc_weather_location");
           const loc = savedLoc || PRESET_LOCATIONS[0];
           if (savedLoc) setWeatherLocation(savedLoc);
@@ -1255,6 +1284,7 @@ COACHING PRINCIPLES:
           if (savedWeekNotes) setWeekNotes(savedWeekNotes);
           if (savedRaces) setRaces(savedRaces);
           if (savedFeeling) setFeeling(savedFeeling);
+          if (savedCoachMsgs) setCoachMessages(savedCoachMsgs);
 
           const tokenToUse = freshPKCEToken || savedToken;
           if (tokenToUse?.access_token) {
@@ -1362,6 +1392,7 @@ COACHING PRINCIPLES:
         const updated = { ...weekNotes, [weekNum]: notes };
         setWeekNotes(updated); await sset("rc_week_notes", updated);
       }
+      async function saveCoachMessages(msgs) { setCoachMessages(msgs); await sset("rc_coach_messages", msgs); }
       async function addRace(r) { const u=[...races,r]; setRaces(u); await sset("rc_races",u); }
       async function deleteRace(id) { const u=races.filter(r=>r.id!==id); setRaces(u); await sset("rc_races",u); }
       async function saveFeeeling(f) { setFeeling(f); await sset("rc_feeling",f); }
@@ -1409,7 +1440,7 @@ COACHING PRINCIPLES:
             <div className="content">
               {tab==="home" && <Dashboard workouts={workouts} fitbitStats={fitbitStats} onAddWorkout={()=>setShowAddWorkout(true)} feeling={feeling} onSetFeeling={saveFeeeling} />}
               {tab==="plan" && <PlanTab fitbitStats={fitbitStats} apiKey={settings.apiKey} savedPlan={savedPlan} onSavePlan={savePlan} weather={weather} weatherLocation={weatherLocation} onRefreshWeather={()=>fetchWeather(weatherLocation.lat,weatherLocation.lon,weatherLocation.tz).then(wx=>{if(wx)setWeather(wx);})} weekNotes={weekNotes} onSaveWeekNotes={saveWeekNotes} />}
-              {tab==="coach" && <CoachTab fitbitStats={fitbitStats} apiKey={settings.apiKey} races={races} onAddRace={addRace} onDeleteRace={deleteRace} />}
+              {tab==="coach" && <CoachTab fitbitStats={fitbitStats} apiKey={settings.apiKey} races={races} onAddRace={addRace} onDeleteRace={deleteRace} savedMessages={coachMessages} onSaveMessages={saveCoachMessages} />}
               {tab==="log" && <LogTab workouts={workouts} onAddWorkout={()=>setShowAddWorkout(true)} onDeleteWorkout={deleteWorkout} shoes={shoes} />}
               {tab==="shoes" && <ShoesTab shoes={shoes} onSave={saveShoes} />}
               {tab==="settings" && <SettingsTab settings={settings} onSaveSettings={saveSettings} fitbitToken={fitbitToken} fitbitStats={fitbitStats} onFitbitConnect={handleFitbitConnect} onFitbitDisconnect={handleFitbitDisconnect} onFitbitSync={()=>doFitbitSyncInner(fitbitToken?.access_token,settings,workouts)} onClearAndResync={clearAndResync} syncing={syncing} workouts={workouts} onImportWorkouts={importWorkouts} redirectUri={redirectUri} weatherLocation={weatherLocation} setWeatherLocation={setWeatherLocation} setWeather={setWeather} />}
