@@ -240,13 +240,13 @@
       <div id="fc-card" onclick="fcFlip()">
         <div class="fc-face front">
           <span class="fc-badge" id="fc-badge">—</span>
-          <div class="fc-side-lbl">TERM / QUESTION</div>
+          <div class="fc-side-lbl" id="fc-lbl-front">TERM / QUESTION</div>
           <div id="fc-front">Select topics then click Flashcards</div>
           <div class="fc-hint">Click card to flip</div>
         </div>
         <div class="fc-face back">
           <span class="fc-badge" id="fc-badge-b">—</span>
-          <div class="fc-side-lbl">ANSWER</div>
+          <div class="fc-side-lbl" id="fc-lbl-back">ANSWER</div>
           <div id="fc-back"></div>
           <div class="fc-hint">Click to flip back</div>
         </div>
@@ -259,6 +259,7 @@
       <button class="fcb" onclick="fcNav(1)">Next →</button>
       <button class="fcb shuf" onclick="fcShuffle()">⇄ Shuffle</button>
       <button class="fcb" id="fc-filter-btn" onclick="fcToggleFilter()">Show: All</button>
+      <button class="fcb" id="fc-dir-btn" onclick="fcToggleDir()" style="border-color:#9b7ec855;color:#9b7ec8;">▶ Term → Def</button>
       <button class="fcb" onclick="fcReset()">↺ Reset</button>
     </div>
   </div>
@@ -753,7 +754,7 @@ const Q=[
 
 // ════════════════════════ STATE ════════════════════════
 let selectedTopics = new Set();
-let fcDeck=[], fcIdx=0, fcFlipped=false, fcFilter='all', fcKnown=new Set();
+let fcDeck=[], fcIdx=0, fcFlipped=false, fcFilter='all', fcKnown=new Set(), fcDir='fwd';
 let quizQs=[], quizIdx=0, quizScore=0, quizStreak=0, quizTimer=null, quizAnswered=false, quizTimerSec=20;
 let matchSets=[], matchSetIdx=0, matchSelected=null, matchDone=new Set();
 let tfQs=[], tfIdx=0, tfCor=0, tfStr=0, tfAnswered=false;
@@ -855,9 +856,19 @@ function renderFC() {
   const q=deck[fcIdx];
   const topic=TOPICS.find(t=>t.id===q.t[0]);
   const lbl=topic?`L${q.t[0]} — ${topic.label}`:q.t[0];
-  document.getElementById('fc-front').textContent=q.fr;
-  if(q.bkhtml) document.getElementById('fc-back').innerHTML=q.bkhtml;
-  else document.getElementById('fc-back').textContent=q.bk||'';
+  if(fcDir==='fwd'){
+    document.getElementById('fc-lbl-front').textContent='TERM / QUESTION';
+    document.getElementById('fc-lbl-back').textContent='ANSWER';
+    document.getElementById('fc-front').textContent=q.fr;
+    if(q.bkhtml) document.getElementById('fc-back').innerHTML=q.bkhtml;
+    else document.getElementById('fc-back').textContent=q.bk||'';
+  } else {
+    document.getElementById('fc-lbl-front').textContent='DEFINITION / ANSWER';
+    document.getElementById('fc-lbl-back').textContent='TERM / QUESTION';
+    if(q.bkhtml) document.getElementById('fc-front').innerHTML=q.bkhtml;
+    else document.getElementById('fc-front').textContent=q.bk||'';
+    document.getElementById('fc-back').textContent=q.fr;
+  }
   document.getElementById('fc-badge').textContent=lbl;
   document.getElementById('fc-badge-b').textContent=lbl;
   document.getElementById('fc-prog-txt').textContent=`${fcIdx+1} / ${deck.length}`;
@@ -880,7 +891,15 @@ function fcToggleFilter(){
   document.getElementById('fc-filter-btn').textContent=l[(i+1)%3];
   fcIdx=0;renderFC();
 }
-function fcReset(){fcKnown=new Set();fcFilter='all';fcIdx=0;document.getElementById('fc-filter-btn').textContent='Show: All';fcDeck=shuffle(fcDeck);renderFC();}
+function fcToggleDir(){
+  fcDir=fcDir==='fwd'?'rev':'fwd';
+  const btn=document.getElementById('fc-dir-btn');
+  btn.textContent=fcDir==='fwd'?'▶ Term → Def':'▶ Def → Term';
+  btn.style.borderColor=fcDir==='fwd'?'#9b7ec855':'#7eb8f755';
+  btn.style.color=fcDir==='fwd'?'#9b7ec8':'#7eb8f7';
+  fcIdx=0;renderFC();
+}
+function fcReset(){fcKnown=new Set();fcFilter='all';fcIdx=0;fcDir='fwd';document.getElementById('fc-filter-btn').textContent='Show: All';document.getElementById('fc-dir-btn').textContent='▶ Term → Def';document.getElementById('fc-dir-btn').style.borderColor='#9b7ec855';document.getElementById('fc-dir-btn').style.color='#9b7ec8';fcDeck=shuffle(fcDeck);renderFC();}
 
 // ════════════════════════ QUIZ ════════════════════════
 function initQuiz() {
