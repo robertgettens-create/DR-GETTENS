@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>StrideAI v11 — Personal Running Coach</title>
+  <title>StrideAI v12 — Personal Running Coach</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     html, body { margin: 0; padding: 0; background: #0f1117; }
   </style>
@@ -357,6 +359,7 @@ COACHING PRINCIPLES:
       .source-tag { font-size: 10px; padding: 1px 5px; border-radius: 4px; font-weight: 600; }
       .source-fitbit { color: #00b0b9; background: #0a2030; }
       .source-rk { color: #8080f0; background: #101028; }
+      .source-gps { color: #40c070; background: #0a2a1a; }
       .alert { border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 10px; line-height: 1.5; }
       .alert-warn { background: #2a1f10; border: 1px solid #5a3010; color: #c09050; }
       .alert-success { background: #0a2a1a; border: 1px solid #1a5a2a; color: #40c070; }
@@ -722,6 +725,346 @@ COACHING PRINCIPLES:
       );
     }
 
+    // ─── Track Tab ───────────────────────────────────────────────────────────────
+    function TrackTab({ apiKey, fitbitStats, onLogWorkout, shoes }) {
+      // State
+      const [status, setStatus] = useState("idle"); // idle | running | paused | done
+      const [elapsed, setElapsed] = useState(0);       // seconds
+      const [distance, setDistance] = useState(0);     // miles
+      const [positions, setPositions] = useState([]);  // [{lat,lon,ts}]
+      const [splits, setSplits] = useState([]);         // [{mile, pace, time}]
+      const [currentPace, setCurrentPace] = useState(null); // "MM:SS"
+      const [coachMsg, setCoachMsg] = useState("");
+      const [coachLoading, setCoachLoading] = useState(false);
+      const [audioEnabled, setAudioEnabled] = useState(true);
+      const [saved, setSaved] = useState(false);
+
+      const watchRef = useRef(null);
+      const timerRef = useRef(null);
+      const startTimeRef = useRef(null);
+      const pausedElapsedRef = useRef(0);
+      const lastPosRef = useRef(null);
+      const accDistRef = useRef(0);
+      const lastSplitMileRef = useRef(0);
+      const mapRef = useRef(null);
+      const leafletMapRef = useRef(null);
+      const polylineRef = useRef(null);
+      const mapInitRef = useRef(false);
+      const latLngsRef = useRef([]);
+
+      // Haversine distance in miles between two {lat,lon} points
+      function haversine(a, b) {
+        const R = 3958.8;
+        const dLat = (b.lat - a.lat) * Math.PI / 180;
+        const dLon = (b.lon - a.lon) * Math.PI / 180;
+        const s = Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLon/2)**2;
+        return R * 2 * Math.asin(Math.sqrt(s));
+      }
+
+      function fmtTime(s) {
+        const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+        return h>0 ? `${h}:${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}` : `${m}:${String(sec).padStart(2,"0")}`;
+      }
+
+      function fmtPace(miles, secs) {
+        if (miles < 0.05) return null;
+        const secsPerMile = secs / miles;
+        const m = Math.floor(secsPerMile / 60), s = Math.round(secsPerMile % 60);
+        return `${m}:${String(s).padStart(2,"0")}`;
+      }
+
+      function speak(text) {
+        if (!audioEnabled) return;
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 0.95; u.pitch = 1;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(u);
+      }
+
+      // Initialize Leaflet map once the div is in the DOM
+      useEffect(() => {
+        if (status === "idle" || status === "done") return;
+        if (!mapRef.current || mapInitRef.current) return;
+        // Small delay to ensure DOM is ready
+        const t = setTimeout(() => {
+          if (!mapRef.current || mapInitRef.current) return;
+          const map = window.L.map(mapRef.current, { zoomControl: true, attributionControl: false });
+          window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+          polylineRef.current = window.L.polyline([], { color: "#f07030", weight: 4 }).addTo(map);
+          leafletMapRef.current = map;
+          mapInitRef.current = true;
+        }, 300);
+        return () => clearTimeout(t);
+      }, [status]);
+
+      // Cleanup on unmount
+      useEffect(() => {
+        return () => {
+          stopTracking(true);
+          if (leafletMapRef.current) { leafletMapRef.current.remove(); leafletMapRef.current = null; mapInitRef.current = false; }
+        };
+      }, []);
+
+      function stopTracking(silent = false) {
+        if (watchRef.current != null) { navigator.geolocation.clearWatch(watchRef.current); watchRef.current = null; }
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+        if (!silent) {
+          pausedElapsedRef.current = elapsed;
+        }
+      }
+
+      function startRun() {
+        setSaved(false);
+        setStatus("running");
+        setElapsed(0); setDistance(0); setPositions([]); setSplits([]); setCurrentPace(null); setCoachMsg("");
+        accDistRef.current = 0; lastSplitMileRef.current = 0; lastPosRef.current = null; latLngsRef.current = [];
+        pausedElapsedRef.current = 0;
+        startTimeRef.current = Date.now();
+        // Timer
+        timerRef.current = setInterval(() => {
+          const e = Math.floor((Date.now() - startTimeRef.current) / 1000) + pausedElapsedRef.current;
+          setElapsed(e);
+          // Update rolling pace every 5 sec
+          if (accDistRef.current > 0.1) setCurrentPace(fmtPace(accDistRef.current, e));
+        }, 1000);
+        // GPS watch
+        watchRef.current = navigator.geolocation.watchPosition(
+          pos => {
+            const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+            if (accuracy > 30) return; // ignore poor fixes
+            const newPt = { lat, lon, ts: Date.now() };
+            if (lastPosRef.current) {
+              const d = haversine(lastPosRef.current, newPt);
+              if (d > 0.005 && d < 0.5) { // ignore micro-jitter and GPS jumps
+                accDistRef.current += d;
+                setDistance(accDistRef.current);
+              }
+            }
+            lastPosRef.current = newPt;
+            setPositions(prev => [...prev, newPt]);
+            latLngsRef.current = [...latLngsRef.current, [lat, lon]];
+            // Update map
+            if (polylineRef.current && leafletMapRef.current) {
+              polylineRef.current.setLatLngs(latLngsRef.current);
+              leafletMapRef.current.setView([lat, lon], leafletMapRef.current.getZoom() || 16);
+            }
+            // Mile split announcement
+            const completedMile = Math.floor(accDistRef.current);
+            if (completedMile > lastSplitMileRef.current) {
+              const currentElapsed = Math.floor((Date.now() - startTimeRef.current) / 1000) + pausedElapsedRef.current;
+              const pace = fmtPace(accDistRef.current, currentElapsed);
+              const split = { mile: completedMile, pace, time: fmtTime(currentElapsed) };
+              setSplits(prev => [...prev, split]);
+              lastSplitMileRef.current = completedMile;
+              speak(`Mile ${completedMile}. Pace ${pace ? pace.replace(":"," minutes ") + " seconds per mile" : "calculating"}. Total time ${fmtTime(currentElapsed)}.`);
+              // Ask Claude for a coaching tip at miles 2, 4, 6, and at finish
+              if (apiKey && [2,4,6].includes(completedMile)) fetchCoachTip(completedMile, pace, currentElapsed, accDistRef.current);
+            }
+          },
+          err => console.warn("GPS error:", err.message),
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+        speak("Run started. Good luck!");
+      }
+
+      function pauseRun() {
+        stopTracking();
+        pausedElapsedRef.current = elapsed;
+        startTimeRef.current = null;
+        setStatus("paused");
+        speak("Run paused.");
+      }
+
+      function resumeRun() {
+        setStatus("running");
+        startTimeRef.current = Date.now();
+        timerRef.current = setInterval(() => {
+          const e = Math.floor((Date.now() - startTimeRef.current) / 1000) + pausedElapsedRef.current;
+          setElapsed(e);
+          if (accDistRef.current > 0.1) setCurrentPace(fmtPace(accDistRef.current, e));
+        }, 1000);
+        watchRef.current = navigator.geolocation.watchPosition(
+          pos => {
+            const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+            if (accuracy > 30) return;
+            const newPt = { lat, lon, ts: Date.now() };
+            if (lastPosRef.current) {
+              const d = haversine(lastPosRef.current, newPt);
+              if (d > 0.005 && d < 0.5) { accDistRef.current += d; setDistance(accDistRef.current); }
+            }
+            lastPosRef.current = newPt;
+            latLngsRef.current = [...latLngsRef.current, [lat, lon]];
+            if (polylineRef.current && leafletMapRef.current) {
+              polylineRef.current.setLatLngs(latLngsRef.current);
+              leafletMapRef.current.setView([lat, lon], leafletMapRef.current.getZoom() || 16);
+            }
+          },
+          err => console.warn("GPS error:", err),
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+        speak("Run resumed.");
+      }
+
+      function finishRun() {
+        stopTracking();
+        setStatus("done");
+        const finalPace = fmtPace(accDistRef.current, elapsed);
+        speak(`Run complete! ${accDistRef.current.toFixed(2)} miles in ${fmtTime(elapsed)}. ${finalPace ? "Average pace " + finalPace.replace(":"," minutes ") + " seconds per mile." : ""} Great job!`);
+        if (apiKey) fetchCoachTip("finish", finalPace, elapsed, accDistRef.current);
+      }
+
+      async function fetchCoachTip(milestone, pace, elapsedSec, dist) {
+        setCoachLoading(true);
+        const fb = fitbitStats;
+        const ctx = fb ? `Runner's recent avg pace: ${fb.avgPace||"unknown"}, resting HR ${fb.restingHR||"unknown"} bpm.` : "";
+        const prompt = milestone === "finish"
+          ? `The runner just finished a ${dist.toFixed(2)}-mile run in ${fmtTime(elapsedSec)} (pace: ${pace||"unknown"}/mi). ${ctx} Give a brief (2-3 sentence) encouraging post-run message and one recovery tip.`
+          : `A 54-year-old runner just passed mile ${milestone} of their run. Current pace: ${pace||"unknown"}/mi, elapsed: ${fmtTime(elapsedSec)}, distance: ${dist.toFixed(2)} miles. ${ctx} Give a brief (1-2 sentence) motivational coaching cue for this point in the run.`;
+        try {
+          const reply = await callClaude([{ role:"user", content: prompt }], apiKey, fitbitStats, null, null);
+          setCoachMsg(reply);
+          if (audioEnabled) speak(reply);
+        } catch(e) { console.warn("Coach tip failed:", e); }
+        setCoachLoading(false);
+      }
+
+      function saveRun() {
+        const today = new Date().toISOString().split("T")[0];
+        onLogWorkout({
+          id: Date.now(),
+          type: "Run",
+          date: today,
+          distance: parseFloat(accDistRef.current.toFixed(2)),
+          duration: Math.round(elapsed / 60),
+          notes: `GPS tracked run. Avg pace: ${fmtPace(accDistRef.current, elapsed) || "N/A"}/mi. ${splits.length} mile splits.`,
+          source: "gps",
+        });
+        setSaved(true);
+        speak("Run saved to your log.");
+      }
+
+      const activeShoe = shoes?.find(s => s.active);
+
+      return (
+        <div className="section">
+          <div className="section-header">
+            <div className="section-title">Run Tracker</div>
+            <button onClick={()=>setAudioEnabled(v=>!v)} style={{background:"none",border:"1px solid #2a2d3e",borderRadius:8,padding:"3px 10px",fontSize:12,color:audioEnabled?"#40c070":"#5a6080",cursor:"pointer"}}>
+              {audioEnabled ? "🔊 Audio On" : "🔇 Audio Off"}
+            </button>
+          </div>
+
+          {status === "idle" && (
+            <>
+              <div className="tip-card">
+                GPS tracks your route, pace, and distance. Audio announcements at each mile. Your coach checks in at miles 2, 4, and 6.
+                {activeShoe && <div style={{marginTop:6,color:"#40c070",fontSize:12}}>⭐ Active shoe: <strong>{activeShoe.name}</strong> — miles will auto-count.</div>}
+                {!activeShoe && <div style={{marginTop:6,color:"#c07820",fontSize:12}}>Tip: set an Active shoe in 👟 Shoes to auto-track mileage.</div>}
+              </div>
+              <div className="alert alert-info" style={{fontSize:12}}>When prompted, allow location access. Keep screen on during your run. Works best on iPhone/Android with GPS.</div>
+              <button className="btn btn-primary" style={{fontSize:20,padding:"16px",letterSpacing:1}} onClick={startRun}>▶ Start Run</button>
+            </>
+          )}
+
+          {(status === "running" || status === "paused") && (
+            <>
+              {/* Big live stats */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                <div className="card" style={{textAlign:"center",padding:"16px 8px"}}>
+                  <div style={{fontSize:11,color:"#5a6080",marginBottom:4}}>DISTANCE</div>
+                  <div style={{fontSize:36,fontWeight:700,color:"#f07030"}}>{distance.toFixed(2)}</div>
+                  <div style={{fontSize:12,color:"#a0a8c0"}}>miles</div>
+                </div>
+                <div className="card" style={{textAlign:"center",padding:"16px 8px"}}>
+                  <div style={{fontSize:11,color:"#5a6080",marginBottom:4}}>TIME</div>
+                  <div style={{fontSize:36,fontWeight:700,color:"#f0ede8"}}>{fmtTime(elapsed)}</div>
+                </div>
+                <div className="card" style={{textAlign:"center",padding:"16px 8px"}}>
+                  <div style={{fontSize:11,color:"#5a6080",marginBottom:4}}>CURRENT PACE</div>
+                  <div style={{fontSize:28,fontWeight:700,color:"#60a0ff"}}>{currentPace || "—"}</div>
+                  <div style={{fontSize:12,color:"#a0a8c0"}}>min/mi</div>
+                </div>
+                <div className="card" style={{textAlign:"center",padding:"16px 8px"}}>
+                  <div style={{fontSize:11,color:"#5a6080",marginBottom:4}}>SPLITS</div>
+                  <div style={{fontSize:28,fontWeight:700,color:"#40c070"}}>{splits.length}</div>
+                  <div style={{fontSize:12,color:"#a0a8c0"}}>miles done</div>
+                </div>
+              </div>
+
+              {/* Map */}
+              <div ref={mapRef} style={{height:220,borderRadius:12,overflow:"hidden",marginBottom:12,background:"#1a1d2a",border:"1px solid #2a2d3e"}} />
+
+              {/* Controls */}
+              <div style={{display:"flex",gap:10,marginBottom:12}}>
+                {status === "running"
+                  ? <button className="btn btn-secondary" style={{flex:1,padding:"14px",fontSize:16}} onClick={pauseRun}>⏸ Pause</button>
+                  : <button className="btn btn-primary" style={{flex:1,padding:"14px",fontSize:16}} onClick={resumeRun}>▶ Resume</button>
+                }
+                <button onClick={finishRun} style={{flex:1,padding:"14px",fontSize:16,background:"#c03020",border:"none",borderRadius:12,color:"white",cursor:"pointer",fontWeight:700}}>⏹ Finish</button>
+              </div>
+
+              {/* Coach message */}
+              {(coachMsg || coachLoading) && (
+                <div className="card" style={{borderLeft:"3px solid #f07030"}}>
+                  <div style={{fontSize:11,color:"#5a6080",marginBottom:4}}>YOUR COACH</div>
+                  {coachLoading ? <div style={{color:"#5a6080",fontSize:13}}>Getting coaching tip...</div> : <div style={{fontSize:14,color:"#f0ede8",lineHeight:1.6}}>{coachMsg}</div>}
+                </div>
+              )}
+
+              {/* Mile splits */}
+              {splits.length > 0 && (
+                <div className="card">
+                  <div className="card-title">Mile Splits</div>
+                  {splits.map(s => (
+                    <div key={s.mile} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #1e2030",fontSize:13}}>
+                      <span style={{color:"#5a6080"}}>Mile {s.mile}</span>
+                      <span style={{color:"#f07030",fontWeight:600}}>{s.pace}/mi</span>
+                      <span style={{color:"#a0a8c0"}}>{s.time}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {status === "done" && (
+            <>
+              <div className="card" style={{textAlign:"center",padding:"20px"}}>
+                <div style={{fontSize:28,marginBottom:8}}>🎉</div>
+                <div style={{fontSize:22,fontWeight:700,color:"#f07030",marginBottom:4}}>Run Complete!</div>
+                <div style={{fontSize:32,fontWeight:700,color:"#f0ede8",marginBottom:4}}>{distance.toFixed(2)} mi</div>
+                <div style={{fontSize:18,color:"#a0a8c0",marginBottom:4}}>{fmtTime(elapsed)}</div>
+                <div style={{fontSize:18,color:"#60a0ff"}}>{fmtPace(distance, elapsed) || "—"} /mi avg pace</div>
+              </div>
+              {coachMsg && (
+                <div className="card" style={{borderLeft:"3px solid #f07030"}}>
+                  <div style={{fontSize:11,color:"#5a6080",marginBottom:4}}>POST-RUN COACH</div>
+                  <div style={{fontSize:14,color:"#f0ede8",lineHeight:1.6}}>{coachMsg}</div>
+                </div>
+              )}
+              {splits.length > 0 && (
+                <div className="card">
+                  <div className="card-title">Mile Splits</div>
+                  {splits.map(s => (
+                    <div key={s.mile} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #1e2030",fontSize:13}}>
+                      <span style={{color:"#5a6080"}}>Mile {s.mile}</span>
+                      <span style={{color:"#f07030",fontWeight:600}}>{s.pace}/mi</span>
+                      <span style={{color:"#a0a8c0"}}>{s.time}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!saved
+                ? <button className="btn btn-primary" style={{marginBottom:8}} onClick={saveRun}>Save Run to Log</button>
+                : <div className="alert alert-success">✓ Saved to your activity log{activeShoe ? ` and added to ${activeShoe.name}` : ""}.</div>
+              }
+              <button className="btn btn-secondary" onClick={()=>{setStatus("idle");setElapsed(0);setDistance(0);setPositions([]);setSplits([]);setCurrentPace(null);setCoachMsg("");setSaved(false);accDistRef.current=0;lastSplitMileRef.current=0;lastPosRef.current=null;latLngsRef.current=[];if(leafletMapRef.current){leafletMapRef.current.remove();leafletMapRef.current=null;mapInitRef.current=false;polylineRef.current=null;};}}>Start New Run</button>
+            </>
+          )}
+        </div>
+      );
+    }
+
     // ─── Log Tab ──────────────────────────────────────────────────────────────────
     function LogTab({ workouts, onAddWorkout, onDeleteWorkout, shoes }) {
       const [filter, setFilter] = useState("All");
@@ -743,7 +1086,7 @@ COACHING PRINCIPLES:
               <div className="workout-item" key={w.id} style={{position:"relative"}}>
                 <div className="workout-icon">{WORKOUT_ICONS[w.type] || "⚡"}</div>
                 <div className="workout-info">
-                  <div className="workout-type">{w.type}{w.source==="fitbit"&&<span className="source-tag source-fitbit">Fitbit</span>}{w.source==="runkeeper"&&<span className="source-tag source-rk">RK</span>}</div>
+                  <div className="workout-type">{w.type}{w.source==="fitbit"&&<span className="source-tag source-fitbit">Fitbit</span>}{w.source==="runkeeper"&&<span className="source-tag source-rk">RK</span>}{w.source==="gps"&&<span className="source-tag source-gps">GPS</span>}</div>
                   <div className="workout-meta">{new Date(w.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} {w.duration?`· ${Math.round(w.duration)} min`:""} {w.shoeId&&shoes?.find(s=>s.id==w.shoeId)?`· 👟 ${shoes.find(s=>s.id==w.shoeId).name}`:""}{w.effort && <span style={{fontSize:11, color:["","#40c070","#80c040","#c0a020","#c05010","#c02020"][w.effort], fontWeight:600}}> · RPE {w.effort}</span>} {w.notes?`· ${w.notes}`:""}</div>
                 </div>
                 {w.distance && <div className="workout-dist">{typeof w.distance==="number"?w.distance.toFixed(1):w.distance}mi</div>}
@@ -1415,6 +1758,7 @@ COACHING PRINCIPLES:
         { id: "home", icon: "🏠", label: "Home" },
         { id: "plan", icon: "📋", label: "Plan" },
         { id: "coach", icon: "💬", label: "Coach" },
+        { id: "track", icon: "▶️", label: "Track" },
         { id: "log", icon: "📊", label: "Log" },
         { id: "shoes", icon: "👟", label: "Shoes" },
         { id: "settings", icon: "⚙️", label: "Settings" },
@@ -1428,7 +1772,7 @@ COACHING PRINCIPLES:
           <div className="app">
             <div className="header">
               <div className="header-top">
-                <div className="logo">Stride<span>AI</span> <span style={{fontSize:10,color:"#5a6080",fontWeight:400}}>v8</span></div>
+                <div className="logo">Stride<span>AI</span> <span style={{fontSize:10,color:"#5a6080",fontWeight:400}}>v12</span></div>
                 <div style={{display:"flex",gap:8,alignItems:"center"}}>
                   {syncing && <div className="spinner" style={{width:16,height:16}} />}
                   {fitbitToken && !syncing && <span style={{fontSize:11,color:"#00b0b9",cursor:"pointer",fontWeight:600}} onClick={()=>doFitbitSyncInner(fitbitToken.access_token,settings,workouts)}>↻ Fitbit</span>}
@@ -1441,6 +1785,7 @@ COACHING PRINCIPLES:
               {tab==="home" && <Dashboard workouts={workouts} fitbitStats={fitbitStats} onAddWorkout={()=>setShowAddWorkout(true)} feeling={feeling} onSetFeeling={saveFeeeling} />}
               {tab==="plan" && <PlanTab fitbitStats={fitbitStats} apiKey={settings.apiKey} savedPlan={savedPlan} onSavePlan={savePlan} weather={weather} weatherLocation={weatherLocation} onRefreshWeather={()=>fetchWeather(weatherLocation.lat,weatherLocation.lon,weatherLocation.tz).then(wx=>{if(wx)setWeather(wx);})} weekNotes={weekNotes} onSaveWeekNotes={saveWeekNotes} />}
               {tab==="coach" && <CoachTab fitbitStats={fitbitStats} apiKey={settings.apiKey} races={races} onAddRace={addRace} onDeleteRace={deleteRace} savedMessages={coachMessages} onSaveMessages={saveCoachMessages} />}
+              {tab==="track" && <TrackTab apiKey={settings.apiKey} fitbitStats={fitbitStats} onLogWorkout={addWorkout} shoes={shoes} />}
               {tab==="log" && <LogTab workouts={workouts} onAddWorkout={()=>setShowAddWorkout(true)} onDeleteWorkout={deleteWorkout} shoes={shoes} />}
               {tab==="shoes" && <ShoesTab shoes={shoes} onSave={saveShoes} />}
               {tab==="settings" && <SettingsTab settings={settings} onSaveSettings={saveSettings} fitbitToken={fitbitToken} fitbitStats={fitbitStats} onFitbitConnect={handleFitbitConnect} onFitbitDisconnect={handleFitbitDisconnect} onFitbitSync={()=>doFitbitSyncInner(fitbitToken?.access_token,settings,workouts)} onClearAndResync={clearAndResync} syncing={syncing} workouts={workouts} onImportWorkouts={importWorkouts} redirectUri={redirectUri} weatherLocation={weatherLocation} setWeatherLocation={setWeatherLocation} setWeather={setWeather} />}
