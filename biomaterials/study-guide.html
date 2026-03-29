@@ -1630,7 +1630,7 @@ function renderProjector() {
   document.getElementById('proj-qnum').textContent=`Q ${projIdx+1}/${projQs.length}`;
   for(let i=0;i<4;i++){
     const el=document.getElementById('po'+i);
-    el.className=el.className.replace(/\s*(hide-txt|revealed)/g,'')+' hide-txt';
+    el.className=el.className.replace(/\s*(hide-txt|revealed)/g,'');
     document.getElementById('pt'+i).textContent=q.opts[i]||'';
   }
   startProjTimer();
