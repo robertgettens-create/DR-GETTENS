@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BME 240 — Study Guide</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Segoe UI',Tahoma,sans-serif;background:#12131a;color:#dde1f0;display:flex;height:100vh;overflow:hidden;}
+
+    /* ── SIDEBAR ── */
+    #sidebar{width:272px;min-width:272px;background:#1a1d2e;border-right:1px solid #2a2d45;display:flex;flex-direction:column;padding:16px 14px;overflow-y:auto;gap:0;}
+    #sidebar h1{font-size:.95rem;font-weight:700;color:#7eb8f7;text-transform:uppercase;letter-spacing:2px;border-bottom:1px solid #2a2d45;padding-bottom:10px;margin-bottom:4px;}
+    #sidebar h1 span{display:block;font-size:.6rem;color:#5a6080;font-weight:400;letter-spacing:1px;margin-top:3px;}
+    .s-label{font-size:.6rem;font-weight:700;color:#5a6080;text-transform:uppercase;letter-spacing:1.5px;margin:13px 0 6px;}
+    .s-label .badge{float:right;background:#2a2d45;border-radius:10px;padding:1px 7px;font-size:.62rem;color:#7eb8f7;}
+
+    /* presets */
+    .preset-row{display:flex;gap:5px;}
+    .preset-btn{flex:1;padding:6px 2px;background:#22253a;border:1px solid #2a2d45;color:#8a9ab5;border-radius:6px;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;}
+    .preset-btn:hover{border-color:#7eb8f7;color:#7eb8f7;}
+    .preset-btn.active{background:#1e3a5f;border-color:#7eb8f7;color:#7eb8f7;}
+
+    /* topics — tab style */
+    #topic-list{display:flex;flex-direction:column;gap:2px;max-height:230px;overflow-y:auto;margin-bottom:2px;}
+    .trow{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:6px;cursor:pointer;transition:all .12s;border:1px solid transparent;}
+    .trow:hover{background:#22253a;border-color:#2a2d45;}
+    .trow.sel{background:#1a2d48;border-color:#7eb8f755;}
+    .tnum-badge{font-size:.62rem;font-weight:800;color:#3a4a60;background:#1e2135;border:1px solid #2a2d45;border-radius:4px;padding:1px 5px;white-space:nowrap;flex-shrink:0;min-width:26px;text-align:center;transition:all .12s;}
+    .trow.sel .tnum-badge{color:#7eb8f7;border-color:#7eb8f755;background:#1e3558;}
+    .tlbl{font-size:.71rem;color:#6a7a95;line-height:1.3;transition:color .12s;}
+    .trow.sel .tlbl{color:#c8daf0;}
+
+    /* mode buttons */
+    .mode-grid{display:flex;flex-direction:column;gap:4px;}
+    .mode-btn{width:100%;padding:8px 10px;background:#22253a;border:1px solid #2a2d45;color:#8a9ab5;border-radius:7px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;text-align:left;display:flex;align-items:center;gap:8px;}
+    .mode-btn:hover{border-color:#7eb8f7;color:#c8d8f0;}
+    .mode-btn.active{background:#1e3a5f;border-color:#7eb8f7;color:#7eb8f7;}
+    .mode-btn.proj-btn{border-color:#e8c87a33;color:#9a8040;}
+    .mode-btn.proj-btn:hover{border-color:#e8c87a;color:#e8c87a;}
+    .mode-btn.proj-btn.active{background:#2a2310;border-color:#e8c87a;color:#e8c87a;}
+
+    /* stats */
+    #stats-box{background:#22253a;border-radius:8px;padding:9px 11px;display:flex;flex-direction:column;gap:5px;margin-top:4px;}
+    .stat-row{display:flex;justify-content:space-between;}
+    .stat-lbl{font-size:.68rem;color:#5a6080;}
+    .stat-val{font-size:.78rem;font-weight:700;color:#7eb8f7;}
+
+    /* ── MAIN ── */
+    #main{flex:1;overflow:hidden;display:flex;flex-direction:column;position:relative;}
+    .screen{display:none;width:100%;height:100%;flex-direction:column;align-items:center;justify-content:center;}
+    .screen.visible{display:flex;}
+
+    /* ── WELCOME ── */
+    #welcome-inner{text-align:center;padding:36px 40px;max-width:620px;}
+    #welcome-inner h2{font-size:1.9rem;color:#7eb8f7;margin-bottom:10px;}
+    #welcome-inner p{font-size:.95rem;color:#7a8aaa;line-height:1.6;margin-bottom:22px;}
+    .wgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px;text-align:left;}
+    .wcard{background:#1a1d2e;border:1px solid #2a2d45;border-radius:10px;padding:14px 16px;}
+    .wcard h4{color:#7eb8f7;margin-bottom:5px;font-size:.85rem;}
+    .wcard p{color:#5a6a8a;font-size:.76rem;line-height:1.5;}
+
+    /* ── FLASHCARDS ── */
+    #screen-flashcard{padding:22px;gap:14px;}
+    #fc-prog-row{width:100%;max-width:680px;display:flex;align-items:center;gap:12px;}
+    #fc-prog-wrap{flex:1;height:6px;background:#2a2d45;border-radius:3px;overflow:hidden;}
+    #fc-prog-bar{height:100%;width:0%;background:linear-gradient(90deg,#7eb8f7,#4a9de0);border-radius:3px;transition:width .3s;}
+    #fc-prog-txt{font-size:.75rem;color:#5a6080;white-space:nowrap;}
+    #fc-wrap{width:100%;max-width:680px;perspective:1000px;}
+    #fc-card{width:100%;min-height:270px;position:relative;cursor:pointer;transition:transform .5s;transform-style:preserve-3d;}
+    #fc-card.flipped{transform:rotateY(180deg);}
+    .fc-face{position:absolute;top:0;left:0;width:100%;height:100%;min-height:270px;backface-visibility:hidden;background:#1a1d2e;border:1px solid #2a2d45;border-radius:14px;padding:28px 32px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+    .fc-face.back{transform:rotateY(180deg);background:#1c2035;}
+    .fc-badge{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4a5a70;border:1px solid #2a2d45;border-radius:20px;padding:2px 10px;margin-bottom:14px;}
+    .fc-side-lbl{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#3a5070;margin-bottom:10px;}
+    .fc-face.back .fc-side-lbl{color:#3a6a5a;}
+    #fc-front{font-size:1.25rem;font-weight:600;color:#dde1f0;line-height:1.5;}
+    #fc-back{font-size:.95rem;color:#b8cce8;line-height:1.65;white-space:pre-line;}
+    .fc-hint{font-size:.68rem;color:#2a3a50;margin-top:14px;}
+    #fc-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;width:100%;max-width:680px;}
+    .fcb{padding:7px 16px;border-radius:7px;border:1px solid #2a2d45;background:#22253a;color:#8a9ab5;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;}
+    .fcb:hover{border-color:#7eb8f7;color:#dde1f0;}
+    .fcb.know{border-color:#4caf5055;color:#4caf50;}
+    .fcb.know:hover{background:#182818;border-color:#4caf50;}
+    .fcb.still{border-color:#f4433655;color:#f44336;}
+    .fcb.still:hover{background:#2a1818;border-color:#f44336;}
+    .fcb.shuf{border-color:#e8c87a44;color:#b09050;}
+
+    /* ── QUIZ ── */
+    #screen-quiz{flex-direction:column;align-items:stretch;justify-content:flex-start;}
+    #quiz-hdr{width:100%;padding:14px 26px;background:#1a1d2e;border-bottom:1px solid #2a2d45;display:flex;align-items:center;gap:14px;flex-shrink:0;}
+    #quiz-timer-wrap{flex:1;height:8px;background:#2a2d45;border-radius:4px;overflow:hidden;}
+    #quiz-timer-bar{height:100%;width:100%;background:linear-gradient(90deg,#4caf50,#e8c87a,#f44336);border-radius:4px;transition:width .1s linear;}
+    #quiz-qnum{font-size:.78rem;color:#5a6080;white-space:nowrap;}
+    #quiz-score{font-size:.82rem;font-weight:700;color:#e8c87a;white-space:nowrap;}
+    #quiz-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:22px;}
+    #quiz-qtxt{font-size:1.2rem;font-weight:600;color:#dde1f0;text-align:center;max-width:740px;line-height:1.5;}
+    #quiz-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:740px;}
+    .qopt{padding:18px 20px;border-radius:10px;font-size:.95rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:11px;border:2px solid transparent;transition:all .15s;}
+    .qopt:hover:not(.off){filter:brightness(1.1);transform:scale(1.02);}
+    .qopt.off{cursor:default;}
+    .qopt-ltr{width:30px;height:30px;border-radius:5px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.88rem;flex-shrink:0;}
+    .qopt.qa{background:#c0392b;color:#fff;}.qopt.qb{background:#2980b9;color:#fff;}
+    .qopt.qc{background:#c07b00;color:#fff;}.qopt.qd{background:#27ae60;color:#fff;}
+    .qopt.correct{box-shadow:0 0 0 3px #fff;transform:scale(1.03);}
+    .qopt.wrong{opacity:.3;}
+    .qopt.show-correct{box-shadow:0 0 0 3px #fff;}
+    #quiz-exp{max-width:740px;text-align:center;font-size:.84rem;color:#7ab0d8;line-height:1.6;padding:11px 18px;background:#1a1d2e;border-radius:8px;border-left:3px solid #7eb8f7;display:none;}
+    #quiz-end{display:none;flex-direction:column;align-items:center;gap:16px;text-align:center;}
+    #quiz-end h2{font-size:1.8rem;color:#7eb8f7;}
+    .score-big{font-size:3.2rem;font-weight:800;color:#e8c87a;}
+
+    /* ── MATCHING ── */
+    #screen-matching{padding:22px;gap:18px;}
+    #match-hdr{font-size:.82rem;color:#5a6080;}
+    #match-hdr span{color:#7eb8f7;font-weight:700;}
+    #match-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;width:100%;max-width:780px;}
+    .mitem{padding:13px 15px;background:#1a1d2e;border:2px solid #2a2d45;border-radius:8px;cursor:pointer;font-size:.84rem;color:#c0d0e8;transition:all .15s;line-height:1.4;text-align:center;}
+    .mitem:hover{border-color:#7eb8f7aa;}
+    .mitem .mcol{font-size:.56rem;text-transform:uppercase;letter-spacing:1px;color:#3a4a5a;display:block;margin-bottom:3px;}
+    .mitem.sel{border-color:#7eb8f7;background:#1a2e48;color:#fff;}
+    .mitem.done{border-color:#4caf5033;background:#182818;color:#4caf5099;cursor:default;opacity:.55;}
+    .mitem.bad{border-color:#f44336;background:#2a1818;animation:shake .3s;}
+    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+    #match-done{display:none;flex-direction:column;align-items:center;gap:14px;text-align:center;}
+    #match-done h3{font-size:1.4rem;color:#4caf50;}
+
+    /* ── TRUE/FALSE ── */
+    #screen-tf{padding:24px;gap:20px;}
+    #tf-stats{display:flex;gap:22px;font-size:.82rem;}
+    #tf-stats span{color:#5a6080;}
+    #tf-stats strong{color:#7eb8f7;}
+    #tf-stmt{max-width:660px;text-align:center;font-size:1.25rem;font-weight:600;color:#dde1f0;line-height:1.5;}
+    #tf-btns{display:flex;gap:18px;}
+    .tfb{padding:16px 44px;font-size:1.05rem;font-weight:700;border-radius:10px;cursor:pointer;border:2px solid transparent;transition:all .15s;}
+    .tfb:hover{transform:scale(1.04);}
+    .tfb.tft{background:#27ae60;color:#fff;}
+    .tfb.tff{background:#e74c3c;color:#fff;}
+    .tfb.correct{box-shadow:0 0 0 4px #fff;}
+    .tfb.wrong{opacity:.3;}
+    #tf-exp{max-width:620px;font-size:.84rem;color:#7ab0d8;line-height:1.6;background:#1a1d2e;padding:12px 16px;border-radius:8px;border-left:3px solid #7eb8f7;text-align:center;display:none;}
+
+    /* ── PROJECTOR ── */
+    #projector{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#090a0f;z-index:1000;display:none;flex-direction:column;align-items:center;}
+    #projector.on{display:flex;}
+    #proj-top{width:100%;padding:14px 26px;background:#111218;display:flex;align-items:center;gap:16px;}
+    #proj-timer-wrap{flex:1;height:10px;background:#222;border-radius:5px;overflow:hidden;}
+    #proj-timer-bar{height:100%;width:100%;background:linear-gradient(90deg,#4caf50,#e8c87a,#f44336);}
+    #proj-tnum{font-size:1.4rem;font-weight:800;color:#e8c87a;min-width:28px;text-align:center;}
+    #proj-qnum{font-size:.85rem;color:#4a5a70;}
+    #proj-reveal{padding:10px 26px;background:#e8c87a;color:#120f00;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;margin-left:auto;margin-right:10px;}
+    #proj-reveal:hover{background:#f0d88a;}
+    #proj-close{background:none;border:1px solid #333;color:#555;padding:5px 11px;border-radius:5px;cursor:pointer;font-size:.78rem;}
+    #proj-close:hover{color:#f44336;border-color:#f44336;}
+    #proj-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 48px;gap:30px;width:100%;}
+    #proj-qtxt{font-size:clamp(1.3rem,2.8vw,2.1rem);font-weight:700;color:#fff;text-align:center;max-width:860px;line-height:1.4;}
+    #proj-opts{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:860px;}
+    .popt{padding:20px 26px;border-radius:11px;font-size:clamp(.95rem,1.8vw,1.25rem);font-weight:600;color:#fff;display:flex;align-items:center;gap:14px;transition:all .2s;}
+    .popt-ltr{width:42px;height:42px;border-radius:7px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;flex-shrink:0;}
+    .popt.pa{background:#c0392b;}.popt.pb{background:#2980b9;}
+    .popt.pc{background:#c07b00;}.popt.pd{background:#27ae60;}
+    .popt.hide-txt .popt-txt{visibility:hidden;}
+    .popt.revealed{box-shadow:0 0 0 4px #fff;}
+    #proj-nav{display:flex;gap:10px;padding-bottom:18px;}
+    .pnavb{padding:9px 22px;background:#1a1d2e;border:1px solid #2a2d45;color:#8a9ab5;border-radius:7px;font-size:.85rem;cursor:pointer;}
+    .pnavb:hover{border-color:#7eb8f7;color:#7eb8f7;}
+
+    /* confetti */
+    .cpiece{position:fixed;width:8px;height:8px;border-radius:2px;animation:cfall 1.3s ease-in forwards;pointer-events:none;z-index:9999;}
+    @keyframes cfall{0%{opacity:1;transform:translateY(-10px) rotate(0)}100%{opacity:0;transform:translateY(320px) rotate(400deg)}}
+
+    /* shared btn */
+    .gbtn{padding:8px 20px;border-radius:8px;border:1px solid #2a2d45;background:#22253a;color:#8a9ab5;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;}
+    .gbtn:hover{border-color:#7eb8f7;color:#dde1f0;}
+
+    ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:#12131a;}::-webkit-scrollbar-thumb{background:#2a2d45;border-radius:3px;}
+    @media(max-width:680px){#quiz-opts,#proj-opts{grid-template-columns:1fr;}#sidebar{width:220px;min-width:220px;}}
+  </style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══ -->
+<div id="sidebar">
+  <h1>BME 240 <span>Study Guide</span></h1>
+
+  <div class="s-label">LECTURE TOPICS <span class="badge" id="tbadge">0/15</span></div>
+  <div id="topic-list"></div>
+
+  <div class="s-label">QUICK SELECT</div>
+  <div class="preset-row">
+    <button class="preset-btn" data-p="m1" onclick="applyPreset('m1')">Midterm 1</button>
+    <button class="preset-btn" data-p="m2" onclick="applyPreset('m2')">Midterm 2</button>
+    <button class="preset-btn" data-p="fin" onclick="applyPreset('fin')">Final</button>
+  </div>
+
+  <div class="s-label">MODE</div>
+  <div class="mode-grid">
+    <button class="mode-btn active" data-m="welcome" onclick="setMode('welcome')"><span>🏠</span> Home</button>
+    <button class="mode-btn" data-m="flashcard" onclick="setMode('flashcard')"><span>🃏</span> Flashcards</button>
+    <button class="mode-btn" data-m="quiz" onclick="setMode('quiz')"><span>⚡</span> Quiz (Kahoot Style)</button>
+    <button class="mode-btn" data-m="matching" onclick="setMode('matching')"><span>🔗</span> Matching</button>
+    <button class="mode-btn" data-m="tf" onclick="setMode('tf')"><span>✓✗</span> True / False</button>
+    <button class="mode-btn proj-btn" data-m="projector" onclick="openProj()"><span>📽</span> Class Mode</button>
+  </div>
+
+  <div class="s-label">SESSION</div>
+  <div id="stats-box">
+    <div class="stat-row"><span class="stat-lbl">Flashcards</span><span class="stat-val" id="sfc">—</span></div>
+    <div class="stat-row"><span class="stat-lbl">Quiz (MC)</span><span class="stat-val" id="smc">—</span></div>
+    <div class="stat-row"><span class="stat-lbl">True/False</span><span class="stat-val" id="stf">—</span></div>
+    <div class="stat-row"><span class="stat-lbl">Matching pairs</span><span class="stat-val" id="smt">—</span></div>
+  </div>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<div id="main">
+
+  <!-- WELCOME -->
+  <div class="screen visible" id="screen-welcome">
+    <div id="welcome-inner">
+      <h2>BME 240 Study Guide</h2>
+      <p>Pick a preset (<strong style="color:#7eb8f7">Midterm 1</strong>, <strong style="color:#7eb8f7">Midterm 2</strong>, or <strong style="color:#7eb8f7">Final</strong>), or manually select topics, then choose a study mode.</p>
+      <div class="wgrid">
+        <div class="wcard"><h4>🃏 Flashcards</h4><p>Flip cards to review terms & answers. Mark Know It / Still Learning and filter your deck.</p></div>
+        <div class="wcard"><h4>⚡ Quiz</h4><p>Timed Kahoot-style MC — colored tiles, countdown bar, streak bonus, and confetti.</p></div>
+        <div class="wcard"><h4>🔗 Matching</h4><p>Click a term, then its definition. Clear all pairs to advance to the next set.</p></div>
+        <div class="wcard"><h4>✓✗ True / False</h4><p>Fast-fire T/F with streak counter and answer explanations.</p></div>
+        <div class="wcard" style="grid-column:1/-1"><h4>📽 Class Mode</h4><p>Full-screen projector view. Shows question + colored tiles (answers hidden). Click <em>Show Answer</em> to reveal. Use ← → keys or buttons to navigate. Press Space to reveal, Esc to exit.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLASHCARDS -->
+  <div class="screen" id="screen-flashcard">
+    <div id="fc-prog-row">
+      <div id="fc-prog-wrap"><div id="fc-prog-bar"></div></div>
+      <span id="fc-prog-txt">0 / 0</span>
+    </div>
+    <div id="fc-wrap">
+      <div id="fc-card" onclick="fcFlip()">
+        <div class="fc-face front">
+          <span class="fc-badge" id="fc-badge">—</span>
+          <div class="fc-side-lbl">TERM / QUESTION</div>
+          <div id="fc-front">Select topics then click Flashcards</div>
+          <div class="fc-hint">Click card to flip</div>
+        </div>
+        <div class="fc-face back">
+          <span class="fc-badge" id="fc-badge-b">—</span>
+          <div class="fc-side-lbl">ANSWER</div>
+          <div id="fc-back"></div>
+          <div class="fc-hint">Click to flip back</div>
+        </div>
+      </div>
+    </div>
+    <div id="fc-controls">
+      <button class="fcb" onclick="fcNav(-1)">← Prev</button>
+      <button class="fcb still" onclick="fcMark(false)">Still Learning</button>
+      <button class="fcb know" onclick="fcMark(true)">Know It ✓</button>
+      <button class="fcb" onclick="fcNav(1)">Next →</button>
+      <button class="fcb shuf" onclick="fcShuffle()">⇄ Shuffle</button>
+      <button class="fcb" id="fc-filter-btn" onclick="fcToggleFilter()">Show: All</button>
+      <button class="fcb" onclick="fcReset()">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="screen" id="screen-quiz" style="flex-direction:column;align-items:stretch;justify-content:flex-start;">
+    <div id="quiz-hdr">
+      <div id="quiz-timer-wrap"><div id="quiz-timer-bar"></div></div>
+      <span id="quiz-qnum">Q 1/1</span>
+      <span id="quiz-score">Score: 0</span>
+    </div>
+    <div id="quiz-body">
+      <div id="quiz-qtxt"></div>
+      <div id="quiz-opts">
+        <div class="qopt qa" id="qo0" onclick="quizAns(0)"><span class="qopt-ltr">A</span><span id="qt0"></span></div>
+        <div class="qopt qb" id="qo1" onclick="quizAns(1)"><span class="qopt-ltr">B</span><span id="qt1"></span></div>
+        <div class="qopt qc" id="qo2" onclick="quizAns(2)"><span class="qopt-ltr">C</span><span id="qt2"></span></div>
+        <div class="qopt qd" id="qo3" onclick="quizAns(3)"><span class="qopt-ltr">D</span><span id="qt3"></span></div>
+      </div>
+      <div id="quiz-exp"></div>
+      <div id="quiz-end">
+        <div style="font-size:2rem">🎉</div>
+        <h2>Quiz Complete!</h2>
+        <div class="score-big" id="quiz-final"></div>
+        <p id="quiz-detail" style="color:#7a8aaa"></p>
+        <button class="gbtn" onclick="initQuiz()" style="margin-top:8px">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MATCHING -->
+  <div class="screen" id="screen-matching">
+    <div id="match-hdr">Set <span id="mset-n">1</span> of <span id="mset-tot">?</span> &nbsp;|&nbsp; <span id="mremain">?</span> pairs left</div>
+    <div id="match-grid"></div>
+    <div id="match-done">
+      <div style="font-size:2rem">🎉</div>
+      <h3>All Matched!</h3>
+      <div style="display:flex;gap:10px;">
+        <button class="gbtn" id="match-next-btn" onclick="matchNext()">Next Set →</button>
+        <button class="gbtn" onclick="initMatching()">↺ Restart</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRUE/FALSE -->
+  <div class="screen" id="screen-tf">
+    <div id="tf-stats"><span>Correct: <strong id="tf-cor">0</strong></span><span>Streak: <strong id="tf-str">0</strong></span><span><strong id="tf-n">0</strong> / <strong id="tf-tot">0</strong></span></div>
+    <div id="tf-stmt">Select topics and click True / False to begin</div>
+    <div id="tf-btns">
+      <button class="tfb tft" id="tfT" onclick="tfAns(true)">TRUE</button>
+      <button class="tfb tff" id="tfF" onclick="tfAns(false)">FALSE</button>
+    </div>
+    <div id="tf-exp"></div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- ═══ PROJECTOR ═══ -->
+<div id="projector">
+  <div id="proj-top">
+    <div id="proj-timer-wrap"><div id="proj-timer-bar"></div></div>
+    <span id="proj-tnum">20</span>
+    <span id="proj-qnum" style="margin-left:8px">Q 1/1</span>
+    <button id="proj-reveal" onclick="projReveal()">Show Answer</button>
+    <button id="proj-close" onclick="closeProj()">✕ Exit</button>
+  </div>
+  <div id="proj-body">
+    <div id="proj-qtxt"></div>
+    <div id="proj-opts">
+      <div class="popt pa hide-txt" id="po0"><span class="popt-ltr">A</span><span class="popt-txt" id="pt0"></span></div>
+      <div class="popt pb hide-txt" id="po1"><span class="popt-ltr">B</span><span class="popt-txt" id="pt1"></span></div>
+      <div class="popt pc hide-txt" id="po2"><span class="popt-ltr">C</span><span class="popt-txt" id="pt2"></span></div>
+      <div class="popt pd hide-txt" id="po3"><span class="popt-ltr">D</span><span class="popt-txt" id="pt3"></span></div>
+    </div>
+  </div>
+  <div id="proj-nav">
+    <button class="pnavb" onclick="projMove(-1)">← Prev</button>
+    <button class="pnavb" onclick="projMove(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════ TOPICS & PRESETS ════════════════════════
+const TOPICS=[
+  {id:'01',label:'Introduction to Biomaterials'},
+  {id:'02',label:'Classes of Materials'},
+  {id:'03',label:'Atomic Structure'},
+  {id:'04',label:'Atomic Bonding'},
+  {id:'05',label:'Crystal Structures'},
+  {id:'06',label:'Crystallographic Notation & XRD'},
+  {id:'07',label:'Processing Techniques'},
+  {id:'08',label:'Polymers I & II'},
+  {id:'09',label:'Polymer Degradation'},
+  {id:'10',label:'Crystal Imperfections'},
+  {id:'11',label:'Mechanical Properties'},
+  {id:'12',label:'FDA & Biocompatibility'},
+  {id:'13',label:'Device Reimbursement'},
+  {id:'14',label:'Host Reactions'},
+  {id:'15',label:'Biomedical Ethics'}
+];
+const PRESETS={
+  m1:['01','02','03','04','05','06'],
+  m2:['07','08','09','10','11'],
+  fin:['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15']
+};
+
+// ════════════════════════ QUESTION BANK ══════════════════════════
+const Q=[
+  /* ── FLASHCARDS ── */
+  // 01 Intro
+  {id:'f01a',t:['01'],type:'fc',fr:'Biomaterial (Society for Biomaterials)',bk:'A material intended to interface with biological systems to replace any tissue, organ, or function of the body'},
+  {id:'f01b',t:['01'],type:'fc',fr:'Biocompatible — Buddy Ratner definition',bk:'The ability of materials to locally trigger and guide appropriate cellular and tissue responses (active, instructive role — not just passive tolerance)'},
+  {id:'f01c',t:['01'],type:'fc',fr:'Biotolerable',bk:'The ability of materials to reside in the body for long periods with only low degrees of inflammatory response'},
+  {id:'f01d',t:['01'],type:'fc',fr:'Intrinsic vs. Extrinsic properties',bk:'Intrinsic: depends only on material composition, independent of size/shape (e.g., E, conductivity)\nExtrinsic: depends on size and shape (e.g., stiffness of a specific beam cross-section)'},
+  {id:'f01e',t:['01'],type:'fc',fr:'The "Death Spiral" in biomaterials',bk:'Poor performance → changes properties and structure → even poorer performance\nExample: corrosion weakens a metal implant, altering its structure, leading to further degradation'},
+  {id:'f01f',t:['01'],type:'fc',fr:'Foundation of Materials Science & Engineering',bk:'Structure → Properties → Performance, with Processing influencing all stages\n(the "materials science tetrahedron")'},
+  // 02 Classes
+  {id:'f02a',t:['02'],type:'fc',fr:'Three primary material classes — summary',bk:'Metals: metallic bonding, crystalline, high conductivity, high fracture resistance\nCeramics: ionic/covalent, crystalline or amorphous, insulator, brittle\nPolymers: covalent, amorphous or semi-crystalline, insulator, low density'},
+  {id:'f02b',t:['02'],type:'fc',fr:'Composite material',bk:'A combination of two or more materials that outperforms each individually\nExamples: bone (collagen + hydroxyapatite), carbon fiber, fiberglass, reinforced concrete'},
+  {id:'f02c',t:['02'],type:'fc',fr:'Smart material — examples',bk:'Senses and reacts to environmental stimuli\nNitinol/NiTi: shape memory alloy (changes shape with temperature)\nPiezoelectrics: change shape with electric field\nMagnetorheological fluid: viscosity changes with magnetic field'},
+  {id:'f02d',t:['02'],type:'fc',fr:'Nanomaterials — why special?',bk:'At 10⁻⁹ m scale:\n1) Greatly increased surface-to-volume ratio → increased reactivity\n2) Quantum effects emerge that don\'t exist at macroscale'},
+  {id:'f02e',t:['02'],type:'fc',fr:'Why are amorphous polymers transparent but polycrystalline metals opaque?',bk:'Grain boundaries in polycrystalline metals scatter light → opaque\nAmorphous polymers lack grain boundaries → light passes through → translucent/transparent\nSingle crystals can also be transparent for same reason'},
+  // 03 Atomic Structure
+  {id:'f03a',t:['03'],type:'fc',fr:'Four quantum numbers',bk:'n — principal (energy level/shell: K,L,M…)\nl — azimuthal (orbital shape: s,p,d,f)\nmₗ — magnetic (orientation)\nmₛ — spin (±½)'},
+  {id:'f03b',t:['03'],type:'fc',fr:'Aufbau Principle — 3 rules',bk:'1) Fill lowest energy states first\n2) Max 2 electrons per state (opposite spins — Pauli Exclusion)\n3) Hund\'s Rule: half-fill each orbital in a subshell before pairing'},
+  {id:'f03c',t:['03'],type:'fc',fr:'Electronegativity',bk:'Measure of an atom\'s ability to attract electrons in a bond\nIncreases left→right across a period; decreases top→bottom in a group\nF = highest (4.0); Cs = lowest (~0.7)'},
+  {id:'f03d',t:['03'],type:'fc',fr:'XPS / ESCA and the Bohr Model',bk:'X-ray Photoelectron Spectroscopy = Electron Spectroscopy for Chemical Analysis\nX-rays knock electrons from specific Bohr energy levels\nKnowing those levels → reveals elemental composition of a surface'},
+  // 04 Bonding
+  {id:'f04a',t:['04'],type:'fc',fr:'Ionic bonding',bk:'Transfer of electrons from electropositive → electronegative atom\nCreates cations + anions held by Coulombic attraction\nNON-directional | Found in ceramics (e.g., NaCl, Al₂O₃)'},
+  {id:'f04b',t:['04'],type:'fc',fr:'Covalent bonding',bk:'Sharing of valence electrons between atoms of similar electronegativity\nDIRECTIONAL (specific orbital overlap angles)\nSigma bonds (on axis, stronger) + pi bonds (double/triple bonds, weaker)\nFound in polymers, diamond, silicon'},
+  {id:'f04c',t:['04'],type:'fc',fr:'Metallic bonding',bk:'Metallic cations in a "sea" of delocalized electrons\nNON-directional\nExplains: high electrical conductivity (free electrons), ductility (planes slide without charge repulsion)'},
+  {id:'f04d',t:['04'],type:'fc',fr:'London Dispersion Force (Type I secondary)',bk:'Fluctuating induced dipole — temporary dipole in atom A induces dipole in atom B\nPresent in ALL matter including noble gases\nWeakest secondary bond; also called Van der Waals force'},
+  {id:'f04e',t:['04'],type:'fc',fr:'Hydrogen bonding (Type III secondary)',bk:'H bonded to highly electronegative F, N, or O creates a very strong dipole\nExplains: ice is less dense than water (open tetrahedral H-bond lattice)\nAlso explains: protein folding, DNA base pairing'},
+  {id:'f04f',t:['04'],type:'fc',fr:'Young\'s modulus (E) from the force-distance curve',bk:'E ∝ dF/dr at equilibrium distance r₀\nSteeper slope = stiffer bond = higher E\nDeep, narrow energy well = high modulus (e.g., diamond, tungsten)'},
+  {id:'f04g',t:['04'],type:'fc',fr:'Why metals are ductile / ceramics brittle',bk:'Metals: planes slide through electron sea — no charge repulsion → ductile\nCeramics: ionic slip brings like charges together → electrostatic repulsion → fracture → brittle'},
+  {id:'f04h',t:['04'],type:'fc',fr:'Thermal expansion coefficient (α) and bonding',bk:'Related to the ASYMMETRY of the energy-distance curve\nShallow/asymmetric trough = high α (expands a lot with temperature)\nDeep/symmetric trough = low α (e.g., Invar alloy)'},
+  // 05 Crystal Structures
+  {id:'f05a',t:['05'],type:'fc',fr:'Atomic Packing Factor (APF)',bk:'APF = Volume of atoms in unit cell ÷ Total cell volume\nSC = 0.52 | BCC = 0.68 | FCC = 0.74 | HCP = 0.74\nFCC and HCP are maximally packed (densest possible for equal spheres)'},
+  {id:'f05b',t:['05'],type:'fc',fr:'FCC — key facts',bk:'4 atoms/cell | CN = 12 | APF = 0.74 | a = 2√2·R\nStacking: ABCABC | Close-packed planes: {111}\nExamples: Al, Cu, Au, Ag, Ni, Pt, Pb'},
+  {id:'f05c',t:['05'],type:'fc',fr:'BCC — key facts',bk:'2 atoms/cell | CN = 8 | APF = 0.68 | a = 4R/√3\nClose-packed direction: ⟨111⟩ (body diagonal)\nExamples: Fe(α), W, Cr, Mo, Ta, Nb'},
+  {id:'f05d',t:['05'],type:'fc',fr:'HCP — key facts',bk:'2 atoms/cell | CN = 12 | APF = 0.74\nStacking: ABABAB | Ideal c/a = √(8/3) = 1.633\nExamples: Ti, Zn, Mg, Co, Zr'},
+  {id:'f05e',t:['05'],type:'fc',fr:'Polymorphism / Allotropy',bk:'Polymorphism: material exists in more than one crystal structure depending on T or P\nAllotropy: same phenomenon for pure elements\nExample: Fe is BCC below 912°C, FCC from 912–1394°C, BCC again above 1394°C'},
+  {id:'f05f',t:['05'],type:'fc',fr:'Theoretical density formula',bk:'ρ = nA / (Vc · NA)\nn = atoms/cell | A = atomic weight (g/mol)\nVc = unit cell volume (cm³) | NA = 6.022×10²³ mol⁻¹\nActual density < theoretical due to defects (vacancies)'},
+  // 06 Notation & XRD
+  {id:'f06a',t:['06'],type:'fc',fr:'Crystal directions [hkl] — how to find',bk:'1) Position vector through origin\n2) Projections as fractions of lattice parameters\n3) Clear fractions to smallest integers\n4) Write [hkl]; bar over negative values\nFamily of equivalent directions: ⟨hkl⟩'},
+  {id:'f06b',t:['06'],type:'fc',fr:'Miller indices (hkl) for planes — how to find',bk:'1) Plane must NOT pass through origin\n2) Find x, y, z intercepts\n3) Take reciprocals\n4) Clear fractions (do NOT reduce to lowest terms — matters for XRD)\n5) Write (hkl); bar over negatives\nFamily: {hkl}'},
+  {id:'f06c',t:['06'],type:'fc',fr:'Planes vs. directions — key distinctions',bk:'Plane (hkl) = its negative (1̄1̄0) = (110) [equivalent parallel faces]\nDirection [hkl] ≠ [h̄k̄l̄] [opposite directions]\nIn cubic systems: [hkl] ⊥ (hkl)\nPlane multiples NOT equivalent for XRD: (001) ≠ (002)'},
+  {id:'f06d',t:['06'],type:'fc',fr:'Bragg\'s Law',bk:'nλ = 2d · sinθ\nn = diffraction order | λ = X-ray wavelength\nd = interplanar spacing | θ = diffraction angle\nFor cubic: d_hkl = a / √(h²+k²+l²)'},
+  {id:'f06e',t:['06'],type:'fc',fr:'X-ray diffraction selection rules',bk:'FCC: h, k, l must ALL be odd or ALL be even (mixed → absent)\nBCC: h + k + l must be EVEN\nUsed to identify crystal structure from peak positions in diffraction pattern'},
+  {id:'f06f',t:['06'],type:'fc',fr:'Linear density and plastic deformation',bk:'LD = # atom diameters along a direction ÷ vector length\nPD = # atoms per unit area on a plane\nMetals slip in highest LD direction on highest PD plane → slip system\nControls yield strength and plastic deformation behavior'},
+  // 07 Processing
+  {id:'f07a',t:['07'],type:'fc',fr:'Three categories of metal processing',bk:'1) Forming: shape by plastic deformation (forging, rolling, drawing, extrusion)\n2) Casting: pour molten metal into mold (sand, investment, die, continuous)\n3) Powder metallurgy: sinter powder; additive manufacturing (3D printing)'},
+  {id:'f07b',t:['07'],type:'fc',fr:'Thermoplastic vs. Thermoset',bk:'Thermoplastic: softens on heating (reversible) — secondary bonds break\nThermoset: hardens on heating (irreversible) — permanent covalent crosslinks form\nVulcanization: process that thermosets rubber\nOnly TPs can be re-melted and reprocessed'},
+  {id:'f07c',t:['07'],type:'fc',fr:'Extrusion vs. Injection Molding vs. Compression Molding',bk:'Extrusion: continuous profiles (tubing, pipe) — thermoplastics only\nInjection Molding: discrete shaped parts — thermoplastics + TPE\nCompression Molding: simple/flat shapes — thermoplastics AND thermosets'},
+  {id:'f07d',t:['07'],type:'fc',fr:'FDM vs. SLA',bk:'FDM: heated nozzle extrudes thermoplastic filament (PLA, ABS) layer by layer\nSLA: UV laser cures liquid thermoset resin (epoxy, acrylate) layer by layer\nSLA = higher resolution | FDM = more material options, cheaper'},
+  {id:'f07e',t:['07'],type:'fc',fr:'Four sterilization methods for medical devices',bk:'All destroy microbes\' ability to reproduce:\n1) Autoclave — steam + heat + pressure (121°C)\n2) Gamma — Cobalt-60 radiation\n3) EO — ethylene oxide gas\n4) E-Beam — electron beam'},
+  {id:'f07f',t:['07'],type:'fc',fr:'Annealing — types and purpose',bk:'Annealing: heat to elevated T, then slow cool\nProcess anneal: reverse cold-working effects → restore ductility\nStress relief: remove residual stresses\nNormalizing: recrystallize to smaller, uniform grains\nFull anneal: maximum softening for forming'},
+  // 08 Polymers
+  {id:'f08a',t:['08'],type:'fc',fr:'Addition (free radical) polymerization — 3 stages',bk:'1) Initiation: initiator decomposes → free radical → attacks monomer double bond\n2) Propagation: chain grows by successive monomer addition\n3) Termination: combination (two chains join) or disproportionation (H transfer)'},
+  {id:'f08b',t:['08'],type:'fc',fr:'Condensation polymerization',bk:'Step-growth reaction between functional groups; produces small molecule by-product (H₂O, HCl)\nSlower than addition; can involve two different monomers\nExamples: Nylon 6,6 | PET (Dacron) | Polycarbonate | PDMS (Silicone)'},
+  {id:'f08c',t:['08'],type:'fc',fr:'Molecular weight in polymers — why unique?',bk:'Always a DISTRIBUTION (not a single value) because chains start at different times and terminate randomly\nCharacterized by: Mn (number-average), Mw (weight-average), PDI = Mw/Mn\nMonodisperse (PDI=1) never achieved; typical PDI = 1.5–5'},
+  {id:'f08d',t:['08'],type:'fc',fr:'Tacticity — effect on crystallinity',bk:'Isotactic: all R-groups same side → regular packing → more crystalline → harder, higher Tm\nSyndiotactic: alternating → partial crystallinity\nAtactic: random → cannot crystallize → amorphous → softer, degrades faster'},
+  {id:'f08e',t:['08'],type:'fc',fr:'Tg vs. Tm',bk:'Tg (glass transition): onset of motion in amorphous regions; 2nd-order transition; below = glassy/brittle, above = rubbery\nTm (melting): crystalline regions melt; 1st-order transition; only semi-crystalline polymers have Tm\nAlways: Tg < Tm'},
+  {id:'f08f',t:['08'],type:'fc',fr:'Key biomedical polymers and applications',bk:'UHMWPE — hip/knee acetabular liners (wear resistance)\nPTFE (Teflon) — vascular grafts (biostable, hydrophobic)\nPMMA — bone cement, intraocular lenses\npHEMA — soft contact lenses (hydrogel)\nPEEK — spinal spacers, bone plates\nPGA/PLA/PLGA — biodegradable sutures, scaffolds, drug delivery'},
+  // 09 Polymer Degradation
+  {id:'f09a',t:['09'],type:'fc',fr:'Physiological environment — why materials must be designed for it',bk:'Aqueous | Oxidizing | Enzyme-rich | pH ≈ 7.4 | 37°C\nMaterials are either:\nBiostable: resist degradation (PTFE, PEEK, UHMWPE)\nBiodegradable: intentionally degrade (PLA, PGA, PLGA, PCL)'},
+  {id:'f09b',t:['09'],type:'fc',fr:'Hydrolysis degradation mechanism',bk:'Most common mechanism for biodegradable polymers\nEster bonds (–C(=O)–O–) cleaved by water → carboxylic acid + alcohol\nRate increases with: ↓crystallinity, ↓MW, ↑hydrophilicity, ↑temperature, ↑surface area\nAutocatalysis: acid products accelerate further hydrolysis'},
+  {id:'f09c',t:['09'],type:'fc',fr:'Surface erosion vs. bulk erosion',bk:'Surface erosion: degrades outside-in at constant rate (linear, predictable)\nPolymer is hydrophobic → limits water penetration; example: polyanhydrides\nBulk erosion: degrades uniformly throughout; risk = autocatalysis\nExample: PLA, PLGA → acid accumulation → faster degradation'},
+  {id:'f09d',t:['09'],type:'fc',fr:'Hydrogel — definition and requirements',bk:'Cross-linked, hydrophilic polymer network that swells in water but does NOT dissolve\nCrosslinks are ESSENTIAL — without them, hydrophilic polymer would dissolve\npHEMA: Equilibrium Water Content (EWC) ≈ 38% → used in soft contact lenses\nOthers: PEG, PVA, alginate, hyaluronic acid, fibrin'},
+  {id:'f09e',t:['09'],type:'fc',fr:'PLGA — tuning degradation rate',bk:'Copolymer of PLA + PGA\nMore PGA → faster (more hydrophilic, less crystalline)\nMore PLA → slower\nAlso tune by: ↓MW (faster), ↑porosity (faster), ↑crosslinks (slower)\nRange: weeks to >2 years — used in drug delivery and tissue scaffolds'},
+  // 10 Imperfections
+  {id:'f10a',t:['10'],type:'fc',fr:'Vacancy defect — why does it exist?',bk:'Missing atom at a lattice site\nPresent in ALL crystals at T>0K because ΔG = ΔH − TΔS\nVacancies increase entropy (↑ΔS) → lowers ΔG at any T>0\nConcentration: Nv = NT · exp(−Q/kT) — an Arrhenius process\nTypical metals near Tm: ~1 vacancy per 10,000 sites'},
+  {id:'f10b',t:['10'],type:'fc',fr:'Hume-Rothery rules for substitutional solid solutions',bk:'All four must be satisfied for complete solid solution:\n1) Atomic size: Δr ≤ 15%\n2) Same crystal structure\n3) Similar electronegativity\n4) Valence: solvent dissolves metals of equal or higher valence\nExample: Cu-Ni satisfies all four → complete solid solution'},
+  {id:'f10c',t:['10'],type:'fc',fr:'Edge vs. screw dislocation',bk:'Edge: extra half-plane of atoms inserted; Burgers vector ⊥ dislocation line\nScrew: crystal shears one lattice spacing; Burgers vector ∥ dislocation line\nBoth: linear (1D) defects; movement = plastic deformation (slip)\nMost real dislocations are MIXED (combination of both)'},
+  {id:'f10d',t:['10'],type:'fc',fr:'Ceramic point defects: Schottky vs. Frenkel',bk:'Schottky: paired cation + anion vacancies (removes both to maintain charge neutrality)\nFrenkel: ion leaves its lattice site and moves to an interstitial site (vacancy + interstitial)\nBoth maintain local charge neutrality\nDoping ceramics (adding impurity ions) → cheap semiconductors'},
+  {id:'f10e',t:['10'],type:'fc',fr:'Why are surfaces and grain boundaries high energy?',bk:'Bulk atoms: cohesive forces cancel in all directions → minimum energy\nSurface atoms: forces only from below/sides → net inward pull → surface tension\nGrain boundaries: atoms have distorted bonds, multiple orientations → high energy\nHigher energy → drive to minimize area (surface tension phenomenon)'},
+  {id:'f10f',t:['10'],type:'fc',fr:'ASTM grain size number (G)',bk:'n = 2^(G−1), where n = grains/in² at 100× magnification\nHigher G = smaller grains = more grain boundaries = higher yield strength (Hall-Petch)\nMeasure by: counting grains in standard box OR intercept method\nl̄ = LT / (P · m)'},
+  // 11 Mechanical Properties
+  {id:'f11a',t:['11'],type:'fc',fr:'Engineering stress and strain — why convert?',bk:'σ = F/A₀ (Pa or MPa) | ε = ΔL/L₀ (dimensionless)\nConverting makes properties INTRINSIC (material property, not geometry-dependent)\nAllows comparison between different sample sizes and shapes'},
+  {id:'f11b',t:['11'],type:'fc',fr:'Yield strength — how to determine',bk:'Stress at which permanent (plastic) deformation begins\nMethod 1: 0.002 (0.2%) offset — draw line parallel to elastic region, offset 0.2% strain; intersection = σ_YS\nMethod 2: lower yield point (some metals show sharp yield drop)\nMost important design parameter'},
+  {id:'f11c',t:['11'],type:'fc',fr:'Toughness vs. Resilience',bk:'Toughness: TOTAL area under σ-ε curve = total energy/volume to fracture\nRequires both high strength AND high ductility\nResilience: area under ELASTIC region only = energy recovered on unloading\nUr = σ_YS² / (2E)'},
+  {id:'f11d',t:['11'],type:'fc',fr:'Ductility (%EL) — definition and threshold',bk:'%EL = [(Lf − L₀)/L₀] × 100%\n< 5%: brittle (ceramics, glass, some polymers below Tg)\n≥ 5%: ductile (most metals, polymers above Tg)\nAlso expressed as %RA = reduction in area at fracture'},
+  {id:'f11e',t:['11'],type:'fc',fr:'True stress vs. engineering stress',bk:'σ_T = F/Ai (instantaneous area) | ε_T = ln(Li/L₀)\nBefore necking: σ_T = σ_E(1+ε_E) and ε_T = ln(1+ε_E)\nAfter necking: only true stress is meaningful (area changes drastically in one location)\nTrue stress always > engineering stress past yield'},
+  {id:'f11f',t:['11'],type:'fc',fr:'Poisson\'s ratio (ν)',bk:'ν = −ε_lateral / ε_axial\nTypical metals: 0.25–0.35 | Rubber/soft tissue: ≈0.5 (incompressible = no volume change)\nAuxetic materials: negative ν (expand laterally when stretched)\nMaximum theoretical value: 0.5'},
+  {id:'f11g',t:['11'],type:'fc',fr:'Four requirements for an elastomer',bk:'1) Amorphous structure\n2) Temperature above Tg\n3) Cross-linked (prevents flow)\n4) Free bond rotation (flexible backbone)\nMechanism: entropic recoil — stretching increases order (↓S); release → disorder restores (↑S)'},
+  {id:'f11h',t:['11'],type:'fc',fr:'Viscoelastic behavior — two manifestations',bk:'Time AND temperature dependent mechanical response (polymers)\n1) Stress relaxation: apply constant strain → stress decreases over time\n   σ(t) = σ₀·exp(−t/τ)\n2) Creep: apply constant stress → strain increases over time\nBoth described by relaxation time τ'},
+  // 12 FDA
+  {id:'f12a',t:['12'],type:'fc',fr:'FDA device classification system',bk:'Class I (~50%): low risk; most exempt or minimal regulation (register, follow QSR + labeling)\nClass II (~40%): moderate risk; 510(k) clearance required\nClass III (~10%): high risk, life-sustaining; PMA approval required'},
+  {id:'f12b',t:['12'],type:'fc',fr:'510(k) pathway — key facts',bk:'"Pre-market notification" — must show SUBSTANTIAL EQUIVALENCE to a predicate device\nPredicate: pre-1976 device, or previously cleared/approved device\nSubstantial equivalence: same indication + same (or equivalent safe) technical characteristics\nDevice is CLEARED (~3,000/year), NOT "approved"'},
+  {id:'f12c',t:['12'],type:'fc',fr:'PMA (Premarket Approval) — key facts',bk:'Required for Class III devices (highest risk)\nRequires: clinical trials (~8 studies), ~1,000-page submission, millions in cost\nDevice is APPROVED (~30/year)\nExamples: pacemakers, heart valves, cochlear implants'},
+  {id:'f12d',t:['12'],type:'fc',fr:'ISO 10993 and biocompatibility testing',bk:'International standard for biological evaluation of medical devices\nFDA guidance: testing must be performed on the device in FINAL FINISHED FORM\nTest matrix: contact type (surface/implant/blood contact) × contact duration (limited/prolonged/permanent)\nFDA NEVER "approves a material" — only devices'},
+  {id:'f12e',t:['12'],type:'fc',fr:'De Novo 513(g) pathway',bk:'For novel devices with NO predicate but moderate/low risk\n"In-between" level of evidence required\nExample: PillCam (swallowable capsule camera) — novel technology, no predicate, but not high risk\nIf cleared, can become a predicate for future devices'},
+  // 13 Reimbursement
+  {id:'f13a',t:['13'],type:'fc',fr:'US healthcare payer breakdown',bk:'~45% Public: Medicare (age ≥65, or disabled) + Medicaid (low income)\n~40% Private: HMOs, PPOs\n~15% Out-of-pocket: co-pays, uninsured\nMedical devices unique: patient, clinician, insurer, AND manufacturer all involved in purchase decision'},
+  {id:'f13b',t:['13'],type:'fc',fr:'Medicare vs. Medicaid',bk:'Medicare: federal insurance for age ≥65 (or qualifying disability)\n  Part A = inpatient care | Part B = physician + outpatient\nMedicaid: federal/state insurance for low-income patients\n  ~70 million enrolled (~20% of US population)'},
+  {id:'f13c',t:['13'],type:'fc',fr:'Medical coding hierarchy (HCPCS)',bk:'HCPCS Level I = CPT codes (Common Procedure Terminology) — maintained by AMA — physician services\nHCPCS Level II — products, supplies, prosthetics outside physician office — maintained by CMS\nICD-10-CM — diagnosis + procedure codes → maps to MS-DRG (inpatient) or APC (outpatient)'},
+  {id:'f13d',t:['13'],type:'fc',fr:'NCD vs. LCD',bk:'NCD (National Coverage Determination): applies nationwide; sets what Medicare covers nationally\nLCD (Local Coverage Determination): regional policies set by local Medicare contractors\nBoth determine whether a device/procedure will be reimbursed'},
+  // 14 Host Reactions
+  {id:'f14a',t:['14'],type:'fc',fr:'8-step wound healing sequence',bk:'1. Injury\n2. Blood-matrix interactions (protein adsorption)\n3. Provisional matrix formation\n4. Acute inflammation\n5. Chronic inflammation\n6. Granulation tissue (3–5 days)\n7. Foreign body reaction\n8. Fibrosis / Encapsulation'},
+  {id:'f14b',t:['14'],type:'fc',fr:'Blood composition',bk:'55% Plasma (water, proteins, electrolytes, lipids)\n<1% Buffy coat (WBCs + platelets)\n45% RBCs (Hematocrit = % by volume of RBCs)'},
+  {id:'f14c',t:['14'],type:'fc',fr:'Major plasma proteins',bk:'Albumin (~60%): transport, major early adsorbing protein on biomaterial surfaces\nGlobulins (~35%): immune response, transport, enzymes\nFibrinogen (~5%): blood clotting — cleaved by thrombin → fibrin mesh\nVroman effect: albumin adsorbs first, then displaced by higher-affinity proteins'},
+  {id:'f14d',t:['14'],type:'fc',fr:'Hemostasis — process overview',bk:'1) Platelet adhesion (via exposed collagen after injury or adsorbed proteins on biomaterial)\n2) Platelet activation + aggregation (release granules, ADP, thrombin)\n3) Coagulation cascade (intrinsic + extrinsic → Fibrinogen → Fibrin mesh)\n4) Fibrinolysis (clot breakdown, 3–20 days)'},
+  {id:'f14e',t:['14'],type:'fc',fr:'4 cardinal signs of acute inflammation',bk:'Rubor (redness) — vasodilation → increased blood flow\nCalor (heat) — vasodilation → increased blood flow\nTumor (swelling) — increased capillary permeability → fluid in tissue\nDolor (pain) — cytokine/bradykinin release\nAll triggered by mast cell cytokine release after injury'},
+  {id:'f14f',t:['14'],type:'fc',fr:'Leukocyte extravasation — 5 steps',bk:'1) Resting — WBCs circulate freely\n2) Rolling — P-selectin on endothelium → low-affinity interactions\n3) Activation — chemokines activate integrins on leukocyte surface\n4) Arrest & Adhesion — integrins bind CAMs on endothelium → firm adhesion\n5) Migration — leukocyte squeezes between endothelial cells into injured tissue'},
+  {id:'f14g',t:['14'],type:'fc',fr:'Macrophages — 3 actions + pre-extravasation name',bk:'Before extravasation: called MONOCYTES in the bloodstream\nAt injury site (3 actions):\n1) Phagocytosis (engulf debris; may be frustrated phagocytosis with large implants)\n2) Secretion of cytokines (chemical mediators)\n3) Antigen presentation → activates adaptive immune response'},
+  {id:'f14h',t:['14'],type:'fc',fr:'4 final outcomes of wound healing around an implant',bk:'1) Extrusion — body expels material to surface\n2) Resorption — body reabsorbs/dissolves material\n3) Integration — close tissue apposition to implant (desirable for bone/dental implants)\n4) Fibrous encapsulation — most common default response; fibrous capsule walls off material'},
+  {id:'f14i',t:['14'],type:'fc',fr:'Contact angle and surface hydrophilicity',bk:'Young\'s equation: γ_SA = γ_SL + γ_LA · cosθ\nθ < 45°: hydrophilic (low energy surface, water spreads)\nθ > 90°: hydrophobic (high energy surface, water beads)\nZisman plot: determines critical surface tension (wettability threshold)'},
+  {id:'f14j',t:['14'],type:'fc',fr:'Integrins and the RGD sequence',bk:'Integrins: cell adhesion molecules (CAMs) that perform cell-matrix adhesive interactions\nSpan the phospholipid bilayer; bind ECM proteins on outside, actin on inside\nRGD = Arg-Gly-Asp: key binding sequence on fibronectin, vitronectin, collagen\nBiomaterial surfaces functionalized with RGD peptides to promote cell attachment'},
+  // 15 Ethics
+  {id:'f15a',t:['15'],type:'fc',fr:'Three Belmont Principles',bk:'1) Autonomy/Respect for Persons: informed consent (information + comprehension + voluntary)\n2) Beneficence/Non-Maleficence: maximize benefits, minimize harm; systematic risk/benefit analysis\n3) Justice: fair selection of participants; equitable distribution of research risks AND benefits'},
+  {id:'f15b',t:['15'],type:'fc',fr:'Belmont Report — background',bk:'Published 1979 by National Commission for Protection of Human Subjects\nCreated by National Research Act of 1974\nResponse to historical violations (Tuskegee syphilis study, etc.)\nFundamental foundation of US research ethics'},
+  {id:'f15c',t:['15'],type:'fc',fr:'"Common Rule"',bk:'Official name: "Common Federal Policy for the Protection of Human Subjects"\nBaseline ethics ALL federally funded research must follow\nBased on Belmont principles\nRequires IRB review for human subjects research'},
+  {id:'f15d',t:['15'],type:'fc',fr:'Intrinsic vs. Extrinsic ethical concerns (emerging technologies)',bk:'Intrinsic: inherent worry about what the technology IS (altering human-nature relationship, "playing God")\nExtrinsic: potential harmful CONSEQUENCES of adopting the technology\n  — Environment, health, safety\n  — Justice / equity\n  — Dual-use dilemmas (good tech repurposed for harm)'},
+
+  /* ── MULTIPLE CHOICE ── */
+  {id:'m01a',t:['01'],type:'mc',q:'Which definition of "biocompatible" emphasizes the material\'s ability to GUIDE cellular responses rather than merely avoid harm?',
+   opts:['Society for Biomaterials (1987)','D. Williams definition','Buddy Ratner definition','Biotolerable definition'],
+   ans:2,exp:'Ratner: ability to locally trigger and guide appropriate cellular/tissue responses — an active, instructive role. Williams: performing with "appropriate host response." Society for Biomaterials defined biomaterial, not biocompatible.'},
+  {id:'m02a',t:['02'],type:'mc',q:'Which material class is characterized by HIGH electrical conductivity, HIGH fracture resistance, and CRYSTALLINE microstructure?',
+   opts:['Ceramics','Polymers','Metals','Composites'],
+   ans:2,exp:'Metals: metallic bonding (delocalized electrons → high conductivity), crystalline structure, high fracture toughness (dislocations move freely in electron sea → ductile, not brittle).'},
+  {id:'m02b',t:['02'],type:'mc',q:'Bone is best described as which type of material?',
+   opts:['Metal','Ceramic','Polymer','Composite'],
+   ans:3,exp:'Bone = collagen (polymer → flexibility, tensile strength) + hydroxyapatite (ceramic → stiffness, compressive strength). The composite outperforms each component alone. This is the fundamental advantage of composites.'},
+  {id:'m02c',t:['02'],type:'mc',q:'Rank from HIGHEST to LOWEST density: Metals / Ceramics / Polymers / Foams',
+   opts:['Metals > Ceramics > Polymers > Foams','Ceramics > Metals > Polymers > Foams','Metals > Polymers > Ceramics > Foams','Ceramics > Metals > Foams > Polymers'],
+   ans:0,exp:'Metals are densest (close-packed metallic structures, heavy atoms). Ceramics next (ionic crystals, medium density). Polymers are light organic chains. Foams/wood are mostly air (very low density).'},
+  {id:'m03a',t:['03'],type:'mc',q:'Which quantum number describes the SHAPE of an electron orbital?',
+   opts:['n (principal)','l (azimuthal)','ml (magnetic)','ms (spin)'],
+   ans:1,exp:'l = azimuthal quantum number: l=0 → s (spherical), l=1 → p (dumbbell), l=2 → d, l=3 → f. Determines orbital shape and subshell letter.'},
+  {id:'m04a',t:['04'],type:'mc',q:'Which atomic bond type is DIRECTIONAL?',
+   opts:['Metallic only','Ionic only','Covalent only','Both ionic and metallic'],
+   ans:2,exp:'Covalent bonds form at specific orbital overlap angles (e.g., sp³ = tetrahedral 109.5°). Ionic and metallic bonds are non-directional — Coulombic/electron sea attraction acts equally in all directions.'},
+  {id:'m04b',t:['04'],type:'mc',q:'What property is most directly related to the SLOPE of the force-distance curve at equilibrium bond length?',
+   opts:['Thermal expansion coefficient','Melting point','Young\'s modulus (E)','Fracture toughness'],
+   ans:2,exp:'E ∝ dF/dr at r₀. Steeper slope = stiffer bond = higher Young\'s modulus. Diamond (strong covalent) has very steep slope → highest E. This is why the modulus is an intrinsic material property tied directly to bonding.'},
+  {id:'m05a',t:['05'],type:'mc',q:'The coordination number for FCC is:',
+   opts:['6','8','12','4'],
+   ans:2,exp:'FCC: CN = 12 (4 in same layer, 4 above, 4 below). Same as HCP. Both are maximally close-packed (APF = 0.74). BCC = 8, SC = 6.'},
+  {id:'m05b',t:['05'],type:'mc',q:'How many atoms are contained in ONE FCC unit cell?',
+   opts:['1','2','4','6'],
+   ans:2,exp:'FCC: 8 corner atoms × 1/8 = 1; 6 face atoms × 1/2 = 3; Total = 4 atoms/cell. BCC = 2; SC = 1.'},
+  {id:'m05c',t:['05'],type:'mc',q:'Which crystal structure has ABCABC stacking?',
+   opts:['BCC','HCP','Simple Cubic','FCC'],
+   ans:3,exp:'FCC = ABCABC (3 unique layer positions, 3-layer repeat). HCP = ABABAB (2 unique positions, 2-layer repeat). Both have APF=0.74 and CN=12.'},
+  {id:'m05d',t:['05'],type:'mc',q:'The lattice parameter for FCC in terms of atomic radius R is:',
+   opts:['2R','4R/√3','2R√2','4R'],
+   ans:2,exp:'FCC atoms touch along the face diagonal: face diagonal = 4R = a√2 → a = 4R/√2 = 2R√2. BCC atoms touch along the body diagonal: body diagonal = 4R = a√3 → a = 4R/√3.'},
+  {id:'m06a',t:['06'],type:'mc',q:'For BCC, which condition must be met for a diffraction peak to appear?',
+   opts:['h, k, l all odd or all even','h + k + l must be even','h + k must be even','No systematic absences'],
+   ans:1,exp:'BCC selection rule: h+k+l = even. FCC: h,k,l all odd or all even. Systematic absences are due to destructive interference from extra atoms in the unit cell.'},
+  {id:'m06b',t:['06'],type:'mc',q:'Why must MONOCHROMATIC radiation be used for X-ray diffraction?',
+   opts:['Polychromatic X-rays are absorbed by all metals','Bragg\'s Law requires one known wavelength λ to calculate d-spacings from θ','Multiple wavelengths damage crystal structures','Only single-wavelength X-rays can penetrate solid materials'],
+   ans:1,exp:'nλ = 2d·sinθ: if you don\'t know λ precisely (multiple λ present), you cannot calculate d-spacings from the observed θ angles. Monochromatic = one known λ = interpretable pattern.'},
+  {id:'m07a',t:['07'],type:'mc',q:'You need 20 million feet of PDMS medical tubing annually. Best process?',
+   opts:['Injection molding','Extrusion','Blow molding','Compression molding'],
+   ans:1,exp:'Extrusion produces continuous profiles (tubing, pipe, wire) at high volume. The polymer is continuously fed through a heated barrel and pushed through a shaped die. Ideal for any long, constant cross-section.'},
+  {id:'m07b',t:['07'],type:'mc',q:'Which polymer processing method works with BOTH thermoplastics AND thermosets?',
+   opts:['Injection molding','Blow molding','Extrusion','Compression molding'],
+   ans:3,exp:'Compression molding: polymer placed in heated mold, pressure applied → works for both TP and TS. Injection molding and extrusion require melting/re-flowing → thermoplastics only (thermosets cannot be remelted).'},
+  {id:'m07c',t:['07'],type:'mc',q:'Which sterilization method uses Cobalt-60 as its radiation source?',
+   opts:['Autoclave','E-beam','Gamma irradiation','Ethylene oxide (EO)'],
+   ans:2,exp:'Gamma irradiation uses Cobalt-60 to emit gamma rays. E-beam uses accelerated electrons. Autoclave uses steam/heat/pressure. EO uses ethylene oxide gas. All destroy microbes\' ability to reproduce.'},
+  {id:'m08a',t:['08'],type:'mc',q:'Which is TRUE about the Glass Transition Temperature (Tg)?',
+   opts:['It is a first-order transition','It is the same as Tm for semi-crystalline polymers','It is a second-order transition','Only thermoplastics have a Tg'],
+   ans:2,exp:'Tg = 2nd-order transition (no latent heat/enthalpy change; only slope of H vs. T changes). Tm = 1st-order (latent heat). All polymers with amorphous regions have a Tg. Tg < Tm always.'},
+  {id:'m08b',t:['08'],type:'mc',q:'Which biomedical polymer is used as the acetabular liner in total hip replacement?',
+   opts:['PTFE (Teflon)','PMMA (Plexiglas)','UHMWPE','PEEK'],
+   ans:2,exp:'UHMWPE (3–6 million g/mol) has outstanding wear resistance, toughness, and biocompatibility → used in joint replacement liners. PMMA = bone cement/IOLs. PEEK = spinal hardware. PTFE = vascular grafts.'},
+  {id:'m09a',t:['09'],type:'mc',q:'Which backbone bond makes a polymer MOST susceptible to hydrolytic degradation?',
+   opts:['C–C backbone','Ester linkage (–C(=O)–O–)','C–F bond','Aromatic (benzene) ring'],
+   ans:1,exp:'Ester bonds are hydrolytically labile — water cleaves them into carboxylic acid + alcohol. PLA, PGA, PCL, PLGA all contain ester linkages → biodegradable. PTFE (C-F) and PEEK (aromatic rings) are highly stable.'},
+  {id:'m09b',t:['09'],type:'mc',q:'To make a degradable scaffold degrade FASTER, you would:',
+   opts:['Increase crystallinity','Increase molecular weight','Increase hydrophilicity','Increase crosslink density'],
+   ans:2,exp:'↑Hydrophilicity → more water uptake → faster hydrolysis. Conversely: ↑crystallinity, ↑MW, and ↑crosslinks all SLOW degradation by restricting water access and chain mobility.'},
+  {id:'m10a',t:['10'],type:'mc',q:'Maximum atomic size difference (Hume-Rothery) for complete substitutional solid solution?',
+   opts:['5%','10%','15%','25%'],
+   ans:2,exp:'Hume-Rothery rule #1: Δr ≤ 15%. Larger mismatch creates too much lattice strain. Classic example satisfying all 4 rules: Cu-Ni (Δr ≈ 2.8%, both FCC, similar EN and valence → complete solid solution).'},
+  {id:'m10b',t:['10'],type:'mc',q:'A ceramic defect consisting of a paired cation-anion VACANCY is:',
+   opts:['Frenkel defect','Edge dislocation','Schottky defect','Self-interstitial'],
+   ans:2,exp:'Schottky = cation vacancy + anion vacancy pair (both removed from crystal → maintains charge neutrality). Frenkel = ion displaced from site to interstitial (stays in crystal, still charge neutral locally).'},
+  {id:'m11a',t:['11'],type:'mc',q:'An incompressible material has a Poisson\'s ratio of:',
+   opts:['0','0.25','0.5','1.0'],
+   ans:2,exp:'Incompressible = no volume change during deformation → ν = 0.5. Rubber, biological soft tissues, and hydrogels approach ν = 0.5. Metals are typically 0.25–0.35.'},
+  {id:'m11b',t:['11'],type:'mc',q:'The area under the ENTIRE stress-strain curve represents:',
+   opts:['Young\'s modulus','Resilience','Toughness','Ductility'],
+   ans:2,exp:'Toughness = total energy absorbed per unit volume to fracture = total area. Resilience = elastic area only. Ductility = %EL (strain at fracture). Modulus = slope of elastic region.'},
+  {id:'m11c',t:['11'],type:'mc',q:'For a polymer at T < Tg, what mechanical behavior is expected?',
+   opts:['Elastomeric (large reversible deformation)','Rubbery and ductile','Glassy and brittle (little plastic deformation)','Viscous flow'],
+   ans:2,exp:'Below Tg: chains are frozen (insufficient thermal energy for large-scale chain motion) → glassy state → brittle. Above Tg: chains mobile → rubbery/plastic. With crosslinks and T >> Tg: elastomeric.'},
+  {id:'m12a',t:['12'],type:'mc',q:'The FDA approves biomaterials (raw materials) for use in devices:',
+   opts:['True — all biomaterials need FDA approval','False — FDA clears/approves DEVICES, not materials','True — via ISO 10993 certification','False — ASTM certifies materials, not FDA'],
+   ans:1,exp:'The FDA approves or clears DEVICES, not materials. Biocompatibility (ISO 10993) testing is done on the complete device in final finished form. "FDA approved material" is not a valid designation.'},
+  {id:'m12b',t:['12'],type:'mc',q:'What percentage of medical devices are Class III (requiring PMA)?',
+   opts:['50%','40%','25%','10%'],
+   ans:3,exp:'Class I ≈50%, Class II ≈40%, Class III ≈10% by count. Though fewest, Class III = highest risk (pacemakers, heart valves, cochlear implants) and highest regulatory burden.'},
+  {id:'m13a',t:['13'],type:'mc',q:'Medicare Part A covers:',
+   opts:['Outpatient physician services','Prescription drugs','Inpatient hospital care','Dental and vision'],
+   ans:2,exp:'Medicare Part A = inpatient hospital care. Part B = physician services + outpatient. Part D = prescription drugs. Medicare covers age ≥65 or qualifying disability.'},
+  {id:'m13b',t:['13'],type:'mc',q:'CPT codes (HCPCS Level I) are maintained by:',
+   opts:['CMS','FDA','AMA (American Medical Association)','ISO'],
+   ans:2,exp:'CPT (Common Procedure Terminology) = HCPCS Level I, maintained by the AMA for physician/professional services. HCPCS Level II (products/supplies) is maintained by CMS.'},
+  {id:'m14a',t:['14'],type:'mc',q:'Prior to extravasation, macrophages in the bloodstream are called:',
+   opts:['Lymphocytes','Monocytes','Neutrophils','Basophils'],
+   ans:1,exp:'Monocytes circulate in blood → extravasate into tissue → differentiate into macrophages. Same lineage, different name/location. Neutrophils are granulocytes (a different cell type that arrives first at injury sites).'},
+  {id:'m14b',t:['14'],type:'mc',q:'Which plasma protein polymerizes into the mesh that stabilizes a platelet plug?',
+   opts:['Albumin','Vitronectin','Fibronectin','Fibrinogen'],
+   ans:3,exp:'Fibrinogen (Factor I, ~5% of plasma protein) is cleaved by thrombin → fibrin monomers → polymerize into crosslinked fibrin mesh (stabilized by Factor XIIIa). This firm clot completes hemostasis.'},
+  {id:'m14c',t:['14'],type:'mc',q:'A hydrophilic surface will have a contact angle that is:',
+   opts:['Greater than 90°','Between 45–90°','Less than 45°','Exactly 0°'],
+   ans:2,exp:'Hydrophilic: strong solid-liquid interactions → water spreads → contact angle < 45°. Hydrophobic: weak interactions → water beads up → angle > 90°. Young\'s equation: γ_SA = γ_SL + γ_LA·cosθ.'},
+  {id:'m14d',t:['14'],type:'mc',q:'The cardinal sign "Tumor" in acute inflammation is caused by:',
+   opts:['Blood clot formation','Vasodilation','Increased capillary permeability','Nerve stimulation by bacteria'],
+   ans:2,exp:'Tumor = swelling = increased capillary permeability → plasma leaks into surrounding tissue (edema). Rubor (redness) and Calor (heat) are both caused by vasodilation (increased blood flow to area).'},
+  {id:'m15a',t:['15'],type:'mc',q:'The Belmont principle of JUSTICE primarily requires:',
+   opts:['Protecting patients from experimental harm','Obtaining informed consent','Fair distribution of research risks and benefits','Maximizing scientific value of research'],
+   ans:2,exp:'Justice: equitable selection of subjects + fair sharing of both risks and benefits. Historical violations: burdens placed on vulnerable populations (prisoners, minorities) while benefits went to the privileged.'},
+  {id:'m15b',t:['15'],type:'mc',q:'A concern that Deep Brain Stimulation may alter a patient\'s personality is:',
+   opts:['Extrinsic ethical concern','Dual-use dilemma','Clinical research ethics violation','Intrinsic ethical concern'],
+   ans:3,exp:'Intrinsic = inherent worry about what the technology DOES to the individual (altering identity, human-nature relationship). Extrinsic = external consequences (safety, equity, environment). Personality change from DBS is intrinsic.'},
+
+  /* ── TRUE / FALSE ── */
+  {id:'t01a',t:['01'],type:'tf',q:'A material can be biocompatible in one application but not another.',ans:true,exp:'Biocompatibility is application-specific. The same material may work well as a vascular graft but cause problems as a neural implant because the required host responses and mechanical demands differ.'},
+  {id:'t02a',t:['02'],type:'tf',q:'Polymers can be fully (100%) crystalline.',ans:false,exp:'Polymers can NEVER be fully crystalline. Chain length, entanglements, and chain ends always prevent complete ordering. Real polymers are either fully amorphous or semi-crystalline.'},
+  {id:'t02b',t:['02'],type:'tf',q:'FCC and HCP both have an APF of 0.74.',ans:true,exp:'Both are close-packed structures with APF = 0.74 and CN = 12. The difference is only the stacking sequence: FCC = ABCABC, HCP = ABABAB.'},
+  {id:'t04a',t:['04'],type:'tf',q:'Ionic bonds are directional.',ans:false,exp:'Ionic bonds are NON-directional. Coulombic attraction acts equally in all directions from an ion. Only covalent bonds are directional (specific orbital overlap at fixed angles).'},
+  {id:'t04b',t:['04'],type:'tf',q:'Ice is less dense than liquid water because of hydrogen bonding.',ans:true,exp:'In ice, H-bonds create a rigid tetrahedral open-lattice structure with more space than liquid water\'s amorphous network. This explains why ice floats and pipes burst when water freezes.'},
+  {id:'t05a',t:['05'],type:'tf',q:'In a cubic crystal system, the direction [hkl] is perpendicular to the plane (hkl).',ans:true,exp:'True ONLY for cubic systems. This orthogonality is a special property of cubic symmetry and does not hold for other crystal systems (hexagonal, tetragonal, etc.).'},
+  {id:'t05b',t:['05'],type:'tf',q:'The crystallographic plane (110) and the plane (1̄1̄0) are different planes.',ans:false,exp:'A plane and its negative are EQUIVALENT (opposite faces of the same set of parallel planes). Note: for directions, [110] and [1̄1̄0] DO point in opposite directions — a key distinction.'},
+  {id:'t06a',t:['06'],type:'tf',q:'Polycrystalline materials are always isotropic.',ans:false,exp:'Polycrystalline materials are USUALLY isotropic (random grain orientation averages out anisotropy). However, processing (like rolling) can create preferred orientation (crystallographic texture) → anisotropic.'},
+  {id:'t07a',t:['07'],type:'tf',q:'SLA (Stereolithography) can print thermoplastic materials like PLA.',ans:false,exp:'SLA uses UV laser to cure liquid THERMOSET resin (epoxies, acrylates). It cannot process thermoplastics. FDM is the additive process for thermoplastics (PLA, ABS).'},
+  {id:'t08a',t:['08'],type:'tf',q:'A higher Polydispersity Index (PDI) means a broader molecular weight distribution.',ans:true,exp:'PDI = Mw/Mn. PDI = 1 = perfectly monodisperse (never achieved). Higher PDI → broader distribution. Typical values: 1.5–5.'},
+  {id:'t08b',t:['08'],type:'tf',q:'Isotactic polymers crystallize more easily than atactic polymers.',ans:true,exp:'Isotactic: all R-groups on same side → regular, repeating structure → chains pack into crystalline order. Atactic: random R-groups → irregular → cannot crystallize → always amorphous.'},
+  {id:'t09a',t:['09'],type:'tf',q:'Increasing crosslink density in a hydrogel speeds up its degradation rate.',ans:false,exp:'More crosslinks → SLOWER degradation. Crosslinks restrict chain mobility and limit water penetration, making hydrolysis more difficult. Fewer crosslinks = more water access = faster degradation.'},
+  {id:'t10a',t:['10'],type:'tf',q:'Vacancies are present in all crystalline materials at temperatures above absolute zero.',ans:true,exp:'Vacancies form spontaneously because ΔG = ΔH − TΔS; at any T>0K the TΔS entropy term ensures some vacancies are thermodynamically favorable. You cannot have a perfectly vacancy-free crystal above 0K.'},
+  {id:'t10b',t:['10'],type:'tf',q:'Dislocation movement is responsible for ELASTIC deformation in metals.',ans:false,exp:'Dislocation movement causes PLASTIC (permanent) deformation — this is slip. Elastic deformation = reversible stretching of atomic bonds, with NO dislocation motion.'},
+  {id:'t11a',t:['11'],type:'tf',q:'True stress is always greater than engineering stress beyond the yield point.',ans:true,exp:'After yielding, cross-sectional area decreases. Engineering stress uses fixed A₀ (underestimates force/area). True stress uses actual Aᵢ → always σ_T > σ_E post-yield.'},
+  {id:'t11b',t:['11'],type:'tf',q:'All elastomers must be cross-linked.',ans:true,exp:'Without crosslinks, polymer chains slide past each other under load (viscous flow) with no recovery. Crosslinks act as anchor points that allow large deformation but ensure entropic recoil when the load is removed.'},
+  {id:'t12a',t:['12'],type:'tf',q:'The FDA approves biomaterials (as raw materials) for use in medical devices.',ans:false,exp:'FDA approves/clears DEVICES, not materials. ISO 10993 biocompatibility testing is done on the complete device in final finished form. There is no such thing as an "FDA approved biomaterial."'},
+  {id:'t12b',t:['12'],type:'tf',q:'A 510(k) cleared device is described as "FDA approved."',ans:false,exp:'510(k) devices are "CLEARED," not "approved." Only PMA (Class III) devices are formally "approved." The distinction matters legally and in marketing communications.'},
+  {id:'t13a',t:['13'],type:'tf',q:'Medicaid is a federal insurance program for Americans aged 65 and older.',ans:false,exp:'MEDICARE is for age ≥65 (or qualifying disability). MEDICAID is for low-income patients of any age. ~70 million (~20% of US population) are on Medicaid.'},
+  {id:'t14a',t:['14'],type:'tf',q:'Fibrous encapsulation is the most common final outcome for a non-integrating synthetic implant.',ans:true,exp:'When the body cannot dissolve or integrate a foreign material, it walls it off with a fibrous capsule (mature collagen + large blood vessels). This is the default long-term response for most synthetic implants.'},
+  {id:'t14b',t:['14'],type:'tf',q:'Albumin is the least abundant plasma protein by volume.',ans:false,exp:'Albumin is the MOST abundant (~60% of plasma protein). Globulins ~35%. Fibrinogen ~5%. Despite being most abundant, albumin is eventually displaced on biomaterial surfaces by higher-affinity proteins (Vroman effect).'},
+  {id:'t15a',t:['15'],type:'tf',q:'The "Common Rule" applies to all research regardless of funding source.',ans:false,exp:'Common Rule applies to FEDERALLY FUNDED research. Privately funded research is not required to follow it, though IRB review may still be required by institutions regardless of funding.'},
+
+  /* ── MATCHING PAIRS ── */
+  // 02 Classes
+  {id:'mt02a',t:['02'],type:'match',term:'Metallic bonding',def:'Primary bond in metals — cations in an electron sea'},
+  {id:'mt02b',t:['02'],type:'match',term:'Ionic / Covalent bonding',def:'Primary bond in ceramics'},
+  {id:'mt02c',t:['02'],type:'match',term:'Covalent bonding',def:'Primary bond in polymers'},
+  {id:'mt02d',t:['02'],type:'match',term:'Crystalline ONLY',def:'Allowable microstructure for pure metals'},
+  {id:'mt02e',t:['02'],type:'match',term:'Amorphous or semi-crystalline',def:'Allowable microstructures for polymers (never fully crystalline)'},
+  {id:'mt02f',t:['02'],type:'match',term:'Crystalline or amorphous',def:'Allowable microstructures for ceramics'},
+  // 04 Bonding
+  {id:'mt04a',t:['04'],type:'match',term:'London dispersion force',def:'Weakest secondary bond; fluctuating induced dipole; present in ALL matter'},
+  {id:'mt04b',t:['04'],type:'match',term:'Hydrogen bond',def:'Strongest secondary bond; requires H bonded to F, N, or O'},
+  {id:'mt04c',t:['04'],type:'match',term:'Bond energy',def:'Minimum point on the energy-distance curve'},
+  {id:'mt04d',t:['04'],type:'match',term:'Bond length (r₀)',def:'Equilibrium atomic separation — distance at minimum energy'},
+  {id:'mt04e',t:['04'],type:'match',term:"Young's modulus E",def:'Proportional to slope of force-distance curve at r₀'},
+  {id:'mt04f',t:['04'],type:'match',term:'Thermal expansion coeff. α',def:'Related to the asymmetry of the energy-distance trough'},
+  // 05 Crystal structures
+  {id:'mt05a',t:['05'],type:'match',term:'APF = 0.52, CN = 6',def:'Simple Cubic (only element: Polonium)'},
+  {id:'mt05b',t:['05'],type:'match',term:'APF = 0.68, CN = 8',def:'Body-Centered Cubic (BCC) — Fe, W, Cr'},
+  {id:'mt05c',t:['05'],type:'match',term:'APF = 0.74, CN = 12, ABCABC',def:'Face-Centered Cubic (FCC) — Al, Cu, Au'},
+  {id:'mt05d',t:['05'],type:'match',term:'APF = 0.74, CN = 12, ABABAB',def:'Hexagonal Close-Packed (HCP) — Ti, Mg, Zn'},
+  {id:'mt05e',t:['05'],type:'match',term:'4 atoms per unit cell',def:'FCC crystal structure'},
+  {id:'mt05f',t:['05'],type:'match',term:'2 atoms per unit cell',def:'BCC crystal structure'},
+  // 07 Processing
+  {id:'mt07a',t:['07'],type:'match',term:'Extrusion',def:'Continuous profiles (tubing, pipe) — thermoplastics only'},
+  {id:'mt07b',t:['07'],type:'match',term:'Injection molding',def:'Discrete complex parts — thermoplastics; pellets melted + injected'},
+  {id:'mt07c',t:['07'],type:'match',term:'Compression molding',def:'Simple/flat shapes — works for BOTH thermoplastics and thermosets'},
+  {id:'mt07d',t:['07'],type:'match',term:'FDM',def:'Additive manufacturing; thermoplastic filament (PLA, ABS) deposited layer by layer'},
+  {id:'mt07e',t:['07'],type:'match',term:'SLA',def:'Additive manufacturing; thermoset resin cured by UV laser'},
+  {id:'mt07f',t:['07'],type:'match',term:'Autoclave',def:'Sterilization by steam + heat + pressure (121°C)'},
+  // 08 Polymers
+  {id:'mt08a',t:['08'],type:'match',term:'UHMWPE',def:'Acetabular liner in total hip replacement — ultrahigh MW polyethylene'},
+  {id:'mt08b',t:['08'],type:'match',term:'PTFE (Teflon)',def:'Cardiovascular grafts — biostable, very hydrophobic, non-reactive'},
+  {id:'mt08c',t:['08'],type:'match',term:'PMMA (Plexiglas)',def:'Bone cement and intraocular lenses (IOLs)'},
+  {id:'mt08d',t:['08'],type:'match',term:'pHEMA',def:'Soft contact lenses — hydrogel, EWC ≈ 38%'},
+  {id:'mt08e',t:['08'],type:'match',term:'PEEK',def:'Spinal spacers and bone plates — radiolucent, high strength'},
+  {id:'mt08f',t:['08'],type:'match',term:'PGA',def:'Biodegradable sutures — t½ ≈ 2 months, hydrolytic ester degradation'},
+  // 10 Defects
+  {id:'mt10a',t:['10'],type:'match',term:'Vacancy',def:'Point defect — missing atom at a lattice site'},
+  {id:'mt10b',t:['10'],type:'match',term:'Edge dislocation',def:'Linear defect — extra half-plane of atoms inserted'},
+  {id:'mt10c',t:['10'],type:'match',term:'Grain boundary',def:'Planar defect — interface between two crystal orientations'},
+  {id:'mt10d',t:['10'],type:'match',term:'Schottky defect',def:'Ceramic defect — paired cation-anion vacancies'},
+  {id:'mt10e',t:['10'],type:'match',term:'Frenkel defect',def:'Ceramic defect — ion displaced from site to an interstitial position'},
+  {id:'mt10f',t:['10'],type:'match',term:'Inclusion',def:'Volume / bulk defect — trapped foreign particle in material'},
+  // 12 FDA
+  {id:'mt12a',t:['12'],type:'match',term:'Class I (~50%)',def:'Low risk — exempt or minimal regulation (QSR, labeling, register)'},
+  {id:'mt12b',t:['12'],type:'match',term:'Class II (~40%)',def:'Moderate risk — cleared via 510(k) pre-market notification'},
+  {id:'mt12c',t:['12'],type:'match',term:'Class III (~10%)',def:'High risk, life-sustaining — requires PMA approval'},
+  {id:'mt12d',t:['12'],type:'match',term:'510(k)',def:'Shows substantial equivalence to a predicate device → CLEARED'},
+  {id:'mt12e',t:['12'],type:'match',term:'PMA',def:'Full clinical trial evidence required → APPROVED (~30/year)'},
+  {id:'mt12f',t:['12'],type:'match',term:'De Novo 513(g)',def:'Novel device, no predicate, moderate risk — e.g., PillCam'},
+  // 14 Host reactions
+  {id:'mt14a',t:['14'],type:'match',term:'Rubor',def:'Cardinal sign: redness — vasodilation → increased blood flow'},
+  {id:'mt14b',t:['14'],type:'match',term:'Tumor',def:'Cardinal sign: swelling — increased capillary permeability'},
+  {id:'mt14c',t:['14'],type:'match',term:'Calor',def:'Cardinal sign: heat — vasodilation → increased blood flow'},
+  {id:'mt14d',t:['14'],type:'match',term:'Dolor',def:'Cardinal sign: pain — cytokine / bradykinin release'},
+  {id:'mt14e',t:['14'],type:'match',term:'Monocytes',def:'Macrophage precursors circulating in the bloodstream'},
+  {id:'mt14f',t:['14'],type:'match',term:'FBGCs',def:'Fused macrophages surrounding foreign body too large to phagocytose'},
+  // 15 Ethics
+  {id:'mt15a',t:['15'],type:'match',term:'Autonomy (Belmont)',def:'Informed consent: information + comprehension + voluntary participation'},
+  {id:'mt15b',t:['15'],type:'match',term:'Beneficence / Non-maleficence',def:'Maximize research benefits and minimize harm to participants'},
+  {id:'mt15c',t:['15'],type:'match',term:'Justice (Belmont)',def:'Fair distribution of research risks and benefits across populations'},
+  {id:'mt15d',t:['15'],type:'match',term:'IRB',def:'Institutional Review Board — oversees ethics of human subjects research'},
+  {id:'mt15e',t:['15'],type:'match',term:'Intrinsic ethical concern',def:'Inherent worry about what the technology IS (altering human-nature relationship)'},
+  {id:'mt15f',t:['15'],type:'match',term:'Dual-use dilemma',def:'Technology developed for good purposes is later used for harm'},
+];
+
+// ════════════════════════ STATE ════════════════════════
+let selectedTopics = new Set();
+let fcDeck=[], fcIdx=0, fcFlipped=false, fcFilter='all', fcKnown=new Set();
+let quizQs=[], quizIdx=0, quizScore=0, quizStreak=0, quizTimer=null, quizAnswered=false, quizTimerSec=20;
+let matchSets=[], matchSetIdx=0, matchSelected=null, matchDone=new Set();
+let tfQs=[], tfIdx=0, tfCor=0, tfStr=0, tfAnswered=false;
+let projQs=[], projIdx=0, projTimer=null;
+
+// ════════════════════════ INIT ════════════════════════
+function init() {
+  buildTopicList();
+  applyPreset('m1');
+  setMode('welcome');
+}
+
+function buildTopicList() {
+  const container = document.getElementById('topic-list');
+  container.innerHTML = '';
+  TOPICS.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'trow';
+    row.dataset.id = t.id;
+    row.innerHTML = `<span class="tnum-badge">${t.id}</span><span class="tlbl">${t.label}</span>`;
+    row.onclick = () => toggleTopic(t.id);
+    container.appendChild(row);
+  });
+}
+
+function toggleTopic(id) {
+  if (selectedTopics.has(id)) selectedTopics.delete(id);
+  else selectedTopics.add(id);
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  refreshTopicUI();
+}
+
+function applyPreset(p) {
+  selectedTopics = new Set(PRESETS[p]);
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', b.dataset.p === p));
+  refreshTopicUI();
+}
+
+function refreshTopicUI() {
+  document.querySelectorAll('.trow').forEach(row => {
+    row.classList.toggle('sel', selectedTopics.has(row.dataset.id));
+  });
+  document.getElementById('tbadge').textContent = selectedTopics.size + '/15';
+  const fc=getFiltered('fc').length, mc=getFiltered('mc').length,
+        tf=getFiltered('tf').length, mt=getFiltered('match').length;
+  document.getElementById('sfc').textContent = fc||'—';
+  document.getElementById('smc').textContent = mc||'—';
+  document.getElementById('stf').textContent = tf||'—';
+  document.getElementById('smt').textContent = mt||'—';
+}
+
+function getFiltered(type) {
+  if (selectedTopics.size === 0) return Q.filter(q => q.type === type);
+  return Q.filter(q => q.type === type && q.t.some(tid => selectedTopics.has(tid)));
+}
+
+function shuffle(arr) {
+  const a=[...arr];
+  for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+function setMode(mode) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('visible'));
+  document.getElementById('screen-' + (mode==='welcome'?'welcome':mode)).classList.add('visible');
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.m === mode));
+  if (mode==='flashcard') initFlashcard();
+  else if (mode==='quiz') initQuiz();
+  else if (mode==='matching') initMatching();
+  else if (mode==='tf') initTF();
+}
+
+// ════════════════════════ FLASHCARDS ════════════════════════
+function initFlashcard() {
+  fcDeck=shuffle(getFiltered('fc')); fcIdx=0; fcFlipped=false; fcFilter='all'; fcKnown=new Set();
+  document.getElementById('fc-filter-btn').textContent='Show: All';
+  renderFC();
+}
+
+function getFilteredDeck() {
+  if (fcFilter==='known') return fcDeck.filter(c=>fcKnown.has(c.id));
+  if (fcFilter==='learning') return fcDeck.filter(c=>!fcKnown.has(c.id));
+  return fcDeck;
+}
+
+function renderFC() {
+  const deck=getFilteredDeck();
+  const card=document.getElementById('fc-card');
+  card.classList.remove('flipped'); fcFlipped=false;
+  if (!deck.length) {
+    document.getElementById('fc-front').textContent='No cards in this filter.';
+    document.getElementById('fc-back').textContent='';
+    document.getElementById('fc-badge').textContent='—';
+    document.getElementById('fc-prog-txt').textContent='0 / 0';
+    document.getElementById('fc-prog-bar').style.width='0%';
+    return;
+  }
+  fcIdx=Math.max(0,Math.min(deck.length-1,fcIdx));
+  const q=deck[fcIdx];
+  const topic=TOPICS.find(t=>t.id===q.t[0]);
+  const lbl=topic?`L${q.t[0]} — ${topic.label}`:q.t[0];
+  document.getElementById('fc-front').textContent=q.fr;
+  document.getElementById('fc-back').textContent=q.bk;
+  document.getElementById('fc-badge').textContent=lbl;
+  document.getElementById('fc-badge-b').textContent=lbl;
+  document.getElementById('fc-prog-txt').textContent=`${fcIdx+1} / ${deck.length}`;
+  document.getElementById('fc-prog-bar').style.width=`${((fcIdx+1)/deck.length)*100}%`;
+}
+
+function fcFlip(){document.getElementById('fc-card').classList.toggle('flipped');fcFlipped=!fcFlipped;}
+function fcNav(dir){fcIdx+=dir;renderFC();}
+function fcMark(know){
+  const deck=getFilteredDeck();
+  if(!deck[fcIdx])return;
+  if(know)fcKnown.add(deck[fcIdx].id);else fcKnown.delete(deck[fcIdx].id);
+  fcNav(1);
+}
+function fcShuffle(){fcDeck=shuffle(fcDeck);fcIdx=0;renderFC();}
+function fcToggleFilter(){
+  const f=['all','learning','known'],l=['Show: All','Show: Still Learning','Show: Know It ✓'];
+  const i=f.indexOf(fcFilter);
+  fcFilter=f[(i+1)%3];
+  document.getElementById('fc-filter-btn').textContent=l[(i+1)%3];
+  fcIdx=0;renderFC();
+}
+function fcReset(){fcKnown=new Set();fcFilter='all';fcIdx=0;document.getElementById('fc-filter-btn').textContent='Show: All';fcDeck=shuffle(fcDeck);renderFC();}
+
+// ════════════════════════ QUIZ ════════════════════════
+function initQuiz() {
+  quizQs=shuffle(getFiltered('mc'));quizIdx=0;quizScore=0;quizStreak=0;quizAnswered=false;
+  if(quizTimer)clearInterval(quizTimer);
+  document.getElementById('quiz-end').style.display='none';
+  document.getElementById('quiz-opts').style.display='grid';
+  document.getElementById('quiz-qtxt').style.display='';
+  document.getElementById('quiz-exp').style.display='none';
+  document.getElementById('quiz-score').textContent='Score: 0';
+  if(!quizQs.length){document.getElementById('quiz-qtxt').textContent='No questions for selected topics.';return;}
+  renderQuiz();
+}
+
+function renderQuiz() {
+  if(quizIdx>=quizQs.length){showQuizEnd();return;}
+  quizAnswered=false;
+  const q=quizQs[quizIdx];
+  document.getElementById('quiz-qtxt').textContent=q.q;
+  document.getElementById('quiz-qnum').textContent=`Q ${quizIdx+1}/${quizQs.length}`;
+  document.getElementById('quiz-exp').style.display='none';
+  ['qa','qb','qc','qd'].forEach((cls,i)=>{
+    const el=document.getElementById('qo'+i);
+    el.className=`qopt ${cls}`;
+    document.getElementById('qt'+i).textContent=q.opts[i]||'';
+  });
+  startQuizTimer();
+}
+
+function startQuizTimer() {
+  if(quizTimer)clearInterval(quizTimer);
+  quizTimerSec=20;
+  const bar=document.getElementById('quiz-timer-bar');
+  bar.style.width='100%';
+  quizTimer=setInterval(()=>{
+    quizTimerSec--;
+    bar.style.width=(quizTimerSec/20*100)+'%';
+    if(quizTimerSec<=0){clearInterval(quizTimer);if(!quizAnswered)quizAns(-1);}
+  },1000);
+}
+
+function quizAns(idx) {
+  if(quizAnswered)return;
+  quizAnswered=true;
+  if(quizTimer)clearInterval(quizTimer);
+  const q=quizQs[quizIdx];
+  const correct=idx===q.ans;
+  for(let i=0;i<4;i++){
+    const el=document.getElementById('qo'+i);
+    el.classList.add('off');
+    if(i===q.ans)el.classList.add(correct&&i===idx?'correct':'show-correct');
+    else if(i===idx)el.classList.add('wrong');
+  }
+  if(correct){quizStreak++;const bonus=quizStreak>=3?Math.min(quizStreak-2,3):0;quizScore+=100+bonus*50;spawnConfetti(8);}
+  else quizStreak=0;
+  document.getElementById('quiz-score').textContent=`Score: ${quizScore}`;
+  if(q.exp){const e=document.getElementById('quiz-exp');e.textContent=q.exp;e.style.display='';}
+  setTimeout(()=>{quizIdx++;renderQuiz();},2200);
+}
+
+function showQuizEnd() {
+  document.getElementById('quiz-end').style.display='flex';
+  document.getElementById('quiz-opts').style.display='none';
+  document.getElementById('quiz-qtxt').style.display='none';
+  document.getElementById('quiz-exp').style.display='none';
+  document.getElementById('quiz-final').textContent=`${quizScore} pts`;
+  document.getElementById('quiz-detail').textContent=`${quizQs.length} questions completed`;
+  spawnConfetti(40);
+}
+
+// ════════════════════════ MATCHING ════════════════════════
+function initMatching() {
+  const pairs=shuffle(getFiltered('match'));
+  matchSets=[];
+  for(let i=0;i<pairs.length;i+=6)matchSets.push(pairs.slice(i,i+6));
+  matchSetIdx=0;matchSelected=null;matchDone=new Set();
+  document.getElementById('mset-tot').textContent=matchSets.length||'0';
+  document.getElementById('match-done').style.display='none';
+  if(!matchSets.length){document.getElementById('match-grid').innerHTML='<p style="color:#5a6080;padding:20px;text-align:center">No matching pairs for selected topics.</p>';return;}
+  renderMatchSet();
+}
+
+function renderMatchSet() {
+  const set=matchSets[matchSetIdx];
+  matchSelected=null;matchDone=new Set();
+  document.getElementById('mset-n').textContent=matchSetIdx+1;
+  document.getElementById('mremain').textContent=set.length;
+  document.getElementById('match-done').style.display='none';
+  const terms=set.map(p=>({text:p.term,pairId:p.id,side:'term'}));
+  const defs=shuffle(set.map(p=>({text:p.def,pairId:p.id,side:'def'})));
+  const grid=document.getElementById('match-grid');
+  grid.innerHTML='';
+  terms.forEach((t,i)=>{
+    grid.appendChild(makeMatchItem(t));
+    grid.appendChild(makeMatchItem(defs[i]));
+  });
+}
+
+function makeMatchItem(item) {
+  const el=document.createElement('div');
+  el.className='mitem';
+  el.dataset.pairId=item.pairId;
+  el.dataset.side=item.side;
+  el.innerHTML=`<span class="mcol">${item.side==='term'?'TERM':'DEFINITION'}</span>${item.text}`;
+  el.onclick=()=>onMatchClick(el,item);
+  return el;
+}
+
+function onMatchClick(el,item) {
+  if(el.classList.contains('done'))return;
+  if(!matchSelected){matchSelected={el,item};el.classList.add('sel');return;}
+  const first=matchSelected;matchSelected=null;
+  if(first.el===el){el.classList.remove('sel');return;}
+  if(first.item.pairId===item.pairId&&first.item.side!==item.side){
+    first.el.classList.remove('sel');first.el.classList.add('done');
+    el.classList.add('done');matchDone.add(item.pairId);
+    const rem=matchSets[matchSetIdx].length-matchDone.size;
+    document.getElementById('mremain').textContent=rem;
+    if(!rem){spawnConfetti(20);document.getElementById('match-done').style.display='flex';
+      document.getElementById('match-next-btn').style.display=matchSetIdx+1<matchSets.length?'':'none';}
+  } else {
+    first.el.classList.remove('sel');first.el.classList.add('bad');el.classList.add('bad');
+    setTimeout(()=>{first.el.classList.remove('bad');el.classList.remove('bad');},500);
+  }
+}
+
+function matchNext(){
+  if(++matchSetIdx<matchSets.length)renderMatchSet();else initMatching();
+}
+
+// ════════════════════════ TRUE / FALSE ════════════════════════
+function initTF() {
+  tfQs=shuffle(getFiltered('tf'));tfIdx=0;tfCor=0;tfStr=0;tfAnswered=false;
+  document.getElementById('tf-cor').textContent='0';
+  document.getElementById('tf-str').textContent='0';
+  document.getElementById('tf-n').textContent='0';
+  document.getElementById('tf-tot').textContent=tfQs.length;
+  document.getElementById('tf-exp').style.display='none';
+  document.getElementById('tf-btns').style.display='flex';
+  if(!tfQs.length){document.getElementById('tf-stmt').textContent='No T/F questions for selected topics.';return;}
+  renderTF();
+}
+
+function renderTF() {
+  if(tfIdx>=tfQs.length){
+    document.getElementById('tf-stmt').textContent=`Complete! ${tfCor} / ${tfQs.length} correct 🎉`;
+    document.getElementById('tf-btns').style.display='none';spawnConfetti(30);return;
+  }
+  tfAnswered=false;
+  document.getElementById('tf-btns').style.display='flex';
+  document.getElementById('tf-stmt').textContent=tfQs[tfIdx].q;
+  document.getElementById('tf-n').textContent=tfIdx+1;
+  document.getElementById('tf-exp').style.display='none';
+  document.getElementById('tfT').className='tfb tft';
+  document.getElementById('tfF').className='tfb tff';
+}
+
+function tfAns(ans) {
+  if(tfAnswered)return;tfAnswered=true;
+  const q=tfQs[tfIdx];const correct=ans===q.ans;
+  if(correct){tfCor++;tfStr++;spawnConfetti(5);}else tfStr=0;
+  document.getElementById(ans?'tfT':'tfF').classList.add(correct?'correct':'wrong');
+  document.getElementById(!ans?'tfT':'tfF').classList.add(correct?'wrong':'correct');
+  document.getElementById('tf-cor').textContent=tfCor;
+  document.getElementById('tf-str').textContent=tfStr;
+  if(q.exp){const e=document.getElementById('tf-exp');e.textContent=(correct?'✓ Correct! ':'✗ Incorrect. ')+q.exp;e.style.display='';}
+  setTimeout(()=>{tfIdx++;renderTF();},2000);
+}
+
+// ════════════════════════ PROJECTOR / CLASS MODE ════════════════════════
+function openProj() {
+  projQs=shuffle(getFiltered('mc'));projIdx=0;
+  if(!projQs.length){alert('No quiz questions for selected topics.');return;}
+  document.getElementById('projector').classList.add('on');
+  renderProjector();
+  document.addEventListener('keydown',projKeyHandler);
+}
+
+function closeProj() {
+  document.getElementById('projector').classList.remove('on');
+  if(projTimer)clearInterval(projTimer);
+  document.removeEventListener('keydown',projKeyHandler);
+}
+
+function renderProjector() {
+  projIdx=Math.max(0,Math.min(projQs.length-1,projIdx));
+  const q=projQs[projIdx];
+  document.getElementById('proj-qtxt').textContent=q.q;
+  document.getElementById('proj-qnum').textContent=`Q ${projIdx+1}/${projQs.length}`;
+  for(let i=0;i<4;i++){
+    const el=document.getElementById('po'+i);
+    el.className=el.className.replace(/\s*(hide-txt|revealed)/g,'')+' hide-txt';
+    document.getElementById('pt'+i).textContent=q.opts[i]||'';
+  }
+  startProjTimer();
+}
+
+function startProjTimer() {
+  if(projTimer)clearInterval(projTimer);
+  let sec=20;
+  document.getElementById('proj-tnum').textContent=sec;
+  document.getElementById('proj-timer-bar').style.width='100%';
+  projTimer=setInterval(()=>{
+    sec--;
+    document.getElementById('proj-tnum').textContent=sec;
+    document.getElementById('proj-timer-bar').style.width=(sec/20*100)+'%';
+    if(sec<=0)clearInterval(projTimer);
+  },1000);
+}
+
+function projReveal() {
+  if(projTimer)clearInterval(projTimer);
+  const q=projQs[projIdx];
+  for(let i=0;i<4;i++)document.getElementById('po'+i).classList.remove('hide-txt');
+  document.getElementById('po'+q.ans).classList.add('revealed');
+}
+
+function projMove(dir) {
+  projIdx+=dir;renderProjector();
+}
+
+function projKeyHandler(e) {
+  if(e.key==='Escape')closeProj();
+  else if(e.key==='ArrowRight'||e.key==='ArrowDown')projMove(1);
+  else if(e.key==='ArrowLeft'||e.key==='ArrowUp')projMove(-1);
+  else if(e.key===' '){e.preventDefault();projReveal();}
+}
+
+// ════════════════════════ CONFETTI ════════════════════════
+function spawnConfetti(n) {
+  const colors=['#7eb8f7','#e8c87a','#4caf50','#f44336','#9c27b0','#ff9800'];
+  for(let i=0;i<n;i++){
+    const el=document.createElement('div');el.className='cpiece';
+    el.style.left=Math.random()*100+'vw';el.style.top='-10px';
+    el.style.background=colors[Math.floor(Math.random()*colors.length)];
+    el.style.animationDelay=Math.random()*.6+'s';
+    document.body.appendChild(el);
+    el.addEventListener('animationend',()=>el.remove());
+  }
+}
+
+window.onload=init;
+</script>
+</body>
+</html>
