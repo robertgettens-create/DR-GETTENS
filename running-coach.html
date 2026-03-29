@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>StrideAI v13 — Personal Running Coach</title>
+  <title>StrideAI v14 — Personal Running Coach</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -626,7 +626,24 @@ COACHING PRINCIPLES:
         const dataCtx = fb ? `\n\nMy recent Fitbit data (last 30 days): ${fb.runCount} runs totaling ${fb.totalMiles.toFixed(1)} miles, most recent pace ${fb.avgPace || "unknown"}, average run HR ${fb.avgRunHR ?? "unknown"} bpm, resting HR ${fb.restingHR ?? "unknown"} bpm, longest recent run ${fb.longestRun?.toFixed(1) ?? "unknown"} miles.` : "";
         const restCtx = restDays.length > 0 ? `\n\nPreferred rest days: ${restDays.join(", ")}.` : "";
         const wxCtx = weather?.length ? `\n\nThis week's 7AM forecast for Western MA (runner goes out at 7AM):\n${weather.slice(0,7).map(d=>`${d.dayName}: ${d.am7Temp}°F, ${wmoText(d.am7Code)}${d.am7Rain>30?`, ${d.am7Rain}% rain chance`:""}${d.maxWind>15?`, ${d.maxWind}mph wind`:""}`).join("\n")}\nNote any days with bad weather and suggest treadmill or schedule adjustments.` : "";
-        const text = await callClaude([{ role: "user", content: `Generate a ${WEEKS_LEFT}-week training plan for the Mother's Day Half Marathon on May 10, 2026. Today is ${today}.${dataCtx}${restCtx}${wxCtx}\n\nWORKOUT VARIETY (starting week 3 once base is established):\n- Include 1 interval session per week: e.g. "6 x 400m hard effort with 2 min WALK recovery" or "8 x 1 min hard / 2 min walk". WALK recoveries only — never jog recoveries.\n- Include 1 tempo run per week: comfortably hard sustained effort, 20–30 min, Zone 3–4 HR (134–150 bpm). Not in weeks 1–2.\n- "Hard effort" for a 54-year-old means hard to hold a conversation, NOT all-out sprint.\n- All other runs remain easy/conversational (Zone 2, 116–133 bpm).\n\nFORMATTING RULES:\n- Weeks start on Monday\n- Show all 7 days: Monday through Sunday\n- Plain text only, no markdown symbols\n- Each day: "DayName — Activity: distance/duration. Tip: one brief tip."\n- Week heading: "Week N (dates)"\n\nMake it practical and encouraging for a 54-year-old running for fun.` }], apiKey, fitbitStats, null, null);
+        // Compute exact Monday-start week dates so Claude can't get them wrong
+        const raceDate = new Date("2026-05-10");
+        const todayDate = new Date();
+        const dow = todayDate.getDay(); // 0=Sun,1=Mon
+        const daysToMon = dow === 1 ? 0 : dow === 0 ? 1 : 8 - dow;
+        let weekStart = new Date(todayDate); weekStart.setDate(todayDate.getDate() + daysToMon);
+        weekStart.setHours(0,0,0,0);
+        const fmt = d => d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+        const weekSchedule = [];
+        for (let w = 1; weekStart <= raceDate; w++) {
+          const sun = new Date(weekStart); sun.setDate(weekStart.getDate() + 6);
+          const weekEnd = sun > raceDate ? raceDate : sun;
+          const isRaceWeek = weekEnd >= raceDate;
+          weekSchedule.push(`Week ${w}: Monday ${fmt(weekStart)} – ${isRaceWeek ? `Sunday ${fmt(raceDate)} (RACE DAY — half marathon!)` : `Sunday ${fmt(weekEnd)}`}`);
+          weekStart.setDate(weekStart.getDate() + 7);
+        }
+        const weekCtx = `\n\nEXACT WEEK DATES (use these precisely — do not invent different dates):\n${weekSchedule.join("\n")}`;
+        const text = await callClaude([{ role: "user", content: `Generate a training plan for the Mother's Day Half Marathon on Sunday May 10, 2026. Today is ${today}.${dataCtx}${restCtx}${wxCtx}${weekCtx}\n\nWORKOUT VARIETY (starting week 3 once base is established):\n- Include 1 interval session per week: e.g. "6 x 400m hard effort with 2 min WALK recovery" or "8 x 1 min hard / 2 min walk". WALK recoveries only — never jog recoveries.\n- Include 1 tempo run per week: comfortably hard sustained effort, 20–30 min, Zone 3–4 HR (134–150 bpm). Not in weeks 1–2.\n- "Hard effort" for a 54-year-old means hard to hold a conversation, NOT all-out sprint.\n- All other runs remain easy/conversational (Zone 2, 116–133 bpm).\n- Race week: taper significantly, easy runs only Mon–Fri, Rest Saturday, RACE Sunday May 10.\n\nFORMATTING RULES:\n- Every week MUST start on Monday and end on Sunday\n- Show all 7 days for every week: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday\n- Plain text only, no markdown symbols (no **, no ##)\n- Each day: "DayName — Activity: distance/duration. Tip: one brief tip."\n- Week heading exactly: "Week N (Mon Date – Sun Date)"\n\nMake it practical and encouraging for a 54-year-old running for fun.` }], apiKey, fitbitStats, null, null);
         setPlan(text); setPlanLines(text.split("\n")); onSavePlan(text); setLoading(false);
       }
 
@@ -1783,7 +1800,7 @@ COACHING PRINCIPLES:
           <div className="app">
             <div className="header">
               <div className="header-top">
-                <div className="logo">Stride<span>AI</span> <span style={{fontSize:10,color:"#5a6080",fontWeight:400}}>v13</span></div>
+                <div className="logo">Stride<span>AI</span> <span style={{fontSize:10,color:"#5a6080",fontWeight:400}}>v14</span></div>
                 <div style={{display:"flex",gap:8,alignItems:"center"}}>
                   {syncing && <div className="spinner" style={{width:16,height:16}} />}
                   {fitbitToken && !syncing && <span style={{fontSize:11,color:"#00b0b9",cursor:"pointer",fontWeight:600}} onClick={()=>doFitbitSyncInner(fitbitToken.access_token,settings,workouts)}>↻ Fitbit</span>}
