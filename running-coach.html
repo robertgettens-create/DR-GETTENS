@@ -1500,21 +1500,19 @@ COACHING PRINCIPLES:
         showMsg("success", "Data exported! Save the file somewhere safe.");
       }
 
-      function handleDataImport(e) {
+      async function handleDataImport(e) {
         const file = e.target.files?.[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async ev => {
-          try {
-            const data = JSON.parse(ev.target.result);
-            let count = 0;
-            for (const k of DATA_KEYS) {
-              if (data[k] !== undefined) { await sset(k, data[k]); count++; }
-            }
-            showMsg("success", `Imported ${count} data keys. Reload the page to see your data.`);
-          } catch(err) { showMsg("warn", `Import failed: ${err.message}`); }
-        };
-        reader.readAsText(file);
+        try {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          let count = 0;
+          for (const k of DATA_KEYS) {
+            if (data[k] !== undefined) { await sset(k, data[k]); count++; }
+          }
+          if (count === 0) { showMsg("warn", "No matching data found in file. Make sure you're using a StrideAI backup file."); }
+          else { showMsg("success", `Imported ${count} data keys. Reload the page to see your data.`); }
+        } catch(err) { showMsg("warn", `Import failed: ${err.message}`); }
         e.target.value = "";
       }
       function saveApiKey() { onSaveSettings({ ...settings, apiKey, fitbitClientId }); showMsg("success", "Settings saved!"); }
