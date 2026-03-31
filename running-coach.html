@@ -752,12 +752,13 @@ COACHING PRINCIPLES:
       const [elapsed, setElapsed] = useState(0);       // seconds
       const [distance, setDistance] = useState(0);     // miles
       const [positions, setPositions] = useState([]);  // [{lat,lon,ts}]
-      const [splits, setSplits] = useState([]);         // [{mile, pace, time}]
+      const [splits, setSplits] = useState([]);         // [{quarter, label, pace, time}]
       const [currentPace, setCurrentPace] = useState(null); // "MM:SS"
       const [coachMsg, setCoachMsg] = useState("");
       const [coachLoading, setCoachLoading] = useState(false);
       const [audioEnabled, setAudioEnabled] = useState(true);
       const [saved, setSaved] = useState(false);
+      const [gpsAccuracy, setGpsAccuracy] = useState(null);
 
       const watchRef = useRef(null);
       const timerRef = useRef(null);
@@ -791,6 +792,23 @@ COACHING PRINCIPLES:
         const secsPerMile = secs / miles;
         const m = Math.floor(secsPerMile / 60), s = Math.round(secsPerMile % 60);
         return `${m}:${String(s).padStart(2,"0")}`;
+      }
+
+      function quarterLabel(n) {
+        const miles = Math.floor(n / 4), rem = n % 4;
+        if (miles === 0) { if(rem===1) return "¼ mile"; if(rem===2) return "½ mile"; if(rem===3) return "¾ mile"; }
+        if (rem === 0) return `Mile ${miles}`;
+        if (rem === 1) return `Mile ${miles} ¼`;
+        if (rem === 2) return `Mile ${miles} ½`;
+        return `Mile ${miles} ¾`;
+      }
+      function quarterLabelSpoken(n) {
+        const miles = Math.floor(n / 4), rem = n % 4;
+        if (miles === 0) { if(rem===1) return "Quarter mile"; if(rem===2) return "Half mile"; if(rem===3) return "Three quarters of a mile"; }
+        if (rem === 0) return `Mile ${miles}`;
+        if (rem === 1) return `Mile ${miles} and a quarter`;
+        if (rem === 2) return `Mile ${miles} and a half`;
+        return `Mile ${miles} and three quarters`;
       }
 
       function speak(text) {
@@ -836,7 +854,7 @@ COACHING PRINCIPLES:
       function startRun() {
         setSaved(false);
         setStatus("running");
-        setElapsed(0); setDistance(0); setPositions([]); setSplits([]); setCurrentPace(null); setCoachMsg("");
+        setElapsed(0); setDistance(0); setPositions([]); setSplits([]); setCurrentPace(null); setCoachMsg(""); setGpsAccuracy(null);
         accDistRef.current = 0; lastSplitMileRef.current = 0; lastPosRef.current = null; latLngsRef.current = [];
         pausedElapsedRef.current = 0;
         startTimeRef.current = Date.now();
@@ -851,7 +869,8 @@ COACHING PRINCIPLES:
         watchRef.current = navigator.geolocation.watchPosition(
           pos => {
             const { latitude: lat, longitude: lon, accuracy } = pos.coords;
-            if (accuracy > 30) return; // ignore poor fixes
+            if (accuracy > 65) return; // ignore poor fixes
+            setGpsAccuracy(Math.round(accuracy));
             const newPt = { lat, lon, ts: Date.now() };
             if (lastPosRef.current) {
               const d = haversine(lastPosRef.current, newPt);
@@ -868,17 +887,23 @@ COACHING PRINCIPLES:
               polylineRef.current.setLatLngs(latLngsRef.current);
               leafletMapRef.current.setView([lat, lon], leafletMapRef.current.getZoom() || 16);
             }
-            // Mile split announcement
-            const completedMile = Math.floor(accDistRef.current);
-            if (completedMile > lastSplitMileRef.current) {
+            // Quarter-mile split announcements
+            const completedQuarter = Math.floor(accDistRef.current / 0.25);
+            if (completedQuarter > lastSplitMileRef.current) {
               const currentElapsed = Math.floor((Date.now() - startTimeRef.current) / 1000) + pausedElapsedRef.current;
               const pace = fmtPace(accDistRef.current, currentElapsed);
-              const split = { mile: completedMile, pace, time: fmtTime(currentElapsed) };
+              const label = quarterLabel(completedQuarter);
+              const split = { quarter: completedQuarter, label, pace, time: fmtTime(currentElapsed) };
               setSplits(prev => [...prev, split]);
-              lastSplitMileRef.current = completedMile;
-              speak(`Mile ${completedMile}. Pace ${pace ? pace.replace(":"," minutes ") + " seconds per mile" : "calculating"}. Total time ${fmtTime(currentElapsed)}.`);
-              // Ask Claude for a coaching tip at miles 2, 4, 6, and at finish
-              if (apiKey && [2,4,6].includes(completedMile)) fetchCoachTip(completedMile, pace, currentElapsed, accDistRef.current);
+              lastSplitMileRef.current = completedQuarter;
+              const isMile = completedQuarter % 4 === 0;
+              const completedMile = completedQuarter / 4;
+              if (isMile) {
+                speak(`${quarterLabelSpoken(completedQuarter)}. Pace ${pace ? pace.replace(":"," minutes ") + " seconds per mile" : "calculating"}. Total time ${fmtTime(currentElapsed)}.`);
+                if (apiKey && [2,4,6].includes(completedMile)) fetchCoachTip(completedMile, pace, currentElapsed, accDistRef.current);
+              } else {
+                speak(`${quarterLabelSpoken(completedQuarter)}. Pace ${pace ? pace.replace(":"," minutes ") + " seconds per mile" : "calculating"}.`);
+              }
             }
           },
           err => console.warn("GPS error:", err.message),
@@ -906,7 +931,8 @@ COACHING PRINCIPLES:
         watchRef.current = navigator.geolocation.watchPosition(
           pos => {
             const { latitude: lat, longitude: lon, accuracy } = pos.coords;
-            if (accuracy > 30) return;
+            if (accuracy > 65) return;
+            setGpsAccuracy(Math.round(accuracy));
             const newPt = { lat, lon, ts: Date.now() };
             if (lastPosRef.current) {
               const d = haversine(lastPosRef.current, newPt);
@@ -917,6 +943,24 @@ COACHING PRINCIPLES:
             if (polylineRef.current && leafletMapRef.current) {
               polylineRef.current.setLatLngs(latLngsRef.current);
               leafletMapRef.current.setView([lat, lon], leafletMapRef.current.getZoom() || 16);
+            }
+            // Continue quarter-mile splits after resume
+            const completedQuarter = Math.floor(accDistRef.current / 0.25);
+            if (completedQuarter > lastSplitMileRef.current) {
+              const currentElapsed = Math.floor((Date.now() - startTimeRef.current) / 1000) + pausedElapsedRef.current;
+              const pace = fmtPace(accDistRef.current, currentElapsed);
+              const label = quarterLabel(completedQuarter);
+              const split = { quarter: completedQuarter, label, pace, time: fmtTime(currentElapsed) };
+              setSplits(prev => [...prev, split]);
+              lastSplitMileRef.current = completedQuarter;
+              const isMile = completedQuarter % 4 === 0;
+              const completedMile = completedQuarter / 4;
+              if (isMile) {
+                speak(`${quarterLabelSpoken(completedQuarter)}. Pace ${pace ? pace.replace(":"," minutes ") + " seconds per mile" : "calculating"}. Total time ${fmtTime(currentElapsed)}.`);
+                if (apiKey && [2,4,6].includes(completedMile)) fetchCoachTip(completedMile, pace, currentElapsed, accDistRef.current);
+              } else {
+                speak(`${quarterLabelSpoken(completedQuarter)}. Pace ${pace ? pace.replace(":"," minutes ") + " seconds per mile" : "calculating"}.`);
+              }
             }
           },
           err => console.warn("GPS error:", err),
@@ -977,7 +1021,7 @@ COACHING PRINCIPLES:
           {status === "idle" && (
             <>
               <div className="tip-card">
-                GPS tracks your route, pace, and distance. Audio announcements at each mile. Your coach checks in at miles 2, 4, and 6.
+                GPS tracks your route, pace, and distance. Audio announcements every quarter mile. Your coach checks in at miles 2, 4, and 6.
                 {activeShoe && <div style={{marginTop:6,color:"#40c070",fontSize:12}}>⭐ Active shoe: <strong>{activeShoe.name}</strong> — miles will auto-count.</div>}
                 {!activeShoe && <div style={{marginTop:6,color:"#c07820",fontSize:12}}>Tip: set an Active shoe in 👟 Shoes to auto-track mileage.</div>}
               </div>
@@ -1015,9 +1059,16 @@ COACHING PRINCIPLES:
                 <div className="card" style={{textAlign:"center",padding:"16px 8px"}}>
                   <div style={{fontSize:11,color:"#5a6080",marginBottom:4}}>SPLITS</div>
                   <div style={{fontSize:28,fontWeight:700,color:"#40c070"}}>{splits.length}</div>
-                  <div style={{fontSize:12,color:"#a0a8c0"}}>miles done</div>
+                  <div style={{fontSize:12,color:"#a0a8c0"}}>quarters done</div>
                 </div>
               </div>
+
+              {/* GPS accuracy indicator */}
+              {gpsAccuracy !== null && (
+                <div style={{textAlign:"center",fontSize:11,marginBottom:8,color: gpsAccuracy < 20 ? "#40c070" : gpsAccuracy < 50 ? "#c0a020" : "#c04040"}}>
+                  GPS: {gpsAccuracy < 20 ? "Good" : gpsAccuracy < 50 ? "Fair" : "Weak"} ({gpsAccuracy}m)
+                </div>
+              )}
 
               {/* Map */}
               <div ref={mapRef} style={{height:220,borderRadius:12,overflow:"hidden",marginBottom:12,background:"#1a1d2a",border:"1px solid #2a2d3e"}} />
@@ -1039,13 +1090,13 @@ COACHING PRINCIPLES:
                 </div>
               )}
 
-              {/* Mile splits */}
+              {/* Quarter-mile splits */}
               {splits.length > 0 && (
                 <div className="card">
-                  <div className="card-title">Mile Splits</div>
+                  <div className="card-title">Splits</div>
                   {splits.map(s => (
-                    <div key={s.mile} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #1e2030",fontSize:13}}>
-                      <span style={{color:"#5a6080"}}>Mile {s.mile}</span>
+                    <div key={s.quarter} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #1e2030",fontSize:13}}>
+                      <span style={{color: s.quarter % 4 === 0 ? "#f07030" : "#5a6080", fontWeight: s.quarter % 4 === 0 ? 600 : 400}}>{s.label}</span>
                       <span style={{color:"#f07030",fontWeight:600}}>{s.pace}/mi</span>
                       <span style={{color:"#a0a8c0"}}>{s.time}</span>
                     </div>
@@ -1429,7 +1480,43 @@ COACHING PRINCIPLES:
         setFitbitClientId(settings.fitbitClientId || "");
       }, [settings.apiKey, settings.fitbitClientId]);
       const fileRef = useRef(null);
+      const importFileRef = useRef(null);
       function showMsg(type, msg) { setStatus({ type, msg }); setTimeout(() => setStatus(null), 4000); }
+
+      const DATA_KEYS = ["rc_workouts","rc_shoes","rc_plan","rc_week_notes","rc_settings","rc_races","rc_feeling","rc_coach_messages","rc_pace_calc","rc_weather_location"];
+
+      async function exportData() {
+        const out = {};
+        for (const k of DATA_KEYS) {
+          const v = await sget(k);
+          if (v !== null) out[k] = v;
+        }
+        const json = JSON.stringify(out, null, 2);
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = `strideai-backup-${new Date().toISOString().split("T")[0]}.json`;
+        a.click(); URL.revokeObjectURL(url);
+        showMsg("success", "Data exported! Save the file somewhere safe.");
+      }
+
+      function handleDataImport(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async ev => {
+          try {
+            const data = JSON.parse(ev.target.result);
+            let count = 0;
+            for (const k of DATA_KEYS) {
+              if (data[k] !== undefined) { await sset(k, data[k]); count++; }
+            }
+            showMsg("success", `Imported ${count} data keys. Reload the page to see your data.`);
+          } catch(err) { showMsg("warn", `Import failed: ${err.message}`); }
+        };
+        reader.readAsText(file);
+        e.target.value = "";
+      }
       function saveApiKey() { onSaveSettings({ ...settings, apiKey, fitbitClientId }); showMsg("success", "Settings saved!"); }
       function handleFileImport(e) {
         const file = e.target.files?.[0];
@@ -1527,6 +1614,17 @@ COACHING PRINCIPLES:
             }} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 12px",background:"#1a1d2a",border:"1px solid #2a2d3e",borderRadius:10,color:"#a0a8c0",fontSize:14,cursor:"pointer"}}>
               📍 Use My Current Location (GPS)
             </button>
+          </div>
+          <div className="card">
+            <div className="card-title">Backup &amp; Restore Data</div>
+            <div style={{fontSize:13,color:"#5a6080",marginBottom:12,lineHeight:1.6}}>
+              Export your data to a file — then import it on any device or after adding to Home Screen. Saves workouts, plan, shoes, settings, and more. Does <strong style={{color:"#a0a8c0"}}>not</strong> include Fitbit tokens (re-connect Fitbit on the new device).
+            </div>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+              <button className="btn btn-primary btn-sm" onClick={exportData}>⬇ Export Data</button>
+              <button className="btn btn-secondary btn-sm" onClick={()=>importFileRef.current?.click()}>⬆ Import Data</button>
+            </div>
+            <input ref={importFileRef} type="file" accept=".json" style={{display:"none"}} onChange={handleDataImport} />
           </div>
           <div className="card">
             <div className="card-title">Your Heart Rate Zones</div>
