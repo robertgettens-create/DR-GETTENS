@@ -763,6 +763,9 @@ COACHING PRINCIPLES:
       const [audioEnabled, setAudioEnabled] = useState(true);
       const [saved, setSaved] = useState(false);
       const [gpsAccuracy, setGpsAccuracy] = useState(null);
+      const [voices, setVoices] = useState([]);
+      const [selectedVoiceName, setSelectedVoiceName] = useState(() => localStorage.getItem("rc_voice") || "");
+      const selectedVoiceRef = useRef(null);
 
       const watchRef = useRef(null);
       const timerRef = useRef(null);
@@ -776,6 +779,21 @@ COACHING PRINCIPLES:
       const polylineRef = useRef(null);
       const mapInitRef = useRef(false);
       const latLngsRef = useRef([]);
+
+      // Load available speech voices (async on some browsers)
+      useEffect(() => {
+        function loadVoices() {
+          const v = window.speechSynthesis.getVoices();
+          if (v.length) {
+            setVoices(v);
+            const saved = localStorage.getItem("rc_voice");
+            selectedVoiceRef.current = v.find(x => x.name === saved) || v.find(x => x.lang.startsWith("en")) || v[0];
+          }
+        }
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        return () => { window.speechSynthesis.onvoiceschanged = null; };
+      }, []);
 
       // Haversine distance in miles between two {lat,lon} points
       function haversine(a, b) {
@@ -819,6 +837,7 @@ COACHING PRINCIPLES:
         if (!audioEnabled) return;
         const u = new SpeechSynthesisUtterance(text);
         u.rate = 0.95; u.pitch = 1;
+        if (selectedVoiceRef.current) u.voice = selectedVoiceRef.current;
         window.speechSynthesis.cancel();
         window.speechSynthesis.speak(u);
       }
@@ -1029,6 +1048,29 @@ COACHING PRINCIPLES:
                 {activeShoe && <div style={{marginTop:6,color:"#40c070",fontSize:12}}>⭐ Active shoe: <strong>{activeShoe.name}</strong> — miles will auto-count.</div>}
                 {!activeShoe && <div style={{marginTop:6,color:"#c07820",fontSize:12}}>Tip: set an Active shoe in 👟 Shoes to auto-track mileage.</div>}
               </div>
+              {voices.length > 0 && (
+                <div className="card" style={{marginBottom:12}}>
+                  <div className="card-title" style={{marginBottom:8}}>Announcement Voice</div>
+                  <select
+                    className="input"
+                    style={{marginBottom:8}}
+                    value={selectedVoiceName}
+                    onChange={e => {
+                      const name = e.target.value;
+                      setSelectedVoiceName(name);
+                      localStorage.setItem("rc_voice", name);
+                      selectedVoiceRef.current = voices.find(v => v.name === name) || null;
+                    }}
+                  >
+                    {voices.filter(v => v.lang.startsWith("en")).map(v => (
+                      <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>
+                    ))}
+                  </select>
+                  <button className="btn btn-secondary btn-sm" onClick={() => speak("Quarter mile. Pace ten thirty per mile.")}>
+                    🔊 Preview Voice
+                  </button>
+                </div>
+              )}
               <div className="alert alert-info" style={{fontSize:12}}>
                 <div style={{marginBottom:6}}>When prompted, <strong>allow location access</strong>. Keep your screen on during the run.</div>
                 <div style={{marginBottom:6,color:"#c0a020",fontWeight:600}}>📱 iPhone tips for best GPS:</div>
