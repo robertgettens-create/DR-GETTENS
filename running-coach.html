@@ -1505,12 +1505,26 @@ COACHING PRINCIPLES:
       async function doImport(text) {
         try {
           const data = JSON.parse(text);
+          const keys = Object.keys(data);
+          if (keys.length === 0) { alert("File appears empty. Try again."); return; }
           let count = 0;
+          const failed = [];
           for (const k of DATA_KEYS) {
-            if (data[k] !== undefined) { await sset(k, data[k]); count++; }
+            if (data[k] !== undefined) {
+              try {
+                const s = JSON.stringify(data[k]);
+                localStorage.setItem(k, s);
+                count++;
+              } catch(e) { failed.push(k); }
+            }
           }
-          if (count === 0) { alert("No matching data found. Make sure you're using a StrideAI backup file."); }
-          else { alert(`✓ Imported ${count} data sections. Tap OK then reload the page.`); setPasteJson(""); setShowPaste(false); }
+          if (count === 0) {
+            alert(`No matching keys found. File had keys: ${keys.join(", ")}. Expected keys like: ${DATA_KEYS[0]}, ${DATA_KEYS[1]}`);
+          } else {
+            alert(`✓ Restored ${count} data sections${failed.length ? ` (${failed.length} failed)` : ""}. App will reload now.`);
+            setPasteJson(""); setShowPaste(false);
+            setTimeout(() => window.location.reload(), 500);
+          }
         } catch(err) { alert(`Import failed: ${err.message}`); }
       }
 
