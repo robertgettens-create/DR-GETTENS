@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>StrideAI v14 — Personal Running Coach</title>
+  <title>StrideAI v16 — Personal Running Coach</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -29,6 +29,7 @@
     const WEEKS_LEFT = Math.floor(DAYS_LEFT / 7);
     const FITBIT_AUTH_URL = "https://www.fitbit.com/oauth2/authorize";
     const FITBIT_TOKEN_URL = "https://api.fitbit.com/oauth2/token";
+    const APP_VERSION = "v16";
     const FITBIT_API = "https://api.fitbit.com/1";
     const WORKOUT_ICONS = { Run: "🏃", Bike: "🚴", Kayak: "🛶", Gardening: "🌱", Walk: "🚶", Rest: "😴", Other: "⚡" };
 
@@ -1659,6 +1660,15 @@ COACHING PRINCIPLES:
                 <button className="btn btn-primary btn-sm" onClick={()=>doImport(pasteJson)} disabled={!pasteJson.trim()}>Import Pasted Data</button>
               </div>
             )}
+          </div>
+          <div className="card" style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div>
+              <div style={{fontSize:13,color:"#a0a8c0",fontWeight:600}}>StrideAI {APP_VERSION}</div>
+              <div style={{fontSize:11,color:"#5a6080",marginTop:2}}>Tap to get the latest update</div>
+            </div>
+            <button className="btn btn-secondary btn-sm" onClick={()=>{ window.location.href = window.location.href.split("?")[0] + "?v=" + Date.now(); }}>
+              ↺ Check for Updates
+            </button>
           </div>
           <div className="card">
             <div className="card-title">Your Heart Rate Zones</div>
