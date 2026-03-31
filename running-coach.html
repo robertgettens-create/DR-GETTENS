@@ -874,7 +874,7 @@ COACHING PRINCIPLES:
             const newPt = { lat, lon, ts: Date.now() };
             if (lastPosRef.current) {
               const d = haversine(lastPosRef.current, newPt);
-              if (d > 0.005 && d < 0.5) { // ignore micro-jitter and GPS jumps
+              if (d > 0.001 && d < 0.5) { // ignore micro-jitter and GPS jumps
                 accDistRef.current += d;
                 setDistance(accDistRef.current);
               }
@@ -936,7 +936,7 @@ COACHING PRINCIPLES:
             const newPt = { lat, lon, ts: Date.now() };
             if (lastPosRef.current) {
               const d = haversine(lastPosRef.current, newPt);
-              if (d > 0.005 && d < 0.5) { accDistRef.current += d; setDistance(accDistRef.current); }
+              if (d > 0.001 && d < 0.5) { accDistRef.current += d; setDistance(accDistRef.current); }
             }
             lastPosRef.current = newPt;
             latLngsRef.current = [...latLngsRef.current, [lat, lon]];
@@ -1824,7 +1824,7 @@ COACHING PRINCIPLES:
           setFitbitStats(stats);
           const fbWorkouts = stats.activities.map(fitbitActToWorkout).filter(Boolean);
           const existingIds = new Set(existingWorkouts.map(w => w.id));
-          const manualKeys = new Set(existingWorkouts.filter(w => w.source !== "fitbit").map(w => `${w.date}_${w.type}`));
+          const manualKeys = new Set(existingWorkouts.filter(w => w.source !== "fitbit" && w.source !== "gps").map(w => `${w.date}_${w.type}`));
           const newOnes = fbWorkouts.filter(w => !existingIds.has(w.id) && !manualKeys.has(`${w.date}_${w.type}`));
           if (newOnes.length) {
             // Auto-assign runs to active shoe and update its mileage
