@@ -1475,6 +1475,8 @@ COACHING PRINCIPLES:
       const [fitbitClientId, setFitbitClientId] = useState(settings.fitbitClientId || "");
       const [showKey, setShowKey] = useState(false);
       const [status, setStatus] = useState(null);
+      const [pasteJson, setPasteJson] = useState("");
+      const [showPaste, setShowPaste] = useState(false);
       useEffect(() => {
         setApiKey(settings.apiKey || "");
         setFitbitClientId(settings.fitbitClientId || "");
@@ -1500,19 +1502,25 @@ COACHING PRINCIPLES:
         showMsg("success", "Data exported! Save the file somewhere safe.");
       }
 
-      async function handleDataImport(e) {
-        const file = e.target.files?.[0];
-        if (!file) return;
+      async function doImport(text) {
         try {
-          const text = await file.text();
           const data = JSON.parse(text);
           let count = 0;
           for (const k of DATA_KEYS) {
             if (data[k] !== undefined) { await sset(k, data[k]); count++; }
           }
-          if (count === 0) { showMsg("warn", "No matching data found in file. Make sure you're using a StrideAI backup file."); }
-          else { showMsg("success", `Imported ${count} data keys. Reload the page to see your data.`); }
-        } catch(err) { showMsg("warn", `Import failed: ${err.message}`); }
+          if (count === 0) { alert("No matching data found. Make sure you're using a StrideAI backup file."); }
+          else { alert(`✓ Imported ${count} data sections. Tap OK then reload the page.`); setPasteJson(""); setShowPaste(false); }
+        } catch(err) { alert(`Import failed: ${err.message}`); }
+      }
+
+      async function handleDataImport(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          await doImport(text);
+        } catch(err) { alert(`Could not read file: ${err.message}`); }
         e.target.value = "";
       }
       function saveApiKey() { onSaveSettings({ ...settings, apiKey, fitbitClientId }); showMsg("success", "Settings saved!"); }
@@ -1618,11 +1626,25 @@ COACHING PRINCIPLES:
             <div style={{fontSize:13,color:"#5a6080",marginBottom:12,lineHeight:1.6}}>
               Export your data to a file — then import it on any device or after adding to Home Screen. Saves workouts, plan, shoes, settings, and more. Does <strong style={{color:"#a0a8c0"}}>not</strong> include Fitbit tokens (re-connect Fitbit on the new device).
             </div>
-            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:10}}>
               <button className="btn btn-primary btn-sm" onClick={exportData}>⬇ Export Data</button>
-              <button className="btn btn-secondary btn-sm" onClick={()=>importFileRef.current?.click()}>⬆ Import Data</button>
+              <button className="btn btn-secondary btn-sm" onClick={()=>importFileRef.current?.click()}>⬆ Import File</button>
+              <button className="btn btn-secondary btn-sm" onClick={()=>setShowPaste(v=>!v)} style={{color:"#a0c0ff",borderColor:"#2a3a5a"}}>{showPaste ? "✕ Cancel" : "📋 Paste JSON"}</button>
             </div>
             <input ref={importFileRef} type="file" accept=".json" style={{display:"none"}} onChange={handleDataImport} />
+            {showPaste && (
+              <div>
+                <div style={{fontSize:12,color:"#5a6080",marginBottom:6}}>Open the backup file in a text editor, select all, copy, and paste here:</div>
+                <textarea
+                  className="input"
+                  style={{width:"100%",height:100,fontSize:11,fontFamily:"monospace",resize:"vertical",marginBottom:8}}
+                  placeholder='{"rc_workouts":[...],"rc_plan":"...",...}'
+                  value={pasteJson}
+                  onChange={e=>setPasteJson(e.target.value)}
+                />
+                <button className="btn btn-primary btn-sm" onClick={()=>doImport(pasteJson)} disabled={!pasteJson.trim()}>Import Pasted Data</button>
+              </div>
+            )}
           </div>
           <div className="card">
             <div className="card-title">Your Heart Rate Zones</div>
