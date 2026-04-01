@@ -144,11 +144,13 @@
 
   <!-- Planar Defects -->
   <div id="pane-planar-sb" style="display:none">
-    <div class="section-label">Boundary Type</div>
+    <div class="section-label">Boundary / Surface Type</div>
     <div class="mat-grid">
-      <button class="mat-btn active" id="pm-low_angle" onclick="setPlType('low_angle')">Low-Angle<br>Tilt</button>
+      <button class="mat-btn"        id="pm-surface"    onclick="setPlType('surface')">Surface<br>Energy</button>
+      <button class="mat-btn active" id="pm-low_angle"  onclick="setPlType('low_angle')">Low-Angle<br>Tilt</button>
       <button class="mat-btn"        id="pm-high_angle" onclick="setPlType('high_angle')">High-Angle<br>GB</button>
       <button class="mat-btn"        id="pm-twin"       onclick="setPlType('twin')">Twin<br>Boundary</button>
+      <button class="mat-btn"        id="pm-phase"      onclick="setPlType('phase')">Phase<br>Boundary</button>
       <button class="mat-btn"        id="pm-stacking"   onclick="setPlType('stacking')">Stacking<br>Fault</button>
     </div>
     <div style="margin-top:12px">
@@ -270,9 +272,11 @@ const NOTES = {
 };
 
 const PLANAR_NOTES = {
+  surface: 'External surface: atoms at the surface have unsatisfied bonds → net inward pull = surface tension. Materials minimize surface area to reduce energy. γ_surface > γ_GB > γ_twin.',
   low_angle: 'Low-angle tilt boundary: array of edge dislocations with spacing D = b/θ. Misorientation θ < 15°. Energy increases with θ until transition to high-angle boundary.',
   high_angle: 'High-angle grain boundary: θ > 15°. Disordered atomic arrangement at boundary. Hall-Petch: σ_y = σ₀ + k_y·d^(−1/2). Finer grains → higher strength.',
-  twin: 'Twin boundary: mirror reflection of crystal structure across the twin plane. Very low boundary energy. Found in FCC metals (annealing twins) and HCP metals (deformation twins).',
+  twin: 'Twin boundary: mirror reflection of crystal structure across the twin plane. Very low boundary energy. Enables superelasticity and shape memory in alloys like NiTi (Nitinol).',
+  phase: 'Phase boundary: boundary between regions of different composition or crystal structure. A phase is a region of homogeneous chemical and physical properties.',
   stacking: 'Stacking fault: interruption in the ABCABC stacking sequence of close-packed planes. E.g., ABCABABC. Bounded by partial dislocations. Low stacking fault energy → wider faults.',
 };
 
@@ -986,22 +990,205 @@ function drawPlanar(W, H) {
   const type = S.plType;
 
   ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
-  const titles = { low_angle: 'Low-Angle Tilt Boundary', high_angle: 'Polycrystalline Grain Structure', twin: 'Twin Boundary', stacking: 'Stacking Fault — ABCABC Sequence' };
+  const titles = {
+    surface: 'External Surface — Unbalanced Atomic Forces',
+    low_angle: 'Low-Angle Tilt Boundary — Dislocation Array',
+    high_angle: 'Polycrystalline Grain Structure',
+    twin: 'Twin Boundary — Mirror Symmetry',
+    phase: 'Phase Boundary — Two-Phase Microstructure',
+    stacking: 'Stacking Fault — ABCABC Sequence'
+  };
   ctx.fillText(titles[type] || '', leftW / 2, 16);
 
-  if (type === 'low_angle') drawLowAngle(leftW, H);
+  if (type === 'surface') drawSurface(leftW, H);
+  else if (type === 'low_angle') drawLowAngle(leftW, H);
   else if (type === 'high_angle') drawHighAngle(leftW, H);
   else if (type === 'twin') drawTwinBoundary(leftW, H);
+  else if (type === 'phase') drawPhaseBoundary(leftW, H);
   else drawStackingFault(leftW, H);
 
-  // Right: Hall-Petch curve (for low_angle and high_angle) or stacking diagram
-  if (type === 'low_angle' || type === 'high_angle') {
+  // Right panel
+  if (type === 'surface') {
+    drawSurfaceInfo(leftW, W, H);
+  } else if (type === 'low_angle' || type === 'high_angle') {
     drawHallPetch(leftW, W, H);
   } else if (type === 'twin') {
     drawTwinInfo(leftW, W, H);
+  } else if (type === 'phase') {
+    drawPhaseInfo(leftW, W, H);
   } else {
     drawStackingInfo(leftW, W, H);
   }
+}
+
+// ── SURFACE ENERGY ──
+function drawSurface(leftW, H) {
+  const pad = 30;
+  const N = 8; // grid size
+  const availW = leftW - pad * 2;
+  const availH = H - pad * 2 - 30;
+  const sp = Math.min(availW / (N - 1), availH / (N + 1));
+  const r = sp * 0.26;
+  const offX = pad + (availW - sp * (N - 1)) / 2;
+  const offY = pad + 30;
+
+  // Draw bulk atoms (rows 2 to N-1) — fully bonded
+  for (let row = 2; row <= N; row++) {
+    for (let col = 0; col < N; col++) {
+      const cx = offX + col * sp;
+      const cy = offY + row * sp;
+      ctx.fillStyle = '#4a70a8';
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#6090d0'; ctx.lineWidth = 0.6; ctx.stroke();
+
+      // Bond lines to neighbors (subtle)
+      if (col < N - 1) {
+        ctx.strokeStyle = 'rgba(80,120,200,0.15)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(cx + r, cy); ctx.lineTo(cx + sp - r, cy); ctx.stroke();
+      }
+      if (row < N) {
+        ctx.strokeStyle = 'rgba(80,120,200,0.15)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(cx, cy + r); ctx.lineTo(cx, cy + sp - r); ctx.stroke();
+      }
+    }
+  }
+
+  // Draw surface atoms (row 1) — missing upper bonds, pulled inward
+  for (let col = 0; col < N; col++) {
+    const cx = offX + col * sp;
+    const cy = offY + 1.15 * sp; // slightly pulled inward
+    ctx.fillStyle = '#b080e0';
+    ctx.beginPath(); ctx.arc(cx, cy, r * 1.05, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#d0a0ff'; ctx.lineWidth = 1; ctx.stroke();
+
+    // Downward force arrows (net inward pull)
+    const arrowY = cy - r * 1.3;
+    drawArrow(cx, arrowY - 10, cx, arrowY + 2, '#e06060', 1.5);
+
+    // Bond to atom below (strong)
+    ctx.strokeStyle = 'rgba(176,128,224,0.3)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(cx, cy + r); ctx.lineTo(cx, offY + 2 * sp - r); ctx.stroke();
+
+    // Missing bond above (dashed)
+    ctx.strokeStyle = 'rgba(255,80,80,0.3)'; ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy - sp * 0.6); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Surface line
+  ctx.strokeStyle = '#e0c050'; ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(offX - sp * 0.3, offY + 0.6 * sp);
+  ctx.lineTo(offX + (N - 1) * sp + sp * 0.3, offY + 0.6 * sp);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#e0c050'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Free surface', leftW / 2, offY + 0.4 * sp);
+
+  // Labels
+  ctx.fillStyle = '#b080e0'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText('Surface atoms', 8, offY + 1.15 * sp + 3);
+  ctx.fillStyle = '#e06060'; ctx.font = '9px Segoe UI';
+  ctx.fillText('↓ Net inward force', 8, offY + 0.15 * sp);
+  ctx.fillStyle = '#4a6890'; ctx.textAlign = 'left';
+  ctx.fillText('Bulk (balanced bonds)', 8, offY + 4 * sp);
+
+  // Legend at bottom
+  ctx.fillStyle = '#6a7898'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Missing bonds above surface → surface tension (γ)', leftW / 2, H - 8);
+}
+
+function drawSurfaceInfo(sx, W, H) {
+  const pad = { l: 30, r: 20, t: 32, b: 20 };
+  const aw = W - sx - pad.l - pad.r;
+  ctx.strokeStyle = '#1a1d2e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx, 16); ctx.lineTo(sx, H - 16); ctx.stroke();
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Surface Energy — Key Concepts', sx + pad.l + aw / 2, pad.t - 14);
+
+  let y = pad.t + 10;
+  const bw = aw - 10, bh = 46;
+  fBox(sx + pad.l + 5, y, bw, bh, 'Surface atoms have unsatisfied bonds\nNet inward force → surface tension γ', 10); y += bh + 10;
+  fBox(sx + pad.l + 5, y, bw, bh, 'γ = excess energy per unit area (J/m²)\nMaterials minimize surface area', 10); y += bh + 10;
+  fBox(sx + pad.l + 5, y, bw, bh, 'Typical values (metals):\nCu: 1.8 J/m²   Fe: 2.4 J/m²   Al: 1.1 J/m²', 10); y += bh + 10;
+  fBox(sx + pad.l + 5, y, bw, bh, 'Energy hierarchy:\nγ_surface > γ_GB > γ_twin', 10); y += bh + 10;
+  fBox(sx + pad.l + 5, y, bw, bh, 'Drives: sintering, grain growth, wetting,\nliquid droplet formation', 10);
+}
+
+// ── PHASE BOUNDARY ──
+function drawPhaseBoundary(leftW, H) {
+  const pad = 24;
+  const w = leftW - pad * 2;
+  const h = H - pad * 2 - 16;
+  const sp = Math.min(w / 16, h / 14);
+  const r = sp * 0.24;
+  const offX = pad + (w - 14 * sp) / 2;
+  const offY = pad + 20;
+
+  // Phase α (left side) — FCC-like regular lattice
+  const boundaryCol = 7;
+  for (let row = 0; row < 12; row++) {
+    for (let col = 0; col < boundaryCol; col++) {
+      const cx = offX + col * sp + (row % 2 === 0 ? 0 : sp * 0.5);
+      const cy = offY + row * sp * 0.87;
+      if (cx > offX + boundaryCol * sp - sp * 0.3) continue;
+      ctx.fillStyle = S.plShow.colors ? '#4a80c0' : '#4a70a8';
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#6090d0'; ctx.lineWidth = 0.5; ctx.stroke();
+    }
+  }
+
+  // Phase β (right side) — BCC-like, different spacing and color
+  const spB = sp * 1.15;
+  for (let row = 0; row < 11; row++) {
+    for (let col = 0; col < 7; col++) {
+      const cx = offX + boundaryCol * sp + sp * 0.5 + col * spB;
+      const cy = offY + row * spB * 0.87 + spB * 0.2;
+      if (cx > offX + 14 * sp) continue;
+      ctx.fillStyle = S.plShow.colors ? '#c07850' : '#907060';
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.9, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#e09060'; ctx.lineWidth = 0.5; ctx.stroke();
+    }
+  }
+
+  // Boundary region — disordered atoms
+  const boundaryX = offX + boundaryCol * sp;
+  ctx.strokeStyle = '#e0c050'; ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 3]);
+  ctx.beginPath(); ctx.moveTo(boundaryX, offY - 4); ctx.lineTo(boundaryX, offY + 12 * sp * 0.87); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Labels
+  ctx.fillStyle = S.plShow.colors ? '#6090d0' : '#6a7898';
+  ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Phase α', offX + boundaryCol * sp / 2, H - 10);
+  ctx.fillStyle = S.plShow.colors ? '#e09060' : '#6a7898';
+  ctx.fillText('Phase β', offX + boundaryCol * sp + 3 * spB, H - 10);
+  ctx.fillStyle = '#e0c050'; ctx.font = '9px Segoe UI';
+  ctx.fillText('Boundary', boundaryX, offY - 10);
+
+  // Note different atom sizes/spacing
+  ctx.fillStyle = '#6a7898'; ctx.font = '8px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText('Different crystal structure & composition', 8, H - 24);
+}
+
+function drawPhaseInfo(sx, W, H) {
+  const pad = { l: 30, r: 20, t: 32, b: 20 };
+  const aw = W - sx - pad.l - pad.r;
+  ctx.strokeStyle = '#1a1d2e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx, 16); ctx.lineTo(sx, H - 16); ctx.stroke();
+  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Phase Boundary — Key Concepts', sx + pad.l + aw / 2, pad.t - 14);
+
+  let y = pad.t + 10;
+  const bw = aw - 10, bh = 46;
+  fBox(sx + pad.l + 5, y, bw, bh, 'A phase is a region of homogeneous\nchemical and physical properties', 10); y += bh + 10;
+  fBox(sx + pad.l + 5, y, bw, bh, 'Phase boundary: interface between two\nphases of different composition/structure', 10); y += bh + 10;
+  fBox(sx + pad.l + 5, y, bw, bh, 'Examples: ferrite/cementite in steel,\nα/β in Ti alloys, matrix/precipitate', 10); y += bh + 10;
+  fBox(sx + pad.l + 5, y, bw, bh, 'Coherent: lattice match → low energy\nIncoherent: no match → high energy', 10); y += bh + 10;
+  fBox(sx + pad.l + 5, y, bw, bh, 'Controls mechanical properties, corrosion\nresistance, and phase transformation kinetics', 10);
 }
 
 function drawLowAngle(leftW, H) {
@@ -1065,19 +1252,115 @@ function drawLowAngle(leftW, H) {
 }
 
 function drawHighAngle(leftW, H) {
-  // Simple Voronoi-like grain structure
-  const pad = 24;
-  const w = leftW - pad * 2;
-  const h = H - pad * 2 - 16;
+  const pad = 20;
+  // Split: upper 55% = atom-level GB view, lower 45% = Voronoi overview
+  const splitY = Math.floor(H * 0.55);
+  const atomH = splitY - pad - 10;
+  const voroH = H - splitY - pad - 10;
 
-  // Generate or reuse Voronoi points
+  // ── UPPER: Atom-level grain boundary ──
+  // Two crystal lattices meeting at a high-angle boundary (θ ≈ 30°)
+  const theta = 0.52; // ~30 degrees
+  const sp = Math.min((leftW - pad * 2) / 16, atomH / 12);
+  const r = sp * 0.2;
+  const bx = leftW / 2; // boundary x
+  const cy = pad + 16 + atomH / 2; // center y
+
+  // Clipping region for atoms
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(pad, pad + 16, leftW - pad * 2, atomH);
+  ctx.clip();
+
+  // Grain 1 (left) — rotated CCW
+  const cos1 = Math.cos(-theta / 2), sin1 = Math.sin(-theta / 2);
+  for (let row = -8; row <= 8; row++) {
+    for (let col = -9; col <= 0; col++) {
+      const lx = col * sp, ly = row * sp;
+      const ax = bx + lx * cos1 - ly * sin1;
+      const ay = cy + lx * sin1 + ly * cos1;
+      if (ax < pad - r || ax > bx + sp || ay < pad + 14 || ay > pad + 16 + atomH + r) continue;
+      // Atoms near boundary get disordered slightly
+      const distToBound = Math.abs(ax - bx);
+      const disorder = distToBound < sp * 1.5 ? (1 - distToBound / (sp * 1.5)) * sp * 0.25 : 0;
+      const dx = disorder * (Math.sin(row * 3.7 + col * 2.1) * 0.8);
+      const dy = disorder * (Math.cos(row * 2.3 + col * 4.9) * 0.8);
+      const alpha = distToBound < sp * 0.8 ? 0.5 : 1.0;
+      ctx.fillStyle = S.plShow.colors
+        ? `rgba(74,128,200,${alpha})`
+        : `rgba(74,112,168,${alpha})`;
+      ctx.beginPath(); ctx.arc(ax + dx, ay + dy, r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // Grain 2 (right) — rotated CW
+  const cos2 = Math.cos(theta / 2), sin2 = Math.sin(theta / 2);
+  for (let row = -8; row <= 8; row++) {
+    for (let col = 0; col <= 9; col++) {
+      const lx = col * sp, ly = row * sp;
+      const ax = bx + lx * cos2 - ly * sin2;
+      const ay = cy + lx * sin2 + ly * cos2;
+      if (ax > leftW - pad + r || ax < bx - sp || ay < pad + 14 || ay > pad + 16 + atomH + r) continue;
+      const distToBound = Math.abs(ax - bx);
+      const disorder = distToBound < sp * 1.5 ? (1 - distToBound / (sp * 1.5)) * sp * 0.25 : 0;
+      const dx = disorder * (Math.sin(row * 5.1 + col * 1.3) * 0.8);
+      const dy = disorder * (Math.cos(row * 1.7 + col * 3.3) * 0.8);
+      const alpha = distToBound < sp * 0.8 ? 0.5 : 1.0;
+      ctx.fillStyle = S.plShow.colors
+        ? `rgba(128,160,210,${alpha})`
+        : `rgba(74,112,168,${alpha})`;
+      ctx.beginPath(); ctx.arc(ax + dx, ay + dy, r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  ctx.restore(); // unclip
+
+  // Boundary zone highlight
+  ctx.save();
+  const grad = ctx.createLinearGradient(bx - sp * 1.2, 0, bx + sp * 1.2, 0);
+  grad.addColorStop(0, 'rgba(200,160,60,0)');
+  grad.addColorStop(0.35, 'rgba(200,160,60,0.12)');
+  grad.addColorStop(0.5, 'rgba(200,160,60,0.18)');
+  grad.addColorStop(0.65, 'rgba(200,160,60,0.12)');
+  grad.addColorStop(1, 'rgba(200,160,60,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(bx - sp * 1.2, pad + 16, sp * 2.4, atomH);
+  ctx.restore();
+
+  // Boundary dashed line
+  ctx.strokeStyle = 'rgba(200,160,60,0.5)'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(bx, pad + 16); ctx.lineTo(bx, pad + 16 + atomH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Orientation arrows
+  if (S.plShow.orient) {
+    const arrL = 22;
+    drawArrow(pad + 30, pad + 30, pad + 30 + arrL * cos1, pad + 30 + arrL * sin1, '#6090d0', 1.5);
+    drawArrow(leftW - pad - 30, pad + 30, leftW - pad - 30 + arrL * cos2, pad + 30 + arrL * sin2, '#90a8d0', 1.5);
+  }
+
+  // Labels for atom view
+  ctx.fillStyle = '#6a8ab0'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('Grain 1', pad + (bx - pad) / 2, pad + 16 + atomH + 12);
+  ctx.fillText('Grain 2', bx + (leftW - pad - bx) / 2, pad + 16 + atomH + 12);
+  ctx.fillStyle = '#c0a060'; ctx.font = '9px Segoe UI';
+  ctx.fillText(`θ ≈ ${(theta * 180 / Math.PI).toFixed(0)}°`, bx, pad + 16 + atomH + 12);
+
+  // Divider line between views
+  ctx.strokeStyle = '#2a3050'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad, splitY); ctx.lineTo(leftW - pad, splitY); ctx.stroke();
+  ctx.fillStyle = '#4a5a78'; ctx.font = '8px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText('Polycrystalline overview ↓', pad + 2, splitY + 10);
+
+  // ── LOWER: Voronoi overview ──
+  const voroW = leftW - pad * 2;
+  const voroTop = splitY + 14;
   const nGrains = Math.max(6, Math.round(12 * (100 / S.plGrain)));
   if (!S.plVoronoiPts || S.plVoronoiPts.length !== nGrains) {
-    S.plVoronoiPts = genVoronoi(nGrains, w, h, 42);
+    S.plVoronoiPts = genVoronoi(nGrains, voroW, voroH, 42);
   }
   const pts = S.plVoronoiPts;
 
-  // Draw Voronoi by nearest-point coloring (pixel-level approximation via grid)
   const step = 4;
   const grainColors = pts.map((p, i) => {
     const hue = (i * 137.5 + 200) % 360;
@@ -1085,26 +1368,25 @@ function drawHighAngle(leftW, H) {
   });
   const borderColor = '#506890';
 
-  for (let y = 0; y < h; y += step) {
-    for (let x = 0; x < w; x += step) {
+  for (let y = 0; y < voroH; y += step) {
+    for (let x = 0; x < voroW; x += step) {
       let minD = Infinity, minI = 0, secondD = Infinity;
       for (let i = 0; i < pts.length; i++) {
         const d = (x - pts[i].x) ** 2 + (y - pts[i].y) ** 2;
         if (d < minD) { secondD = minD; minI = i; minD = d; }
         else if (d < secondD) secondD = d;
       }
-      // Near boundary?
       const isBoundary = Math.sqrt(secondD) - Math.sqrt(minD) < step * 2.5;
       ctx.fillStyle = isBoundary ? borderColor : grainColors[minI];
-      ctx.fillRect(pad + x, pad + 16 + y, step, step);
+      ctx.fillRect(pad + x, voroTop + y, step, step);
     }
   }
 
-  // Orientation arrows inside each grain
   if (S.plShow.orient) {
     pts.forEach((p, i) => {
-      const ax = pad + p.x, ay = pad + 16 + p.y;
-      const len = 12;
+      const ax = pad + p.x, ay = voroTop + p.y;
+      if (ay > voroTop + voroH - 5) return;
+      const len = 10;
       const ex = ax + len * Math.cos(p.angle);
       const ey = ay - len * Math.sin(p.angle);
       drawArrow(ax, ay, ex, ey, 'rgba(200,200,240,0.5)', 1.2);
@@ -1112,7 +1394,7 @@ function drawHighAngle(leftW, H) {
   }
 
   ctx.fillStyle = '#5a7090'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'left';
-  ctx.fillText(`~${nGrains} grains, d ≈ ${S.plGrain} μm`, 8, H - 6);
+  ctx.fillText(`~${nGrains} grains, d ≈ ${S.plGrain} μm`, pad, voroTop + voroH + 10);
 }
 
 function drawTwinBoundary(leftW, H) {
