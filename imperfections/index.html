@@ -61,6 +61,8 @@
     .prop-card.warn { border-color:#5a4a10; } .prop-card.warn .prop-val { color:#e0c050; }
     .prop-card.alert { border-color:#5a2828; } .prop-card.alert .prop-val { color:#e06060; }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 
@@ -238,6 +240,7 @@
   </div>
   <div id="canvas-wrap">
     <canvas id="impCanvas"></canvas>
+    <div id="dis3d-wrap" style="display:none; position:absolute; top:8px; left:8px; width:46%; height:calc(100% - 12px); border-radius:6px; overflow:hidden; background:#0d0f1c;"></div>
   </div>
   <div id="info-panel">
     <div class="prop-card" id="card0"><div class="prop-lbl" id="lbl0">—</div><div class="prop-val" id="val0">—</div><div class="prop-unit" id="unt0"></div></div>
@@ -711,164 +714,22 @@ function drawArrheniusCurve(sx, W, H) {
 }
 
 // ══════════════════════════════════════════════════════════
-//  DISLOCATION DRAWING
+//  DISLOCATION DRAWING (2D canvas for right info panel only)
 // ══════════════════════════════════════════════════════════
 
 function drawDislocation(W, H) {
+  // 3D view handles the left panel; canvas draws only the right info panel
   const leftW = Math.floor(W * 0.46);
-
-  if (S.disType === 'edge') {
-    drawEdgeDislocation(leftW, H);
-  } else {
-    drawScrewDislocation(leftW, H);
-  }
-
-  // Right panel: info diagram
+  // Clear left area (3D overlay covers it)
+  ctx.fillStyle = '#0d0f1c'; ctx.fillRect(0, 0, leftW, H);
   drawDislocationInfo(leftW, W, H);
 }
 
-function drawEdgeDislocation(leftW, H) {
-  // Title
-  ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
-  ctx.fillText('Edge Dislocation — Extra Half-Plane', leftW / 2, 16);
+// drawScrewDislocation and drawEdgeDislocation now handled by Three.js (dis3D system below)
+// Old isometric canvas code removed — kept drawDislocationInfo for right panel
 
-  const cols = 13, rows = 10;
-  const padX = 24, padY = 26;
-  const availW = leftW - padX * 2;
-  const availH = H - padY * 2 - 20;
-  const sp = Math.min(availW / (cols - 1), availH / (rows - 1));
-  const r = sp * 0.24;
-  const offX = padX + (availW - sp * (cols - 1)) / 2;
-  const offY = padY + 16 + (availH - sp * (rows - 1)) / 2;
-
-  const slipRow = Math.floor(rows / 2);
-  const extraCol = Math.floor(cols / 2); // extra half-plane column
-  const glideOffset = S.disGlidePos * sp; // smooth pixel offset
-
-  // Slip plane
-  if (S.disShow.slip) {
-    const y = offY + slipRow * sp - sp / 2;
-    ctx.strokeStyle = 'rgba(200,160,60,0.4)'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
-    ctx.beginPath(); ctx.moveTo(offX - 10, y); ctx.lineTo(offX + (cols - 1) * sp + 10, y); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(200,160,60,0.5)'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'right';
-    ctx.fillText('Slip plane', offX + (cols - 1) * sp + 8, y - 5);
-  }
-
-  // Draw atoms
-  for (let row = 0; row < rows; row++) {
-    const isAboveSlip = row < slipRow;
-    const nCols = isAboveSlip ? cols + 1 : cols; // extra column above slip plane
-
-    for (let col = 0; col < nCols; col++) {
-      let cx, cy;
-
-      if (isAboveSlip) {
-        // Above slip plane: extra column makes spacing slightly compressed
-        const effectiveSp = sp * cols / (cols + 1);
-        cx = offX + col * effectiveSp + glideOffset;
-        cy = offY + row * sp;
-      } else {
-        cx = offX + col * sp;
-        cy = offY + row * sp;
-      }
-
-      // Is this the extra half-plane?
-      const isExtra = isAboveSlip && col === extraCol;
-
-      if (isExtra && S.disShow.halfplane) {
-        ctx.fillStyle = '#e07040';
-        ctx.beginPath(); ctx.arc(cx, cy, r * 1.15, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#ff9060'; ctx.lineWidth = 1.5; ctx.stroke();
-      } else if (isAboveSlip && S.disShow.halfplane && col === extraCol) {
-        ctx.fillStyle = '#e07040';
-        ctx.beginPath(); ctx.arc(cx, cy, r * 1.15, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#ff9060'; ctx.lineWidth = 1.5; ctx.stroke();
-      } else {
-        ctx.fillStyle = isAboveSlip ? '#4a70a8' : '#4a70a8';
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#6090d0'; ctx.lineWidth = 0.6; ctx.stroke();
-      }
-    }
-  }
-
-  // Extra half-plane highlight (vertical line for the extra column)
-  if (S.disShow.halfplane) {
-    const effectiveSp = sp * cols / (cols + 1);
-    const hpX = offX + extraCol * effectiveSp + glideOffset;
-    const hpY1 = offY;
-    const hpY2 = offY + (slipRow - 1) * sp;
-    ctx.strokeStyle = 'rgba(224,112,64,0.5)'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(hpX, hpY1 - r); ctx.lineTo(hpX, hpY2 + r + sp * 0.4); ctx.stroke();
-  }
-
-  // Dislocation core symbol (⊥)
-  const coreY = offY + slipRow * sp - sp / 2;
-  const effectiveSp = sp * cols / (cols + 1);
-  const coreX = offX + extraCol * effectiveSp + glideOffset;
-  ctx.fillStyle = '#e0e060'; ctx.font = 'bold 16px Segoe UI'; ctx.textAlign = 'center';
-  ctx.fillText('⊥', coreX, coreY + 6);
-
-  // Burgers vector
-  if (S.disShow.burgers) {
-    const bx1 = coreX + sp * 0.5, by1 = coreY + sp * 0.8;
-    const bx2 = bx1 + sp, by2 = by1;
-    drawArrow(bx1, by1, bx2, by2, '#60e060', 2);
-    ctx.fillStyle = '#60e060'; ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'center';
-    ctx.fillText('b', (bx1 + bx2) / 2, by2 + 14);
-  }
-
-  // Burgers circuit
-  if (S.disShow.circuit) {
-    const startRow = slipRow - 2, startCol = extraCol + 2;
-    const steps = [
-      [0, -1], [0, -1], [0, -1], [0, -1],     // left 4
-      [1, 0], [1, 0], [1, 0], [1, 0],          // down 4
-      [0, 1], [0, 1], [0, 1], [0, 1],          // right 4
-      [-1, 0], [-1, 0], [-1, 0], [-1, 0],       // up 4
-    ];
-    let cr = startRow, cc = startCol;
-    ctx.strokeStyle = 'rgba(100,224,100,0.6)'; ctx.lineWidth = 1.5;
-    ctx.setLineDash([3, 2]);
-    steps.forEach(([dr, dc]) => {
-      const x1 = offX + cc * sp, y1 = offY + cr * sp;
-      cr += dr; cc += dc;
-      const x2 = offX + cc * sp, y2 = offY + cr * sp;
-      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-    });
-    ctx.setLineDash([]);
-    // Closure failure arrow
-    const endX = offX + cc * sp, endY = offY + cr * sp;
-    const startX = offX + startCol * sp, startY = offY + startRow * sp;
-    if (Math.abs(endX - startX) > 2 || Math.abs(endY - startY) > 2) {
-      drawArrow(endX, endY, startX, startY, '#ff6060', 2);
-      ctx.fillStyle = '#ff6060'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'left';
-      ctx.fillText('closure failure = b', startX + 8, startY - 8);
-    }
-  }
-
-  // Shear stress arrows
-  if (S.disTau > 0) {
-    const arrowLen = 15 + S.disTau / 100 * 20;
-    const tauCol = `rgba(240,200,60,${0.3 + S.disTau / 100 * 0.5})`;
-    // Top: rightward
-    for (let i = 0; i < 3; i++) {
-      const y = offY - 8;
-      const x = offX + i * sp * 4 + sp;
-      drawArrow(x, y, x + arrowLen, y, tauCol, 1.5);
-    }
-    // Bottom: leftward
-    for (let i = 0; i < 3; i++) {
-      const y = offY + (rows - 1) * sp + 10;
-      const x = offX + i * sp * 4 + sp * 3;
-      drawArrow(x, y, x - arrowLen, y, tauCol, 1.5);
-    }
-    ctx.fillStyle = tauCol; ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
-    ctx.fillText('τ →', offX + (cols - 1) * sp / 2, offY - 16);
-  }
-}
-
-function drawScrewDislocation(leftW, H) {
+function _removed_drawScrewDislocation(leftW, H) {
+  // This function is no longer used — Three.js handles 3D rendering
   ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
   ctx.fillText('Screw Dislocation — Isometric 3D View', leftW / 2, 16);
 
@@ -1983,6 +1844,14 @@ function showTab(tab, btn) {
     characterization: NOTES.characterization,
   };
   document.getElementById('scenario-note').textContent = noteMap[tab] || '';
+
+  // Show/hide Three.js 3D overlay for dislocations
+  if (tab === 'dislocation') {
+    showDis3D();
+  } else {
+    hideDis3D();
+  }
+
   updateInfo(); draw();
 }
 
@@ -2021,48 +1890,22 @@ function setDisType(t) {
   document.querySelectorAll('[id^="dm-"]').forEach(b => b.classList.remove('active'));
   document.getElementById('dm-' + t).classList.add('active');
   S.disGlidePos = 0;
+  if (dis3D.renderer) buildDislocation3D();
   updateInfo(); draw();
 }
 function onDisTau() {
   S.disTau = +document.getElementById('sl-disTau').value;
   document.getElementById('v-disTau').textContent = S.disTau;
+  if (dis3D.renderer) buildDislocation3D();
   draw();
 }
 function togDis(key) {
   S.disShow[key] = !S.disShow[key];
   document.getElementById('dt-' + key).classList.toggle('on');
+  if (dis3D.renderer) buildDislocation3D();
   draw();
 }
-function toggleGlide() {
-  if (S.disAnimating) {
-    S.disAnimating = false;
-    if (S.disAnimRef) { cancelAnimationFrame(S.disAnimRef); S.disAnimRef = null; }
-    document.getElementById('btn-glide').textContent = '▶ Glide';
-    return;
-  }
-  if (S.disTau < 10) { S.disTau = 50; document.getElementById('sl-disTau').value = 50; document.getElementById('v-disTau').textContent = '50'; }
-  S.disAnimating = true;
-  document.getElementById('btn-glide').textContent = '⏸ Pause';
-  let lastTime = Date.now();
-  function step() {
-    const now = Date.now();
-    const dt = (now - lastTime) / 1000;
-    lastTime = now;
-    S.disGlidePos += dt * S.disTau / 100 * 2;
-    if (S.disGlidePos > 5) S.disGlidePos = 0; // wrap around
-    updateInfo(); draw();
-    if (S.disAnimating) S.disAnimRef = requestAnimationFrame(step);
-  }
-  S.disAnimRef = requestAnimationFrame(step);
-}
-function resetDis() {
-  S.disAnimating = false;
-  if (S.disAnimRef) { cancelAnimationFrame(S.disAnimRef); S.disAnimRef = null; }
-  document.getElementById('btn-glide').textContent = '▶ Glide';
-  S.disGlidePos = 0; S.disTau = 0;
-  document.getElementById('sl-disTau').value = 0; document.getElementById('v-disTau').textContent = '0';
-  updateInfo(); draw();
-}
+// (toggleGlide and resetDis are defined in the Three.js dislocation section below)
 
 // Planar handlers
 function setPlType(t) {
@@ -2138,6 +1981,435 @@ function setCharSample(s) {
 }
 
 // ══════════════════════════════════════════════════════════
+//  THREE.JS DISLOCATION 3D SYSTEM
+// ══════════════════════════════════════════════════════════
+
+const dis3D = {
+  scene: null, camera: null, renderer: null, controls: null,
+  group: null, running: false, wrap: null,
+  atomMeshes: [], bondMeshes: [], slipMesh: null, coreLine: null,
+  burgersArrow: null, shearArrows: [],
+  // lattice params
+  nx: 12, nyAbove: 5, nyBelow: 5, nz: 5,
+  spacing: 1.0,
+  atomRadius: 0.32,
+};
+
+function initDis3D() {
+  dis3D.wrap = document.getElementById('dis3d-wrap');
+  if (dis3D.renderer) return; // already initialized
+
+  dis3D.scene = new THREE.Scene();
+  dis3D.scene.background = new THREE.Color(0x0d0f1c);
+
+  dis3D.camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
+  dis3D.camera.position.set(12, 8, 14);
+
+  dis3D.renderer = new THREE.WebGLRenderer({ antialias: true });
+  dis3D.renderer.setPixelRatio(window.devicePixelRatio);
+  dis3D.wrap.appendChild(dis3D.renderer.domElement);
+
+  dis3D.controls = new THREE.OrbitControls(dis3D.camera, dis3D.renderer.domElement);
+  dis3D.controls.enableDamping = true;
+  dis3D.controls.dampingFactor = 0.08;
+  dis3D.controls.target.set(6, 0, 2);
+  dis3D.controls.update();
+
+  // Lighting
+  dis3D.scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.75);
+  sun.position.set(10, 15, 10);
+  dis3D.scene.add(sun);
+  const fill = new THREE.DirectionalLight(0x8899ff, 0.2);
+  fill.position.set(-6, -4, -8);
+  dis3D.scene.add(fill);
+
+  dis3D.group = new THREE.Group();
+  dis3D.scene.add(dis3D.group);
+
+  resizeDis3D();
+}
+
+function resizeDis3D() {
+  if (!dis3D.renderer || !dis3D.wrap) return;
+  const w = dis3D.wrap.clientWidth;
+  const h = dis3D.wrap.clientHeight;
+  if (w < 10 || h < 10) return;
+  dis3D.camera.aspect = w / h;
+  dis3D.camera.updateProjectionMatrix();
+  dis3D.renderer.setSize(w, h);
+}
+
+function startDis3DLoop() {
+  if (dis3D.running) return;
+  dis3D.running = true;
+  function loop() {
+    if (!dis3D.running) return;
+    dis3D.controls.update();
+    dis3D.renderer.render(dis3D.scene, dis3D.camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+
+function stopDis3DLoop() {
+  dis3D.running = false;
+}
+
+function showDis3D() {
+  initDis3D();
+  dis3D.wrap.style.display = '';
+  resizeDis3D();
+  buildDislocation3D();
+  startDis3DLoop();
+}
+
+function hideDis3D() {
+  const w = document.getElementById('dis3d-wrap');
+  if (w) w.style.display = 'none';
+  stopDis3DLoop();
+}
+
+// Shared geometry and materials
+const _sphereGeo = new THREE.SphereGeometry(1, 24, 24);
+const _matNormal  = new THREE.MeshPhongMaterial({ color: 0x4a70a8, shininess: 80, specular: 0x222244 });
+const _matExtra   = new THREE.MeshPhongMaterial({ color: 0xe07040, shininess: 80, specular: 0x442222 });
+const _matBelow   = new THREE.MeshPhongMaterial({ color: 0x4a70a8, shininess: 80, specular: 0x222244 });
+const _matCore    = new THREE.MeshPhongMaterial({ color: 0xe0e060, shininess: 80, specular: 0x444422 });
+const _matScrewBase = new THREE.MeshPhongMaterial({ color: 0x4a70a8, shininess: 80, specular: 0x222244 });
+
+function clearDis3DGroup() {
+  while (dis3D.group.children.length > 0) {
+    const c = dis3D.group.children[0];
+    dis3D.group.remove(c);
+    if (c.geometry && !c.geometry._shared) c.geometry.dispose();
+    if (c.material && !c.material._shared) c.material.dispose();
+  }
+  dis3D.atomMeshes = [];
+  dis3D.bondMeshes = [];
+  dis3D.slipMesh = null;
+  dis3D.coreLine = null;
+  dis3D.burgersArrow = null;
+  dis3D.shearArrows = [];
+}
+
+function buildDislocation3D() {
+  clearDis3DGroup();
+  if (S.disType === 'edge') {
+    buildEdge3D();
+  } else {
+    buildScrew3D();
+  }
+}
+
+// ── EDGE DISLOCATION 3D ──
+
+function buildEdge3D() {
+  const { nx, nyAbove, nyBelow, nz, spacing: sp, atomRadius: ar } = dis3D;
+  const slipY = 0; // slip plane at y=0
+  const extraCol = Math.floor(nx / 2); // which x-column is the extra half-plane
+  const glidePos = S.disGlidePos; // integer = snapped position
+  const glideIntX = extraCol + Math.floor(glidePos); // current x position of half-plane
+  const glideFrac = glidePos - Math.floor(glidePos); // fractional progress (0-1 for animation)
+
+  // Center offset so lattice is roughly centered
+  const cx = nx * sp / 2;
+  const cz = nz * sp / 2;
+
+  // ── Atoms above slip plane (with extra half-plane) ──
+  const nColsAbove = nx + 1;
+  // Effective spacing: compress to fit nx+1 columns into nx*sp width
+  const aboveSp = (nx * sp) / (nx + 1);
+  // During glide animation, the half-plane shifts
+  const animShift = glideFrac * aboveSp;
+
+  for (let iy = 0; iy < nyAbove; iy++) {
+    for (let ix = 0; ix < nColsAbove; ix++) {
+      for (let iz = 0; iz < nz; iz++) {
+        // x position: compressed spacing + glide animation offset
+        let xPos = ix * aboveSp + animShift;
+        const yPos = (iy + 0.5) * sp;
+        const zPos = iz * sp;
+
+        // Determine if this is the extra half-plane column
+        const isExtraHP = (ix === glideIntX);
+
+        // During glide fraction, the extra half-plane atoms interpolate
+        // between their current position and merging with the lower lattice
+        if (isExtraHP && glideFrac > 0) {
+          // The extra column stretches down toward slip plane
+          // (visual: bonds breaking as it moves)
+        }
+
+        let mat = _matNormal;
+        let radius = ar;
+        if (isExtraHP && S.disShow.halfplane) {
+          mat = _matExtra;
+          radius = ar * 1.12;
+        }
+
+        const mesh = new THREE.Mesh(_sphereGeo, mat);
+        mesh.scale.setScalar(radius);
+        mesh.position.set(xPos - cx, yPos, zPos - cz);
+        mesh.userData = { isExtra: isExtraHP, above: true, ix, iy, iz };
+        dis3D.group.add(mesh);
+        dis3D.atomMeshes.push(mesh);
+      }
+    }
+  }
+
+  // ── Atoms below slip plane (regular grid) ──
+  for (let iy = 0; iy < nyBelow; iy++) {
+    for (let ix = 0; ix < nx; ix++) {
+      for (let iz = 0; iz < nz; iz++) {
+        const xPos = ix * sp + sp / 2; // offset by half to show misfit
+        const yPos = -(iy + 0.5) * sp;
+        const zPos = iz * sp;
+
+        const mesh = new THREE.Mesh(_sphereGeo, _matBelow);
+        mesh.scale.setScalar(ar);
+        mesh.position.set(xPos - cx, yPos, zPos - cz);
+        mesh.userData = { above: false, ix, iy, iz };
+        dis3D.group.add(mesh);
+        dis3D.atomMeshes.push(mesh);
+      }
+    }
+  }
+
+  // ── Slip plane ──
+  if (S.disShow.slip) {
+    const slipGeo = new THREE.PlaneGeometry(nx * sp + 2, nz * sp + 1);
+    const slipMat = new THREE.MeshBasicMaterial({
+      color: 0xc8a03c, transparent: true, opacity: 0.12,
+      side: THREE.DoubleSide
+    });
+    const slipMesh = new THREE.Mesh(slipGeo, slipMat);
+    slipMesh.rotation.x = -Math.PI / 2;
+    slipMesh.position.set(0, 0, -cz + nz * sp / 2 - 0.5);
+    dis3D.group.add(slipMesh);
+    dis3D.slipMesh = slipMesh;
+
+    // Slip plane border
+    const edges = new THREE.EdgesGeometry(slipGeo);
+    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xc8a03c, transparent: true, opacity: 0.3 }));
+    line.rotation.x = -Math.PI / 2;
+    line.position.copy(slipMesh.position);
+    dis3D.group.add(line);
+  }
+
+  // ── Dislocation core line (along z through the extra half-plane bottom) ──
+  const coreX = glideIntX * aboveSp + animShift - cx;
+  const lineGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(coreX, 0, -cz - 0.5),
+    new THREE.Vector3(coreX, 0, -cz + nz * sp + 0.5)
+  ]);
+  const lineMat = new THREE.LineDashedMaterial({ color: 0xe0e060, dashSize: 0.3, gapSize: 0.2, linewidth: 2 });
+  const coreLine = new THREE.Line(lineGeo, lineMat);
+  coreLine.computeLineDistances();
+  dis3D.group.add(coreLine);
+  dis3D.coreLine = coreLine;
+
+  // ── Burgers vector arrow ──
+  if (S.disShow.burgers) {
+    const dir = new THREE.Vector3(1, 0, 0);
+    const origin = new THREE.Vector3(coreX + sp * 0.3, -sp * 0.8, 0);
+    const arrowHelper = new THREE.ArrowHelper(dir, origin, sp * 1.2, 0x60e060, 0.25, 0.15);
+    dis3D.group.add(arrowHelper);
+    dis3D.burgersArrow = arrowHelper;
+  }
+
+  // ── Shear stress arrows ──
+  if (S.disTau > 0) {
+    const tauScale = 0.5 + S.disTau / 100 * 1.5;
+    // Top arrows (rightward)
+    for (let i = 0; i < 3; i++) {
+      const origin = new THREE.Vector3(-cx + i * nx * sp / 3 + sp, nyAbove * sp + 0.3, 0);
+      const arr = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), origin, tauScale, 0xf0c83c, 0.2, 0.12);
+      dis3D.group.add(arr);
+      dis3D.shearArrows.push(arr);
+    }
+    // Bottom arrows (leftward)
+    for (let i = 0; i < 3; i++) {
+      const origin = new THREE.Vector3(-cx + i * nx * sp / 3 + sp * 3, -nyBelow * sp - 0.3, 0);
+      const arr = new THREE.ArrowHelper(new THREE.Vector3(-1,0,0), origin, tauScale, 0xf0c83c, 0.2, 0.12);
+      dis3D.group.add(arr);
+      dis3D.shearArrows.push(arr);
+    }
+  }
+}
+
+// ── SCREW DISLOCATION 3D ──
+
+function buildScrew3D() {
+  const nxa = 8, nya = 6, nza = 8;
+  const sp = dis3D.spacing;
+  const ar = dis3D.atomRadius;
+  const coreX = Math.floor(nxa / 2), coreZ = Math.floor(nza / 2);
+  const b = sp; // Burgers vector magnitude
+
+  const cx = nxa * sp / 2;
+  const cy = nya * sp / 2;
+  const cz = nza * sp / 2;
+
+  for (let ix = 0; ix < nxa; ix++) {
+    for (let iy = 0; iy < nya; iy++) {
+      for (let iz = 0; iz < nza; iz++) {
+        const dx = ix - coreX;
+        const dz = iz - coreZ;
+        const r = Math.sqrt(dx * dx + dz * dz);
+        // Screw displacement: u_y = b * atan2(dz, dx) / (2π)
+        let dy = 0;
+        if (r > 0.3) {
+          dy = b * Math.atan2(dz, dx) / (2 * Math.PI);
+        }
+
+        const xPos = ix * sp - cx;
+        const yPos = iy * sp + dy - cy;
+        const zPos = iz * sp - cz;
+
+        // Color by displacement
+        const t = dy / (b * 0.5);
+        let color;
+        const isCore = r < 0.8;
+        if (isCore) {
+          color = new THREE.Color(0xe0e060);
+        } else if (t >= 0) {
+          color = new THREE.Color(
+            (100 + 155 * Math.min(1, t)) / 255,
+            (130 - 50 * Math.min(1, t)) / 255,
+            (180 - 100 * Math.min(1, t)) / 255
+          );
+        } else {
+          const at = Math.min(1, -t);
+          color = new THREE.Color(
+            (100 - 50 * at) / 255,
+            (130 + 40 * at) / 255,
+            (180 + 75 * at) / 255
+          );
+        }
+
+        const mat = new THREE.MeshPhongMaterial({ color, shininess: 80, specular: 0x222244 });
+        const mesh = new THREE.Mesh(_sphereGeo, mat);
+        mesh.scale.setScalar(ar);
+        mesh.position.set(xPos, yPos, zPos);
+        dis3D.group.add(mesh);
+        dis3D.atomMeshes.push(mesh);
+      }
+    }
+  }
+
+  // Dislocation line (vertical through core)
+  const lineGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, -cy - 0.5, 0),
+    new THREE.Vector3(0, cy + 0.5, 0)
+  ]);
+  const lineMat = new THREE.LineDashedMaterial({ color: 0xe0e060, dashSize: 0.3, gapSize: 0.2 });
+  const line = new THREE.Line(lineGeo, lineMat);
+  line.computeLineDistances();
+  dis3D.group.add(line);
+
+  // Slip plane
+  if (S.disShow.slip) {
+    const slipGeo = new THREE.PlaneGeometry(nxa * sp + 1, nza * sp + 1);
+    const slipMat = new THREE.MeshBasicMaterial({
+      color: 0xb080e0, transparent: true, opacity: 0.1, side: THREE.DoubleSide
+    });
+    const slipMesh = new THREE.Mesh(slipGeo, slipMat);
+    slipMesh.rotation.x = -Math.PI / 2;
+    slipMesh.position.set(0, 0, 0);
+    dis3D.group.add(slipMesh);
+  }
+
+  // Burgers vector (parallel to dislocation line = along y)
+  if (S.disShow.burgers) {
+    const dir = new THREE.Vector3(0, 1, 0);
+    const origin = new THREE.Vector3(0, cy + 0.8, 0);
+    const arrowHelper = new THREE.ArrowHelper(dir, origin, sp * 1.5, 0x60e060, 0.25, 0.15);
+    dis3D.group.add(arrowHelper);
+  }
+
+  // Camera target for screw
+  dis3D.controls.target.set(0, 0, 0);
+  dis3D.camera.position.set(8, 6, 10);
+  dis3D.controls.update();
+}
+
+// ── STEP-BY-STEP GLIDE ANIMATION ──
+
+function toggleGlide() {
+  if (S.disAnimating) {
+    S.disAnimating = false;
+    if (S.disAnimRef) { cancelAnimationFrame(S.disAnimRef); S.disAnimRef = null; }
+    document.getElementById('btn-glide').textContent = '▶ Glide';
+    return;
+  }
+  if (S.disTau < 10) {
+    S.disTau = 50;
+    document.getElementById('sl-disTau').value = 50;
+    document.getElementById('v-disTau').textContent = '50';
+  }
+  S.disAnimating = true;
+  document.getElementById('btn-glide').textContent = '⏸ Pause';
+
+  // Step-by-step: animate from current integer to next integer
+  const stepDuration = 600; // ms per step
+  let stepStart = Date.now();
+  let fromPos = Math.floor(S.disGlidePos);
+  let toPos = fromPos + 1;
+
+  function step() {
+    if (!S.disAnimating) return;
+    const elapsed = Date.now() - stepStart;
+    const t = Math.min(1, elapsed / stepDuration);
+
+    // Ease in-out for snap feel
+    const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+    S.disGlidePos = fromPos + ease;
+
+    // Rebuild 3D to update atom positions
+    buildDislocation3D();
+    updateInfo();
+    draw(); // update right info panel
+
+    if (t >= 1) {
+      // Snap complete - move to next step
+      S.disGlidePos = toPos;
+      fromPos = toPos;
+      toPos = fromPos + 1;
+      stepStart = Date.now();
+
+      // Wrap around after enough steps
+      if (fromPos >= dis3D.nx - 2) {
+        S.disGlidePos = 0;
+        fromPos = 0;
+        toPos = 1;
+      }
+
+      // Pause briefly at each snap position
+      setTimeout(() => {
+        if (S.disAnimating) {
+          S.disAnimRef = requestAnimationFrame(step);
+        }
+      }, 200);
+    } else {
+      S.disAnimRef = requestAnimationFrame(step);
+    }
+  }
+  S.disAnimRef = requestAnimationFrame(step);
+}
+
+function resetDis() {
+  S.disAnimating = false;
+  if (S.disAnimRef) { cancelAnimationFrame(S.disAnimRef); S.disAnimRef = null; }
+  document.getElementById('btn-glide').textContent = '▶ Glide';
+  S.disGlidePos = 0; S.disTau = 0;
+  document.getElementById('sl-disTau').value = 0; document.getElementById('v-disTau').textContent = '0';
+  buildDislocation3D();
+  updateInfo(); draw();
+}
+
+// ══════════════════════════════════════════════════════════
 //  RESIZE + INIT
 // ══════════════════════════════════════════════════════════
 
@@ -2145,6 +2417,7 @@ function resizeCanvas() {
   const wrap = document.getElementById('canvas-wrap');
   canvas.width  = wrap.clientWidth  - 20;
   canvas.height = wrap.clientHeight - 12;
+  resizeDis3D();
   draw();
 }
 window.addEventListener('resize', resizeCanvas);
