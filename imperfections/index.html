@@ -1787,7 +1787,7 @@ function updateInfo() {
     setCard(0, 'Type', S.disType === 'edge' ? 'Edge' : 'Screw', '');
     setCard(1, 'b direction', S.disType === 'edge' ? '⊥ to ℓ' : '∥ to ℓ', '');
     setCard(2, 'Shear τ', S.disTau, '(rel.)');
-    const maxSt = dis3D.nx - 1;
+    const maxSt = S.disType === 'edge' ? dis3D.nx - 2 : 8;
     const exited = S.disGlidePos >= maxSt;
     setCard(3, 'Glide Dist.', Math.floor(S.disGlidePos), 'b', exited ? 'warn' : '');
     setCard(4, exited ? 'Status' : 'Slip System', exited ? 'Exited crystal' : '{111}<110>', '', exited ? 'alert' : '');
@@ -2110,32 +2110,37 @@ function buildEdge3D() {
   const { nyAbove, nyBelow, nz, spacing: sp, atomRadius: ar } = dis3D;
   const nx = dis3D.nx; // columns in bottom half (reference lattice)
   const glidePos = S.disGlidePos; // 0 = start, each +1 = one step right
-  const maxSteps = nx - 1; // max steps before dislocation exits crystal
-  const exited = (glidePos >= maxSteps); // dislocation has left
+  const maxSteps = nx - 2; // dislocation exits after this many steps
+  const exited = (glidePos >= maxSteps);
 
-  // The extra half-plane starts at column index (nx/2) in the top half.
-  // As glidePos increases, the "core" (where the extra column terminates)
-  // moves rightward. The top half always has nx+1 columns total.
-  // - Columns LEFT of the core: spaced at regular `sp` (aligned with bottom)
-  // - The extra half-plane column: at the core position
-  // - Columns RIGHT of the core: spaced at regular `sp` (aligned with bottom)
+  // PHYSICS: The top half has nx+1 columns (one extra = the half-plane).
+  // Bottom half has nx columns at x = 0, sp, 2sp, ..., (nx-1)*sp.
   //
-  // During animation (fractional glidePos), the core smoothly transitions
-  // between integer positions by interpolating atom x-positions near the core.
+  // The extra half-plane starts at column 1 (one from left edge).
+  // As glidePos increases by 1, the core moves one column rightward.
+  //
+  // Key: columns LEFT of the core have already slipped (shifted by +b = +sp).
+  // Columns RIGHT of the core have NOT yet slipped (aligned with bottom).
+  // The core column itself is the compressed extra half-plane in between.
+  //
+  // So for top column ix:
+  //   ix < coreCol  → already slipped: x = (ix + 1) * sp  (shifted +b)
+  //   ix == coreCol → extra HP: squeezed between slipped and unslipped
+  //   ix > coreCol  → not yet slipped: x = (ix - 1) * sp  (maps to bottom ix-1)
+  //
+  // When exited: ALL top columns shifted by +b → x = (ix + 1) * sp
+  // Result: top overhangs right side by one sp = the slip step.
 
-  const startCol = Math.floor(nx / 2); // initial core column index in top half
-  const coreCol = startCol + Math.floor(glidePos); // integer core column
-  const frac = glidePos - Math.floor(glidePos); // fractional animation progress
+  const startCol = 1; // extra HP starts one column from left
+  const coreCol = startCol + Math.floor(glidePos);
+  const frac = glidePos - Math.floor(glidePos);
 
-  // Center offset
-  const totalW = nx * sp;
+  // Center on the bottom lattice
+  const totalW = (nx - 1) * sp;
   const cx = totalW / 2;
   const cz = (nz - 1) * sp / 2;
 
-  // ── Atoms above slip plane ──
-  // Top half always has exactly (nx + 1) columns.
-  // We place them so that columns away from the core align with the bottom,
-  // and the extra column creates the compression near the core.
+  // ── Top half atoms (nx+1 columns, or nx when exited) ──
   const nColsAbove = exited ? nx : nx + 1;
 
   for (let iy = 0; iy < nyAbove; iy++) {
@@ -2145,32 +2150,40 @@ function buildEdge3D() {
         let isExtraHP = false;
 
         if (exited) {
-          // Dislocation has exited: top half shifted by +b (one spacing) relative to bottom
-          xPos = ix * sp + sp;
+          // All top atoms shifted by +b
+          xPos = (ix + 1) * sp;
+        } else if (ix < coreCol) {
+          // LEFT of core: already slipped, shifted by +sp
+          // During frac animation of the NEXT step, these don't move
+          xPos = (ix + 1) * sp;
+        } else if (ix === coreCol) {
+          // EXTRA HALF-PLANE (the core)
+          isExtraHP = true;
+          // At integer pos: squeezed between the slipped column to its left
+          // and the unslipped column to its right
+          // Left neighbor at (coreCol)*sp, right neighbor at (coreCol)*sp → midpoint
+          // More precisely: left slipped neighbor is at coreCol*sp,
+          // right unslipped neighbor is at (coreCol-1)*sp... wait—
+          // Left of core last slipped column: ix=coreCol-1 → x = coreCol*sp
+          // Right of core first unslipped: ix=coreCol+1 → x = coreCol*sp
+          // So the extra HP is squeezed between coreCol*sp and coreCol*sp
+          // = at exactly coreCol*sp but with compression on both sides.
+          // Place it at the midpoint: (coreCol*sp + (coreCol)*sp)/2 = coreCol*sp
+          // Actually let's think in bottom-lattice coords:
+          //   last slipped atom (ix=coreCol-1): x = coreCol * sp
+          //   first unslipped atom (ix=coreCol+1): x = coreCol * sp  (maps to bottom coreCol)
+          // So extra HP sits right at coreCol*sp (squeezed between two that overlap)
+          //
+          // Better approach: interpolate during animation
+          const leftX = coreCol * sp;       // where the slipped neighbor is
+          const rightX = coreCol * sp;      // where the unslipped neighbor maps
+          // At integer positions, place it between the bottom columns:
+          // bottom col (coreCol-1) is at (coreCol-1)*sp, bottom col coreCol is at coreCol*sp
+          // Extra HP sits between them: (coreCol - 0.5)*sp
+          xPos = (coreCol - 0.5) * sp + frac * sp;
         } else {
-          // Place atoms: regular spacing everywhere except compress around core
-          // Columns 0..coreCol-1 align with bottom columns 0..coreCol-1
-          // Column coreCol is the extra half-plane
-          // Columns coreCol+1..nx align with bottom columns coreCol..nx-1
-
-          if (ix < coreCol) {
-            // Left of core: aligned with bottom lattice
-            xPos = ix * sp;
-          } else if (ix === coreCol) {
-            // The extra half-plane column
-            isExtraHP = true;
-            // At integer positions: midway between bottom columns coreCol-1 and coreCol
-            // During animation: interpolate from current midpoint toward next midpoint
-            const baseX = (coreCol - 0.5) * sp;
-            xPos = baseX + frac * sp;
-          } else {
-            // Right of core: align with bottom columns shifted by the compression
-            // Column ix in top maps to bottom column (ix-1)
-            const baseX = (ix - 1) * sp;
-            // During animation, these shift right slightly as core moves
-            xPos = baseX + (1 - frac) * sp * 0; // stays put (aligned with bottom ix-1)
-            xPos = (ix - 1) * sp;
-          }
+          // RIGHT of core: not yet slipped, aligned with bottom (ix-1)
+          xPos = (ix - 1) * sp;
         }
 
         const yPos = (iy + 0.5) * sp;
@@ -2192,7 +2205,7 @@ function buildEdge3D() {
     }
   }
 
-  // ── Atoms below slip plane (fixed reference lattice) ──
+  // ── Bottom half atoms (fixed reference lattice) ──
   for (let iy = 0; iy < nyBelow; iy++) {
     for (let ix = 0; ix < nx; ix++) {
       for (let iz = 0; iz < nz; iz++) {
@@ -2211,14 +2224,14 @@ function buildEdge3D() {
 
   // ── Slip plane ──
   if (S.disShow.slip) {
-    const slipGeo = new THREE.PlaneGeometry(totalW + sp * 2, (nz - 1) * sp + sp * 2);
+    const slipGeo = new THREE.PlaneGeometry(totalW + sp * 3, (nz - 1) * sp + sp * 2);
     const slipMat = new THREE.MeshBasicMaterial({
       color: 0xc8a03c, transparent: true, opacity: 0.12,
       side: THREE.DoubleSide
     });
     const slipMesh = new THREE.Mesh(slipGeo, slipMat);
     slipMesh.rotation.x = -Math.PI / 2;
-    slipMesh.position.set(sp / 2, 0, 0);
+    slipMesh.position.set(sp * 0.5, 0, 0);
     dis3D.group.add(slipMesh);
     dis3D.slipMesh = slipMesh;
 
@@ -2273,96 +2286,171 @@ function buildEdge3D() {
 // ── SCREW DISLOCATION 3D ──
 
 function buildScrew3D() {
-  const nxa = 8, nya = 6, nza = 8;
+  const nxa = 10, nya = 6, nza = 8;
   const sp = dis3D.spacing;
   const ar = dis3D.atomRadius;
-  const coreX = Math.floor(nxa / 2), coreZ = Math.floor(nza / 2);
-  const b = sp; // Burgers vector magnitude
+  const b = sp; // Burgers vector magnitude (along y)
+  const glidePos = S.disGlidePos;
+  const maxSteps = nxa - 2;
+  const exited = (glidePos >= maxSteps);
 
-  const cx = nxa * sp / 2;
-  const cy = nya * sp / 2;
-  const cz = nza * sp / 2;
+  // Screw dislocation: line runs along y-axis, moves in +x direction.
+  // Slip plane at z = midpoint. Atoms with z < core have been sheared by +b (in y).
+  //
+  // The dislocation core starts at x-column 1 (one from left).
+  // As glidePos increases, the core moves rightward.
+  // Atoms LEFT of core (in x): displaced by +b in y (already sheared)
+  // Atoms RIGHT of core: no displacement (not yet sheared)
+  // Atoms NEAR core: displacement = b * atan2(dz, dx) / (2π) centered on core
+  //
+  // When exited: all atoms on the z < mid side are displaced by +b relative to z > mid
+  // This creates a visible step/ledge on the surface.
+
+  const startCol = 1;
+  const coreIx = startCol + Math.floor(glidePos);
+  const frac = glidePos - Math.floor(glidePos);
+  const coreXf = (coreIx + frac); // fractional core column
+
+  const cx = (nxa - 1) * sp / 2;
+  const cy = (nya - 1) * sp / 2;
+  const cz = (nza - 1) * sp / 2;
+
+  // Slip plane is at z = cz (mid-depth). Atoms with iz < nza/2 are the "front"
+  // that gets sheared relative to the "back" (iz >= nza/2).
+  // Actually for a screw dislocation moving in x, the slip plane contains
+  // both x and y. The cut is along z. Let's use:
+  //   Slip plane: y = 0 (horizontal mid-plane)
+  //   Dislocation line: along z
+  //   Moves in: +x direction
+  //   Burgers vector: along z (parallel to dislocation line)
+  //   Atoms above slip plane (iy >= nya/2) get displaced in +z
+  //
+  // Redefine for clearer geometry:
+  const slipIy = Math.floor(nya / 2); // slip plane between row slipIy-1 and slipIy
 
   for (let ix = 0; ix < nxa; ix++) {
     for (let iy = 0; iy < nya; iy++) {
       for (let iz = 0; iz < nza; iz++) {
-        const dx = ix - coreX;
-        const dz = iz - coreZ;
-        const r = Math.sqrt(dx * dx + dz * dz);
-        // Screw displacement: u_y = b * atan2(dz, dx) / (2π)
-        let dy = 0;
-        if (r > 0.3) {
-          dy = b * Math.atan2(dz, dx) / (2 * Math.PI);
+        let xPos = ix * sp;
+        let yPos = iy * sp;
+        let zPos = iz * sp;
+
+        const aboveSlip = (iy >= slipIy);
+        let dz = 0; // displacement in z (Burgers vector direction)
+
+        if (exited) {
+          // All atoms above slip plane shifted by +b in z
+          if (aboveSlip) dz = b;
+        } else {
+          // Distance from core in the slip plane
+          const dx = ix - coreXf;
+          // For atoms on the slip plane rows, apply the screw displacement field
+          // atan2 based on position relative to core
+          const dy = iy - (slipIy - 0.5); // distance from slip plane
+          const r = Math.sqrt(dx * dx + dy * dy);
+
+          if (r < 0.3) {
+            // Core atom — sits at the dislocation line
+            dz = 0;
+          } else {
+            // Screw displacement: u_z = b * atan2(dy, dx) / (2π)
+            // This gives smooth helical transition from +b/2 above-left to -b/2 below-left
+            dz = b * Math.atan2(dy, dx) / (2 * Math.PI);
+          }
         }
 
-        const xPos = ix * sp - cx;
-        const yPos = iy * sp + dy - cy;
-        const zPos = iz * sp - cz;
+        zPos += dz;
 
         // Color by displacement
-        const t = dy / (b * 0.5);
+        const normDz = dz / (b * 0.5);
+        const dx2 = ix - coreXf;
+        const dy2 = iy - (slipIy - 0.5);
+        const r2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+        const isCore = !exited && r2 < 0.8;
+
         let color;
-        const isCore = r < 0.8;
         if (isCore) {
           color = new THREE.Color(0xe0e060);
-        } else if (t >= 0) {
-          color = new THREE.Color(
-            (100 + 155 * Math.min(1, t)) / 255,
-            (130 - 50 * Math.min(1, t)) / 255,
-            (180 - 100 * Math.min(1, t)) / 255
-          );
         } else {
-          const at = Math.min(1, -t);
-          color = new THREE.Color(
-            (100 - 50 * at) / 255,
-            (130 + 40 * at) / 255,
-            (180 + 75 * at) / 255
-          );
+          const t = Math.max(-1, Math.min(1, normDz));
+          if (t >= 0) {
+            color = new THREE.Color(
+              (100 + 155 * t) / 255,
+              (130 - 50 * t) / 255,
+              (180 - 100 * t) / 255
+            );
+          } else {
+            const at = -t;
+            color = new THREE.Color(
+              (100 - 50 * at) / 255,
+              (130 + 40 * at) / 255,
+              (180 + 75 * at) / 255
+            );
+          }
         }
 
         const mat = new THREE.MeshPhongMaterial({ color, shininess: 80, specular: 0x222244 });
         const mesh = new THREE.Mesh(_sphereGeo, mat);
         mesh.scale.setScalar(ar);
-        mesh.position.set(xPos, yPos, zPos);
+        mesh.position.set(xPos - cx, yPos - cy, zPos - cz);
         dis3D.group.add(mesh);
         dis3D.atomMeshes.push(mesh);
       }
     }
   }
 
-  // Dislocation line (vertical through core)
-  const lineGeo = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(0, -cy - 0.5, 0),
-    new THREE.Vector3(0, cy + 0.5, 0)
-  ]);
-  const lineMat = new THREE.LineDashedMaterial({ color: 0xe0e060, dashSize: 0.3, gapSize: 0.2 });
-  const line = new THREE.Line(lineGeo, lineMat);
-  line.computeLineDistances();
-  dis3D.group.add(line);
+  // Dislocation line (along z through core)
+  if (!exited) {
+    const coreXpos = coreXf * sp - cx;
+    const coreYpos = (slipIy - 0.5) * sp - cy;
+    const lineGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(coreXpos, coreYpos, -cz - 0.5),
+      new THREE.Vector3(coreXpos, coreYpos, cz + 0.5)
+    ]);
+    const lineMat = new THREE.LineDashedMaterial({ color: 0xe0e060, dashSize: 0.3, gapSize: 0.2 });
+    const line = new THREE.Line(lineGeo, lineMat);
+    line.computeLineDistances();
+    dis3D.group.add(line);
+  }
 
   // Slip plane
   if (S.disShow.slip) {
-    const slipGeo = new THREE.PlaneGeometry(nxa * sp + 1, nza * sp + 1);
+    const slipYpos = (slipIy - 0.5) * sp - cy;
+    const slipGeo = new THREE.PlaneGeometry((nxa - 1) * sp + sp * 2, (nza - 1) * sp + sp * 2);
     const slipMat = new THREE.MeshBasicMaterial({
       color: 0xb080e0, transparent: true, opacity: 0.1, side: THREE.DoubleSide
     });
     const slipMesh = new THREE.Mesh(slipGeo, slipMat);
+    // Slip plane is horizontal (xz plane) at y = slipYpos
     slipMesh.rotation.x = -Math.PI / 2;
-    slipMesh.position.set(0, 0, 0);
+    slipMesh.position.set(0, slipYpos, 0);
     dis3D.group.add(slipMesh);
   }
 
-  // Burgers vector (parallel to dislocation line = along y)
-  if (S.disShow.burgers) {
-    const dir = new THREE.Vector3(0, 1, 0);
-    const origin = new THREE.Vector3(0, cy + 0.8, 0);
+  // Burgers vector (along z, parallel to dislocation line)
+  if (S.disShow.burgers && !exited) {
+    const coreXpos = coreXf * sp - cx;
+    const dir = new THREE.Vector3(0, 0, 1);
+    const origin = new THREE.Vector3(coreXpos, cy + 0.8, 0);
     const arrowHelper = new THREE.ArrowHelper(dir, origin, sp * 1.5, 0x60e060, 0.25, 0.15);
     dis3D.group.add(arrowHelper);
   }
 
-  // Camera target for screw
+  // Shear stress arrows
+  if (S.disTau > 0 && !exited) {
+    const tauScale = 0.5 + S.disTau / 100 * 1.5;
+    for (let i = 0; i < 2; i++) {
+      const xo = -cx + i * (nxa - 1) * sp / 2 + sp;
+      const arr1 = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), new THREE.Vector3(xo, cy + 0.3, -cz), tauScale, 0xf0c83c, 0.2, 0.12);
+      const arr2 = new THREE.ArrowHelper(new THREE.Vector3(0,0,-1), new THREE.Vector3(xo, -cy - 0.3, cz), tauScale, 0xf0c83c, 0.2, 0.12);
+      dis3D.group.add(arr1);
+      dis3D.group.add(arr2);
+    }
+  }
+
+  // Camera
   dis3D.controls.target.set(0, 0, 0);
-  dis3D.camera.position.set(8, 6, 10);
+  dis3D.camera.position.set(10, 6, 10);
   dis3D.controls.update();
 }
 
@@ -2384,7 +2472,8 @@ function toggleGlide() {
   document.getElementById('btn-glide').textContent = '⏸ Pause';
 
   // Step-by-step: animate from current integer to next integer
-  const maxSteps = dis3D.nx - 1; // dislocation exits after this many steps
+  // Edge: nx-2 steps, Screw: nxa-2 steps (both use nx for edge, 10 for screw)
+  const maxSteps = S.disType === 'edge' ? dis3D.nx - 2 : 8; // 10-2 for screw
   const stepDuration = 600; // ms per step
   let stepStart = Date.now();
   let fromPos = Math.floor(S.disGlidePos);
