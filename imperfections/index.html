@@ -76,6 +76,8 @@
       <button class="tog-btn"    id="pt-selfInt"        onclick="togPt('selfInt')">Self-<br>Interstitial</button>
       <button class="tog-btn"    id="pt-substitutional" onclick="togPt('substitutional')">Substitutional</button>
       <button class="tog-btn"    id="pt-interstitial"   onclick="togPt('interstitial')">Interstitial<br>Impurity</button>
+      <button class="tog-btn"    id="pt-schottky"       onclick="togPt('schottky')">Schottky<br>Defect</button>
+      <button class="tog-btn"    id="pt-frenkel"        onclick="togPt('frenkel')">Frenkel<br>Defect</button>
     </div>
     <div style="margin-top:12px">
       <div class="section-label">Temperature</div>
@@ -257,7 +259,7 @@ const Qv = 0.90;      // eV, vacancy formation energy (Cu-like)
 
 // Notes per tab
 const NOTES = {
-  point:  'Toggle defect types and adjust temperature to explore vacancy concentration via the Arrhenius equation. n_v/N = exp(−Q_v / kT).',
+  point:  'Toggle defect types and adjust temperature to explore vacancy concentration via the Arrhenius equation. n_v/N = exp(−Q_v / kT). Schottky = paired cation+anion vacancies (ceramics, charge neutrality). Frenkel = atom displaced to interstitial, leaving vacancy.',
   dislocation: 'Edge dislocation: extra half-plane of atoms above the slip plane. Apply shear stress to glide the dislocation one Burgers vector at a time.',
   planar: 'Grain boundaries impede dislocation motion → Hall-Petch strengthening. Smaller grains = more boundaries = higher yield stress.',
   volume: 'Internal defects (voids, inclusions, porosity) act as stress concentrators and reduce effective cross-section. K_t = 3 for a circular hole.',
@@ -291,7 +293,7 @@ const CHAR_DATA = {
 const S = {
   tab: 'point',
   // Point defects
-  ptShow: { vacancy:true, selfInt:false, substitutional:false, interstitial:false },
+  ptShow: { vacancy:true, selfInt:false, substitutional:false, interstitial:false, schottky:false, frenkel:false },
   ptTemp: 800, ptGrid: 8, ptSeed: 1,
   // Dislocations
   disType: 'edge', disTau: 0,
@@ -437,6 +439,43 @@ function drawPoint(W, H) {
     }
   }
 
+  // Schottky defect: paired cation + anion vacancies (ceramics)
+  if (S.ptShow.schottky) {
+    const count = Math.max(1, Math.round(totalSites * 0.03));
+    for (let i = 0; i < count; i++) {
+      let r_, c_;
+      // Cation vacancy (even row+col sites = "cation" sublattice)
+      do { r_ = Math.floor(rng() * N); c_ = Math.floor(rng() * N); }
+      while (defectMap.has(r_ + ',' + c_));
+      defectMap.set(r_ + ',' + c_, 'schottky_cation');
+      // Anion vacancy (adjacent site)
+      let r2 = r_, c2 = c_ + 1;
+      if (c2 >= N) { c2 = c_ - 1; }
+      if (c2 < 0 || defectMap.has(r2 + ',' + c2)) {
+        r2 = Math.min(r_ + 1, N - 1); c2 = c_;
+      }
+      if (!defectMap.has(r2 + ',' + c2)) {
+        defectMap.set(r2 + ',' + c2, 'schottky_anion');
+      }
+    }
+  }
+
+  // Frenkel defect: atom displaced from site to interstitial (vacancy + interstitial pair)
+  const frenkelPairs = [];
+  if (S.ptShow.frenkel) {
+    const count = Math.max(1, Math.round(totalSites * 0.03));
+    for (let i = 0; i < count; i++) {
+      let r_, c_;
+      do { r_ = Math.floor(rng() * N); c_ = Math.floor(rng() * N); }
+      while (defectMap.has(r_ + ',' + c_));
+      defectMap.set(r_ + ',' + c_, 'frenkel_vacancy');
+      // Displaced atom goes to nearby interstitial position
+      const iRow = Math.min(r_, N - 2);
+      const iCol = Math.min(c_, N - 2);
+      frenkelPairs.push({ vacRow: r_, vacCol: c_, intRow: iRow, intCol: iCol });
+    }
+  }
+
   // Interstitial positions (between lattice sites)
   const interstitials = [];
   if (S.ptShow.selfInt) {
@@ -480,11 +519,39 @@ function drawPoint(W, H) {
         const strain = r * 0.2;
         if (col > 0) drawArrow(cx - spacing + r + 2, cy, cx - spacing + r + 2 - strain * 2, cy, 'rgba(255,100,80,0.3)', 0.8);
         if (col < N - 1) drawArrow(cx + spacing - r - 2, cy, cx + spacing - r - 2 + strain * 2, cy, 'rgba(255,100,80,0.3)', 0.8);
+      } else if (defect === 'schottky_cation') {
+        // Cation vacancy — dashed circle with + label
+        ctx.strokeStyle = '#e0a040'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#e0a040'; ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
+        ctx.fillText('+', cx, cy + 4);
+      } else if (defect === 'schottky_anion') {
+        // Anion vacancy — dashed circle with − label
+        ctx.strokeStyle = '#e0a040'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#e0a040'; ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
+        ctx.fillText('−', cx, cy + 4);
+      } else if (defect === 'frenkel_vacancy') {
+        // Frenkel vacancy site — dashed circle with arrow pointing to displaced atom
+        ctx.strokeStyle = '#e080c0'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#e080c0'; ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
+        ctx.fillText('F', cx, cy + 3);
       } else {
-        // Normal atom
-        ctx.fillStyle = '#4a70a8';
+        // Normal atom — alternate colors for ionic lattice when Schottky/Frenkel active
+        if ((S.ptShow.schottky || S.ptShow.frenkel) && (row + col) % 2 === 0) {
+          ctx.fillStyle = '#4a70a8'; // "cation"
+        } else if ((S.ptShow.schottky || S.ptShow.frenkel) && (row + col) % 2 === 1) {
+          ctx.fillStyle = '#a84a70'; // "anion"
+        } else {
+          ctx.fillStyle = '#4a70a8';
+        }
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#6090d0'; ctx.lineWidth = 0.8; ctx.stroke();
+        ctx.strokeStyle = (S.ptShow.schottky || S.ptShow.frenkel) && (row+col)%2===1 ? '#d06090' : '#6090d0';
+        ctx.lineWidth = 0.8; ctx.stroke();
       }
     }
   }
@@ -519,6 +586,23 @@ function drawPoint(W, H) {
     }
   });
 
+  // Draw Frenkel displaced atoms (interstitial position) with arrow from vacancy
+  frenkelPairs.forEach(fp => {
+    const vx = offX + fp.vacCol * spacing;
+    const vy = offY + fp.vacRow * spacing;
+    const ix = offX + (fp.intCol + 0.5) * spacing;
+    const iy = offY + (fp.intRow + 0.5) * spacing;
+    // Curved arrow from vacancy to displaced interstitial
+    ctx.strokeStyle = 'rgba(224,128,192,0.4)'; ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    ctx.beginPath(); ctx.moveTo(vx, vy); ctx.lineTo(ix, iy); ctx.stroke();
+    ctx.setLineDash([]);
+    // Displaced atom at interstitial site
+    ctx.fillStyle = '#e080c0';
+    ctx.beginPath(); ctx.arc(ix, iy, r * 0.85, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#ff90d0'; ctx.lineWidth = 1.2; ctx.stroke();
+  });
+
   // Legend
   let ly = H - 14;
   ctx.font = '8px Segoe UI'; ctx.textAlign = 'left';
@@ -527,6 +611,8 @@ function drawPoint(W, H) {
   if (S.ptShow.selfInt) legend.push(['#80a0e0', 'Self-interstitial']);
   if (S.ptShow.substitutional) legend.push(['#e06050', 'Substitutional']);
   if (S.ptShow.interstitial) legend.push(['#60d060', 'Interstitial impurity']);
+  if (S.ptShow.schottky) legend.push(['#e0a040', 'Schottky pair']);
+  if (S.ptShow.frenkel) legend.push(['#e080c0', 'Frenkel defect']);
   legend.forEach((l, i) => {
     const lx = 8 + i * (leftW / legend.length);
     ctx.fillStyle = l[0]; ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI * 2); ctx.fill();
@@ -784,50 +870,190 @@ function drawEdgeDislocation(leftW, H) {
 
 function drawScrewDislocation(leftW, H) {
   ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
-  ctx.fillText('Screw Dislocation — Top-Down View', leftW / 2, 16);
+  ctx.fillText('Screw Dislocation — Isometric 3D View', leftW / 2, 16);
 
-  // Draw a spiral pattern showing the screw dislocation
-  const cx = leftW / 2, cy = H / 2;
-  const maxR = Math.min(leftW, H) * 0.35;
+  // Isometric projection parameters
+  const cos30 = Math.cos(Math.PI / 6), sin30 = 0.5;
+  const sc = Math.min(leftW, H) * 0.052;
+  const ox = leftW * 0.5, oy = H * 0.52;
 
-  // Background: concentric circles (lattice planes viewed from above)
-  ctx.strokeStyle = 'rgba(70,100,160,0.3)'; ctx.lineWidth = 0.8;
-  for (let ri = 1; ri <= 8; ri++) {
-    ctx.beginPath(); ctx.arc(cx, cy, ri * maxR / 8, 0, Math.PI * 2); ctx.stroke();
+  function iso(x, y, z) {
+    return [
+      ox + (x - z) * cos30 * sc,
+      oy - y * sc + (x + z) * sin30 * sc
+    ];
   }
 
-  // Spiral ramp showing the screw dislocation
-  ctx.strokeStyle = '#b080e0'; ctx.lineWidth = 2.5;
+  // Grid dimensions (atoms along each axis)
+  const nx = 7, ny = 6, nz = 7;
+  const coreX = Math.floor(nx / 2), coreZ = Math.floor(nz / 2);
+  const b = 1.0; // Burgers vector magnitude (one lattice spacing)
+
+  // Build atom list with screw displacement
+  const atoms = [];
+  for (let ix = 0; ix < nx; ix++) {
+    for (let iy = 0; iy < ny; iy++) {
+      for (let iz = 0; iz < nz; iz++) {
+        const dx = ix - coreX;
+        const dz = iz - coreZ;
+        const r = Math.sqrt(dx * dx + dz * dz);
+        // Screw displacement: u_y = b * atan2(dz, dx) / (2π)
+        let dy = 0;
+        if (r > 0.3) {
+          dy = b * Math.atan2(dz, dx) / (2 * Math.PI);
+        }
+        const py = iy + dy;
+        const pos = iso(ix, py, iz);
+        // Depth for painter's algorithm (draw far atoms first)
+        const depth = (ix + iz) * 100 - iy;
+        atoms.push({ ix, iy, iz, py, sx: pos[0], sy: pos[1], depth, dy, r });
+      }
+    }
+  }
+
+  // Sort by depth (far to near)
+  atoms.sort((a, b) => a.depth - b.depth);
+
+  // Draw slip plane (semi-transparent, at mid-height)
+  const slipY = (ny - 1) / 2;
+  if (S.disShow.slip) {
+    const c1 = iso(-0.5, slipY, -0.5);
+    const c2 = iso(nx - 0.5, slipY, -0.5);
+    const c3 = iso(nx - 0.5, slipY, nz - 0.5);
+    const c4 = iso(-0.5, slipY, nz - 0.5);
+    ctx.fillStyle = 'rgba(176,128,224,0.08)';
+    ctx.strokeStyle = 'rgba(176,128,224,0.25)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(c1[0], c1[1]); ctx.lineTo(c2[0], c2[1]);
+    ctx.lineTo(c3[0], c3[1]); ctx.lineTo(c4[0], c4[1]);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+
+  // Draw atoms
+  const atomR = sc * 0.34;
+  for (const at of atoms) {
+    // Color by displacement: blue (negative dy) → gray (zero) → red (positive dy)
+    const t = at.dy / (b * 0.5); // normalize to [-1, 1]
+    let cr, cg, cb;
+    if (t >= 0) {
+      cr = Math.round(100 + 155 * t);
+      cg = Math.round(130 - 50 * t);
+      cb = Math.round(180 - 100 * t);
+    } else {
+      cr = Math.round(100 + 50 * t);
+      cg = Math.round(130 + 40 * (-t));
+      cb = Math.round(180 + 75 * (-t));
+    }
+
+    // Highlight half-plane / core region
+    const isCore = at.r < 0.8;
+    if (isCore) {
+      cr = 224; cg = 224; cb = 80; // Yellow for dislocation core
+    }
+
+    // Draw atom sphere (gradient for 3D look)
+    const grad = ctx.createRadialGradient(
+      at.sx - atomR * 0.3, at.sy - atomR * 0.3, atomR * 0.1,
+      at.sx, at.sy, atomR
+    );
+    grad.addColorStop(0, `rgba(${Math.min(255,cr+60)},${Math.min(255,cg+60)},${Math.min(255,cb+60)},0.95)`);
+    grad.addColorStop(1, `rgba(${cr},${cg},${cb},0.85)`);
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(at.sx, at.sy, atomR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Subtle outline
+    ctx.strokeStyle = `rgba(${Math.max(0,cr-40)},${Math.max(0,cg-40)},${Math.max(0,cb-40)},0.5)`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+
+  // Draw dislocation line (vertical through core)
+  const lineBot = iso(coreX, -0.5, coreZ);
+  const lineTop = iso(coreX, ny - 0.5, coreZ);
+  ctx.strokeStyle = '#e0e060';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5, 4]);
   ctx.beginPath();
-  for (let a = 0; a <= Math.PI * 6; a += 0.02) {
-    const rr = maxR * 0.08 + (a / (Math.PI * 6)) * maxR * 0.85;
-    const x = cx + rr * Math.cos(a);
-    const y = cy + rr * Math.sin(a);
-    a === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  }
+  ctx.moveTo(lineBot[0], lineBot[1]);
+  ctx.lineTo(lineTop[0], lineTop[1]);
   ctx.stroke();
+  ctx.setLineDash([]);
 
-  // Dislocation line (center)
-  ctx.fillStyle = '#e0e060';
-  ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#e0e060'; ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'center';
-  ctx.fillText('S', cx, cy - 10);
+  // Dislocation line label
+  ctx.fillStyle = '#e0e060'; ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText('ℓ', lineTop[0] + 6, lineTop[1] - 2);
 
-  // Burgers vector (parallel to dislocation line = out of screen)
+  // Burgers vector (parallel to dislocation line)
   if (S.disShow.burgers) {
-    ctx.fillStyle = '#60e060'; ctx.font = 'bold 11px Segoe UI'; ctx.textAlign = 'center';
-    ctx.fillText('b  ⊙ (out of page)', cx, H - 20);
-    // Circle-dot symbol
-    ctx.strokeStyle = '#60e060'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(cx - 45, H - 24, 6, 0, Math.PI * 2); ctx.stroke();
-    ctx.fillStyle = '#60e060';
-    ctx.beginPath(); ctx.arc(cx - 45, H - 24, 2, 0, Math.PI * 2); ctx.fill();
+    const bStart = iso(coreX, ny + 0.2, coreZ);
+    const bEnd = iso(coreX, ny + 1.8, coreZ);
+    drawArrow(bStart[0], bStart[1], bEnd[0], bEnd[1], '#60e060', 2.5);
+    ctx.fillStyle = '#60e060'; ctx.font = 'bold 11px Segoe UI'; ctx.textAlign = 'left';
+    ctx.fillText('b', bEnd[0] + 6, bEnd[1] + 4);
+
+    // Label: b ∥ ℓ
+    ctx.font = '10px Segoe UI';
+    ctx.fillText('b ∥ ℓ  (parallel)', bEnd[0] + 20, bEnd[1] + 4);
   }
 
-  // Labels
+  // Burgers circuit
+  if (S.disShow.circuit) {
+    const circR = 2;
+    const circPts = [];
+    // Walk around the core at mid-height in a square path
+    const midY = Math.floor(ny / 2);
+    const steps = [
+      {dx:0,dz:1}, {dx:0,dz:1},   // forward
+      {dx:1,dz:0}, {dx:1,dz:0},   // right
+      {dx:0,dz:-1},{dx:0,dz:-1},  // back
+      {dx:-1,dz:0},{dx:-1,dz:0},  // left (closure failure shows b)
+    ];
+    let cx2 = coreX - 1, cz2 = coreZ - 1;
+    circPts.push(iso(cx2, midY, cz2));
+    for (const step of steps) {
+      cx2 += step.dx; cz2 += step.dz;
+      // Get displaced y
+      const ddx = cx2 - coreX, ddz = cz2 - coreZ;
+      const dr = Math.sqrt(ddx*ddx + ddz*ddz);
+      const ddy = dr > 0.3 ? b * Math.atan2(ddz, ddx) / (2 * Math.PI) : 0;
+      circPts.push(iso(cx2, midY + ddy, cz2));
+    }
+    ctx.strokeStyle = '#ff8040'; ctx.lineWidth = 1.5;
+    ctx.setLineDash([3,2]);
+    ctx.beginPath();
+    for (let i = 0; i < circPts.length; i++) {
+      i === 0 ? ctx.moveTo(circPts[i][0], circPts[i][1])
+              : ctx.lineTo(circPts[i][0], circPts[i][1]);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Mark start/end
+    ctx.fillStyle = '#ff8040'; ctx.font = '9px Segoe UI';
+    ctx.textAlign = 'right';
+    ctx.fillText('S', circPts[0][0] - 4, circPts[0][1]);
+    ctx.textAlign = 'left';
+    ctx.fillText('F', circPts[circPts.length-1][0] + 4, circPts[circPts.length-1][1]);
+  }
+
+  // Color legend
   ctx.fillStyle = '#6a7898'; ctx.font = '9px Segoe UI'; ctx.textAlign = 'left';
-  ctx.fillText('Spiral step at surface', 12, 34);
-  ctx.fillText('represents screw displacement', 12, 46);
+  ctx.fillText('Color = displacement along ℓ', 8, H - 28);
+  // Draw mini legend
+  const legX = 8, legY = H - 20, legW = 80, legH = 8;
+  const legGrad = ctx.createLinearGradient(legX, 0, legX + legW, 0);
+  legGrad.addColorStop(0, 'rgb(50,170,255)');
+  legGrad.addColorStop(0.5, 'rgb(100,130,180)');
+  legGrad.addColorStop(1, 'rgb(255,80,80)');
+  ctx.fillStyle = legGrad;
+  ctx.fillRect(legX, legY, legW, legH);
+  ctx.fillStyle = '#6a7898'; ctx.font = '8px Segoe UI';
+  ctx.textAlign = 'left'; ctx.fillText('−b/2', legX, legY + legH + 9);
+  ctx.textAlign = 'center'; ctx.fillText('0', legX + legW/2, legY + legH + 9);
+  ctx.textAlign = 'right'; ctx.fillText('+b/2', legX + legW, legY + legH + 9);
 }
 
 function drawDislocationInfo(sx, W, H) {
@@ -1189,9 +1415,16 @@ function drawHallPetch(sx, W, H) {
   ctx.fillStyle = '#7a88a8'; ctx.font = '9px Segoe UI';
   ctx.fillText(`d = ${S.plGrain} μm`, px + 10, py + 12);
 
-  // Formula
+  // Hall-Petch formula
   fBox(sx + pad.l + 4, pad.t + 4, aw * 0.7, 32,
     `σ_y = σ₀ + k_y · d⁻¹ᐟ²\nσ₀ = 70 MPa, k_y = 0.74 MPa·mm¹ᐟ²`, 9);
+
+  // ASTM grain size formula
+  const d_mm = S.plGrain / 1000;
+  const G = 6.6457 * Math.log10(1 / d_mm) - 3.298;
+  const n = Math.pow(2, G - 1);
+  fBox(sx + pad.l + 4, pad.t + 40, aw * 0.7, 32,
+    `ASTM: n = 2^(G−1) at 100×\nG = ${G.toFixed(1)}, n = ${Math.round(n)} grains/in²`, 9);
 
   // Title
   ctx.fillStyle = '#3a4868'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
@@ -1699,12 +1932,15 @@ function updateInfo() {
 
   } else if (S.tab === 'planar') {
     const sig = hallPetch(S.plGrain);
+    // ASTM grain size number: n = 2^(G-1) at 100X; G from mean intercept
+    const d_mm = S.plGrain / 1000;
+    const G = 6.6457 * Math.log10(1 / d_mm) - 3.298;
     setCard(0, 'Boundary', S.plType.replace('_', ' '), '');
     setCard(1, 'Grain Size', S.plGrain, 'μm');
     setCard(2, 'σ_y (H-P)', sig.toFixed(0), 'MPa', sig > 400 ? 'warn' : '');
-    setCard(3, 'σ₀', '70', 'MPa');
-    setCard(4, 'k_y', '0.74', 'MPa·mm½');
-    setCard(5, 'd⁻¹ᐟ²', (1 / Math.sqrt(S.plGrain / 1000)).toFixed(1), 'mm⁻½');
+    setCard(3, 'ASTM G', G.toFixed(1), '', G > 8 ? 'ok' : G < 3 ? 'warn' : '');
+    setCard(4, 'n at 100×', Math.round(Math.pow(2, G - 1)), 'grains/in²');
+    setCard(5, 'd⁻¹ᐟ²', (1 / Math.sqrt(d_mm)).toFixed(1), 'mm⁻½');
 
   } else if (S.tab === 'volume') {
     const kt = S.volType === 'voids' ? '3.0' : S.volType === 'inclusions' ? '2-4' : S.volType === 'precipitates' ? '1.5-2' : '2-3';
