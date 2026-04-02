@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WNE BME — ABET Assessment Tool</title>
+  <style>
+    :root {
+      --navy: #1D3461;
+      --navy-light: #2a4d8f;
+      --gold: #C8972B;
+      --gold-light: #f0c050;
+      --green: #2E7D32;
+      --green-bg: #e8f5e9;
+      --orange: #E65100;
+      --orange-bg: #fff3e0;
+      --red: #B71C1C;
+      --red-bg: #ffebee;
+      --gray: #546e7a;
+      --gray-light: #f5f7fa;
+      --border: #dde3ec;
+      --white: #ffffff;
+      --text: #1a2740;
+      --text-muted: #607d8b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-light);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--navy);
+      color: white;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 60px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    header .logo {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    header .logo span { color: var(--gold-light); }
+    header .subtitle {
+      font-size: 12px;
+      color: rgba(255,255,255,0.65);
+      border-left: 1px solid rgba(255,255,255,0.25);
+      padding-left: 16px;
+      margin-left: 4px;
+    }
+    header .spacer { flex: 1; }
+    header .version { font-size: 11px; color: rgba(255,255,255,0.4); }
+
+    /* ── Nav ── */
+    nav {
+      background: var(--white);
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      padding: 0 24px;
+      gap: 0;
+    }
+    .tab-btn {
+      padding: 14px 20px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.15s;
+    }
+    .tab-btn:hover { color: var(--navy); }
+    .tab-btn.active {
+      color: var(--navy);
+      border-bottom-color: var(--gold);
+      font-weight: 600;
+    }
+    .tab-btn .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--navy);
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 1px 6px;
+      margin-left: 6px;
+      min-width: 18px;
+    }
+
+    /* ── Main layout ── */
+    main { max-width: 960px; margin: 0 auto; padding: 24px; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .card-header {
+      background: var(--navy);
+      color: white;
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-header .step-num {
+      background: var(--gold);
+      color: var(--navy);
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .card-body { padding: 20px; }
+
+    /* ── Form ── */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+    .form-row.full { grid-template-columns: 1fr; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .form-group label .required { color: var(--red); margin-left: 2px; }
+    select, input[type="text"], input[type="number"], textarea {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      color: var(--text);
+      background: white;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    select:focus, input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--navy-light);
+      box-shadow: 0 0 0 3px rgba(29,52,97,0.1);
+    }
+    textarea { resize: vertical; min-height: 72px; }
+    .form-hint { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+    /* ── SO info box ── */
+    .so-info-box {
+      background: #eef2f8;
+      border: 1px solid #c5d1e8;
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+    }
+    .so-info-box .so-code {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 3px;
+    }
+    .so-info-box .so-desc { font-size: 12px; color: var(--gray); }
+    .so-info-box .measure-desc {
+      font-size: 13px;
+      color: var(--text);
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid #c5d1e8;
+    }
+
+    /* ── Score table ── */
+    .score-toolbar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+    .btn {
+      padding: 7px 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .btn-primary { background: var(--navy); color: white; }
+    .btn-primary:hover { background: var(--navy-light); }
+    .btn-secondary { background: white; color: var(--navy); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--gray-light); }
+    .btn-gold { background: var(--gold); color: white; font-weight: 600; }
+    .btn-gold:hover { background: #b8871f; }
+    .btn-danger { background: white; color: var(--red); border: 1px solid #f5c6c6; }
+    .btn-danger:hover { background: var(--red-bg); }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .score-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .score-table th {
+      background: var(--gray-light);
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--gray);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      border-bottom: 2px solid var(--border);
+    }
+    .score-table td { padding: 6px 8px; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
+    .score-table tr:last-child td { border-bottom: none; }
+    .score-table .row-num {
+      color: var(--text-muted);
+      font-size: 11px;
+      width: 30px;
+      text-align: center;
+    }
+    .score-table input[type="text"] { padding: 5px 8px; font-size: 13px; }
+    .score-table input[type="number"] {
+      padding: 5px 8px;
+      font-size: 13px;
+      width: 80px;
+      text-align: center;
+    }
+    .score-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .pill-hc { background: #c8e6c9; color: #1b5e20; }
+    .pill-c  { background: #fff9c4; color: #f57f17; }
+    .pill-nc { background: #ffcdd2; color: #b71c1c; }
+    .pill-na { background: #f0f0f0; color: #999; }
+
+    /* ── Paste modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 10px;
+      padding: 24px;
+      width: 440px;
+      max-width: 95vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal h3 { font-size: 16px; margin-bottom: 6px; color: var(--navy); }
+    .modal p { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; }
+    .modal textarea { width: 100%; height: 140px; font-family: monospace; font-size: 13px; }
+    .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+
+    /* ── Results panel ── */
+    .results-panel {
+      background: #f8faff;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .results-panel .results-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--navy);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+    .benchmark-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .benchmark-card {
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      position: relative;
+      background: white;
+    }
+    .benchmark-card.met { border-color: var(--green); background: var(--green-bg); }
+    .benchmark-card.not-met { border-color: var(--red); background: var(--red-bg); }
+    .benchmark-card .bm-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .benchmark-card .bm-pct {
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+    .benchmark-card.met .bm-pct { color: var(--green); }
+    .benchmark-card.not-met .bm-pct { color: var(--red); }
+    .benchmark-card .bm-pct.neutral { color: var(--navy); }
+    .benchmark-card .bm-required {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .benchmark-card .bm-status {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-size: 18px;
+    }
+    .overall-status {
+      border-radius: 8px;
+      padding: 12px 16px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .overall-status.hc { background: var(--green-bg); color: var(--green); border: 2px solid var(--green); }
+    .overall-status.c  { background: var(--orange-bg); color: var(--orange); border: 2px solid var(--orange); }
+    .overall-status.nc { background: var(--red-bg); color: var(--red); border: 2px solid var(--red); }
+    .overall-status.pending { background: var(--gray-light); color: var(--text-muted); border: 2px solid var(--border); }
+    .results-meta { font-size: 12px; color: var(--text-muted); margin-top: 10px; text-align: center; }
+
+    /* ── Save bar ── */
+    .save-bar {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .save-bar .spacer { flex: 1; }
+    .save-msg { font-size: 13px; color: var(--green); font-weight: 500; display: none; }
+
+    /* ── Saved assessments table ── */
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .filter-row select, .filter-row input { padding: 7px 10px; font-size: 13px; }
+    .filter-row label { font-size: 12px; font-weight: 600; color: var(--gray); }
+    .filter-row .spacer { flex: 1; }
+
+    .assessments-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .assessments-table th {
+      background: var(--navy);
+      color: white;
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .assessments-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    .assessments-table tr:hover td { background: #f0f4ff; cursor: pointer; }
+    .assessments-table .no-data {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* ── Dashboard ── */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .so-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .so-card-header {
+      background: var(--navy);
+      color: white;
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .so-card-body { padding: 14px 16px; }
+    .measure-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid #f0f2f5;
+      font-size: 12px;
+    }
+    .measure-row:last-child { border-bottom: none; }
+    .measure-code { font-weight: 600; color: var(--navy); min-width: 50px; }
+    .measure-course { color: var(--text-muted); flex: 1; }
+    .measure-status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-hc { background: var(--green); }
+    .dot-c  { background: #ffa000; }
+    .dot-nc { background: var(--red); }
+    .dot-pending { background: #bdbdbd; }
+
+    /* ── Export ── */
+    .export-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      align-items: center;
+    }
+    .export-bar span { font-size: 13px; color: var(--text-muted); flex: 1; }
+
+    /* ── Detail view ── */
+    .detail-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 900;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px;
+      overflow-y: auto;
+    }
+    .detail-overlay.open { display: flex; }
+    .detail-modal {
+      background: white;
+      border-radius: 10px;
+      width: 700px;
+      max-width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .detail-header {
+      background: var(--navy);
+      color: white;
+      padding: 16px 20px;
+      border-radius: 10px 10px 0 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .detail-header h2 { font-size: 16px; flex: 1; }
+    .detail-body { padding: 24px; }
+    .detail-section { margin-bottom: 20px; }
+    .detail-section h4 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .detail-item label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 2px;
+    }
+    .detail-item value { font-size: 14px; color: var(--text); }
+    .detail-footer {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state h3 { font-size: 16px; color: var(--navy); margin-bottom: 6px; }
+    .empty-state p { font-size: 13px; }
+
+    @media print {
+      header, nav, .save-bar, .score-toolbar, .btn { display: none !important; }
+      .card { box-shadow: none; border: 1px solid #999; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">WNE <span>BME</span></div>
+  <div class="subtitle">ABET Assessment Tool</div>
+  <div class="spacer"></div>
+  <div class="version">v1.0 — Local Mode</div>
+</header>
+
+<nav>
+  <button class="tab-btn active" onclick="showTab('new')">New Assessment</button>
+  <button class="tab-btn" onclick="showTab('saved')" id="saved-tab-btn">
+    Saved Assessments <span class="badge" id="saved-count">0</span>
+  </button>
+  <button class="tab-btn" onclick="showTab('dashboard')">SO Dashboard</button>
+</nav>
+
+<main>
+
+  <!-- ══════════════════════════════════════════
+       TAB 1: NEW ASSESSMENT
+  ══════════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-new">
+
+    <!-- Step 1: Course Info -->
+    <div class="card">
+      <div class="card-header">
+        <span class="step-num">1</span> Course Information
+      </div>
+      <div class="card-body">
+        <div class="form-row three">
+          <div class="form-group">
+            <label>Course <span class="required">*</span></label>
+            <select id="f-course" onchange="onCourseChange()">
+              <option value="">— Select Course —</option>
+              <option>BME 201</option><option>BME 202</option>
+              <option>BME 206</option><option>BME 240</option>
+              <option>BME 301</option><option>BME 302</option>
+              <option>BME 305</option><option>BME 306</option>
+              <option>BME 331</option><option>BME 351</option>
+              <option>BME 405</option><option>BME 437</option>
+              <option>BME 440</option><option>BME 450</option>
+              <option>BME 451</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Semester <span class="required">*</span></label>
+            <select id="f-semester">
+              <option value="">— Select —</option>
+              <option>Fall</option><option>Spring</option><option>Summer</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Year <span class="required">*</span></label>
+            <select id="f-year">
+              <option value="">— Select —</option>
+              <option>2026</option><option>2025</option><option>2024</option>
+              <option>2023</option><option>2022</option><option>2021</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Assessor Name <span class="required">*</span></label>
+            <input type="text" id="f-assessor" placeholder="e.g., Dr. Gettens">
+          </div>
+          <div class="form-group">
+            <label>SO Sub-Measure <span class="required">*</span></label>
+            <select id="f-measure" onchange="onMeasureChange()">
+              <option value="">— Select Course First —</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Assessment Details -->
+    <div class="card">
+      <div class="card-header">
+        <span class="step-num">2</span> Assessment Details
+      </div>
+      <div class="card-body">
+        <div id="so-info-box" class="so-info-box" style="display:none">
+          <div class="so-code" id="so-info-code"></div>
+          <div class="so-desc" id="so-info-sodesc"></div>
+          <div class="measure-desc" id="so-info-measuredesc"></div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Assessment Description</label>
+            <textarea id="f-asmt-desc" placeholder="Briefly describe the assignment or assessment used (e.g., 'Individual written ethics analysis — students selected a medical device and analyzed biocompatibility, regulatory, and ethical considerations using a 4-point rubric.')"></textarea>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Max Possible Score</label>
+            <input type="number" id="f-maxscore" value="100" min="1" placeholder="100"
+              oninput="recalcAll()" style="width:120px">
+            <div class="form-hint">Scores will be normalized to % automatically if not out of 100</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Student Scores -->
+    <div class="card">
+      <div class="card-header">
+        <span class="step-num">3</span> Student Scores
+      </div>
+      <div class="card-body">
+        <div class="score-toolbar">
+          <button class="btn btn-secondary btn-sm" onclick="addScoreRow()">+ Add Student</button>
+          <button class="btn btn-secondary btn-sm" onclick="add5Rows()">+ Add 5</button>
+          <button class="btn btn-secondary btn-sm" onclick="openPasteModal()">Paste Scores</button>
+          <button class="btn btn-danger btn-sm" onclick="clearScores()">Clear All</button>
+          <span style="flex:1"></span>
+          <span id="student-count-label" style="font-size:12px;color:var(--text-muted)">0 students</span>
+        </div>
+        <table class="score-table">
+          <thead>
+            <tr>
+              <th style="width:36px">#</th>
+              <th>Student ID / Name (optional)</th>
+              <th style="width:110px">Score</th>
+              <th style="width:110px">% Score</th>
+              <th style="width:100px">Level</th>
+              <th style="width:36px"></th>
+            </tr>
+          </thead>
+          <tbody id="score-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Step 4: Live Results -->
+    <div class="card">
+      <div class="card-header">
+        <span class="step-num">4</span> Benchmark Results
+        <span style="margin-left:auto;font-size:11px;opacity:0.7">Updates automatically as you enter scores</span>
+      </div>
+      <div class="card-body">
+        <div class="results-panel">
+          <div class="results-title">Assessment Results</div>
+          <div class="benchmark-grid">
+            <div class="benchmark-card" id="bm-competent-card">
+              <div class="bm-label">Competent (≥70%)</div>
+              <div class="bm-pct neutral" id="bm-competent-pct">—</div>
+              <div class="bm-required" id="bm-competent-req">Required: —</div>
+              <div class="bm-status" id="bm-competent-icon">—</div>
+            </div>
+            <div class="benchmark-card" id="bm-hc-card">
+              <div class="bm-label">Highly Competent (≥90%)</div>
+              <div class="bm-pct neutral" id="bm-hc-pct">—</div>
+              <div class="bm-required" id="bm-hc-req">Required: —</div>
+              <div class="bm-status" id="bm-hc-icon">—</div>
+            </div>
+          </div>
+          <div class="overall-status pending" id="overall-status-box">
+            Enter student scores and select a course to see results
+          </div>
+          <div class="results-meta" id="results-meta"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: Action & Notes -->
+    <div class="card">
+      <div class="card-header">
+        <span class="step-num">5</span> Action Recommendation &amp; Notes
+      </div>
+      <div class="card-body">
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Action Recommendation</label>
+            <textarea id="f-action" rows="3"
+              placeholder="Describe any recommended changes to the course or assessment based on these results. Write 'No action required' if benchmarks were met and no changes are needed."></textarea>
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Additional Notes</label>
+            <textarea id="f-notes" rows="2"
+              placeholder="Any other observations (e.g., unusual circumstances, cohort size, changes made this semester)"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save bar -->
+    <div class="save-bar">
+      <button class="btn btn-secondary" onclick="resetForm()">Clear Form</button>
+      <span class="spacer"></span>
+      <span class="save-msg" id="save-msg">✓ Saved successfully!</span>
+      <button class="btn btn-gold" onclick="saveAssessment()">Save Assessment</button>
+    </div>
+
+  </div><!-- end tab-new -->
+
+
+  <!-- ══════════════════════════════════════════
+       TAB 2: SAVED ASSESSMENTS
+  ══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-saved">
+
+    <div class="export-bar">
+      <span>All saved assessments are stored locally in your browser. Export to share with colleagues or for backup.</span>
+      <button class="btn btn-secondary btn-sm" onclick="exportJSON()">Export JSON</button>
+      <button class="btn btn-secondary btn-sm" onclick="exportCSV()">Export CSV</button>
+      <button class="btn btn-secondary btn-sm" onclick="importJSON()">Import JSON</button>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Saved Assessments</div>
+      <div class="card-body" style="padding:0">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
+          <div class="filter-row">
+            <label>Filter by:</label>
+            <select id="filter-course" onchange="renderSavedTable()" style="width:130px">
+              <option value="">All Courses</option>
+            </select>
+            <select id="filter-so" onchange="renderSavedTable()" style="width:120px">
+              <option value="">All SOs</option>
+              <option>SO 3-1</option><option>SO 3-2</option><option>SO 3-3</option>
+              <option>SO 3-4</option><option>SO 3-5</option><option>SO 3-6</option><option>SO 3-7</option>
+            </select>
+            <select id="filter-status" onchange="renderSavedTable()" style="width:150px">
+              <option value="">All Statuses</option>
+              <option>Highly Competent</option>
+              <option>Competent</option>
+              <option>Not Met</option>
+            </select>
+            <span class="spacer"></span>
+            <input type="text" id="filter-search" placeholder="Search..." oninput="renderSavedTable()" style="width:160px">
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="assessments-table" id="saved-table">
+            <thead>
+              <tr>
+                <th>Course</th>
+                <th>Term</th>
+                <th>Measure</th>
+                <th>Assessor</th>
+                <th>N</th>
+                <th>Competent</th>
+                <th>Highly Comp.</th>
+                <th>Status</th>
+                <th>Saved</th>
+              </tr>
+            </thead>
+            <tbody id="saved-tbody">
+              <tr><td colspan="9" class="no-data">No assessments saved yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div><!-- end tab-saved -->
+
+
+  <!-- ══════════════════════════════════════════
+       TAB 3: SO DASHBOARD
+  ══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-dashboard">
+    <div id="dashboard-content">
+      <div class="empty-state">
+        <div class="icon">📊</div>
+        <h3>No Data Yet</h3>
+        <p>Save at least one assessment to see the dashboard.</p>
+      </div>
+    </div>
+  </div>
+
+</main><!-- end main -->
+
+
+<!-- ══════════════════════════════════════════
+     PASTE MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="paste-modal">
+  <div class="modal">
+    <h3>Paste Student Scores</h3>
+    <p>Paste scores one per line, or comma-separated. Values will be treated as raw scores (normalized using the Max Score above).</p>
+    <textarea id="paste-input" placeholder="94&#10;87&#10;100&#10;76&#10;..."></textarea>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closePasteModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="applyPaste()">Import Scores</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     DETAIL MODAL
+══════════════════════════════════════════ -->
+<div class="detail-overlay" id="detail-overlay">
+  <div class="detail-modal">
+    <div class="detail-header">
+      <h2 id="detail-title">Assessment Detail</h2>
+      <button class="btn btn-secondary btn-sm" onclick="closeDetail()">✕ Close</button>
+    </div>
+    <div class="detail-body" id="detail-body"></div>
+    <div class="detail-footer">
+      <button class="btn btn-danger btn-sm" id="detail-delete-btn">Delete</button>
+      <span style="flex:1"></span>
+      <button class="btn btn-secondary" onclick="closeDetail()">Close</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════
+
+const CURRICULUM_MAP = {
+  "BME 201": { level: 200, name: "Foundations of BME",            term: "Fall",   measures: ["3-2-1","3-5-1"] },
+  "BME 202": { level: 200, name: "Biomedical Signals & Systems",  term: "Spring", measures: ["3-1-1"] },
+  "BME 206": { level: 200, name: "Sophomore Engineering Lab",     term: "Spring", measures: ["3-6-1","3-7-1"] },
+  "BME 240": { level: 200, name: "Biomaterials",                  term: "Spring", measures: ["3-3-1","3-4-1"] },
+  "BME 301": { level: 300, name: "Engineering Physiology I",      term: "Fall",   measures: ["3-1-2"] },
+  "BME 302": { level: 300, name: "Engineering Physiology II",     term: "Spring", measures: ["3-4-2"] },
+  "BME 305": { level: 300, name: "BME Junior Lab I",              term: "Fall",   measures: ["3-6-2"] },
+  "BME 306": { level: 300, name: "BME Junior Lab II",             term: "Spring", measures: ["3-3-3","3-7-2"] },
+  "BME 331": { level: 300, name: "Bioinstrumentation",            term: "Fall",   measures: ["3-2-2","3-3-2"] },
+  "BME 351": { level: 300, name: "Biomechanics I",                term: "Spring", measures: ["3-5-2"] },
+  "BME 405": { level: 400, name: "Senior Engineering Lab",        term: "Fall",   measures: ["3-3-4","3-4-3","3-6-3"] },
+  "BME 437": { level: 400, name: "Senior Design Project I",       term: "Fall",   measures: ["3-1-4","3-2-4","3-4-4","3-5-3"] },
+  "BME 440": { level: 400, name: "Senior Design Project II",      term: "Spring", measures: ["3-1-4","3-7-3"] },
+  "BME 450": { level: 400, name: "Advanced BME Systems",          term: "Spring", measures: ["3-1-3"] },
+  "BME 451": { level: 400, name: "Biomechanics II",               term: "Fall",   measures: ["3-2-3","3-4-3"] },
+};
+
+const SO_DESCRIPTIONS = {
+  "3-1": "Identify, formulate, and solve complex engineering problems applying principles of engineering, science, and mathematics",
+  "3-2": "Apply engineering design to produce solutions that meet specified needs with consideration of public health, safety, and welfare, as well as global, cultural, social, environmental, and economic factors",
+  "3-3": "Communicate effectively with a range of audiences",
+  "3-4": "Recognize ethical and professional responsibilities in engineering situations and make informed judgments considering the impact of engineering solutions in global, economic, environmental, and societal contexts",
+  "3-5": "Function effectively on a team whose members together provide leadership, create a collaborative and inclusive environment, establish goals, plan tasks, and meet objectives",
+  "3-6": "Develop and conduct appropriate experimentation, analyze and interpret data, and use engineering judgment to draw conclusions",
+  "3-7": "Acquire and apply new knowledge as needed, using appropriate learning strategies",
+};
+
+const MEASURE_DESCRIPTIONS = {
+  "3-1-1": "Apply differential equations to model biologically relevant engineering systems (HW and exam, BME 202)",
+  "3-1-2": "Apply enzyme kinetics, Michaelis-Menten equation, and Lineweaver-Burk plot to protein-receptor binding (HW and exam, BME 301)",
+  "3-1-3": "Advanced biomedical systems analysis (HW, BME 450)",
+  "3-1-4": "Capstone design project — FDA design thinking phases (BME 437/440)",
+  "3-2-1": "Select an imaging modality for a clinical scenario with constraints (technical report, BME 201)",
+  "3-2-2": "Design a bio-potential measurement device for a third-world country scenario (IEEE proceedings paper, BME 331)",
+  "3-2-3": "Motion analysis design project with IRB, consent form, scientific proposal, and final report (BME 451)",
+  "3-2-4": "Senior design review documents with global, safety, and societal considerations (BME 437)",
+  "3-3-1": "Gallery walk slide presentation on a medical device to a patient audience (BME 240)",
+  "3-3-2": "Non-technical executive summary / presentation to venture capital audience (BME 331)",
+  "3-3-3": "ELISA scientific poster presentation (BME 306)",
+  "3-3-4": "Elevator pitches to multiple stakeholder audiences with worksheets and reflection (BME 405)",
+  "3-4-1": "Individual written ethics analysis of a medical device (BME 240)",
+  "3-4-2": "Written memo analyzing global market expansion for a medical device (BME 302)",
+  "3-4-3": "Final exam ethics question on sports safety technology (BME 451 / BME 405)",
+  "3-4-4": "Individual ethics and professionalism paper in senior design context (BME 437)",
+  "3-5-1": "Assistive technology team project with teaming survey (BME 201)",
+  "3-5-2": "Team scientific presentation plus teaming self-assessment via Microsoft Form (BME 351)",
+  "3-5-3": "Senior design professionalism and project management graded rubric + peer/faculty assessment (BME 437)",
+  "3-6-1": "Biosignals design of experiments with IEEE abstract and quiz (BME 206)",
+  "3-6-2": "EMG experiment lab report with data analysis and informed judgment (BME 305)",
+  "3-6-3": "Advanced biosignals case-control study with IEEE abstract and Kodiak quiz (BME 405)",
+  "3-7-1": "Reverse engineer a medical device; CAD and rapid prototyping in single lab session (BME 206)",
+  "3-7-2": "Open-ended experimental design using a new assay not taught in class (BME 306)",
+  "3-7-3": "Data collection protocol to test prototype feasibility, advisor sign-off required (BME 440)",
+};
+
+const BENCHMARKS = {
+  200: { competent: 75, highlyCompetent: 35 },
+  300: { competent: 80, highlyCompetent: 40 },
+  400: { competent: 90, highlyCompetent: 45 },
+};
+
+const STORAGE_KEY = 'wne_bme_abet_assessments';
+
+// ═══════════════════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════════════════
+
+function loadAssessments() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  } catch(e) { return []; }
+}
+
+function saveAssessments(arr) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+  updateBadge();
+}
+
+function updateBadge() {
+  const n = loadAssessments().length;
+  document.getElementById('saved-count').textContent = n;
+}
+
+// ═══════════════════════════════════════════════════════
+// TAB NAVIGATION
+// ═══════════════════════════════════════════════════════
+
+function showTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'saved') renderSavedTable();
+  if (name === 'dashboard') renderDashboard();
+}
+
+// ═══════════════════════════════════════════════════════
+// FORM LOGIC
+// ═══════════════════════════════════════════════════════
+
+function onCourseChange() {
+  const course = document.getElementById('f-course').value;
+  const measureSel = document.getElementById('f-measure');
+  measureSel.innerHTML = '';
+
+  if (!course || !CURRICULUM_MAP[course]) {
+    measureSel.innerHTML = '<option value="">— Select Course First —</option>';
+    hideSoInfo();
+    return;
+  }
+
+  const info = CURRICULUM_MAP[course];
+  measureSel.innerHTML = '<option value="">— Select Measure —</option>';
+  info.measures.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = `SO ${m}`;
+    measureSel.appendChild(opt);
+  });
+
+  // Auto-select if only one measure
+  if (info.measures.length === 1) {
+    measureSel.value = info.measures[0];
+    onMeasureChange();
+  } else {
+    hideSoInfo();
+  }
+
+  // Auto-fill semester
+  const semSel = document.getElementById('f-semester');
+  if (!semSel.value) semSel.value = info.term;
+
+  recalcAll();
+}
+
+function onMeasureChange() {
+  const measure = document.getElementById('f-measure').value;
+  if (!measure) { hideSoInfo(); return; }
+  const soKey = measure.split('-').slice(0,2).join('-'); // "3-1-2" -> "3-1"
+  const box = document.getElementById('so-info-box');
+  document.getElementById('so-info-code').textContent = `Student Outcome ${soKey} — Sub-measure ${measure}`;
+  document.getElementById('so-info-sodesc').textContent = SO_DESCRIPTIONS[soKey] || '';
+  document.getElementById('so-info-measuredesc').textContent = MEASURE_DESCRIPTIONS[measure] || '';
+  box.style.display = 'block';
+  recalcAll();
+}
+
+function hideSoInfo() {
+  document.getElementById('so-info-box').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════
+// SCORE TABLE
+// ═══════════════════════════════════════════════════════
+
+let scoreRowCount = 0;
+
+function addScoreRow(score, name) {
+  scoreRowCount++;
+  const tbody = document.getElementById('score-tbody');
+  const tr = document.createElement('tr');
+  tr.id = `score-row-${scoreRowCount}`;
+  tr.innerHTML = `
+    <td class="row-num">${tbody.children.length + 1}</td>
+    <td><input type="text" placeholder="optional" value="${name||''}" style="width:100%"
+      oninput="recalcAll()"></td>
+    <td><input type="number" min="0" step="0.1" placeholder="—"
+      value="${score !== undefined ? score : ''}"
+      oninput="recalcAll()" id="score-val-${scoreRowCount}"></td>
+    <td id="pct-${scoreRowCount}" style="text-align:center;font-weight:600;color:var(--text-muted)">—</td>
+    <td id="lvl-${scoreRowCount}"></td>
+    <td><button class="btn btn-danger btn-sm" onclick="removeRow('score-row-${scoreRowCount}')">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+  renumberRows();
+  recalcAll();
+}
+
+function add5Rows() {
+  for (let i = 0; i < 5; i++) addScoreRow();
+}
+
+function removeRow(id) {
+  document.getElementById(id)?.remove();
+  renumberRows();
+  recalcAll();
+}
+
+function renumberRows() {
+  const rows = document.querySelectorAll('#score-tbody tr');
+  rows.forEach((r, i) => {
+    const cell = r.querySelector('.row-num');
+    if (cell) cell.textContent = i + 1;
+  });
+  document.getElementById('student-count-label').textContent =
+    rows.length + (rows.length === 1 ? ' student' : ' students');
+}
+
+function clearScores() {
+  document.getElementById('score-tbody').innerHTML = '';
+  scoreRowCount = 0;
+  document.getElementById('student-count-label').textContent = '0 students';
+  recalcAll();
+}
+
+// ═══════════════════════════════════════════════════════
+// PASTE MODAL
+// ═══════════════════════════════════════════════════════
+
+function openPasteModal() {
+  document.getElementById('paste-modal').classList.add('open');
+  document.getElementById('paste-input').focus();
+}
+function closePasteModal() {
+  document.getElementById('paste-modal').classList.remove('open');
+  document.getElementById('paste-input').value = '';
+}
+function applyPaste() {
+  const raw = document.getElementById('paste-input').value;
+  const scores = raw.split(/[\n,\t]+/)
+    .map(s => s.trim())
+    .filter(s => s !== '' && !isNaN(parseFloat(s)))
+    .map(s => parseFloat(s));
+
+  clearScores();
+  scores.forEach(s => addScoreRow(s));
+  closePasteModal();
+}
+
+// ═══════════════════════════════════════════════════════
+// CALCULATION
+// ═══════════════════════════════════════════════════════
+
+function getScores() {
+  const maxScore = parseFloat(document.getElementById('f-maxscore').value) || 100;
+  const rows = document.querySelectorAll('#score-tbody tr');
+  const scores = [];
+  rows.forEach((r, i) => {
+    const input = r.querySelector('input[type="number"]');
+    if (!input || input.value === '') return;
+    const raw = parseFloat(input.value);
+    if (isNaN(raw)) return;
+    scores.push({ rowId: i + 1, raw, pct: Math.min(100, (raw / maxScore) * 100) });
+  });
+  return scores;
+}
+
+function getBenchmarks() {
+  const course = document.getElementById('f-course').value;
+  if (!course || !CURRICULUM_MAP[course]) return null;
+  return BENCHMARKS[CURRICULUM_MAP[course].level];
+}
+
+function recalcAll() {
+  const scores = getScores();
+  const bm = getBenchmarks();
+  const maxScore = parseFloat(document.getElementById('f-maxscore').value) || 100;
+
+  // Update per-row display
+  document.querySelectorAll('#score-tbody tr').forEach((r, i) => {
+    const input = r.querySelector('input[type="number"]');
+    const pctCell = r.querySelector(`[id^="pct-"]`);
+    const lvlCell = r.querySelector(`[id^="lvl-"]`);
+    if (!input || !pctCell || !lvlCell) return;
+    if (input.value === '') {
+      pctCell.textContent = '—';
+      lvlCell.innerHTML = '<span class="score-pill pill-na">—</span>';
+      return;
+    }
+    const raw = parseFloat(input.value);
+    if (isNaN(raw)) return;
+    const pct = Math.min(100, (raw / maxScore) * 100);
+    pctCell.textContent = pct.toFixed(1) + '%';
+    if (pct >= 90) lvlCell.innerHTML = '<span class="score-pill pill-hc">Highly Comp.</span>';
+    else if (pct >= 70) lvlCell.innerHTML = '<span class="score-pill pill-c">Competent</span>';
+    else lvlCell.innerHTML = '<span class="score-pill pill-nc">Not Comp.</span>';
+  });
+
+  // Summary panel
+  const n = scores.length;
+  document.getElementById('student-count-label').textContent =
+    n + (n === 1 ? ' student' : ' students');
+
+  if (n === 0 || !bm) {
+    resetResultsPanel();
+    return;
+  }
+
+  const nCompetent = scores.filter(s => s.pct >= 70).length;
+  const nHC = scores.filter(s => s.pct >= 90).length;
+  const pctC = (nCompetent / n * 100);
+  const pctHC = (nHC / n * 100);
+
+  const cMet = pctC >= bm.competent;
+  const hcMet = pctHC >= bm.highlyCompetent;
+
+  // Competent card
+  const cCard = document.getElementById('bm-competent-card');
+  cCard.className = 'benchmark-card ' + (cMet ? 'met' : 'not-met');
+  document.getElementById('bm-competent-pct').textContent = pctC.toFixed(1) + '%';
+  document.getElementById('bm-competent-pct').className = 'bm-pct';
+  document.getElementById('bm-competent-req').textContent =
+    `Required: ${bm.competent}% — ${nCompetent} of ${n} students`;
+  document.getElementById('bm-competent-icon').textContent = cMet ? '✅' : '❌';
+
+  // HC card
+  const hcCard = document.getElementById('bm-hc-card');
+  hcCard.className = 'benchmark-card ' + (hcMet ? 'met' : 'not-met');
+  document.getElementById('bm-hc-pct').textContent = pctHC.toFixed(1) + '%';
+  document.getElementById('bm-hc-pct').className = 'bm-pct';
+  document.getElementById('bm-hc-req').textContent =
+    `Required: ${bm.highlyCompetent}% — ${nHC} of ${n} students`;
+  document.getElementById('bm-hc-icon').textContent = hcMet ? '✅' : '❌';
+
+  // Overall status
+  const statusBox = document.getElementById('overall-status-box');
+  let status, cls;
+  if (cMet && hcMet) {
+    status = '★ HIGHLY COMPETENT — Both benchmarks met';
+    cls = 'hc';
+  } else if (cMet) {
+    status = '◐ COMPETENT — Competent benchmark met; Highly Competent benchmark not met';
+    cls = 'c';
+  } else {
+    status = '✗ NOT MET — Competent benchmark not reached';
+    cls = 'nc';
+  }
+  statusBox.textContent = status;
+  statusBox.className = 'overall-status ' + cls;
+
+  const meanPct = scores.reduce((s,x) => s + x.pct, 0) / n;
+  document.getElementById('results-meta').textContent =
+    `n = ${n} students   |   Mean score: ${meanPct.toFixed(1)}%   |   Benchmark scheme: ${CURRICULUM_MAP[document.getElementById('f-course').value].level}-level`;
+}
+
+function resetResultsPanel() {
+  document.getElementById('bm-competent-card').className = 'benchmark-card';
+  document.getElementById('bm-hc-card').className = 'benchmark-card';
+  document.getElementById('bm-competent-pct').textContent = '—';
+  document.getElementById('bm-hc-pct').textContent = '—';
+  document.getElementById('bm-competent-req').textContent = 'Required: —';
+  document.getElementById('bm-hc-req').textContent = 'Required: —';
+  document.getElementById('bm-competent-icon').textContent = '—';
+  document.getElementById('bm-hc-icon').textContent = '—';
+  document.getElementById('overall-status-box').textContent = 'Enter student scores and select a course to see results';
+  document.getElementById('overall-status-box').className = 'overall-status pending';
+  document.getElementById('results-meta').textContent = '';
+}
+
+// ═══════════════════════════════════════════════════════
+// SAVE
+// ═══════════════════════════════════════════════════════
+
+function saveAssessment() {
+  const course = document.getElementById('f-course').value;
+  const semester = document.getElementById('f-semester').value;
+  const year = document.getElementById('f-year').value;
+  const assessor = document.getElementById('f-assessor').value.trim();
+  const measure = document.getElementById('f-measure').value;
+
+  if (!course || !semester || !year || !assessor || !measure) {
+    alert('Please fill in Course, Semester, Year, Assessor, and SO Sub-Measure before saving.');
+    return;
+  }
+
+  const scores = getScores();
+  const bm = getBenchmarks();
+  const n = scores.length;
+
+  let pctCompetent = null, pctHC = null, status = 'No data';
+  if (n > 0 && bm) {
+    pctCompetent = scores.filter(s => s.pct >= 70).length / n * 100;
+    pctHC = scores.filter(s => s.pct >= 90).length / n * 100;
+    const cMet = pctCompetent >= bm.competent;
+    const hcMet = pctHC >= bm.highlyCompetent;
+    status = cMet && hcMet ? 'Highly Competent' : cMet ? 'Competent' : 'Not Met';
+  }
+
+  const record = {
+    id: Date.now().toString(),
+    course,
+    semester,
+    year,
+    term: semester + ' ' + year,
+    assessor,
+    measure,
+    soParent: 'SO ' + measure.split('-').slice(0,2).join('-'),
+    asmtDesc: document.getElementById('f-asmt-desc').value.trim(),
+    maxScore: parseFloat(document.getElementById('f-maxscore').value) || 100,
+    students: scores,
+    n,
+    pctCompetent: pctCompetent !== null ? +pctCompetent.toFixed(1) : null,
+    pctHC: pctHC !== null ? +pctHC.toFixed(1) : null,
+    benchmarkCompetent: bm ? bm.competent : null,
+    benchmarkHC: bm ? bm.highlyCompetent : null,
+    status,
+    action: document.getElementById('f-action').value.trim(),
+    notes: document.getElementById('f-notes').value.trim(),
+    savedAt: new Date().toISOString(),
+  };
+
+  const all = loadAssessments();
+  all.push(record);
+  saveAssessments(all);
+
+  const msg = document.getElementById('save-msg');
+  msg.style.display = 'inline';
+  setTimeout(() => msg.style.display = 'none', 3000);
+  updateBadge();
+}
+
+function resetForm() {
+  if (!confirm('Clear the form? Unsaved data will be lost.')) return;
+  document.getElementById('f-course').value = '';
+  document.getElementById('f-semester').value = '';
+  document.getElementById('f-year').value = '';
+  document.getElementById('f-assessor').value = '';
+  document.getElementById('f-measure').innerHTML = '<option value="">— Select Course First —</option>';
+  document.getElementById('f-asmt-desc').value = '';
+  document.getElementById('f-maxscore').value = '100';
+  document.getElementById('f-action').value = '';
+  document.getElementById('f-notes').value = '';
+  clearScores();
+  hideSoInfo();
+  resetResultsPanel();
+}
+
+// ═══════════════════════════════════════════════════════
+// SAVED TABLE
+// ═══════════════════════════════════════════════════════
+
+function renderSavedTable() {
+  let all = loadAssessments();
+  const fc = document.getElementById('filter-course').value;
+  const fso = document.getElementById('filter-so').value;
+  const fst = document.getElementById('filter-status').value;
+  const fs = document.getElementById('filter-search').value.toLowerCase();
+
+  if (fc) all = all.filter(a => a.course === fc);
+  if (fso) all = all.filter(a => a.soParent === fso);
+  if (fst) all = all.filter(a => a.status === fst);
+  if (fs) all = all.filter(a =>
+    a.course.toLowerCase().includes(fs) ||
+    a.measure.includes(fs) ||
+    a.assessor.toLowerCase().includes(fs) ||
+    a.term.toLowerCase().includes(fs)
+  );
+
+  const tbody = document.getElementById('saved-tbody');
+  if (all.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="no-data">No assessments match the current filter.</td></tr>';
+    return;
+  }
+
+  all.sort((a,b) => b.savedAt.localeCompare(a.savedAt));
+  tbody.innerHTML = all.map(a => {
+    const statusClass = a.status === 'Highly Competent' ? 'pill-hc'
+                      : a.status === 'Competent' ? 'pill-c'
+                      : a.status === 'Not Met' ? 'pill-nc' : 'pill-na';
+    const date = new Date(a.savedAt).toLocaleDateString();
+    const cPct = a.pctCompetent !== null ? a.pctCompetent + '%' : '—';
+    const hcPct = a.pctHC !== null ? a.pctHC + '%' : '—';
+    return `<tr onclick="showDetail('${a.id}')">
+      <td><strong>${a.course}</strong><br><span style="font-size:11px;color:var(--text-muted)">${CURRICULUM_MAP[a.course]?.name||''}</span></td>
+      <td>${a.term}</td>
+      <td>SO ${a.measure}</td>
+      <td>${a.assessor}</td>
+      <td style="text-align:center">${a.n || '—'}</td>
+      <td style="text-align:center">${cPct}</td>
+      <td style="text-align:center">${hcPct}</td>
+      <td><span class="score-pill ${statusClass}">${a.status}</span></td>
+      <td style="color:var(--text-muted);font-size:12px">${date}</td>
+    </tr>`;
+  }).join('');
+
+  // Populate filter dropdown
+  const courses = [...new Set(loadAssessments().map(a => a.course))].sort();
+  const fcd = document.getElementById('filter-course');
+  const cur = fcd.value;
+  fcd.innerHTML = '<option value="">All Courses</option>' +
+    courses.map(c => `<option ${c===cur?'selected':''}>${c}</option>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// DETAIL VIEW
+// ═══════════════════════════════════════════════════════
+
+function showDetail(id) {
+  const all = loadAssessments();
+  const a = all.find(x => x.id === id);
+  if (!a) return;
+
+  document.getElementById('detail-title').textContent =
+    `${a.course} — SO ${a.measure} — ${a.term}`;
+
+  const statusClass = a.status === 'Highly Competent' ? 'pill-hc'
+                    : a.status === 'Competent' ? 'pill-c'
+                    : a.status === 'Not Met' ? 'pill-nc' : 'pill-na';
+
+  let scoresHtml = '';
+  if (a.students && a.students.length > 0) {
+    scoresHtml = `<table class="score-table" style="margin-top:8px">
+      <thead><tr><th>#</th><th>Score (raw)</th><th>Score (%)</th><th>Level</th></tr></thead>
+      <tbody>` +
+      a.students.map((s,i) => {
+        const cls = s.pct >= 90 ? 'pill-hc' : s.pct >= 70 ? 'pill-c' : 'pill-nc';
+        const lbl = s.pct >= 90 ? 'Highly Comp.' : s.pct >= 70 ? 'Competent' : 'Not Comp.';
+        return `<tr>
+          <td class="row-num">${i+1}</td>
+          <td>${s.raw}</td>
+          <td>${s.pct.toFixed(1)}%</td>
+          <td><span class="score-pill ${cls}">${lbl}</span></td>
+        </tr>`;
+      }).join('') + '</tbody></table>';
+  }
+
+  document.getElementById('detail-body').innerHTML = `
+    <div class="detail-section">
+      <h4>Course &amp; Assessment</h4>
+      <div class="detail-grid">
+        <div class="detail-item"><label>Course</label><value>${a.course} — ${CURRICULUM_MAP[a.course]?.name||''}</value></div>
+        <div class="detail-item"><label>Term</label><value>${a.term}</value></div>
+        <div class="detail-item"><label>Student Outcome</label><value>SO ${a.measure}</value></div>
+        <div class="detail-item"><label>Assessor</label><value>${a.assessor}</value></div>
+      </div>
+      ${a.asmtDesc ? `<div style="margin-top:10px"><label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px">Assessment Description</label><div style="font-size:13px">${a.asmtDesc}</div></div>` : ''}
+    </div>
+    <div class="detail-section">
+      <h4>Results</h4>
+      <div class="benchmark-grid" style="margin-bottom:12px">
+        <div class="benchmark-card ${a.pctCompetent >= a.benchmarkCompetent ? 'met' : (a.pctCompetent !== null ? 'not-met' : '')}">
+          <div class="bm-label">Competent (≥70%)</div>
+          <div class="bm-pct">${a.pctCompetent !== null ? a.pctCompetent + '%' : '—'}</div>
+          <div class="bm-required">Required: ${a.benchmarkCompetent !== null ? a.benchmarkCompetent + '%' : '—'}</div>
+          <div class="bm-status">${a.pctCompetent !== null ? (a.pctCompetent >= a.benchmarkCompetent ? '✅' : '❌') : ''}</div>
+        </div>
+        <div class="benchmark-card ${a.pctHC >= a.benchmarkHC ? 'met' : (a.pctHC !== null ? 'not-met' : '')}">
+          <div class="bm-label">Highly Competent (≥90%)</div>
+          <div class="bm-pct">${a.pctHC !== null ? a.pctHC + '%' : '—'}</div>
+          <div class="bm-required">Required: ${a.benchmarkHC !== null ? a.benchmarkHC + '%' : '—'}</div>
+          <div class="bm-status">${a.pctHC !== null ? (a.pctHC >= a.benchmarkHC ? '✅' : '❌') : ''}</div>
+        </div>
+      </div>
+      <div style="text-align:center"><span class="score-pill ${statusClass}" style="font-size:14px;padding:6px 16px">${a.status}</span></div>
+      ${scoresHtml}
+    </div>
+    ${(a.action || a.notes) ? `
+    <div class="detail-section">
+      <h4>Action &amp; Notes</h4>
+      ${a.action ? `<div style="margin-bottom:10px"><label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:4px">Action Recommendation</label><div style="font-size:13px">${a.action}</div></div>` : ''}
+      ${a.notes ? `<div><label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:4px">Notes</label><div style="font-size:13px">${a.notes}</div></div>` : ''}
+    </div>` : ''}
+  `;
+
+  document.getElementById('detail-delete-btn').onclick = () => deleteAssessment(id);
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detail-overlay').classList.remove('open');
+}
+
+function deleteAssessment(id) {
+  if (!confirm('Delete this assessment record? This cannot be undone.')) return;
+  const all = loadAssessments().filter(a => a.id !== id);
+  saveAssessments(all);
+  closeDetail();
+  renderSavedTable();
+  updateBadge();
+}
+
+// ═══════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════
+
+function renderDashboard() {
+  const all = loadAssessments();
+  const container = document.getElementById('dashboard-content');
+
+  if (all.length === 0) {
+    container.innerHTML = `<div class="empty-state">
+      <div class="icon">📊</div>
+      <h3>No Data Yet</h3>
+      <p>Save at least one assessment to see the dashboard.</p>
+    </div>`;
+    return;
+  }
+
+  // Build lookup: measure -> most recent assessment
+  const byMeasure = {};
+  all.forEach(a => {
+    if (!byMeasure[a.measure] || a.savedAt > byMeasure[a.measure].savedAt) {
+      byMeasure[a.measure] = a;
+    }
+  });
+
+  // Group by SO parent
+  const soGroups = {};
+  Object.entries(CURRICULUM_MAP).forEach(([course, info]) => {
+    info.measures.forEach(m => {
+      const so = 'SO ' + m.split('-').slice(0,2).join('-');
+      if (!soGroups[so]) soGroups[so] = [];
+      if (!soGroups[so].find(x => x.measure === m)) {
+        soGroups[so].push({ measure: m, course, data: byMeasure[m] || null });
+      }
+    });
+  });
+
+  const statusCounts = { hc: 0, c: 0, nc: 0, pending: 0 };
+  Object.values(byMeasure).forEach(a => {
+    if (a.status === 'Highly Competent') statusCounts.hc++;
+    else if (a.status === 'Competent') statusCounts.c++;
+    else if (a.status === 'Not Met') statusCounts.nc++;
+  });
+  const totalMeasures = new Set(Object.values(CURRICULUM_MAP).flatMap(c => c.measures)).size;
+  statusCounts.pending = totalMeasures - Object.keys(byMeasure).length;
+
+  container.innerHTML = `
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header">Program Summary — Most Recent Assessment per Sub-Measure</div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+          <div style="text-align:center;padding:16px;background:var(--green-bg);border-radius:8px;border:1px solid var(--green)">
+            <div style="font-size:36px;font-weight:800;color:var(--green)">${statusCounts.hc}</div>
+            <div style="font-size:12px;color:var(--green);font-weight:600">Highly Competent</div>
+          </div>
+          <div style="text-align:center;padding:16px;background:var(--orange-bg);border-radius:8px;border:1px solid var(--orange)">
+            <div style="font-size:36px;font-weight:800;color:var(--orange)">${statusCounts.c}</div>
+            <div style="font-size:12px;color:var(--orange);font-weight:600">Competent</div>
+          </div>
+          <div style="text-align:center;padding:16px;background:var(--red-bg);border-radius:8px;border:1px solid var(--red)">
+            <div style="font-size:36px;font-weight:800;color:var(--red)">${statusCounts.nc}</div>
+            <div style="font-size:12px;color:var(--red);font-weight:600">Not Met</div>
+          </div>
+          <div style="text-align:center;padding:16px;background:var(--gray-light);border-radius:8px;border:1px solid var(--border)">
+            <div style="font-size:36px;font-weight:800;color:var(--text-muted)">${statusCounts.pending}</div>
+            <div style="font-size:12px;color:var(--text-muted);font-weight:600">Pending Data</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dashboard-grid">
+      ${Object.entries(soGroups).sort().map(([so, measures]) => `
+        <div class="so-card">
+          <div class="so-card-header">${so} — ${SO_DESCRIPTIONS[so.replace('SO ','')]?.split(' ').slice(0,6).join(' ')}…</div>
+          <div class="so-card-body">
+            ${measures.map(({measure, course, data}) => {
+              let dot = 'dot-pending', statusText = 'No data';
+              if (data) {
+                if (data.status === 'Highly Competent') { dot = 'dot-hc'; statusText = data.term; }
+                else if (data.status === 'Competent') { dot = 'dot-c'; statusText = data.term; }
+                else { dot = 'dot-nc'; statusText = data.term + ' ⚠'; }
+              }
+              return `<div class="measure-row" onclick="${data ? `showDetail('${data.id}')` : ''}">
+                <span class="measure-status-dot ${dot}"></span>
+                <span class="measure-code">${measure}</span>
+                <span class="measure-course">${course}</span>
+                <span style="font-size:11px;color:var(--text-muted)">${statusText}</span>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPORT / IMPORT
+// ═══════════════════════════════════════════════════════
+
+function exportJSON() {
+  const all = loadAssessments();
+  const blob = new Blob([JSON.stringify(all, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `wne_bme_abet_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+
+function exportCSV() {
+  const all = loadAssessments();
+  if (!all.length) { alert('No data to export.'); return; }
+  const headers = ['Course','Term','Measure','SO','Assessor','N','%Competent','%HighlyCompetent',
+    'BenchmarkCompetent','BenchmarkHC','Status','Action','Notes','SavedAt'];
+  const rows = all.map(a => [
+    a.course, a.term, a.measure, a.soParent, a.assessor,
+    a.n, a.pctCompetent, a.pctHC, a.benchmarkCompetent, a.benchmarkHC,
+    a.status, `"${(a.action||'').replace(/"/g,'""')}"`,
+    `"${(a.notes||'').replace(/"/g,'""')}"`, a.savedAt
+  ].join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `wne_bme_abet_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+function importJSON() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!Array.isArray(data)) throw new Error('Invalid format');
+        const existing = loadAssessments();
+        const existingIds = new Set(existing.map(a => a.id));
+        const newRecords = data.filter(a => !existingIds.has(a.id));
+        saveAssessments([...existing, ...newRecords]);
+        alert(`Imported ${newRecords.length} new record(s). ${data.length - newRecords.length} duplicate(s) skipped.`);
+        renderSavedTable();
+        updateBadge();
+      } catch(e) {
+        alert('Error reading file: ' + e.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+
+updateBadge();
+</script>
+</body>
+</html>
