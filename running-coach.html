@@ -998,6 +998,17 @@ COACHING PRINCIPLES:
         const finalPace = fmtPace(accDistRef.current, elapsed);
         speak(`Run complete! ${accDistRef.current.toFixed(2)} miles in ${fmtTime(elapsed)}. ${finalPace ? "Average pace " + finalPace.replace(":"," minutes ") + " seconds per mile." : ""} Great job!`);
         if (apiKey) fetchCoachTip("finish", finalPace, elapsed, accDistRef.current);
+        // Auto-save to log
+        onLogWorkout({
+          id: Date.now(),
+          type: "Run",
+          date: new Date().toISOString().split("T")[0],
+          distance: parseFloat(accDistRef.current.toFixed(2)),
+          duration: Math.round(elapsed / 60),
+          notes: `GPS tracked run. Avg pace: ${finalPace || "N/A"}/mi. ${splits.length} splits.`,
+          source: "gps",
+        });
+        setSaved(true);
       }
 
       async function fetchCoachTip(milestone, pace, elapsedSec, dist) {
@@ -1169,10 +1180,10 @@ COACHING PRINCIPLES:
               )}
               {splits.length > 0 && (
                 <div className="card">
-                  <div className="card-title">Mile Splits</div>
+                  <div className="card-title">Splits</div>
                   {splits.map(s => (
-                    <div key={s.mile} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #1e2030",fontSize:13}}>
-                      <span style={{color:"#5a6080"}}>Mile {s.mile}</span>
+                    <div key={s.quarter} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #1e2030",fontSize:13}}>
+                      <span style={{color: s.quarter % 4 === 0 ? "#f07030" : "#5a6080", fontWeight: s.quarter % 4 === 0 ? 600 : 400}}>{s.label}</span>
                       <span style={{color:"#f07030",fontWeight:600}}>{s.pace}/mi</span>
                       <span style={{color:"#a0a8c0"}}>{s.time}</span>
                     </div>
