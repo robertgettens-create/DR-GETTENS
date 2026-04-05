@@ -999,14 +999,27 @@ function renderDetailChart(a){
   const benchmarks=[a.benchmarkCompetent??0,a.benchmarkHC??0];
   const meetBg=pctM.map((v,i)=>v>=benchmarks[i]?'#4caf50':'#e57373');
   const meetBd=pctM.map((v,i)=>v>=benchmarks[i]?'#2e7d32':'#c62828');
-  detailChart=new Chart(ctx,{type:'bar',data:{labels:['Competent (≥70%)','Highly Competent (≥90%)'],datasets:[
-    {label:'Meeting',data:pctM,backgroundColor:meetBg,borderColor:meetBd,borderWidth:1,stack:'s'},
-    {label:'Not Meeting',data:pctNM,backgroundColor:'#ef9a9a',borderColor:'#e53935',borderWidth:1,stack:'s'},
-    {label:'Benchmark',data:benchmarks,type:'line',borderColor:'#1D3461',borderWidth:2,borderDash:[6,4],pointRadius:5,pointBackgroundColor:'#1D3461',fill:false,order:0}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
-    tooltip:{callbacks:{afterBody(items){const i=items[0]?.dataIndex;return i!==undefined?[`Benchmark: ${benchmarks[i]}%`]:[];}}}},
-    scales:{x:{stacked:true,ticks:{font:{size:12}}},y:{stacked:false,min:0,max:100,
-      ticks:{callback:v=>v+'%',stepSize:20,font:{size:11}},grid:{color:'#eee'}}}}});}
+  const bmLinePlugin={id:'bmLines',afterDatasetsDraw(chart){
+    const{ctx:c,scales:{x,y}}=chart;
+    const meta=chart.getDatasetMeta(0);
+    benchmarks.forEach((bm,i)=>{
+      const bar=meta.data[i];if(!bar)return;
+      const yPx=y.getPixelForValue(bm);
+      const half=bar.width/2+2;
+      c.save();c.strokeStyle='#1D3461';c.lineWidth=2.5;c.setLineDash([7,4]);
+      c.beginPath();c.moveTo(bar.x-half,yPx);c.lineTo(bar.x+half,yPx);c.stroke();
+      c.setLineDash([]);c.restore();});}};
+  detailChart=new Chart(ctx,{type:'bar',
+    data:{labels:['Competent (≥70%)','Highly Competent (≥90%)'],datasets:[
+      {label:'Meeting',data:pctM,backgroundColor:meetBg,borderColor:meetBd,borderWidth:1,stack:'s'},
+      {label:'Not Meeting',data:pctNM,backgroundColor:'#ef9a9a',borderColor:'#e53935',borderWidth:1,stack:'s'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},bmLines:{},
+        tooltip:{callbacks:{afterBody(items){const i=items[0]?.dataIndex;return i!==undefined?[`Benchmark: ${benchmarks[i]}%`]:[];}}}},
+      scales:{x:{stacked:true,ticks:{font:{size:12}}},y:{stacked:false,min:0,max:100,
+        ticks:{callback:v=>v+'%',stepSize:20,font:{size:11}},grid:{color:'#eee'}}}},
+    plugins:[bmLinePlugin]});}
 function deleteAssessment(id){
   if(!confirm('Delete this record? This cannot be undone.'))return;
   saveAssessments(loadAssessments().filter(a=>a.id!==id));
