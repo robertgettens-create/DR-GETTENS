@@ -7,235 +7,202 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      --navy: #1D3461; --navy-light: #2a4d8f; --gold: #C8972B; --gold-light: #f0c050;
-      --green: #2E7D32; --green-bg: #e8f5e9; --orange: #E65100; --orange-bg: #fff3e0;
-      --red: #B71C1C; --red-bg: #ffebee; --gray: #546e7a; --gray-light: #f5f7fa;
-      --border: #dde3ec; --white: #ffffff; --text: #1a2740; --text-muted: #607d8b;
+      --navy:#1D3461;--navy-light:#2a4d8f;--gold:#C8972B;--gold-light:#f0c050;
+      --green:#2E7D32;--green-bg:#e8f5e9;--orange:#E65100;--orange-bg:#fff3e0;
+      --red:#B71C1C;--red-bg:#ffebee;--gray:#546e7a;--gray-light:#f5f7fa;
+      --border:#dde3ec;--white:#fff;--text:#1a2740;--text-muted:#607d8b;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--gray-light); color: var(--text); font-size: 14px; line-height: 1.5; }
-
-    header { background: var(--navy); color: white; padding: 0 24px; display: flex;
-      align-items: center; gap: 16px; height: 60px; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
-    header .logo { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
-    header .logo span { color: var(--gold-light); }
-    header .subtitle { font-size: 12px; color: rgba(255,255,255,0.65);
-      border-left: 1px solid rgba(255,255,255,0.25); padding-left: 16px; margin-left: 4px; }
-    header .spacer { flex: 1; }
-    header .version { font-size: 11px; color: rgba(255,255,255,0.4); }
-
-    nav { background: var(--white); border-bottom: 2px solid var(--border);
-      display: flex; padding: 0 24px; }
-    .tab-btn { padding: 14px 20px; border: none; background: none; cursor: pointer;
-      font-size: 13px; font-weight: 500; color: var(--text-muted);
-      border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
-    .tab-btn:hover { color: var(--navy); }
-    .tab-btn.active { color: var(--navy); border-bottom-color: var(--gold); font-weight: 600; }
-    .tab-btn .badge { display: inline-flex; align-items: center; justify-content: center;
-      background: var(--navy); color: white; font-size: 10px; font-weight: 700;
-      border-radius: 10px; padding: 1px 6px; margin-left: 6px; min-width: 18px; }
-
-    main { max-width: 980px; margin: 0 auto; padding: 24px; }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
-
-    .card { background: var(--white); border: 1px solid var(--border);
-      border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
-    .card-header { background: var(--navy); color: white; padding: 12px 20px;
-      font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-    .card-header .step-num { background: var(--gold); color: var(--navy); border-radius: 50%;
-      width: 22px; height: 22px; display: inline-flex; align-items: center;
-      justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
-    .card-body { padding: 20px; }
-
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-    .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
-    .form-row.full { grid-template-columns: 1fr; }
-    .form-group { display: flex; flex-direction: column; gap: 5px; }
-    .form-group label { font-size: 12px; font-weight: 600; color: var(--gray);
-      text-transform: uppercase; letter-spacing: 0.5px; }
-    .form-group label .required { color: var(--red); margin-left: 2px; }
-    select, input[type="text"], input[type="number"], textarea {
-      padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px;
-      font-size: 14px; color: var(--text); background: white;
-      transition: border-color 0.15s; font-family: inherit; }
-    select:focus, input:focus, textarea:focus { outline: none;
-      border-color: var(--navy-light); box-shadow: 0 0 0 3px rgba(29,52,97,0.1); }
-    textarea { resize: vertical; min-height: 72px; }
-    .form-hint { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
-
-    .so-info-box { background: #eef2f8; border: 1px solid #c5d1e8;
-      border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; }
-    .so-info-box .so-code { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
-    .so-info-box .so-desc { font-size: 12px; color: var(--gray); }
-    .so-info-box .measure-desc { font-size: 13px; color: var(--text);
-      margin-top: 6px; padding-top: 6px; border-top: 1px solid #c5d1e8; }
-
-    /* ── Component banner ── */
-    .component-banner { background: #f0f4ff; border: 1px solid #c5d1e8;
-      border-radius: 6px; padding: 10px 14px; margin-bottom: 12px;
-      display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .component-banner label { font-size: 12px; font-weight: 600;
-      color: var(--navy); text-transform: uppercase; letter-spacing: 0.4px; }
-    .component-chip { display: inline-flex; align-items: center; gap: 6px;
-      background: white; border: 1px solid var(--border); border-radius: 20px;
-      padding: 4px 10px 4px 12px; font-size: 12px; }
-    .component-chip input { border: none; padding: 0; font-size: 12px;
-      width: 90px; font-weight: 600; color: var(--navy); }
-    .component-chip input:focus { outline: none; }
-    .component-chip .max-label { font-size: 11px; color: var(--text-muted); }
-    .component-chip .max-input { border: none; border-bottom: 1px solid var(--border);
-      padding: 0 2px; width: 40px; font-size: 11px; color: var(--text-muted); text-align: center; }
-    .component-chip .max-input:focus { outline: none; }
-    .component-chip .rm-comp { background: none; border: none; cursor: pointer;
-      color: var(--red); font-size: 14px; padding: 0; line-height: 1; }
-
-    /* ── Score table ── */
-    .score-toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
-    .btn { padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer;
-      font-size: 13px; font-weight: 500; font-family: inherit; transition: all 0.15s; }
-    .btn-primary { background: var(--navy); color: white; }
-    .btn-primary:hover { background: var(--navy-light); }
-    .btn-secondary { background: white; color: var(--navy); border: 1px solid var(--border); }
-    .btn-secondary:hover { background: var(--gray-light); }
-    .btn-gold { background: var(--gold); color: white; font-weight: 600; }
-    .btn-gold:hover { background: #b8871f; }
-    .btn-danger { background: white; color: var(--red); border: 1px solid #f5c6c6; }
-    .btn-danger:hover { background: var(--red-bg); }
-    .btn-sm { padding: 4px 10px; font-size: 12px; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .score-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .score-table th { background: var(--gray-light); padding: 8px 10px;
-      text-align: left; font-weight: 600; color: var(--gray); font-size: 11px;
-      text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 2px solid var(--border); }
-    .score-table th.comp-th { background: #eef2f8; color: var(--navy); }
-    .score-table td { padding: 5px 7px; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
-    .score-table tr:last-child td { border-bottom: none; }
-    .score-table .row-num { color: var(--text-muted); font-size: 11px; width: 28px; text-align: center; }
-    .score-table input[type="text"] { padding: 4px 7px; font-size: 13px; }
-    .score-table input[type="number"] { padding: 4px 6px; font-size: 13px;
-      width: 72px; text-align: center; }
-    .score-pill { display: inline-block; padding: 2px 8px; border-radius: 12px;
-      font-size: 11px; font-weight: 600; }
-    .pill-hc { background: #c8e6c9; color: #1b5e20; }
-    .pill-c  { background: #fff9c4; color: #f57f17; }
-    .pill-nc { background: #ffcdd2; color: #b71c1c; }
-    .pill-na { background: #f0f0f0; color: #999; }
-
-    /* ── Results panel ── */
-    .results-panel { background: #f8faff; border: 2px solid var(--border);
-      border-radius: 8px; padding: 20px; margin-bottom: 16px; }
-    .results-panel .results-title { font-size: 13px; font-weight: 700; color: var(--navy);
-      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; }
-    .benchmark-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-    .benchmark-card { border: 2px solid var(--border); border-radius: 8px;
-      padding: 14px 16px; position: relative; background: white; }
-    .benchmark-card.met { border-color: var(--green); background: var(--green-bg); }
-    .benchmark-card.not-met { border-color: var(--red); background: var(--red-bg); }
-    .benchmark-card .bm-label { font-size: 11px; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.4px; color: var(--text-muted); margin-bottom: 4px; }
-    .benchmark-card .bm-pct { font-size: 32px; font-weight: 800; line-height: 1; margin-bottom: 2px; }
-    .benchmark-card.met .bm-pct { color: var(--green); }
-    .benchmark-card.not-met .bm-pct { color: var(--red); }
-    .benchmark-card .bm-pct.neutral { color: var(--navy); }
-    .benchmark-card .bm-required { font-size: 12px; color: var(--text-muted); }
-    .benchmark-card .bm-status { position: absolute; top: 12px; right: 12px; font-size: 18px; }
-    .overall-status { border-radius: 8px; padding: 12px 16px; text-align: center;
-      font-size: 15px; font-weight: 700; }
-    .overall-status.hc { background: var(--green-bg); color: var(--green); border: 2px solid var(--green); }
-    .overall-status.c  { background: var(--orange-bg); color: var(--orange); border: 2px solid var(--orange); }
-    .overall-status.nc { background: var(--red-bg); color: var(--red); border: 2px solid var(--red); }
-    .overall-status.pending { background: var(--gray-light); color: var(--text-muted); border: 2px solid var(--border); }
-    .results-meta { font-size: 12px; color: var(--text-muted); margin-top: 10px; text-align: center; }
-
-    .save-bar { background: white; border: 1px solid var(--border); border-radius: 8px;
-      padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
-    .save-bar .spacer { flex: 1; }
-    .save-msg { font-size: 13px; color: var(--green); font-weight: 500; display: none; }
-
-    /* ── Saved table ── */
-    .filter-row { display: flex; gap: 8px; margin-bottom: 16px;
-      align-items: center; flex-wrap: wrap; }
-    .filter-row select, .filter-row input { padding: 7px 10px; font-size: 13px; }
-    .filter-row label { font-size: 12px; font-weight: 600; color: var(--gray); }
-    .filter-row .spacer { flex: 1; }
-    .assessments-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .assessments-table th { background: var(--navy); color: white; padding: 10px 14px;
-      text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
-    .assessments-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
-    .assessments-table tr:hover td { background: #f0f4ff; cursor: pointer; }
-    .assessments-table .no-data { text-align: center; padding: 40px;
-      color: var(--text-muted); font-style: italic; }
-
-    /* ── Dashboard ── */
-    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 16px; margin-bottom: 24px; }
-    .so-card { background: white; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-    .so-card-header { background: var(--navy); color: white; padding: 10px 16px;
-      font-size: 12px; font-weight: 700; }
-    .so-card-body { padding: 14px 16px; }
-    .measure-row { display: flex; align-items: center; gap: 8px; padding: 6px 0;
-      border-bottom: 1px solid #f0f2f5; font-size: 12px; }
-    .measure-row:last-child { border-bottom: none; }
-    .measure-code { font-weight: 600; color: var(--navy); min-width: 50px; }
-    .measure-course { color: var(--text-muted); flex: 1; }
-    .measure-status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-    .dot-hc { background: var(--green); } .dot-c { background: #ffa000; }
-    .dot-nc { background: var(--red); } .dot-pending { background: #bdbdbd; }
-    .chart-card { background: white; border: 1px solid var(--border);
-      border-radius: 8px; margin-bottom: 20px; overflow: hidden; }
-    .chart-card .chart-header { background: var(--navy); color: white;
-      padding: 12px 20px; font-size: 13px; font-weight: 600; }
-    .chart-card .chart-body { padding: 20px; }
-    .chart-filter { display: flex; gap: 10px; margin-bottom: 16px; align-items: center;
-      font-size: 12px; color: var(--text-muted); flex-wrap: wrap; }
-    .chart-filter select { padding: 5px 8px; font-size: 12px; border-radius: 5px;
-      border: 1px solid var(--border); }
-
-    /* ── Modals ── */
-    .modal-overlay { display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-    .modal-overlay.open { display: flex; }
-    .modal { background: white; border-radius: 10px; padding: 24px;
-      width: 440px; max-width: 95vw; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-    .modal h3 { font-size: 16px; margin-bottom: 6px; color: var(--navy); }
-    .modal p { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; }
-    .modal textarea { width: 100%; height: 140px; font-family: monospace; font-size: 13px; }
-    .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
-    .detail-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-      z-index: 900; align-items: flex-start; justify-content: center;
-      padding: 24px; overflow-y: auto; }
-    .detail-overlay.open { display: flex; }
-    .detail-modal { background: white; border-radius: 10px; width: 700px;
-      max-width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-    .detail-header { background: var(--navy); color: white; padding: 16px 20px;
-      border-radius: 10px 10px 0 0; display: flex; align-items: center; gap: 12px; }
-    .detail-header h2 { font-size: 16px; flex: 1; }
-    .detail-body { padding: 24px; }
-    .detail-section { margin-bottom: 20px; }
-    .detail-section h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
-      color: var(--text-muted); font-weight: 600; margin-bottom: 8px;
-      padding-bottom: 4px; border-bottom: 1px solid var(--border); }
-    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .detail-item label { font-size: 11px; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.4px; color: var(--text-muted); display: block; margin-bottom: 2px; }
-    .detail-footer { display: flex; gap: 8px; justify-content: flex-end;
-      padding: 16px 20px; border-top: 1px solid var(--border); }
-
-    .export-bar { display: flex; gap: 8px; margin-bottom: 16px; padding: 12px 16px;
-      background: white; border: 1px solid var(--border); border-radius: 8px; align-items: center; }
-    .export-bar span { font-size: 13px; color: var(--text-muted); flex: 1; }
-    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
-    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
-    .empty-state h3 { font-size: 16px; color: var(--navy); margin-bottom: 6px; }
-    .empty-state p { font-size: 13px; }
-    @media print {
-      header, nav, .save-bar, .score-toolbar, .component-banner .btn,
-      .btn, .chart-filter { display: none !important; }
-      .card { box-shadow: none; border: 1px solid #999; }
-    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+      background:var(--gray-light);color:var(--text);font-size:14px;line-height:1.5;}
+    header{background:var(--navy);color:white;padding:0 24px;display:flex;align-items:center;
+      gap:16px;height:60px;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+    header .logo{font-size:18px;font-weight:700;letter-spacing:.5px;}
+    header .logo span{color:var(--gold-light);}
+    header .subtitle{font-size:12px;color:rgba(255,255,255,.65);border-left:1px solid rgba(255,255,255,.25);
+      padding-left:16px;margin-left:4px;}
+    header .spacer{flex:1;}
+    header .version{font-size:11px;color:rgba(255,255,255,.4);}
+    nav{background:var(--white);border-bottom:2px solid var(--border);display:flex;padding:0 24px;}
+    .tab-btn{padding:14px 20px;border:none;background:none;cursor:pointer;font-size:13px;
+      font-weight:500;color:var(--text-muted);border-bottom:3px solid transparent;
+      margin-bottom:-2px;transition:all .15s;}
+    .tab-btn:hover{color:var(--navy);}
+    .tab-btn.active{color:var(--navy);border-bottom-color:var(--gold);font-weight:600;}
+    .tab-btn .badge{display:inline-flex;align-items:center;justify-content:center;
+      background:var(--navy);color:white;font-size:10px;font-weight:700;
+      border-radius:10px;padding:1px 6px;margin-left:6px;min-width:18px;}
+    .badge-orange{background:var(--orange)!important;}
+    main{max-width:980px;margin:0 auto;padding:24px;}
+    .tab-panel{display:none;}.tab-panel.active{display:block;}
+    .card{background:var(--white);border:1px solid var(--border);border-radius:8px;margin-bottom:16px;overflow:hidden;}
+    .card-header{background:var(--navy);color:white;padding:12px 20px;font-size:13px;
+      font-weight:600;display:flex;align-items:center;gap:8px;}
+    .card-header .step-num{background:var(--gold);color:var(--navy);border-radius:50%;
+      width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;
+      font-size:11px;font-weight:800;flex-shrink:0;}
+    .card-body{padding:20px;}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+    .form-row.three{grid-template-columns:1fr 1fr 1fr;}
+    .form-row.full{grid-template-columns:1fr;}
+    .form-group{display:flex;flex-direction:column;gap:5px;}
+    .form-group label{font-size:12px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;}
+    .form-group label .required{color:var(--red);margin-left:2px;}
+    select,input[type="text"],input[type="number"],textarea{
+      padding:9px 12px;border:1px solid var(--border);border-radius:6px;
+      font-size:14px;color:var(--text);background:white;transition:border-color .15s;font-family:inherit;}
+    select:focus,input:focus,textarea:focus{outline:none;border-color:var(--navy-light);
+      box-shadow:0 0 0 3px rgba(29,52,97,.1);}
+    textarea{resize:vertical;min-height:72px;}
+    .form-hint{font-size:11px;color:var(--text-muted);margin-top:3px;}
+    .so-info-box{background:#eef2f8;border:1px solid #c5d1e8;border-radius:6px;
+      padding:12px 16px;margin-bottom:16px;}
+    .so-info-box .so-code{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:3px;}
+    .so-info-box .so-desc{font-size:12px;color:var(--gray);}
+    .so-info-box .measure-desc{font-size:13px;color:var(--text);margin-top:6px;
+      padding-top:6px;border-top:1px solid #c5d1e8;}
+    /* components */
+    .component-banner{background:#f0f4ff;border:1px solid #c5d1e8;border-radius:6px;
+      padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+    .component-banner label{font-size:12px;font-weight:600;color:var(--navy);
+      text-transform:uppercase;letter-spacing:.4px;}
+    .component-chip{display:inline-flex;align-items:center;gap:6px;background:white;
+      border:1px solid var(--border);border-radius:20px;padding:4px 10px 4px 12px;font-size:12px;}
+    .component-chip input{border:none;padding:0;font-size:12px;width:90px;font-weight:600;color:var(--navy);}
+    .component-chip input:focus{outline:none;}
+    .component-chip .max-label{font-size:11px;color:var(--text-muted);}
+    .component-chip .max-input{border:none;border-bottom:1px solid var(--border);padding:0 2px;
+      width:40px;font-size:11px;color:var(--text-muted);text-align:center;}
+    .component-chip .max-input:focus{outline:none;}
+    .component-chip .rm-comp{background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;padding:0;}
+    /* buttons */
+    .btn{padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-size:13px;
+      font-weight:500;font-family:inherit;transition:all .15s;}
+    .btn-primary{background:var(--navy);color:white;}
+    .btn-primary:hover{background:var(--navy-light);}
+    .btn-secondary{background:white;color:var(--navy);border:1px solid var(--border);}
+    .btn-secondary:hover{background:var(--gray-light);}
+    .btn-gold{background:var(--gold);color:white;font-weight:600;}
+    .btn-gold:hover{background:#b8871f;}
+    .btn-danger{background:white;color:var(--red);border:1px solid #f5c6c6;}
+    .btn-danger:hover{background:var(--red-bg);}
+    .btn-sm{padding:4px 10px;font-size:12px;}
+    .btn:disabled{opacity:.4;cursor:not-allowed;}
+    /* score table */
+    .score-toolbar{display:flex;gap:8px;margin-bottom:12px;align-items:center;}
+    .score-table{width:100%;border-collapse:collapse;font-size:13px;}
+    .score-table th{background:var(--gray-light);padding:8px 10px;text-align:left;font-weight:600;
+      color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.4px;
+      border-bottom:2px solid var(--border);}
+    .score-table th.comp-th{background:#eef2f8;color:var(--navy);}
+    .score-table td{padding:5px 7px;border-bottom:1px solid #f0f2f5;vertical-align:middle;}
+    .score-table tr:last-child td{border-bottom:none;}
+    .score-table .row-num{color:var(--text-muted);font-size:11px;width:28px;text-align:center;}
+    .score-table input[type="text"]{padding:4px 7px;font-size:13px;}
+    .score-table input[type="number"]{padding:4px 6px;font-size:13px;width:72px;text-align:center;}
+    .score-pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;}
+    .pill-hc{background:#c8e6c9;color:#1b5e20;}
+    .pill-c{background:#fff9c4;color:#f57f17;}
+    .pill-nc{background:#ffcdd2;color:#b71c1c;}
+    .pill-na{background:#f0f0f0;color:#999;}
+    /* results */
+    .results-panel{background:#f8faff;border:2px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;}
+    .results-panel .results-title{font-size:13px;font-weight:700;color:var(--navy);
+      text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;}
+    .benchmark-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+    .benchmark-card{border:2px solid var(--border);border-radius:8px;padding:14px 16px;position:relative;background:white;}
+    .benchmark-card.met{border-color:var(--green);background:var(--green-bg);}
+    .benchmark-card.not-met{border-color:var(--red);background:var(--red-bg);}
+    .benchmark-card .bm-label{font-size:11px;font-weight:600;text-transform:uppercase;
+      letter-spacing:.4px;color:var(--text-muted);margin-bottom:4px;}
+    .benchmark-card .bm-pct{font-size:32px;font-weight:800;line-height:1;margin-bottom:2px;}
+    .benchmark-card.met .bm-pct{color:var(--green);}
+    .benchmark-card.not-met .bm-pct{color:var(--red);}
+    .benchmark-card .bm-pct.neutral{color:var(--navy);}
+    .benchmark-card .bm-required{font-size:12px;color:var(--text-muted);}
+    .benchmark-card .bm-status{position:absolute;top:12px;right:12px;font-size:18px;}
+    .overall-status{border-radius:8px;padding:12px 16px;text-align:center;font-size:15px;font-weight:700;}
+    .overall-status.hc{background:var(--green-bg);color:var(--green);border:2px solid var(--green);}
+    .overall-status.c{background:var(--orange-bg);color:var(--orange);border:2px solid var(--orange);}
+    .overall-status.nc{background:var(--red-bg);color:var(--red);border:2px solid var(--red);}
+    .overall-status.pending{background:var(--gray-light);color:var(--text-muted);border:2px solid var(--border);}
+    .results-meta{font-size:12px;color:var(--text-muted);margin-top:10px;text-align:center;}
+    .save-bar{background:white;border:1px solid var(--border);border-radius:8px;
+      padding:16px 20px;display:flex;align-items:center;gap:12px;}
+    .save-bar .spacer{flex:1;}
+    .save-msg{font-size:13px;color:var(--green);font-weight:500;display:none;}
+    /* saved table */
+    .filter-row{display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap;}
+    .filter-row select,.filter-row input{padding:7px 10px;font-size:13px;}
+    .filter-row label{font-size:12px;font-weight:600;color:var(--gray);}
+    .filter-row .spacer{flex:1;}
+    .assessments-table{width:100%;border-collapse:collapse;font-size:13px;}
+    .assessments-table th{background:var(--navy);color:white;padding:10px 14px;text-align:left;
+      font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+    .assessments-table td{padding:10px 14px;border-bottom:1px solid var(--border);}
+    .assessments-table tr:hover td{background:#f0f4ff;cursor:pointer;}
+    .assessments-table .no-data{text-align:center;padding:40px;color:var(--text-muted);font-style:italic;}
+    /* dashboard */
+    .dashboard-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+      gap:16px;margin-bottom:24px;}
+    .so-card{background:white;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+    .so-card-header{background:var(--navy);color:white;padding:10px 16px;font-size:12px;font-weight:700;}
+    .so-card-body{padding:14px 16px;}
+    .measure-row{display:flex;align-items:center;gap:8px;padding:6px 0;
+      border-bottom:1px solid #f0f2f5;font-size:12px;}
+    .measure-row:last-child{border-bottom:none;}
+    .measure-code{font-weight:600;color:var(--navy);min-width:50px;}
+    .measure-course{color:var(--text-muted);flex:1;}
+    .measure-status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+    .dot-hc{background:var(--green);}.dot-c{background:#ffa000;}
+    .dot-nc{background:var(--red);}.dot-pending{background:#bdbdbd;}
+    .chart-card{background:white;border:1px solid var(--border);border-radius:8px;margin-bottom:20px;overflow:hidden;}
+    .chart-card .chart-header{background:var(--navy);color:white;padding:12px 20px;font-size:13px;font-weight:600;}
+    .chart-card .chart-body{padding:20px;}
+    .chart-filter{display:flex;gap:10px;margin-bottom:16px;align-items:center;font-size:12px;color:var(--text-muted);flex-wrap:wrap;}
+    .chart-filter select{padding:5px 8px;font-size:12px;border-radius:5px;border:1px solid var(--border);}
+    /* modals */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+      z-index:1000;align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:white;border-radius:10px;padding:24px;width:460px;
+      max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+    .modal h3{font-size:16px;margin-bottom:6px;color:var(--navy);}
+    .modal p{font-size:13px;color:var(--text-muted);margin-bottom:14px;}
+    .modal textarea{width:100%;height:140px;font-family:monospace;font-size:13px;}
+    .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
+    .detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+      z-index:900;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;}
+    .detail-overlay.open{display:flex;}
+    .detail-modal{background:white;border-radius:10px;width:720px;
+      max-width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+    .detail-header{background:var(--navy);color:white;padding:16px 20px;
+      border-radius:10px 10px 0 0;display:flex;align-items:center;gap:12px;}
+    .detail-header h2{font-size:16px;flex:1;}
+    .detail-body{padding:24px;}
+    .detail-section{margin-bottom:20px;}
+    .detail-section h4{font-size:11px;text-transform:uppercase;letter-spacing:.5px;
+      color:var(--text-muted);font-weight:600;margin-bottom:8px;
+      padding-bottom:4px;border-bottom:1px solid var(--border);}
+    .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .detail-item label{font-size:11px;font-weight:600;text-transform:uppercase;
+      letter-spacing:.4px;color:var(--text-muted);display:block;margin-bottom:2px;}
+    .detail-footer{display:flex;gap:8px;justify-content:flex-end;
+      padding:16px 20px;border-top:1px solid var(--border);flex-wrap:wrap;}
+    .export-bar{display:flex;gap:8px;margin-bottom:16px;padding:12px 16px;
+      background:white;border:1px solid var(--border);border-radius:8px;align-items:center;}
+    .export-bar span{font-size:13px;color:var(--text-muted);flex:1;}
+    .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}
+    .empty-state .icon{font-size:48px;margin-bottom:12px;}
+    .empty-state h3{font-size:16px;color:var(--navy);margin-bottom:6px;}
+    .empty-state p{font-size:13px;}
+    /* CI tracker */
+    .ci-timeline{display:flex;align-items:stretch;gap:0;margin:8px 0;}
+    .ci-step{flex:1;padding:10px 14px;font-size:12px;border:1px solid var(--border);
+      border-radius:6px;background:#f8faff;}
+    .ci-arrow{display:flex;align-items:center;padding:0 6px;font-size:18px;color:var(--text-muted);}
+    @media print{header,nav,.save-bar,.score-toolbar,.component-banner .btn,.btn,.chart-filter{display:none!important;}
+      .card{box-shadow:none;border:1px solid #999;}}
   </style>
 </head>
 <body>
@@ -244,25 +211,24 @@
   <div class="logo">WNE <span>BME</span></div>
   <div class="subtitle">ABET Assessment Tool</div>
   <div class="spacer"></div>
-  <div class="version">v1.1 — Local Mode</div>
+  <div class="version">v1.2 — Local Mode</div>
 </header>
 
 <nav>
   <button class="tab-btn active" onclick="showTab('new',this)">New Assessment</button>
-  <button class="tab-btn" onclick="showTab('saved',this)" id="saved-tab-btn">
+  <button class="tab-btn" onclick="showTab('saved',this)">
     Saved Assessments <span class="badge" id="saved-count">0</span>
   </button>
   <button class="tab-btn" onclick="showTab('dashboard',this)">SO Dashboard</button>
+  <button class="tab-btn" onclick="showTab('ci',this)">
+    CI Tracker <span class="badge badge-orange" id="ci-open-count">0</span>
+  </button>
 </nav>
 
 <main>
 
-<!-- ═══════════════════════════════════════════════════
-     TAB 1 — NEW ASSESSMENT
-═══════════════════════════════════════════════════ -->
+<!-- ═══ TAB 1: NEW ASSESSMENT ═══ -->
 <div class="tab-panel active" id="tab-new">
-
-  <!-- Step 1 -->
   <div class="card">
     <div class="card-header"><span class="step-num">1</span> Course Information</div>
     <div class="card-body">
@@ -289,8 +255,8 @@
           <label>Year <span class="required">*</span></label>
           <select id="f-year">
             <option value="">— Select —</option>
-            <option>2026</option><option>2025</option><option>2024</option>
-            <option>2023</option><option>2022</option><option>2021</option>
+            <option>2027</option><option>2026</option><option>2025</option>
+            <option>2024</option><option>2023</option><option>2022</option><option>2021</option>
           </select>
         </div>
       </div>
@@ -309,7 +275,6 @@
     </div>
   </div>
 
-  <!-- Step 2 -->
   <div class="card">
     <div class="card-header"><span class="step-num">2</span> Assessment Details</div>
     <div class="card-body">
@@ -327,24 +292,17 @@
     </div>
   </div>
 
-  <!-- Step 3 -->
   <div class="card">
     <div class="card-header">
       <span class="step-num">3</span> Student Scores
-      <span style="margin-left:auto;font-size:11px;opacity:0.7">
-        Multiple assessments? Use "+ Add Component" to average them together.
-      </span>
+      <span style="margin-left:auto;font-size:11px;opacity:.7">Use "+ Add Component" to average multiple assessments</span>
     </div>
     <div class="card-body">
-
-      <!-- Component manager -->
       <div class="component-banner" id="component-banner">
         <label>Components:</label>
         <div id="component-chips"></div>
         <button class="btn btn-secondary btn-sm" onclick="addComponent()">+ Add Component</button>
       </div>
-
-      <!-- Row toolbar -->
       <div class="score-toolbar">
         <button class="btn btn-secondary btn-sm" onclick="addScoreRow()">+ Add Student</button>
         <button class="btn btn-secondary btn-sm" onclick="add5Rows()">+ Add 5</button>
@@ -353,7 +311,6 @@
         <span style="flex:1"></span>
         <span id="student-count-label" style="font-size:12px;color:var(--text-muted)">0 students</span>
       </div>
-
       <div style="overflow-x:auto">
         <table class="score-table">
           <thead id="score-thead"></thead>
@@ -363,11 +320,10 @@
     </div>
   </div>
 
-  <!-- Step 4 -->
   <div class="card">
     <div class="card-header">
       <span class="step-num">4</span> Benchmark Results
-      <span style="margin-left:auto;font-size:11px;opacity:0.7">Updates automatically</span>
+      <span style="margin-left:auto;font-size:11px;opacity:.7">Updates automatically</span>
     </div>
     <div class="card-body">
       <div class="results-panel">
@@ -386,15 +342,12 @@
             <div class="bm-status" id="bm-hc-icon">—</div>
           </div>
         </div>
-        <div class="overall-status pending" id="overall-status-box">
-          Enter student scores and select a course to see results
-        </div>
+        <div class="overall-status pending" id="overall-status-box">Enter scores and select a course to see results</div>
         <div class="results-meta" id="results-meta"></div>
       </div>
     </div>
   </div>
 
-  <!-- Step 5 -->
   <div class="card">
     <div class="card-header"><span class="step-num">5</span> Action Recommendation &amp; Notes</div>
     <div class="card-body">
@@ -402,14 +355,13 @@
         <div class="form-group">
           <label>Action Recommendation</label>
           <textarea id="f-action" rows="3"
-            placeholder="Describe recommended changes, or write 'No action required' if benchmarks were met."></textarea>
+            placeholder="Describe recommended changes, or 'No action required' if benchmarks were met."></textarea>
         </div>
       </div>
       <div class="form-row full">
         <div class="form-group">
           <label>Additional Notes</label>
-          <textarea id="f-notes" rows="2"
-            placeholder="Any other observations (cohort size, unusual circumstances, etc.)"></textarea>
+          <textarea id="f-notes" rows="2" placeholder="Cohort size, unusual circumstances, etc."></textarea>
         </div>
       </div>
     </div>
@@ -418,19 +370,16 @@
   <div class="save-bar">
     <button class="btn btn-secondary" onclick="resetForm()">Clear Form</button>
     <span class="spacer"></span>
-    <span class="save-msg" id="save-msg">✓ Saved successfully!</span>
+    <span class="save-msg" id="save-msg">✓ Saved!</span>
     <button class="btn btn-gold" onclick="saveAssessment()">Save Assessment</button>
   </div>
-
 </div><!-- end tab-new -->
 
 
-<!-- ═══════════════════════════════════════════════════
-     TAB 2 — SAVED ASSESSMENTS
-═══════════════════════════════════════════════════ -->
+<!-- ═══ TAB 2: SAVED ASSESSMENTS ═══ -->
 <div class="tab-panel" id="tab-saved">
   <div class="export-bar">
-    <span>Data is stored locally in your browser. Export to share or back up.</span>
+    <span>Data is stored locally in your browser. Export to back up or share with colleagues.</span>
     <button class="btn btn-secondary btn-sm" onclick="exportJSON()">Export JSON</button>
     <button class="btn btn-secondary btn-sm" onclick="exportCSV()">Export CSV</button>
     <button class="btn btn-secondary btn-sm" onclick="importJSON()">Import JSON</button>
@@ -441,20 +390,18 @@
       <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
         <div class="filter-row">
           <label>Filter:</label>
-          <select id="filter-course" onchange="renderSavedTable()" style="width:130px">
-            <option value="">All Courses</option>
-          </select>
+          <select id="filter-course" onchange="renderSavedTable()" style="width:130px"><option value="">All Courses</option></select>
           <select id="filter-so" onchange="renderSavedTable()" style="width:120px">
             <option value="">All SOs</option>
             <option>SO 3-1</option><option>SO 3-2</option><option>SO 3-3</option>
             <option>SO 3-4</option><option>SO 3-5</option><option>SO 3-6</option><option>SO 3-7</option>
           </select>
-          <select id="filter-status" onchange="renderSavedTable()" style="width:150px">
+          <select id="filter-status" onchange="renderSavedTable()" style="width:160px">
             <option value="">All Statuses</option>
             <option>Highly Competent</option><option>Competent</option><option>Not Met</option>
           </select>
           <span class="spacer"></span>
-          <input type="text" id="filter-search" placeholder="Search..." oninput="renderSavedTable()" style="width:160px">
+          <input type="text" id="filter-search" placeholder="Search…" oninput="renderSavedTable()" style="width:160px">
         </div>
       </div>
       <div style="overflow-x:auto">
@@ -463,9 +410,7 @@
             <th>Course</th><th>Term</th><th>Measure</th><th>Assessor</th>
             <th>N</th><th>Competent</th><th>Highly Comp.</th><th>Status</th><th>Saved</th>
           </tr></thead>
-          <tbody id="saved-tbody">
-            <tr><td colspan="9" class="no-data">No assessments saved yet.</td></tr>
-          </tbody>
+          <tbody id="saved-tbody"><tr><td colspan="9" class="no-data">No assessments saved yet.</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -473,18 +418,97 @@
 </div><!-- end tab-saved -->
 
 
-<!-- ═══════════════════════════════════════════════════
-     TAB 3 — DASHBOARD
-═══════════════════════════════════════════════════ -->
+<!-- ═══ TAB 3: DASHBOARD ═══ -->
 <div class="tab-panel" id="tab-dashboard">
   <div id="dashboard-content">
     <div class="empty-state">
-      <div class="icon">📊</div>
-      <h3>No Data Yet</h3>
+      <div class="icon">📊</div><h3>No Data Yet</h3>
       <p>Save at least one assessment to see the dashboard.</p>
     </div>
   </div>
 </div>
+
+
+<!-- ═══ TAB 4: CI TRACKER ═══ -->
+<div class="tab-panel" id="tab-ci">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px" id="ci-summary-cards"></div>
+
+  <div class="card">
+    <div class="card-header">New Action Item</div>
+    <div class="card-body">
+      <div class="form-row three">
+        <div class="form-group">
+          <label>Sub-Measure <span class="required">*</span></label>
+          <select id="ci-measure"><option value="">— Select —</option></select>
+        </div>
+        <div class="form-group">
+          <label>Review Term <span class="required">*</span></label>
+          <input type="text" id="ci-finding-term" placeholder="e.g., Fall 2024">
+        </div>
+        <div class="form-group">
+          <label>Responsible Faculty</label>
+          <input type="text" id="ci-responsible" placeholder="e.g., Dr. Gettens">
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="form-group">
+          <label>Finding / Issue <span class="required">*</span></label>
+          <textarea id="ci-finding" rows="2"
+            placeholder="Describe the finding that requires action (e.g., 'SO 3-4-3 in BME 451 Fall 2024: 74.1% ≥70%, below the 90% threshold')"></textarea>
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="form-group">
+          <label>Action Taken / Proposed <span class="required">*</span></label>
+          <textarea id="ci-action" rows="2"
+            placeholder="Describe the change (e.g., 'Grade only the last page of the exam question; encourage use of data/numbers')"></textarea>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Target Review Term</label>
+          <input type="text" id="ci-target-term" placeholder="e.g., Fall 2025">
+        </div>
+        <div class="form-group">
+          <label>Link to Triggering Assessment</label>
+          <select id="ci-linked-asmt"><option value="">— None —</option></select>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <button class="btn btn-gold" onclick="saveCIItem()">Save Action Item</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      Action Items
+      <span style="margin-left:auto;display:flex;gap:6px">
+        <select id="ci-filter-status" onchange="renderCITable()"
+          style="background:rgba(255,255,255,.15);border:none;color:white;font-size:12px;padding:4px 8px;border-radius:4px">
+          <option value="">All Statuses</option>
+          <option>Open</option><option>In Progress</option><option>Closed</option>
+        </select>
+        <select id="ci-filter-measure" onchange="renderCITable()"
+          style="background:rgba(255,255,255,.15);border:none;color:white;font-size:12px;padding:4px 8px;border-radius:4px">
+          <option value="">All Measures</option>
+        </select>
+      </span>
+    </div>
+    <div class="card-body" style="padding:0;overflow-x:auto">
+      <table class="assessments-table" style="font-size:12px">
+        <thead><tr>
+          <th>Measure</th><th>Finding Term</th><th style="min-width:180px">Finding / Issue</th>
+          <th style="min-width:180px">Action Taken</th><th>Responsible</th>
+          <th>Target Term</th><th>Status</th><th style="min-width:160px">Outcome</th><th></th>
+        </tr></thead>
+        <tbody id="ci-tbody">
+          <tr><td colspan="9" class="no-data">No action items yet. Add one above or from an assessment's detail view.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div><!-- end tab-ci -->
 
 </main>
 
@@ -492,14 +516,12 @@
 <div class="modal-overlay" id="paste-modal">
   <div class="modal">
     <h3>Paste Student Scores</h3>
-    <p id="paste-modal-desc">Paste scores one per line or comma-separated.
-      Values are treated as raw scores for the <strong>first component</strong>;
-      enter other components manually.</p>
-    <select id="paste-component-sel" style="margin-bottom:10px;width:100%"></select>
+    <p id="paste-modal-desc">Paste scores one per line or comma-separated.</p>
+    <select id="paste-component-sel" style="margin-bottom:10px;width:100%;display:none"></select>
     <textarea id="paste-input" placeholder="94&#10;87&#10;100&#10;76&#10;..."></textarea>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closePasteModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="applyPaste()">Import Scores</button>
+      <button class="btn btn-primary" onclick="applyPaste()">Import</button>
     </div>
   </div>
 </div>
@@ -509,13 +531,45 @@
   <div class="detail-modal">
     <div class="detail-header">
       <h2 id="detail-title">Assessment Detail</h2>
-      <button class="btn btn-secondary btn-sm" onclick="closeDetail()">✕ Close</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeDetail()">✕</button>
     </div>
     <div class="detail-body" id="detail-body"></div>
     <div class="detail-footer">
       <button class="btn btn-danger btn-sm" id="detail-delete-btn">Delete</button>
       <span style="flex:1"></span>
+      <button class="btn btn-secondary btn-sm" id="detail-ci-btn">+ Action Item</button>
+      <button class="btn btn-secondary btn-sm" id="detail-word-btn">⬇ Word</button>
+      <button class="btn btn-primary btn-sm" id="detail-pdf-btn">⬇ PDF</button>
       <button class="btn btn-secondary" onclick="closeDetail()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- CI UPDATE MODAL -->
+<div class="modal-overlay" id="ci-close-modal">
+  <div class="modal">
+    <h3 id="ci-close-title">Update Action Item</h3>
+    <p>Record the outcome and update the status of this action item.</p>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Status</label>
+      <select id="ci-close-status" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px">
+        <option>Open</option><option>In Progress</option><option>Closed</option>
+      </select>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Outcome / Notes</label>
+      <textarea id="ci-close-outcome" style="width:100%;height:90px;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px"
+        placeholder="Describe the result (e.g., 'Fall 2025: 91.3% ≥70% — benchmark met. Change was effective.')"></textarea>
+    </div>
+    <div style="margin-bottom:4px">
+      <label style="font-size:12px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px">Link Closing Assessment (optional)</label>
+      <select id="ci-close-linked" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px">
+        <option value="">— None —</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('ci-close-modal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-gold" onclick="confirmCIUpdate()">Save Update</button>
     </div>
   </div>
 </div>
@@ -524,36 +578,33 @@
 // ════════════════════════════════════════════
 // STATIC DATA
 // ════════════════════════════════════════════
-
-const CURRICULUM_MAP = {
-  "BME 201": { level:200, name:"Foundations of BME",           term:"Fall",   measures:["3-2-1","3-5-1"] },
-  "BME 202": { level:200, name:"Biomedical Signals & Systems", term:"Spring", measures:["3-1-1"] },
-  "BME 206": { level:200, name:"Sophomore Engineering Lab",    term:"Spring", measures:["3-6-1","3-7-1"] },
-  "BME 240": { level:200, name:"Biomaterials",                 term:"Spring", measures:["3-3-1","3-4-1"] },
-  "BME 301": { level:300, name:"Engineering Physiology I",     term:"Fall",   measures:["3-1-2"] },
-  "BME 302": { level:300, name:"Engineering Physiology II",    term:"Spring", measures:["3-4-2"] },
-  "BME 305": { level:300, name:"BME Junior Lab I",             term:"Fall",   measures:["3-6-2"] },
-  "BME 306": { level:300, name:"BME Junior Lab II",            term:"Spring", measures:["3-3-3","3-7-2"] },
-  "BME 331": { level:300, name:"Bioinstrumentation",           term:"Fall",   measures:["3-2-2","3-3-2"] },
-  "BME 351": { level:300, name:"Biomechanics I",               term:"Spring", measures:["3-5-2"] },
-  "BME 405": { level:400, name:"Senior Engineering Lab",       term:"Fall",   measures:["3-3-4","3-4-3","3-6-3"] },
-  "BME 437": { level:400, name:"Senior Design Project I",      term:"Fall",   measures:["3-1-4","3-2-4","3-4-4","3-5-3"] },
-  "BME 440": { level:400, name:"Senior Design Project II",     term:"Spring", measures:["3-1-4","3-7-3"] },
-  "BME 450": { level:400, name:"Advanced BME Systems",         term:"Spring", measures:["3-1-3"] },
-  "BME 451": { level:400, name:"Biomechanics II",              term:"Fall",   measures:["3-2-3","3-4-3"] },
+const CURRICULUM_MAP={
+  "BME 201":{level:200,name:"Foundations of BME",term:"Fall",measures:["3-2-1","3-5-1"]},
+  "BME 202":{level:200,name:"Biomedical Signals & Systems",term:"Spring",measures:["3-1-1"]},
+  "BME 206":{level:200,name:"Sophomore Engineering Lab",term:"Spring",measures:["3-6-1","3-7-1"]},
+  "BME 240":{level:200,name:"Biomaterials",term:"Spring",measures:["3-3-1","3-4-1"]},
+  "BME 301":{level:300,name:"Engineering Physiology I",term:"Fall",measures:["3-1-2"]},
+  "BME 302":{level:300,name:"Engineering Physiology II",term:"Spring",measures:["3-4-2"]},
+  "BME 305":{level:300,name:"BME Junior Lab I",term:"Fall",measures:["3-6-2"]},
+  "BME 306":{level:300,name:"BME Junior Lab II",term:"Spring",measures:["3-3-3","3-7-2"]},
+  "BME 331":{level:300,name:"Bioinstrumentation",term:"Fall",measures:["3-2-2","3-3-2"]},
+  "BME 351":{level:300,name:"Biomechanics I",term:"Spring",measures:["3-5-2"]},
+  "BME 405":{level:400,name:"Senior Engineering Lab",term:"Fall",measures:["3-3-4","3-4-3","3-6-3"]},
+  "BME 437":{level:400,name:"Senior Design Project I",term:"Fall",measures:["3-1-4","3-2-4","3-4-4","3-5-3"]},
+  "BME 440":{level:400,name:"Senior Design Project II",term:"Spring",measures:["3-1-4","3-7-3"]},
+  "BME 450":{level:400,name:"Advanced BME Systems",term:"Spring",measures:["3-1-3"]},
+  "BME 451":{level:400,name:"Biomechanics II",term:"Fall",measures:["3-2-3","3-4-3"]},
 };
-
-const SO_DESCRIPTIONS = {
-  "3-1": "Identify, formulate, and solve complex engineering problems",
-  "3-2": "Apply engineering design with consideration of public health, safety, welfare, and global factors",
-  "3-3": "Communicate effectively with a range of audiences",
-  "3-4": "Recognize ethical and professional responsibilities in global, economic, environmental, and societal contexts",
-  "3-5": "Function effectively on a team",
-  "3-6": "Develop and conduct experimentation, analyze data, and use engineering judgment",
-  "3-7": "Acquire and apply new knowledge using appropriate learning strategies",
+const SO_DESCRIPTIONS={
+  "3-1":"Identify, formulate, and solve complex engineering problems",
+  "3-2":"Apply engineering design with consideration of public health, safety, welfare, and global factors",
+  "3-3":"Communicate effectively with a range of audiences",
+  "3-4":"Recognize ethical and professional responsibilities in global, economic, environmental, and societal contexts",
+  "3-5":"Function effectively on a team",
+  "3-6":"Develop and conduct experimentation, analyze data, and use engineering judgment",
+  "3-7":"Acquire and apply new knowledge using appropriate learning strategies",
 };
-
-const MEASURE_DESCRIPTIONS = {
+const MEASURE_DESCRIPTIONS={
   "3-1-1":"Differential equations applied to biological systems — HW and exam (BME 202)",
   "3-1-2":"Enzyme kinetics / Michaelis-Menten / Lineweaver-Burk — HW and exam (BME 301)",
   "3-1-3":"Advanced biomedical systems analysis — HW (BME 450)",
@@ -580,538 +631,319 @@ const MEASURE_DESCRIPTIONS = {
   "3-7-2":"Open-ended experimental design using a new assay not taught in class (BME 306)",
   "3-7-3":"Protocol-driven feasibility experiment with advisor sign-off (BME 440)",
 };
+const BENCHMARKS={200:{competent:75,highlyCompetent:35},300:{competent:80,highlyCompetent:40},400:{competent:90,highlyCompetent:45}};
+const MEASURE_LEVEL={};
+Object.entries(CURRICULUM_MAP).forEach(([c,i])=>i.measures.forEach(m=>{if(!MEASURE_LEVEL[m])MEASURE_LEVEL[m]=i.level;}));
+const STORAGE_KEY='wne_bme_abet_v2';
+const CI_KEY='wne_bme_abet_ci_v1';
 
-const BENCHMARKS = {
-  200: { competent:75, highlyCompetent:35 },
-  300: { competent:80, highlyCompetent:40 },
-  400: { competent:90, highlyCompetent:45 },
-};
-
-// Map each measure to its course level for benchmark lookup
-const MEASURE_LEVEL = {};
-Object.entries(CURRICULUM_MAP).forEach(([course, info]) => {
-  info.measures.forEach(m => { if (!MEASURE_LEVEL[m]) MEASURE_LEVEL[m] = info.level; });
-});
-
-const STORAGE_KEY = 'wne_bme_abet_v2';
+// ════════════════════════════════════════════
+// STORAGE
+// ════════════════════════════════════════════
+function loadAssessments(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');}catch(e){return[];}}
+function saveAssessments(arr){localStorage.setItem(STORAGE_KEY,JSON.stringify(arr));updateBadge();}
+function updateBadge(){document.getElementById('saved-count').textContent=loadAssessments().length;}
+function loadCIItems(){try{return JSON.parse(localStorage.getItem(CI_KEY)||'[]');}catch(e){return[];}}
+function saveCIItems(arr){localStorage.setItem(CI_KEY,JSON.stringify(arr));updateCIBadge();}
+function updateCIBadge(){const n=loadCIItems().filter(x=>x.status!=='Closed').length;const el=document.getElementById('ci-open-count');if(el)el.textContent=n;}
 
 // ════════════════════════════════════════════
 // COMPONENT STATE
 // ════════════════════════════════════════════
+let components=[{id:1,label:'Assessment',maxScore:100}];
+let compCounter=1,rowCounter=0;
 
-let components = [{ id: 1, label: 'Assessment', maxScore: 100 }];
-let compCounter = 1;
-let rowCounter = 0;
+function initComponents(){components=[{id:1,label:'Assessment',maxScore:100}];compCounter=1;renderComponentChips();renderTableHeader();}
 
-function initComponents() {
-  components = [{ id: 1, label: 'Assessment', maxScore: 100 }];
-  compCounter = 1;
-  renderComponentChips();
-  renderTableHeader();
-}
+function addComponent(){compCounter++;components.push({id:compCounter,label:'Assessment '+compCounter,maxScore:100});renderComponentChips();renderTableHeader();
+  document.querySelectorAll('#score-tbody tr').forEach(tr=>{
+    const last=tr.lastElementChild,prev=last.previousSibling;
+    const td=document.createElement('td');
+    td.innerHTML=`<input type="number" min="0" step="0.1" placeholder="—" oninput="recalcAll()" data-comp="${compCounter}" style="width:72px;text-align:center;padding:4px 6px;font-size:13px;border:1px solid var(--border);border-radius:6px;">`;
+    tr.insertBefore(td,prev);recalcAll();});}
 
-function addComponent() {
-  compCounter++;
-  components.push({ id: compCounter, label: 'Assessment ' + compCounter, maxScore: 100 });
-  renderComponentChips();
-  renderTableHeader();
-  // Add input cell to every existing row
-  document.querySelectorAll('#score-tbody tr').forEach(tr => {
-    const lastTd = tr.lastElementChild; // × button cell
-    const newTd = document.createElement('td');
-    const cid = compCounter;
-    newTd.innerHTML = `<input type="number" min="0" step="0.1" placeholder="—"
-      oninput="recalcAll()" data-comp="${cid}" style="width:72px;text-align:center;padding:4px 6px;font-size:13px;border:1px solid var(--border);border-radius:6px;">`;
-    tr.insertBefore(newTd, lastTd.previousSibling); // before avg% and level cells
-    recalcAll();
-  });
-}
+function removeComponent(cid){if(components.length===1){alert('At least one component required.');return;}
+  components=components.filter(c=>c.id!==cid);renderComponentChips();renderTableHeader();
+  document.querySelectorAll(`#score-tbody [data-comp="${cid}"]`).forEach(i=>i.closest('td').remove());recalcAll();}
 
-function removeComponent(cid) {
-  if (components.length === 1) { alert('At least one assessment component is required.'); return; }
-  components = components.filter(c => c.id !== cid);
-  renderComponentChips();
-  renderTableHeader();
-  // Remove corresponding cells from each row
-  document.querySelectorAll(`#score-tbody [data-comp="${cid}"]`).forEach(inp => inp.closest('td').remove());
-  recalcAll();
-}
-
-function renderComponentChips() {
-  const container = document.getElementById('component-chips');
-  container.innerHTML = components.map(c => `
+function renderComponentChips(){
+  document.getElementById('component-chips').innerHTML=components.map(c=>`
     <span class="component-chip">
-      <input type="text" value="${c.label}"
-        onchange="updateCompLabel(${c.id}, this.value)"
-        title="Edit component name">
-      <span class="max-label">/ <input type="number" class="max-input" value="${c.maxScore}" min="1"
-        title="Max score" onchange="updateCompMax(${c.id}, this.value)"> pts</span>
-      ${components.length > 1 ? `<button class="rm-comp" onclick="removeComponent(${c.id})" title="Remove">✕</button>` : ''}
-    </span>
-  `).join('');
-  // Update paste modal selector
-  const sel = document.getElementById('paste-component-sel');
-  if (sel) {
-    sel.innerHTML = components.map(c =>
-      `<option value="${c.id}">${c.label} (/ ${c.maxScore} pts)</option>`
-    ).join('');
-  }
-}
+      <input type="text" value="${c.label}" onchange="updateCompLabel(${c.id},this.value)">
+      <span class="max-label">/ <input type="number" class="max-input" value="${c.maxScore}" min="1" onchange="updateCompMax(${c.id},this.value)"> pts</span>
+      ${components.length>1?`<button class="rm-comp" onclick="removeComponent(${c.id})">✕</button>`:''}
+    </span>`).join('');
+  const sel=document.getElementById('paste-component-sel');
+  if(sel)sel.innerHTML=components.map(c=>`<option value="${c.id}">${c.label} (/${c.maxScore})</option>`).join('');}
 
-function updateCompLabel(cid, val) {
-  const c = components.find(x => x.id === cid);
-  if (c) { c.label = val; renderTableHeader(); }
-}
+function updateCompLabel(cid,val){const c=components.find(x=>x.id===cid);if(c){c.label=val;renderTableHeader();}}
+function updateCompMax(cid,val){const c=components.find(x=>x.id===cid);if(c){c.maxScore=parseFloat(val)||100;recalcAll();}}
 
-function updateCompMax(cid, val) {
-  const c = components.find(x => x.id === cid);
-  if (c) { c.maxScore = parseFloat(val) || 100; recalcAll(); }
-}
-
-function renderTableHeader() {
-  const thead = document.getElementById('score-thead');
-  thead.innerHTML = `<tr>
-    <th style="width:28px">#</th>
-    <th>Student ID / Name</th>
-    ${components.map(c => `<th class="comp-th" style="width:80px">${c.label}<br><span style="font-weight:400;font-size:10px">/ ${c.maxScore} pts</span></th>`).join('')}
-    ${components.length > 1 ? '<th style="width:80px;background:#dde8f8;color:var(--navy)">Avg %</th>' : '<th style="width:80px">% Score</th>'}
-    <th style="width:100px">Level</th>
-    <th style="width:28px"></th>
-  </tr>`;
-}
+function renderTableHeader(){
+  document.getElementById('score-thead').innerHTML=`<tr>
+    <th style="width:28px">#</th><th>Student ID / Name</th>
+    ${components.map(c=>`<th class="comp-th" style="width:80px">${c.label}<br><span style="font-weight:400;font-size:10px">/${c.maxScore}pts</span></th>`).join('')}
+    ${components.length>1?'<th style="width:80px;background:#dde8f8;color:var(--navy)">Avg %</th>':'<th style="width:80px">% Score</th>'}
+    <th style="width:100px">Level</th><th style="width:28px"></th></tr>`;}
 
 // ════════════════════════════════════════════
 // SCORE ROWS
 // ════════════════════════════════════════════
-
-function addScoreRow(scoresByComp, name) {
-  rowCounter++;
-  const rid = rowCounter;
-  const tbody = document.getElementById('score-tbody');
-  const tr = document.createElement('tr');
-  tr.id = `row-${rid}`;
-
-  const compInputs = components.map((c, ci) => {
-    const val = (scoresByComp && scoresByComp[ci] !== undefined) ? scoresByComp[ci] : '';
-    return `<td><input type="number" min="0" step="0.1" placeholder="—" value="${val}"
-      oninput="recalcAll()" data-comp="${c.id}"
-      style="width:72px;text-align:center;padding:4px 6px;font-size:13px;
-             border:1px solid var(--border);border-radius:6px;"></td>`;
+function addScoreRow(scoresByComp,name){
+  rowCounter++;const rid=rowCounter;
+  const tbody=document.getElementById('score-tbody');
+  const tr=document.createElement('tr');tr.id=`row-${rid}`;
+  const compInputs=components.map((c,ci)=>{
+    const val=(scoresByComp&&scoresByComp[ci]!==undefined)?scoresByComp[ci]:'';
+    return `<td><input type="number" min="0" step="0.1" placeholder="—" value="${val}" oninput="recalcAll()" data-comp="${c.id}" style="width:72px;text-align:center;padding:4px 6px;font-size:13px;border:1px solid var(--border);border-radius:6px;"></td>`;
   }).join('');
-
-  tr.innerHTML = `
-    <td class="row-num">${tbody.children.length + 1}</td>
-    <td><input type="text" placeholder="optional" value="${name||''}"
-      style="width:100%;padding:4px 7px;font-size:13px;border:1px solid var(--border);border-radius:6px;"
-      oninput="recalcAll()"></td>
+  tr.innerHTML=`<td class="row-num">${tbody.children.length+1}</td>
+    <td><input type="text" placeholder="optional" value="${name||''}" style="width:100%;padding:4px 7px;font-size:13px;border:1px solid var(--border);border-radius:6px;" oninput="recalcAll()"></td>
     ${compInputs}
     <td id="avg-${rid}" style="text-align:center;font-weight:600;color:var(--text-muted)">—</td>
     <td id="lvl-${rid}"></td>
-    <td><button class="btn btn-danger btn-sm" onclick="removeRow('row-${rid}')">✕</button></td>
-  `;
-  tbody.appendChild(tr);
-  renumberRows();
-  recalcAll();
-}
+    <td><button class="btn btn-danger btn-sm" onclick="removeRow('row-${rid}')">✕</button></td>`;
+  tbody.appendChild(tr);renumberRows();recalcAll();}
 
-function add5Rows() { for (let i = 0; i < 5; i++) addScoreRow(); }
-
-function removeRow(id) {
-  document.getElementById(id)?.remove();
-  renumberRows();
-  recalcAll();
-}
-
-function renumberRows() {
-  document.querySelectorAll('#score-tbody tr').forEach((r, i) => {
-    const c = r.querySelector('.row-num');
-    if (c) c.textContent = i + 1;
-  });
-  const n = document.querySelectorAll('#score-tbody tr').length;
-  document.getElementById('student-count-label').textContent =
-    n + (n === 1 ? ' student' : ' students');
-}
-
-function clearScores() {
-  document.getElementById('score-tbody').innerHTML = '';
-  rowCounter = 0;
-  document.getElementById('student-count-label').textContent = '0 students';
-  recalcAll();
-}
+function add5Rows(){for(let i=0;i<5;i++)addScoreRow();}
+function removeRow(id){document.getElementById(id)?.remove();renumberRows();recalcAll();}
+function renumberRows(){
+  document.querySelectorAll('#score-tbody tr').forEach((r,i)=>{const c=r.querySelector('.row-num');if(c)c.textContent=i+1;});
+  const n=document.querySelectorAll('#score-tbody tr').length;
+  document.getElementById('student-count-label').textContent=n+(n===1?' student':' students');}
+function clearScores(){document.getElementById('score-tbody').innerHTML='';rowCounter=0;document.getElementById('student-count-label').textContent='0 students';recalcAll();}
 
 // ════════════════════════════════════════════
 // PASTE MODAL
 // ════════════════════════════════════════════
-
-function openPasteModal() {
-  renderComponentChips(); // ensure selector is fresh
-  const desc = document.getElementById('paste-modal-desc');
-  if (components.length === 1) {
-    desc.innerHTML = 'Paste scores one per line or comma-separated.';
-    document.getElementById('paste-component-sel').style.display = 'none';
-  } else {
-    desc.innerHTML = 'Select which component to fill. Paste scores one per line or comma-separated.';
-    document.getElementById('paste-component-sel').style.display = 'block';
-  }
+function openPasteModal(){
+  renderComponentChips();
+  const desc=document.getElementById('paste-modal-desc');
+  const sel=document.getElementById('paste-component-sel');
+  if(components.length===1){desc.textContent='Paste scores one per line or comma-separated.';sel.style.display='none';}
+  else{desc.textContent='Select which component to fill, then paste scores.';sel.style.display='block';}
   document.getElementById('paste-modal').classList.add('open');
-  document.getElementById('paste-input').focus();
-}
-function closePasteModal() {
-  document.getElementById('paste-modal').classList.remove('open');
-  document.getElementById('paste-input').value = '';
-}
-function applyPaste() {
-  const raw = document.getElementById('paste-input').value;
-  const scores = raw.split(/[\n,\t]+/)
-    .map(s => s.trim()).filter(s => s !== '' && !isNaN(parseFloat(s)))
-    .map(s => parseFloat(s));
-
-  const targetCid = parseInt(document.getElementById('paste-component-sel').value) || components[0].id;
-
-  // If only 1 component, replace all rows
-  if (components.length === 1) {
-    clearScores();
-    scores.forEach(s => addScoreRow([s]));
-  } else {
-    // Fill target component column on existing rows, add rows if needed
-    const rows = document.querySelectorAll('#score-tbody tr');
-    scores.forEach((s, i) => {
-      if (i < rows.length) {
-        const inp = rows[i].querySelector(`[data-comp="${targetCid}"]`);
-        if (inp) { inp.value = s; }
-      } else {
-        const scoresByComp = components.map(c => c.id === targetCid ? s : '');
-        addScoreRow(scoresByComp);
-      }
-    });
-    recalcAll();
-  }
-  closePasteModal();
-}
+  document.getElementById('paste-input').focus();}
+function closePasteModal(){document.getElementById('paste-modal').classList.remove('open');document.getElementById('paste-input').value='';}
+function applyPaste(){
+  const raw=document.getElementById('paste-input').value;
+  const scores=raw.split(/[\n,\t]+/).map(s=>s.trim()).filter(s=>s!==''&&!isNaN(parseFloat(s))).map(s=>parseFloat(s));
+  const targetCid=parseInt(document.getElementById('paste-component-sel').value)||components[0].id;
+  if(components.length===1){clearScores();scores.forEach(s=>addScoreRow([s]));}
+  else{
+    const rows=document.querySelectorAll('#score-tbody tr');
+    scores.forEach((s,i)=>{
+      if(i<rows.length){const inp=rows[i].querySelector(`[data-comp="${targetCid}"]`);if(inp)inp.value=s;}
+      else{const sbc=components.map(c=>c.id===targetCid?s:'');addScoreRow(sbc);}});
+    recalcAll();}
+  closePasteModal();}
 
 // ════════════════════════════════════════════
 // CALCULATION
 // ════════════════════════════════════════════
+function getAveragedScores(){
+  const result=[];
+  document.querySelectorAll('#score-tbody tr').forEach(r=>{
+    let allEmpty=true;
+    const compScores=components.map(c=>{
+      const inp=r.querySelector(`[data-comp="${c.id}"]`);
+      if(inp&&inp.value!==''){allEmpty=false;return{raw:parseFloat(inp.value),maxScore:c.maxScore};}
+      return null;});
+    if(allEmpty)return;
+    const valid=compScores.filter(x=>x!==null);
+    if(!valid.length)return;
+    const avgPct=valid.reduce((s,x)=>s+Math.min(100,x.raw/x.maxScore*100),0)/valid.length;
+    result.push({avgPct,compScores,rowEl:r});});
+  return result;}
 
-function getAveragedScores() {
-  const rows = document.querySelectorAll('#score-tbody tr');
-  const result = [];
-  rows.forEach(r => {
-    const compScores = [];
-    let allEmpty = true;
-    components.forEach(c => {
-      const inp = r.querySelector(`[data-comp="${c.id}"]`);
-      if (inp && inp.value !== '') {
-        allEmpty = false;
-        compScores.push({ raw: parseFloat(inp.value), maxScore: c.maxScore });
-      } else {
-        compScores.push(null);
-      }
-    });
-    if (allEmpty) return;
-    // Average across non-null components
-    const valid = compScores.filter(x => x !== null);
-    if (valid.length === 0) return;
-    const avgPct = valid.reduce((sum, x) => sum + Math.min(100, x.raw / x.maxScore * 100), 0) / valid.length;
-    result.push({ avgPct, compScores, rowEl: r });
-  });
-  return result;
-}
+function getBenchmarks(){const c=document.getElementById('f-course').value;if(!c||!CURRICULUM_MAP[c])return null;return BENCHMARKS[CURRICULUM_MAP[c].level];}
 
-function getBenchmarks() {
-  const course = document.getElementById('f-course').value;
-  if (!course || !CURRICULUM_MAP[course]) return null;
-  return BENCHMARKS[CURRICULUM_MAP[course].level];
-}
+function recalcAll(){
+  const bm=getBenchmarks();const studentData=getAveragedScores();
+  document.querySelectorAll('#score-tbody tr').forEach(r=>{
+    const rid=r.id.replace('row-','');
+    const avgCell=document.getElementById(`avg-${rid}`);const lvlCell=document.getElementById(`lvl-${rid}`);
+    if(!avgCell||!lvlCell)return;
+    const d=studentData.find(x=>x.rowEl===r);
+    if(!d){avgCell.textContent='—';lvlCell.innerHTML='<span class="score-pill pill-na">—</span>';return;}
+    avgCell.textContent=d.avgPct.toFixed(1)+'%';
+    if(d.avgPct>=90)lvlCell.innerHTML='<span class="score-pill pill-hc">Highly Comp.</span>';
+    else if(d.avgPct>=70)lvlCell.innerHTML='<span class="score-pill pill-c">Competent</span>';
+    else lvlCell.innerHTML='<span class="score-pill pill-nc">Not Comp.</span>';});
+  const n=studentData.length;
+  document.getElementById('student-count-label').textContent=n+(n===1?' student':' students');
+  if(n===0||!bm){resetResultsPanel();return;}
+  const nC=studentData.filter(s=>s.avgPct>=70).length,nHC=studentData.filter(s=>s.avgPct>=90).length;
+  const pctC=nC/n*100,pctHC=nHC/n*100;
+  const cMet=pctC>=bm.competent,hcMet=pctHC>=bm.highlyCompetent;
+  document.getElementById('bm-competent-card').className='benchmark-card '+(cMet?'met':'not-met');
+  document.getElementById('bm-competent-pct').textContent=pctC.toFixed(1)+'%';
+  document.getElementById('bm-competent-req').textContent=`Required: ${bm.competent}% — ${nC} of ${n} students`;
+  document.getElementById('bm-competent-icon').textContent=cMet?'✅':'❌';
+  document.getElementById('bm-hc-card').className='benchmark-card '+(hcMet?'met':'not-met');
+  document.getElementById('bm-hc-pct').textContent=pctHC.toFixed(1)+'%';
+  document.getElementById('bm-hc-req').textContent=`Required: ${bm.highlyCompetent}% — ${nHC} of ${n} students`;
+  document.getElementById('bm-hc-icon').textContent=hcMet?'✅':'❌';
+  const statusBox=document.getElementById('overall-status-box');
+  let status,cls;
+  if(cMet&&hcMet){status='★ HIGHLY COMPETENT — Both benchmarks met';cls='hc';}
+  else if(cMet){status='◐ COMPETENT — Competent met; Highly Competent not met';cls='c';}
+  else{status='✗ NOT MET — Competent benchmark not reached';cls='nc';}
+  statusBox.textContent=status;statusBox.className='overall-status '+cls;
+  const mean=studentData.reduce((s,x)=>s+x.avgPct,0)/n;
+  const level=CURRICULUM_MAP[document.getElementById('f-course').value]?.level;
+  const note=components.length>1?` — ${components.length} components averaged`:'';
+  document.getElementById('results-meta').textContent=`n = ${n}   |   Mean: ${mean.toFixed(1)}%   |   ${level}-level benchmarks${note}`;}
 
-function recalcAll() {
-  const bm = getBenchmarks();
-  const studentData = getAveragedScores();
-
-  // Update per-row display
-  document.querySelectorAll('#score-tbody tr').forEach(r => {
-    const rid = r.id.replace('row-', '');
-    const avgCell = document.getElementById(`avg-${rid}`);
-    const lvlCell = document.getElementById(`lvl-${rid}`);
-    if (!avgCell || !lvlCell) return;
-
-    // Find this row's data
-    const d = studentData.find(x => x.rowEl === r);
-    if (!d) {
-      avgCell.textContent = '—';
-      lvlCell.innerHTML = '<span class="score-pill pill-na">—</span>';
-      return;
-    }
-    avgCell.textContent = d.avgPct.toFixed(1) + '%';
-    if (d.avgPct >= 90) lvlCell.innerHTML = '<span class="score-pill pill-hc">Highly Comp.</span>';
-    else if (d.avgPct >= 70) lvlCell.innerHTML = '<span class="score-pill pill-c">Competent</span>';
-    else lvlCell.innerHTML = '<span class="score-pill pill-nc">Not Comp.</span>';
-  });
-
-  const n = studentData.length;
-  document.getElementById('student-count-label').textContent =
-    n + (n === 1 ? ' student' : ' students');
-
-  if (n === 0 || !bm) { resetResultsPanel(); return; }
-
-  const nC = studentData.filter(s => s.avgPct >= 70).length;
-  const nHC = studentData.filter(s => s.avgPct >= 90).length;
-  const pctC = nC / n * 100;
-  const pctHC = nHC / n * 100;
-  const cMet = pctC >= bm.competent;
-  const hcMet = pctHC >= bm.highlyCompetent;
-
-  const cCard = document.getElementById('bm-competent-card');
-  cCard.className = 'benchmark-card ' + (cMet ? 'met' : 'not-met');
-  document.getElementById('bm-competent-pct').textContent = pctC.toFixed(1) + '%';
-  document.getElementById('bm-competent-req').textContent =
-    `Required: ${bm.competent}% — ${nC} of ${n} students`;
-  document.getElementById('bm-competent-icon').textContent = cMet ? '✅' : '❌';
-
-  const hcCard = document.getElementById('bm-hc-card');
-  hcCard.className = 'benchmark-card ' + (hcMet ? 'met' : 'not-met');
-  document.getElementById('bm-hc-pct').textContent = pctHC.toFixed(1) + '%';
-  document.getElementById('bm-hc-req').textContent =
-    `Required: ${bm.highlyCompetent}% — ${nHC} of ${n} students`;
-  document.getElementById('bm-hc-icon').textContent = hcMet ? '✅' : '❌';
-
-  const statusBox = document.getElementById('overall-status-box');
-  let status, cls;
-  if (cMet && hcMet) { status = '★ HIGHLY COMPETENT — Both benchmarks met'; cls = 'hc'; }
-  else if (cMet) { status = '◐ COMPETENT — Competent benchmark met; Highly Competent not met'; cls = 'c'; }
-  else { status = '✗ NOT MET — Competent benchmark not reached'; cls = 'nc'; }
-  statusBox.textContent = status;
-  statusBox.className = 'overall-status ' + cls;
-
-  const mean = studentData.reduce((s, x) => s + x.avgPct, 0) / n;
-  const level = CURRICULUM_MAP[document.getElementById('f-course').value]?.level;
-  const compNote = components.length > 1 ? ` — ${components.length} components averaged` : '';
-  document.getElementById('results-meta').textContent =
-    `n = ${n}   |   Mean: ${mean.toFixed(1)}%   |   ${level}-level benchmarks${compNote}`;
-}
-
-function resetResultsPanel() {
-  ['bm-competent-card','bm-hc-card'].forEach(id => document.getElementById(id).className = 'benchmark-card');
-  document.getElementById('bm-competent-pct').textContent = '—';
-  document.getElementById('bm-hc-pct').textContent = '—';
-  document.getElementById('bm-competent-req').textContent = 'Required: —';
-  document.getElementById('bm-hc-req').textContent = 'Required: —';
-  document.getElementById('bm-competent-icon').textContent = '—';
-  document.getElementById('bm-hc-icon').textContent = '—';
-  document.getElementById('overall-status-box').textContent = 'Enter student scores and select a course to see results';
-  document.getElementById('overall-status-box').className = 'overall-status pending';
-  document.getElementById('results-meta').textContent = '';
-}
+function resetResultsPanel(){
+  ['bm-competent-card','bm-hc-card'].forEach(id=>document.getElementById(id).className='benchmark-card');
+  document.getElementById('bm-competent-pct').textContent='—';document.getElementById('bm-hc-pct').textContent='—';
+  document.getElementById('bm-competent-req').textContent='Required: —';document.getElementById('bm-hc-req').textContent='Required: —';
+  document.getElementById('bm-competent-icon').textContent='—';document.getElementById('bm-hc-icon').textContent='—';
+  document.getElementById('overall-status-box').textContent='Enter scores and select a course to see results';
+  document.getElementById('overall-status-box').className='overall-status pending';
+  document.getElementById('results-meta').textContent='';}
 
 // ════════════════════════════════════════════
 // FORM LOGIC
 // ════════════════════════════════════════════
+function onCourseChange(){
+  const course=document.getElementById('f-course').value;
+  const sel=document.getElementById('f-measure');
+  if(!course||!CURRICULUM_MAP[course]){sel.innerHTML='<option value="">— Select Course First —</option>';hideSoInfo();return;}
+  const info=CURRICULUM_MAP[course];
+  sel.innerHTML='<option value="">— Select Measure —</option>';
+  info.measures.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=`SO ${m}`;sel.appendChild(o);});
+  if(info.measures.length===1){sel.value=info.measures[0];onMeasureChange();}else hideSoInfo();
+  const semSel=document.getElementById('f-semester');if(!semSel.value)semSel.value=info.term;
+  recalcAll();}
 
-function onCourseChange() {
-  const course = document.getElementById('f-course').value;
-  const sel = document.getElementById('f-measure');
-  if (!course || !CURRICULUM_MAP[course]) {
-    sel.innerHTML = '<option value="">— Select Course First —</option>';
-    hideSoInfo(); return;
-  }
-  const info = CURRICULUM_MAP[course];
-  sel.innerHTML = '<option value="">— Select Measure —</option>';
-  info.measures.forEach(m => {
-    const o = document.createElement('option');
-    o.value = m; o.textContent = `SO ${m}`; sel.appendChild(o);
-  });
-  if (info.measures.length === 1) { sel.value = info.measures[0]; onMeasureChange(); }
-  else hideSoInfo();
-  const semSel = document.getElementById('f-semester');
-  if (!semSel.value) semSel.value = info.term;
-  recalcAll();
-}
-
-function onMeasureChange() {
-  const m = document.getElementById('f-measure').value;
-  if (!m) { hideSoInfo(); return; }
-  const soKey = m.split('-').slice(0,2).join('-');
-  document.getElementById('so-info-code').textContent = `Student Outcome ${soKey} — Sub-measure ${m}`;
-  document.getElementById('so-info-sodesc').textContent = SO_DESCRIPTIONS[soKey] || '';
-  document.getElementById('so-info-measuredesc').textContent = MEASURE_DESCRIPTIONS[m] || '';
-  document.getElementById('so-info-box').style.display = 'block';
-  recalcAll();
-}
-function hideSoInfo() { document.getElementById('so-info-box').style.display = 'none'; }
+function onMeasureChange(){
+  const m=document.getElementById('f-measure').value;if(!m){hideSoInfo();return;}
+  const soKey=m.split('-').slice(0,2).join('-');
+  document.getElementById('so-info-code').textContent=`Student Outcome ${soKey} — Sub-measure ${m}`;
+  document.getElementById('so-info-sodesc').textContent=SO_DESCRIPTIONS[soKey]||'';
+  document.getElementById('so-info-measuredesc').textContent=MEASURE_DESCRIPTIONS[m]||'';
+  document.getElementById('so-info-box').style.display='block';recalcAll();}
+function hideSoInfo(){document.getElementById('so-info-box').style.display='none';}
 
 // ════════════════════════════════════════════
-// SAVE
+// SAVE ASSESSMENT
 // ════════════════════════════════════════════
+function saveAssessment(){
+  const course=document.getElementById('f-course').value;
+  const semester=document.getElementById('f-semester').value;
+  const year=document.getElementById('f-year').value;
+  const assessor=document.getElementById('f-assessor').value.trim();
+  const measure=document.getElementById('f-measure').value;
+  if(!course||!semester||!year||!assessor||!measure){alert('Please fill in Course, Semester, Year, Assessor, and SO Sub-Measure.');return;}
+  const studentData=getAveragedScores();const bm=getBenchmarks();const n=studentData.length;
+  let pctCompetent=null,pctHC=null,status='No data';
+  if(n>0&&bm){
+    pctCompetent=studentData.filter(s=>s.avgPct>=70).length/n*100;
+    pctHC=studentData.filter(s=>s.avgPct>=90).length/n*100;
+    const cMet=pctCompetent>=bm.competent,hcMet=pctHC>=bm.highlyCompetent;
+    status=cMet&&hcMet?'Highly Competent':cMet?'Competent':'Not Met';}
+  const record={id:Date.now().toString(),course,semester,year,term:semester+' '+year,assessor,measure,
+    soParent:'SO '+measure.split('-').slice(0,2).join('-'),
+    asmtDesc:document.getElementById('f-asmt-desc').value.trim(),
+    components:components.map(c=>({label:c.label,maxScore:c.maxScore})),
+    students:studentData.map(d=>({avgPct:+d.avgPct.toFixed(2),compScores:d.compScores})),
+    n,pctCompetent:pctCompetent!==null?+pctCompetent.toFixed(1):null,
+    pctHC:pctHC!==null?+pctHC.toFixed(1):null,
+    benchmarkCompetent:bm?bm.competent:null,benchmarkHC:bm?bm.highlyCompetent:null,
+    status,action:document.getElementById('f-action').value.trim(),
+    notes:document.getElementById('f-notes').value.trim(),savedAt:new Date().toISOString()};
+  const all=loadAssessments();all.push(record);saveAssessments(all);
+  const msg=document.getElementById('save-msg');msg.style.display='inline';
+  setTimeout(()=>msg.style.display='none',3000);updateBadge();}
 
-function loadAssessments() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { return []; }
-}
-function saveAssessments(arr) { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); updateBadge(); }
-function updateBadge() {
-  document.getElementById('saved-count').textContent = loadAssessments().length;
-}
-
-function saveAssessment() {
-  const course = document.getElementById('f-course').value;
-  const semester = document.getElementById('f-semester').value;
-  const year = document.getElementById('f-year').value;
-  const assessor = document.getElementById('f-assessor').value.trim();
-  const measure = document.getElementById('f-measure').value;
-  if (!course || !semester || !year || !assessor || !measure) {
-    alert('Please fill in Course, Semester, Year, Assessor, and SO Sub-Measure.'); return;
-  }
-  const studentData = getAveragedScores();
-  const bm = getBenchmarks();
-  const n = studentData.length;
-  let pctCompetent = null, pctHC = null, status = 'No data';
-  if (n > 0 && bm) {
-    pctCompetent = studentData.filter(s => s.avgPct >= 70).length / n * 100;
-    pctHC = studentData.filter(s => s.avgPct >= 90).length / n * 100;
-    const cMet = pctCompetent >= bm.competent, hcMet = pctHC >= bm.highlyCompetent;
-    status = cMet && hcMet ? 'Highly Competent' : cMet ? 'Competent' : 'Not Met';
-  }
-  const record = {
-    id: Date.now().toString(), course, semester, year,
-    term: semester + ' ' + year, assessor, measure,
-    soParent: 'SO ' + measure.split('-').slice(0,2).join('-'),
-    asmtDesc: document.getElementById('f-asmt-desc').value.trim(),
-    components: components.map(c => ({ label: c.label, maxScore: c.maxScore })),
-    students: studentData.map(d => ({
-      avgPct: +d.avgPct.toFixed(2),
-      compScores: d.compScores
-    })),
-    n,
-    pctCompetent: pctCompetent !== null ? +pctCompetent.toFixed(1) : null,
-    pctHC: pctHC !== null ? +pctHC.toFixed(1) : null,
-    benchmarkCompetent: bm ? bm.competent : null,
-    benchmarkHC: bm ? bm.highlyCompetent : null,
-    status,
-    action: document.getElementById('f-action').value.trim(),
-    notes: document.getElementById('f-notes').value.trim(),
-    savedAt: new Date().toISOString(),
-  };
-  const all = loadAssessments(); all.push(record); saveAssessments(all);
-  const msg = document.getElementById('save-msg');
-  msg.style.display = 'inline';
-  setTimeout(() => msg.style.display = 'none', 3000);
-  updateBadge();
-}
-
-function resetForm() {
-  if (!confirm('Clear the form? Unsaved data will be lost.')) return;
-  ['f-course','f-semester','f-year'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('f-assessor').value = '';
-  document.getElementById('f-measure').innerHTML = '<option value="">— Select Course First —</option>';
-  document.getElementById('f-asmt-desc').value = '';
-  document.getElementById('f-action').value = '';
-  document.getElementById('f-notes').value = '';
-  clearScores();
-  hideSoInfo();
-  resetResultsPanel();
-  initComponents();
-}
+function resetForm(){
+  if(!confirm('Clear the form? Unsaved data will be lost.'))return;
+  ['f-course','f-semester','f-year'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-assessor').value='';
+  document.getElementById('f-measure').innerHTML='<option value="">— Select Course First —</option>';
+  ['f-asmt-desc','f-action','f-notes'].forEach(id=>document.getElementById(id).value='');
+  clearScores();hideSoInfo();resetResultsPanel();initComponents();}
 
 // ════════════════════════════════════════════
 // TAB NAVIGATION
 // ════════════════════════════════════════════
-
-function showTab(name, btn) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  if (btn) btn.classList.add('active');
-  if (name === 'saved') renderSavedTable();
-  if (name === 'dashboard') renderDashboard();
-}
+function showTab(name,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(name==='saved')renderSavedTable();
+  if(name==='dashboard')renderDashboard();
+  if(name==='ci')renderCITracker();}
 
 // ════════════════════════════════════════════
 // SAVED TABLE
 // ════════════════════════════════════════════
-
-function renderSavedTable() {
-  let all = loadAssessments();
-  const fc = document.getElementById('filter-course').value;
-  const fso = document.getElementById('filter-so').value;
-  const fst = document.getElementById('filter-status').value;
-  const fs = document.getElementById('filter-search').value.toLowerCase();
-  if (fc) all = all.filter(a => a.course === fc);
-  if (fso) all = all.filter(a => a.soParent === fso);
-  if (fst) all = all.filter(a => a.status === fst);
-  if (fs) all = all.filter(a =>
-    a.course.toLowerCase().includes(fs) || a.measure.includes(fs) ||
-    a.assessor.toLowerCase().includes(fs) || a.term.toLowerCase().includes(fs));
-  all.sort((a,b) => b.savedAt.localeCompare(a.savedAt));
-  const tbody = document.getElementById('saved-tbody');
-  if (!all.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="no-data">No assessments match the filter.</td></tr>';
-  } else {
-    tbody.innerHTML = all.map(a => {
-      const sc = a.status==='Highly Competent'?'pill-hc':a.status==='Competent'?'pill-c':a.status==='Not Met'?'pill-nc':'pill-na';
-      const date = new Date(a.savedAt).toLocaleDateString();
-      const compNote = (a.components && a.components.length > 1) ? ` <span style="font-size:10px;color:var(--text-muted)">(${a.components.length} comp.)</span>` : '';
-      return `<tr onclick="showDetail('${a.id}')">
-        <td><strong>${a.course}</strong>${compNote}<br><span style="font-size:11px;color:var(--text-muted)">${CURRICULUM_MAP[a.course]?.name||''}</span></td>
-        <td>${a.term}</td><td>SO ${a.measure}</td><td>${a.assessor}</td>
-        <td style="text-align:center">${a.n||'—'}</td>
-        <td style="text-align:center">${a.pctCompetent!==null?a.pctCompetent+'%':'—'}</td>
-        <td style="text-align:center">${a.pctHC!==null?a.pctHC+'%':'—'}</td>
-        <td><span class="score-pill ${sc}">${a.status}</span></td>
-        <td style="color:var(--text-muted);font-size:12px">${date}</td>
-      </tr>`;
-    }).join('');
-  }
-  const courses = [...new Set(loadAssessments().map(a => a.course))].sort();
-  const fcd = document.getElementById('filter-course');
-  const cur = fcd.value;
-  fcd.innerHTML = '<option value="">All Courses</option>' +
-    courses.map(c => `<option ${c===cur?'selected':''}>${c}</option>`).join('');
-}
+function renderSavedTable(){
+  let all=loadAssessments();
+  const fc=document.getElementById('filter-course').value;
+  const fso=document.getElementById('filter-so').value;
+  const fst=document.getElementById('filter-status').value;
+  const fs=document.getElementById('filter-search').value.toLowerCase();
+  if(fc)all=all.filter(a=>a.course===fc);
+  if(fso)all=all.filter(a=>a.soParent===fso);
+  if(fst)all=all.filter(a=>a.status===fst);
+  if(fs)all=all.filter(a=>a.course.toLowerCase().includes(fs)||a.measure.includes(fs)||a.assessor.toLowerCase().includes(fs)||a.term.toLowerCase().includes(fs));
+  all.sort((a,b)=>b.savedAt.localeCompare(a.savedAt));
+  const tbody=document.getElementById('saved-tbody');
+  if(!all.length){tbody.innerHTML='<tr><td colspan="9" class="no-data">No assessments match the filter.</td></tr>';}
+  else{tbody.innerHTML=all.map(a=>{
+    const sc=a.status==='Highly Competent'?'pill-hc':a.status==='Competent'?'pill-c':a.status==='Not Met'?'pill-nc':'pill-na';
+    const date=new Date(a.savedAt).toLocaleDateString();
+    const cn=(a.components&&a.components.length>1)?` <span style="font-size:10px;color:var(--text-muted)">(${a.components.length})</span>`:'';
+    return `<tr onclick="showDetail('${a.id}')">
+      <td><strong>${a.course}</strong>${cn}<br><span style="font-size:11px;color:var(--text-muted)">${CURRICULUM_MAP[a.course]?.name||''}</span></td>
+      <td>${a.term}</td><td>SO ${a.measure}</td><td>${a.assessor}</td>
+      <td style="text-align:center">${a.n||'—'}</td>
+      <td style="text-align:center">${a.pctCompetent!==null?a.pctCompetent+'%':'—'}</td>
+      <td style="text-align:center">${a.pctHC!==null?a.pctHC+'%':'—'}</td>
+      <td><span class="score-pill ${sc}">${a.status}</span></td>
+      <td style="color:var(--text-muted);font-size:12px">${date}</td>
+    </tr>`;}).join('');}
+  const courses=[...new Set(loadAssessments().map(a=>a.course))].sort();
+  const fcd=document.getElementById('filter-course');const cur=fcd.value;
+  fcd.innerHTML='<option value="">All Courses</option>'+courses.map(c=>`<option ${c===cur?'selected':''}>${c}</option>`).join('');}
 
 // ════════════════════════════════════════════
 // DETAIL VIEW
 // ════════════════════════════════════════════
-
-function showDetail(id) {
-  const a = loadAssessments().find(x => x.id === id);
-  if (!a) return;
-  document.getElementById('detail-title').textContent = `${a.course} — SO ${a.measure} — ${a.term}`;
-  const sc = a.status==='Highly Competent'?'pill-hc':a.status==='Competent'?'pill-c':a.status==='Not Met'?'pill-nc':'pill-na';
-  const compHeader = a.components && a.components.length > 1
-    ? a.components.map(c => `<th>${c.label} (/${c.maxScore})</th>`).join('')
-    : '<th>Score (raw)</th>';
-  let scoresHtml = '';
-  if (a.students && a.students.length > 0) {
-    scoresHtml = `<table class="score-table" style="margin-top:8px">
-      <thead><tr><th>#</th>${compHeader}<th>Avg %</th><th>Level</th></tr></thead><tbody>` +
-      a.students.map((s,i) => {
-        const pct = s.avgPct !== undefined ? s.avgPct : s.pct;
-        const cls = pct>=90?'pill-hc':pct>=70?'pill-c':'pill-nc';
-        const lbl = pct>=90?'Highly Comp.':pct>=70?'Competent':'Not Comp.';
-        let compCells = '';
-        if (a.components && a.components.length > 1 && s.compScores) {
-          compCells = s.compScores.map(c => `<td style="text-align:center">${c ? c.raw : '—'}</td>`).join('');
-        } else {
-          compCells = `<td style="text-align:center">${s.raw !== undefined ? s.raw : '—'}</td>`;
-        }
-        return `<tr><td class="row-num">${i+1}</td>${compCells}
-          <td style="text-align:center;font-weight:600">${pct.toFixed(1)}%</td>
-          <td><span class="score-pill ${cls}">${lbl}</span></td></tr>`;
-      }).join('') + '</tbody></table>';
-  }
-  document.getElementById('detail-body').innerHTML = `
-    <div class="detail-section">
-      <h4>Course &amp; Assessment</h4>
+function showDetail(id){
+  const a=loadAssessments().find(x=>x.id===id);if(!a)return;
+  document.getElementById('detail-title').textContent=`${a.course} — SO ${a.measure} — ${a.term}`;
+  const sc=a.status==='Highly Competent'?'pill-hc':a.status==='Competent'?'pill-c':a.status==='Not Met'?'pill-nc':'pill-na';
+  const compTh=(a.components&&a.components.length>1)?a.components.map(c=>`<th>${c.label} (/${c.maxScore})</th>`).join(''):'<th>Score</th>';
+  let scoresHtml='';
+  if(a.students&&a.students.length>0){
+    scoresHtml=`<table class="score-table" style="margin-top:8px">
+      <thead><tr><th>#</th>${compTh}<th>Avg %</th><th>Level</th></tr></thead><tbody>`+
+      a.students.map((s,i)=>{
+        const pct=s.avgPct!==undefined?s.avgPct:(s.pct||0);
+        const cls=pct>=90?'pill-hc':pct>=70?'pill-c':'pill-nc';
+        const lbl=pct>=90?'Highly Comp.':pct>=70?'Competent':'Not Comp.';
+        let cc='';
+        if(a.components&&a.components.length>1&&s.compScores)cc=s.compScores.map(c=>`<td style="text-align:center">${c?c.raw:'—'}</td>`).join('');
+        else cc=`<td style="text-align:center">${s.raw!==undefined?s.raw:'—'}</td>`;
+        return `<tr><td class="row-num">${i+1}</td>${cc}<td style="text-align:center;font-weight:600">${pct.toFixed(1)}%</td><td><span class="score-pill ${cls}">${lbl}</span></td></tr>`;
+      }).join('')+'</tbody></table>';}
+  document.getElementById('detail-body').innerHTML=`
+    <div class="detail-section"><h4>Course &amp; Assessment</h4>
       <div class="detail-grid">
         <div class="detail-item"><label>Course</label><div>${a.course} — ${CURRICULUM_MAP[a.course]?.name||''}</div></div>
         <div class="detail-item"><label>Term</label><div>${a.term}</div></div>
         <div class="detail-item"><label>Student Outcome</label><div>SO ${a.measure}</div></div>
         <div class="detail-item"><label>Assessor</label><div>${a.assessor}</div></div>
       </div>
-      ${a.components && a.components.length > 1 ? `<div style="margin-top:8px;font-size:12px;color:var(--text-muted)">Components averaged: ${a.components.map(c=>c.label).join(' + ')}</div>` : ''}
-      ${a.asmtDesc ? `<div style="margin-top:10px"><label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:4px">Description</label><div style="font-size:13px">${a.asmtDesc}</div></div>` : ''}
+      ${a.components&&a.components.length>1?`<div style="margin-top:6px;font-size:12px;color:var(--text-muted)">Components: ${a.components.map(c=>c.label).join(' + ')}</div>`:''}
+      ${a.asmtDesc?`<div style="margin-top:10px"><label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:3px">Description</label><div style="font-size:13px">${a.asmtDesc}</div></div>`:''}
     </div>
-    <div class="detail-section">
-      <h4>Results</h4>
+    <div class="detail-section"><h4>Results</h4>
       <div class="benchmark-grid" style="margin-bottom:12px">
         <div class="benchmark-card ${a.pctCompetent>=a.benchmarkCompetent?'met':(a.pctCompetent!==null?'not-met':'')}">
           <div class="bm-label">Competent (≥70%)</div>
@@ -1133,331 +965,428 @@ function showDetail(id) {
       ${a.action?`<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:3px">Action</label><div style="font-size:13px">${a.action}</div></div>`:''}
       ${a.notes?`<div><label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:3px">Notes</label><div style="font-size:13px">${a.notes}</div></div>`:''}
     </div>`:''}
-  `;
-  document.getElementById('detail-delete-btn').onclick = () => deleteAssessment(id);
-  document.getElementById('detail-overlay').classList.add('open');
-}
-function closeDetail() { document.getElementById('detail-overlay').classList.remove('open'); }
-function deleteAssessment(id) {
-  if (!confirm('Delete this record? This cannot be undone.')) return;
-  saveAssessments(loadAssessments().filter(a => a.id !== id));
-  closeDetail(); renderSavedTable(); updateBadge();
-}
-
-// ════════════════════════════════════════════
-// DASHBOARD + CHARTS
-// ════════════════════════════════════════════
-
-let chartC = null, chartHC = null;
-
-function renderDashboard() {
-  const all = loadAssessments();
-  const container = document.getElementById('dashboard-content');
-  if (!all.length) {
-    container.innerHTML = `<div class="empty-state"><div class="icon">📊</div>
-      <h3>No Data Yet</h3><p>Save at least one assessment to see the dashboard.</p></div>`;
-    return;
-  }
-
-  // Most recent per measure
-  const byMeasure = {};
-  all.forEach(a => {
-    if (!byMeasure[a.measure] || a.savedAt > byMeasure[a.measure].savedAt)
-      byMeasure[a.measure] = a;
-  });
-
-  // SO group cards
-  const soGroups = {};
-  Object.entries(CURRICULUM_MAP).forEach(([course, info]) => {
-    info.measures.forEach(m => {
-      const so = 'SO ' + m.split('-').slice(0,2).join('-');
-      if (!soGroups[so]) soGroups[so] = [];
-      if (!soGroups[so].find(x => x.measure === m))
-        soGroups[so].push({ measure: m, course, data: byMeasure[m] || null });
-    });
-  });
-
-  const sc = { hc:0, c:0, nc:0, pending:0 };
-  Object.values(byMeasure).forEach(a => {
-    if (a.status==='Highly Competent') sc.hc++;
-    else if (a.status==='Competent') sc.c++;
-    else if (a.status==='Not Met') sc.nc++;
-  });
-  const totalM = new Set(Object.values(CURRICULUM_MAP).flatMap(c => c.measures)).size;
-  sc.pending = totalM - Object.keys(byMeasure).length;
-
-  // Get unique years for filter
-  const years = [...new Set(all.map(a => a.year))].sort().reverse();
-  const yearOpts = `<option value="">All Years</option>` +
-    years.map(y => `<option>${y}</option>`).join('');
-
-  container.innerHTML = `
-    <!-- Summary counts -->
-    <div class="card" style="margin-bottom:20px">
-      <div class="card-header">Program Summary — Most Recent Assessment per Sub-Measure</div>
-      <div class="card-body">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
-          <div style="text-align:center;padding:16px;background:var(--green-bg);border-radius:8px;border:1px solid var(--green)">
-            <div style="font-size:36px;font-weight:800;color:var(--green)">${sc.hc}</div>
-            <div style="font-size:12px;color:var(--green);font-weight:600">Highly Competent</div>
-          </div>
-          <div style="text-align:center;padding:16px;background:var(--orange-bg);border-radius:8px;border:1px solid var(--orange)">
-            <div style="font-size:36px;font-weight:800;color:var(--orange)">${sc.c}</div>
-            <div style="font-size:12px;color:var(--orange);font-weight:600">Competent</div>
-          </div>
-          <div style="text-align:center;padding:16px;background:var(--red-bg);border-radius:8px;border:1px solid var(--red)">
-            <div style="font-size:36px;font-weight:800;color:var(--red)">${sc.nc}</div>
-            <div style="font-size:12px;color:var(--red);font-weight:600">Not Met</div>
-          </div>
-          <div style="text-align:center;padding:16px;background:var(--gray-light);border-radius:8px;border:1px solid var(--border)">
-            <div style="font-size:36px;font-weight:800;color:var(--text-muted)">${sc.pending}</div>
-            <div style="font-size:12px;color:var(--text-muted);font-weight:600">Pending Data</div>
-          </div>
-        </div>
+    <div class="detail-section"><h4>Benchmark Chart</h4>
+      <div style="position:relative;height:160px;margin-top:8px">
+        <canvas id="detail-chart-canvas"></canvas>
       </div>
-    </div>
+      <div style="display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:11px;color:var(--text-muted)">
+        <span><span style="display:inline-block;width:10px;height:10px;background:#4caf50;border-radius:2px;margin-right:3px;vertical-align:middle"></span>Meeting</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#e57373;border-radius:2px;margin-right:3px;vertical-align:middle"></span>Not Meeting</span>
+        <span><span style="display:inline-block;width:20px;height:2px;border-top:2px dashed #1D3461;margin-right:3px;vertical-align:middle"></span>Benchmark</span>
+      </div>
+    </div>`;
+  document.getElementById('detail-delete-btn').onclick=()=>deleteAssessment(id);
+  document.getElementById('detail-pdf-btn').onclick=()=>downloadPDF(id);
+  document.getElementById('detail-word-btn').onclick=()=>downloadWord(id);
+  document.getElementById('detail-ci-btn').onclick=()=>prefillCIFromAssessment(id);
+  document.getElementById('detail-overlay').classList.add('open');
+  renderDetailChart(a);}
 
-    <!-- Competent bar chart -->
-    <div class="chart-card">
-      <div class="chart-header">Competent Benchmark — % of Students Scoring ≥70% by Sub-Measure</div>
+function closeDetail(){document.getElementById('detail-overlay').classList.remove('open');if(detailChart){detailChart.destroy();detailChart=null;}}
+
+function renderDetailChart(a){
+  if(detailChart){detailChart.destroy();detailChart=null;}
+  const ctx=document.getElementById('detail-chart-canvas')?.getContext('2d');if(!ctx)return;
+  if(a.pctCompetent===null&&a.pctHC===null)return;
+  const pctM=[a.pctCompetent??0,a.pctHC??0];
+  const pctNM=pctM.map(v=>+(100-v).toFixed(1));
+  const benchmarks=[a.benchmarkCompetent??0,a.benchmarkHC??0];
+  const meetBg=pctM.map((v,i)=>v>=benchmarks[i]?'#4caf50':'#e57373');
+  const meetBd=pctM.map((v,i)=>v>=benchmarks[i]?'#2e7d32':'#c62828');
+  detailChart=new Chart(ctx,{type:'bar',data:{labels:['Competent (≥70%)','Highly Competent (≥90%)'],datasets:[
+    {label:'Meeting',data:pctM,backgroundColor:meetBg,borderColor:meetBd,borderWidth:1,stack:'s'},
+    {label:'Not Meeting',data:pctNM,backgroundColor:'#ef9a9a',borderColor:'#e53935',borderWidth:1,stack:'s'},
+    {label:'Benchmark',data:benchmarks,type:'line',borderColor:'#1D3461',borderWidth:2,borderDash:[6,4],pointRadius:5,pointBackgroundColor:'#1D3461',fill:false,order:0}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+    tooltip:{callbacks:{afterBody(items){const i=items[0]?.dataIndex;return i!==undefined?[`Benchmark: ${benchmarks[i]}%`]:[];}}}},
+    scales:{x:{stacked:true,ticks:{font:{size:12}}},y:{stacked:false,min:0,max:100,
+      ticks:{callback:v=>v+'%',stepSize:20,font:{size:11}},grid:{color:'#eee'}}}}});}
+function deleteAssessment(id){
+  if(!confirm('Delete this record? This cannot be undone.'))return;
+  saveAssessments(loadAssessments().filter(a=>a.id!==id));
+  closeDetail();renderSavedTable();updateBadge();}
+
+// ════════════════════════════════════════════
+// REPORT GENERATION & DOWNLOAD
+// ════════════════════════════════════════════
+function getReportHTML(a,mode){
+  const isWord=mode==='word';
+  const wordNS=isWord?`xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'`:'';
+  const cMet=a.pctCompetent!==null&&a.pctCompetent>=a.benchmarkCompetent;
+  const hcMet=a.pctHC!==null&&a.pctHC>=a.benchmarkHC;
+  const sColor=a.status==='Highly Competent'?'#2E7D32':a.status==='Competent'?'#E65100':'#B71C1C';
+  const sBg=a.status==='Highly Competent'?'#e8f5e9':a.status==='Competent'?'#fff3e0':'#ffebee';
+  const soKey=a.measure.split('-').slice(0,2).join('-');
+  const compTh=(a.components&&a.components.length>1)?a.components.map(c=>`<th>${c.label} (/${c.maxScore})</th>`).join(''):'<th>Score (Raw)</th>';
+  const studentRows=(a.students||[]).map((s,i)=>{
+    const pct=s.avgPct!==undefined?s.avgPct:(s.pct||0);
+    const lvl=pct>=90?'Highly Comp.':pct>=70?'Competent':'Not Comp.';
+    const lc=pct>=90?'#2E7D32':pct>=70?'#E65100':'#B71C1C';
+    let cc='';
+    if(a.components&&a.components.length>1&&s.compScores)cc=s.compScores.map(c=>`<td style="text-align:center;padding:5px 8px">${c?c.raw:'—'}</td>`).join('');
+    else cc=`<td style="text-align:center;padding:5px 8px">${s.raw!==undefined?s.raw:'—'}</td>`;
+    const bg=i%2===0?'#ffffff':'#f8faff';
+    return `<tr style="background:${bg}"><td style="text-align:center;padding:5px 8px">${i+1}</td>${cc}<td style="text-align:center;font-weight:600;padding:5px 8px">${pct.toFixed(1)}%</td><td style="text-align:center;color:${lc};font-weight:600;padding:5px 8px">${lvl}</td></tr>`;}).join('');
+  const meanPct=a.students&&a.students.length>0?a.students.reduce((s,x)=>{const p=x.avgPct!==undefined?x.avgPct:(x.pct||0);return s+p;},0)/a.students.length:0;
+  return `<!DOCTYPE html>\n<html ${wordNS}>\n<head><meta charset="UTF-8">
+<title>ABET Report — ${a.course} SO ${a.measure} ${a.term}</title>
+${isWord?`<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->`:''}
+<style>
+  body{font-family:Calibri,'Segoe UI',Arial,sans-serif;font-size:11pt;margin:0;padding:0;color:#1a2740;}
+  .page{max-width:720px;margin:0 auto;padding:32px 40px;}
+  .rpt-hdr{background:#1D3461;color:white;padding:16px 24px;margin:-32px -40px 24px -40px;display:flex;align-items:center;gap:16px;}
+  .rpt-hdr .inst{font-size:18pt;font-weight:700;} .rpt-hdr .inst span{color:#f0c050;}
+  .rpt-hdr .sub{font-size:10pt;color:rgba(255,255,255,.7);border-left:1px solid rgba(255,255,255,.3);padding-left:14px;}
+  h2{font-size:13pt;color:#1D3461;border-bottom:2px solid #C8972B;padding-bottom:4px;margin:20px 0 10px 0;}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #dde3ec;border-radius:6px;overflow:hidden;margin-bottom:16px;}
+  .info-cell{padding:8px 14px;border-bottom:1px solid #eee;}
+  .info-cell:nth-child(odd){background:#f5f7fa;}
+  .info-cell label{font-size:9pt;font-weight:700;color:#546e7a;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:2px;}
+  .so-box{background:#eef2f8;border:1px solid #c5d1e8;border-radius:6px;padding:10px 14px;margin-bottom:16px;}
+  .so-box .so-code{font-size:11pt;font-weight:700;color:#1D3461;}
+  .so-box .so-text{font-size:10pt;color:#546e7a;margin-top:3px;}
+  table.dt{width:100%;border-collapse:collapse;font-size:10pt;margin-bottom:12px;}
+  table.dt th{background:#1D3461;color:white;padding:7px 10px;text-align:left;font-size:9pt;font-weight:600;text-transform:uppercase;}
+  table.dt td{padding:5px 10px;border-bottom:1px solid #eee;}
+  .bm-row{display:flex;gap:16px;margin-bottom:16px;}
+  .bm-box{flex:1;border:2px solid #dde3ec;border-radius:8px;padding:12px 16px;position:relative;}
+  .bm-box.met{border-color:#2E7D32;background:#e8f5e9;} .bm-box.nm{border-color:#B71C1C;background:#ffebee;}
+  .bm-box .bl{font-size:9pt;font-weight:700;color:#546e7a;text-transform:uppercase;letter-spacing:.4px;}
+  .bm-box .bv{font-size:24pt;font-weight:800;line-height:1.1;}
+  .bm-box.met .bv{color:#2E7D32;} .bm-box.nm .bv{color:#B71C1C;}
+  .bm-box .br{font-size:10pt;color:#607d8b;} .bm-box .bi{position:absolute;top:10px;right:14px;font-size:18pt;}
+  .status-banner{border-radius:8px;padding:12px 20px;text-align:center;font-size:14pt;font-weight:700;
+    margin-bottom:16px;background:${sBg};color:${sColor};border:2px solid ${sColor};}
+  .abox{background:#fffde7;border:1px solid #f9a825;border-radius:6px;padding:12px 16px;margin-bottom:10px;}
+  .abox label{font-size:9pt;font-weight:700;color:#546e7a;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px;}
+  .sig-line{margin-top:40px;padding-top:12px;border-top:1px solid #dde3ec;display:flex;gap:40px;}
+  .sig-field{flex:1;border-top:1px solid #333;padding-top:4px;font-size:9pt;color:#546e7a;}
+  .footer{margin-top:20px;padding-top:10px;border-top:1px solid #dde3ec;font-size:9pt;color:#607d8b;display:flex;justify-content:space-between;}
+  @media print{body{margin:0;}.page{padding:20px 28px;max-width:100%;}.rpt-hdr{margin:-20px -28px 20px -28px;}}
+</style></head><body><div class="page">
+  <div class="rpt-hdr"><div class="inst">WNE <span>BME</span></div>
+    <div class="sub">ABET Assessment Report<br>Criterion 3 — Student Outcomes</div></div>
+  <h2>Assessment Information</h2>
+  <div class="info-grid">
+    <div class="info-cell"><label>Course</label>${a.course} — ${CURRICULUM_MAP[a.course]?.name||''}</div>
+    <div class="info-cell"><label>Term</label>${a.term}</div>
+    <div class="info-cell"><label>Assessor</label>${a.assessor}</div>
+    <div class="info-cell"><label>Sub-Measure</label>SO ${a.measure}</div>
+    <div class="info-cell" style="grid-column:1/-1"><label>Date Saved</label>${new Date(a.savedAt).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
+  </div>
+  <div class="so-box">
+    <div class="so-code">Student Outcome ${soKey} — Sub-measure ${a.measure}</div>
+    <div class="so-text">${SO_DESCRIPTIONS[soKey]||''}</div>
+    ${a.asmtDesc?`<div style="margin-top:6px;padding-top:6px;border-top:1px solid #c5d1e8;font-size:10pt"><strong>Assessment:</strong> ${a.asmtDesc}</div>`:''}
+  </div>
+  <h2>Student Performance Data</h2>
+  <table class="dt"><thead><tr><th>#</th>${compTh}<th>Avg %</th><th>Level</th></tr></thead>
+  <tbody>${studentRows}</tbody></table>
+  ${(a.components&&a.components.length>1)?`<p style="font-size:10pt;color:#546e7a;margin-bottom:4px">Components averaged: ${a.components.map(c=>c.label).join(' + ')}</p>`:''}
+  <p style="font-size:10pt;color:#546e7a;margin-bottom:16px">n = ${a.n} students${a.n>0?' &nbsp;|&nbsp; Mean: '+meanPct.toFixed(1)+'%':''}</p>
+  <h2>Benchmark Results</h2>
+  <div class="bm-row">
+    <div class="bm-box ${cMet?'met':'nm'}"><div class="bl">Competent (≥70%)</div>
+      <div class="bv">${a.pctCompetent!==null?a.pctCompetent+'%':'—'}</div>
+      <div class="br">Required: ${a.benchmarkCompetent!==null?a.benchmarkCompetent+'%':'—'} &nbsp;(${a.n} students)</div>
+      <div class="bi">${a.pctCompetent!==null?(cMet?'✅':'❌'):''}</div></div>
+    <div class="bm-box ${hcMet?'met':'nm'}"><div class="bl">Highly Competent (≥90%)</div>
+      <div class="bv">${a.pctHC!==null?a.pctHC+'%':'—'}</div>
+      <div class="br">Required: ${a.benchmarkHC!==null?a.benchmarkHC+'%':'—'} &nbsp;(${a.n} students)</div>
+      <div class="bi">${a.pctHC!==null?(hcMet?'✅':'❌'):''}</div></div>
+  </div>
+  <div class="status-banner">${a.status==='Highly Competent'?'★ HIGHLY COMPETENT — Both benchmarks met':a.status==='Competent'?'◐ COMPETENT — Competent met; Highly Competent not met':'✗ NOT MET — Competent benchmark not reached'}</div>
+  ${(a.action||a.notes)?`<h2>Action &amp; Notes</h2>
+    ${a.action?`<div class="abox"><label>Action Recommendation</label>${a.action}</div>`:''}
+    ${a.notes?`<div class="abox" style="background:#f3e5f5;border-color:#8e24aa"><label>Additional Notes</label>${a.notes}</div>`:''}`:''}
+  <div class="sig-line">
+    <div class="sig-field">Assessor Signature</div>
+    <div class="sig-field">Department Chair</div>
+    <div class="sig-field">Date</div>
+  </div>
+  <div class="footer">
+    <span>Western New England University — Biomedical Engineering — ABET Criterion 3</span>
+    <span>Generated: ${new Date().toLocaleDateString()}</span>
+  </div>
+</div></body></html>`;}
+
+function downloadPDF(id){
+  const a=loadAssessments().find(x=>x.id===id);if(!a)return;
+  const win=window.open('','_blank');
+  if(!win){alert('Allow pop-ups for this page to enable PDF download.');return;}
+  win.document.write(getReportHTML(a,'print'));win.document.close();
+  win.addEventListener('load',()=>setTimeout(()=>win.print(),300));}
+
+function downloadWord(id){
+  const a=loadAssessments().find(x=>x.id===id);if(!a)return;
+  const blob=new Blob(['\ufeff'+getReportHTML(a,'word')],{type:'application/msword'});
+  const link=document.createElement('a');link.href=URL.createObjectURL(blob);
+  link.download=`ABET_${a.course.replace(' ','')}_SO${a.measure}_${a.term.replace(' ','_')}.doc`;
+  link.click();}
+
+// ════════════════════════════════════════════
+// DASHBOARD & CHARTS
+// ════════════════════════════════════════════
+let chartC=null,chartHC=null,detailChart=null;
+
+function renderDashboard(){
+  const all=loadAssessments();const container=document.getElementById('dashboard-content');
+  if(!all.length){container.innerHTML=`<div class="empty-state"><div class="icon">📊</div><h3>No Data Yet</h3><p>Save at least one assessment to see the dashboard.</p></div>`;return;}
+  const byMeasure={};
+  all.forEach(a=>{if(!byMeasure[a.measure]||a.savedAt>byMeasure[a.measure].savedAt)byMeasure[a.measure]=a;});
+  const soGroups={};
+  Object.entries(CURRICULUM_MAP).forEach(([course,info])=>info.measures.forEach(m=>{
+    const so='SO '+m.split('-').slice(0,2).join('-');
+    if(!soGroups[so])soGroups[so]=[];
+    if(!soGroups[so].find(x=>x.measure===m))soGroups[so].push({measure:m,course,data:byMeasure[m]||null});}));
+  const sc={hc:0,c:0,nc:0,pending:0};
+  Object.values(byMeasure).forEach(a=>{if(a.status==='Highly Competent')sc.hc++;else if(a.status==='Competent')sc.c++;else if(a.status==='Not Met')sc.nc++;});
+  const totalM=new Set(Object.values(CURRICULUM_MAP).flatMap(c=>c.measures)).size;
+  sc.pending=totalM-Object.keys(byMeasure).length;
+  const years=[...new Set(all.map(a=>a.year))].sort().reverse();
+  const yOpts='<option value="">All Years</option>'+years.map(y=>`<option>${y}</option>`).join('');
+  container.innerHTML=`
+    <div class="card" style="margin-bottom:20px"><div class="card-header">Program Summary — Most Recent Assessment per Sub-Measure</div>
+      <div class="card-body"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+        <div style="text-align:center;padding:16px;background:var(--green-bg);border-radius:8px;border:1px solid var(--green)"><div style="font-size:36px;font-weight:800;color:var(--green)">${sc.hc}</div><div style="font-size:12px;color:var(--green);font-weight:600">Highly Competent</div></div>
+        <div style="text-align:center;padding:16px;background:var(--orange-bg);border-radius:8px;border:1px solid var(--orange)"><div style="font-size:36px;font-weight:800;color:var(--orange)">${sc.c}</div><div style="font-size:12px;color:var(--orange);font-weight:600">Competent</div></div>
+        <div style="text-align:center;padding:16px;background:var(--red-bg);border-radius:8px;border:1px solid var(--red)"><div style="font-size:36px;font-weight:800;color:var(--red)">${sc.nc}</div><div style="font-size:12px;color:var(--red);font-weight:600">Not Met</div></div>
+        <div style="text-align:center;padding:16px;background:var(--gray-light);border-radius:8px;border:1px solid var(--border)"><div style="font-size:36px;font-weight:800;color:var(--text-muted)">${sc.pending}</div><div style="font-size:12px;color:var(--text-muted);font-weight:600">Pending Data</div></div>
+      </div></div></div>
+    <div class="chart-card"><div class="chart-header">Competent Benchmark — % of Students Scoring ≥70% by Sub-Measure</div>
       <div class="chart-body">
-        <div class="chart-filter">
-          <span>Year:</span>
-          <select id="chart-year-c" onchange="renderCharts()" style="width:110px">${yearOpts}</select>
+        <div class="chart-filter"><span>Year:</span><select id="chart-year-c" onchange="renderCharts()" style="width:110px">${yOpts}</select>
           <span style="margin-left:auto;font-size:11px">
             <span style="display:inline-block;width:12px;height:12px;background:#4caf50;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Meeting &nbsp;
             <span style="display:inline-block;width:12px;height:12px;background:#ef9a9a;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Not Meeting &nbsp;
-            <span style="display:inline-block;width:28px;height:3px;background:#1D3461;border-top:2px dashed #1D3461;margin-right:4px;vertical-align:middle"></span>Benchmark
+            <span style="display:inline-block;width:28px;height:2px;background:#1D3461;border-top:2px dashed #1D3461;margin-right:4px;vertical-align:middle"></span>Benchmark
           </span>
         </div>
         <canvas id="chart-canvas-c" height="110"></canvas>
-      </div>
-    </div>
-
-    <!-- Highly Competent bar chart -->
-    <div class="chart-card">
-      <div class="chart-header">Highly Competent Benchmark — % of Students Scoring ≥90% by Sub-Measure</div>
+      </div></div>
+    <div class="chart-card"><div class="chart-header">Highly Competent Benchmark — % of Students Scoring ≥90% by Sub-Measure</div>
       <div class="chart-body">
-        <div class="chart-filter">
-          <span>Year:</span>
-          <select id="chart-year-hc" onchange="renderCharts()" style="width:110px">${yearOpts}</select>
-        </div>
+        <div class="chart-filter"><span>Year:</span><select id="chart-year-hc" onchange="renderCharts()" style="width:110px">${yOpts}</select></div>
         <canvas id="chart-canvas-hc" height="110"></canvas>
-      </div>
-    </div>
-
-    <!-- SO status cards -->
-    <div class="card" style="margin-bottom:20px">
-      <div class="card-header">Sub-Measure Status by Student Outcome</div>
+      </div></div>
+    <div class="card"><div class="card-header">Sub-Measure Status by Student Outcome</div>
       <div class="card-body" style="padding:16px">
         <div class="dashboard-grid">
-          ${Object.entries(soGroups).sort().map(([so, measures]) => `
-            <div class="so-card">
-              <div class="so-card-header">${so} — ${SO_DESCRIPTIONS[so.replace('SO ','')]?.split(' ').slice(0,6).join(' ')}…</div>
-              <div class="so-card-body">
-                ${measures.map(({measure, course, data}) => {
-                  let dot='dot-pending', statusText='No data';
-                  if (data) {
-                    if (data.status==='Highly Competent') { dot='dot-hc'; statusText=data.term; }
-                    else if (data.status==='Competent') { dot='dot-c'; statusText=data.term; }
-                    else { dot='dot-nc'; statusText=data.term+' ⚠'; }
-                  }
-                  return `<div class="measure-row" style="cursor:${data?'pointer':'default'}"
-                    onclick="${data?`showDetail('${data.id}');showTab('saved',null)`:''}">
-                    <span class="measure-status-dot ${dot}"></span>
-                    <span class="measure-code">${measure}</span>
-                    <span class="measure-course">${course}</span>
-                    <span style="font-size:11px;color:var(--text-muted)">${statusText}</span>
-                  </div>`;
-                }).join('')}
-              </div>
-            </div>
-          `).join('')}
+          ${Object.entries(soGroups).sort().map(([so,measures])=>`
+            <div class="so-card"><div class="so-card-header">${so} — ${SO_DESCRIPTIONS[so.replace('SO ','')]?.split(' ').slice(0,6).join(' ')}…</div>
+              <div class="so-card-body">${measures.map(({measure,course,data})=>{
+                let dot='dot-pending',statusText='No data';
+                if(data){if(data.status==='Highly Competent'){dot='dot-hc';statusText=data.term;}
+                  else if(data.status==='Competent'){dot='dot-c';statusText=data.term;}
+                  else{dot='dot-nc';statusText=data.term+' ⚠';}}
+                const openCI=loadCIItems().filter(x=>x.measure===measure&&x.status!=='Closed').length;
+                const ciFlag=openCI>0?`<span title="${openCI} open action item(s)" style="font-size:10px;background:#E65100;color:white;border-radius:10px;padding:1px 5px;margin-left:4px">${openCI} CI</span>`:'';
+                return `<div class="measure-row" style="cursor:${data?'pointer':'default'}" onclick="${data?`showDetail('${data.id}');showTab('saved',null)`:``}">
+                  <span class="measure-status-dot ${dot}"></span>
+                  <span class="measure-code">${measure}</span>
+                  <span class="measure-course">${course}</span>
+                  <span style="font-size:11px;color:var(--text-muted)">${statusText}${ciFlag}</span>
+                </div>`;}).join('')}
+              </div></div>`).join('')}
         </div>
-      </div>
-    </div>
-  `;
+      </div></div>`;
+  if(chartC){chartC.destroy();chartC=null;}if(chartHC){chartHC.destroy();chartHC=null;}
+  renderCharts();}
 
-  // Destroy old charts if they exist
-  if (chartC) { chartC.destroy(); chartC = null; }
-  if (chartHC) { chartHC.destroy(); chartHC = null; }
+function renderCharts(){
+  const all=loadAssessments();
+  const yC=document.getElementById('chart-year-c')?.value||'';
+  const yHC=document.getElementById('chart-year-hc')?.value||'';
+  const allMeasures=[...new Set(Object.values(CURRICULUM_MAP).flatMap(c=>c.measures))].sort();
+  function buildData(key,yf){
+    const filtered=yf?all.filter(a=>a.year===yf):all;
+    const bm={};filtered.forEach(a=>{if(!bm[a.measure]||a.savedAt>bm[a.measure].savedAt)bm[a.measure]=a;});
+    const mwd=allMeasures.filter(m=>bm[m]);
+    const pctM=mwd.map(m=>bm[m][key]??0);
+    const pctNM=pctM.map(v=>+(100-v).toFixed(1));
+    const benchmarks=mwd.map(m=>{const lv=MEASURE_LEVEL[m]||300;return key==='pctCompetent'?BENCHMARKS[lv].competent:BENCHMARKS[lv].highlyCompetent;});
+    return{labels:mwd,pctM,pctNM,benchmarks};}
+  function makeChart(cid,data,lbl){
+    const ctx=document.getElementById(cid)?.getContext('2d');if(!ctx)return null;
+    if(!data.labels.length){ctx.canvas.height=60;ctx.font='13px sans-serif';ctx.fillStyle='#999';ctx.textAlign='center';ctx.fillText('No data for selected year',ctx.canvas.width/2,30);return null;}
+    return new Chart(ctx,{type:'bar',data:{labels:data.labels,datasets:[
+      {label:'Meeting',data:data.pctM,backgroundColor:data.pctM.map((v,i)=>v>=data.benchmarks[i]?'#4caf50':'#81c784'),borderColor:data.pctM.map((v,i)=>v>=data.benchmarks[i]?'#2e7d32':'#388e3c'),borderWidth:1,stack:'s'},
+      {label:'Not Meeting',data:data.pctNM,backgroundColor:data.pctM.map((v,i)=>v<data.benchmarks[i]?'#e57373':'#ef9a9a'),borderColor:data.pctM.map((v,i)=>v<data.benchmarks[i]?'#c62828':'#e53935'),borderWidth:1,stack:'s'},
+      {label:'Benchmark',data:data.benchmarks,type:'line',borderColor:'#1D3461',borderWidth:2,borderDash:[6,4],pointRadius:4,pointBackgroundColor:'#1D3461',fill:false,order:0}
+    ]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{afterBody(items){const i=items[0]?.dataIndex;if(i===undefined)return[];return[`Benchmark: ${data.benchmarks[i]}%`];}}}},
+    scales:{x:{stacked:true,ticks:{font:{size:11}}},y:{stacked:false,min:0,max:100,ticks:{callback:v=>v+'%',stepSize:20,font:{size:11}},grid:{color:'#eee'}}}}});}
+  const dC=buildData('pctCompetent',yC);const dHC=buildData('pctHC',yHC);
+  if(chartC){chartC.destroy();chartC=null;}if(chartHC){chartHC.destroy();chartHC=null;}
+  chartC=makeChart('chart-canvas-c',dC,'Competent');
+  chartHC=makeChart('chart-canvas-hc',dHC,'Highly Competent');}
 
-  renderCharts();
-}
+// ════════════════════════════════════════════
+// CI TRACKER
+// ════════════════════════════════════════════
+let _ciEditId=null;
 
-function renderCharts() {
-  const all = loadAssessments();
-  const yearC  = document.getElementById('chart-year-c')?.value  || '';
-  const yearHC = document.getElementById('chart-year-hc')?.value || '';
+function populateCIMeasureSelect(selId,val){
+  const sel=document.getElementById(selId);if(!sel)return;
+  const allM=[...new Set(Object.values(CURRICULUM_MAP).flatMap(c=>c.measures))].sort();
+  sel.innerHTML='<option value="">— Select —</option>'+allM.map(m=>{
+    const course=Object.entries(CURRICULUM_MAP).find(([c,i])=>i.measures.includes(m))?.[0]||'';
+    return `<option value="${m}" ${val===m?'selected':''}>${m} (${course})</option>`;}).join('');}
 
-  // Get all known sub-measures sorted
-  const allMeasures = [...new Set(Object.values(CURRICULUM_MAP).flatMap(c => c.measures))].sort();
+function populateCILinkedSelect(selId,filterMeasure,currentVal){
+  const sel=document.getElementById(selId);if(!sel)return;
+  let all=loadAssessments();
+  if(filterMeasure)all=all.filter(a=>a.measure===filterMeasure);
+  all.sort((a,b)=>b.savedAt.localeCompare(a.savedAt));
+  sel.innerHTML='<option value="">— None —</option>'+all.map(a=>`<option value="${a.id}" ${currentVal===a.id?'selected':''}>${a.course} SO ${a.measure} ${a.term} — ${a.status}</option>`).join('');}
 
-  function buildChartData(metricKey, yearFilter) {
-    // metricKey: 'pctCompetent' or 'pctHC'
-    // For each measure, find the most recent matching assessment
-    const filtered = yearFilter ? all.filter(a => a.year === yearFilter) : all;
-    const byMeasure = {};
-    filtered.forEach(a => {
-      if (!byMeasure[a.measure] || a.savedAt > byMeasure[a.measure].savedAt)
-        byMeasure[a.measure] = a;
-    });
+function renderCITracker(){
+  populateCIMeasureSelect('ci-measure','');
+  populateCILinkedSelect('ci-linked-asmt','','');
+  const allM=[...new Set(loadCIItems().map(x=>x.measure))].sort();
+  const fsel=document.getElementById('ci-filter-measure');
+  if(fsel){const cur=fsel.value;fsel.innerHTML='<option value="">All Measures</option>'+allM.map(m=>`<option ${m===cur?'selected':''}>${m}</option>`).join('');}
+  renderCISummary();renderCITable();}
 
-    // Only show measures that have data
-    const measuresWithData = allMeasures.filter(m => byMeasure[m]);
-    const labels = measuresWithData;
-    const pctMeeting   = measuresWithData.map(m => byMeasure[m][metricKey] ?? 0);
-    const pctNotMeeting = pctMeeting.map(v => +(100 - v).toFixed(1));
-    const benchmarks = measuresWithData.map(m => {
-      const level = MEASURE_LEVEL[m] || 300;
-      return metricKey === 'pctCompetent'
-        ? BENCHMARKS[level].competent
-        : BENCHMARKS[level].highlyCompetent;
-    });
-    return { labels, pctMeeting, pctNotMeeting, benchmarks };
-  }
+function renderCISummary(){
+  const items=loadCIItems();
+  const open=items.filter(x=>x.status==='Open').length;
+  const inp=items.filter(x=>x.status==='In Progress').length;
+  const closed=items.filter(x=>x.status==='Closed').length;
+  const el=document.getElementById('ci-summary-cards');if(!el)return;
+  el.innerHTML=`
+    <div style="text-align:center;padding:20px;background:var(--red-bg);border:2px solid var(--red);border-radius:8px"><div style="font-size:40px;font-weight:800;color:var(--red)">${open}</div><div style="font-size:12px;font-weight:600;color:var(--red)">Open</div></div>
+    <div style="text-align:center;padding:20px;background:var(--orange-bg);border:2px solid var(--orange);border-radius:8px"><div style="font-size:40px;font-weight:800;color:var(--orange)">${inp}</div><div style="font-size:12px;font-weight:600;color:var(--orange)">In Progress</div></div>
+    <div style="text-align:center;padding:20px;background:var(--green-bg);border:2px solid var(--green);border-radius:8px"><div style="font-size:40px;font-weight:800;color:var(--green)">${closed}</div><div style="font-size:12px;font-weight:600;color:var(--green)">Closed</div></div>`;}
 
-  function makeChart(canvasId, data, label) {
-    const ctx = document.getElementById(canvasId)?.getContext('2d');
-    if (!ctx) return null;
-    if (!data.labels.length) {
-      ctx.canvas.height = 60;
-      ctx.font = '13px sans-serif'; ctx.fillStyle = '#999'; ctx.textAlign = 'center';
-      ctx.fillText('No data for selected year', ctx.canvas.width / 2, 30);
-      return null;
-    }
-    return new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: data.labels,
-        datasets: [
-          {
-            label: 'Meeting ' + label,
-            data: data.pctMeeting,
-            backgroundColor: data.pctMeeting.map((v, i) => v >= data.benchmarks[i] ? '#4caf50' : '#81c784'),
-            borderColor:     data.pctMeeting.map((v, i) => v >= data.benchmarks[i] ? '#2e7d32' : '#388e3c'),
-            borderWidth: 1,
-            stack: 's',
-          },
-          {
-            label: 'Not Meeting',
-            data: data.pctNotMeeting,
-            backgroundColor: data.pctMeeting.map((v, i) => v < data.benchmarks[i] ? '#e57373' : '#ef9a9a'),
-            borderColor:     data.pctMeeting.map((v, i) => v < data.benchmarks[i] ? '#c62828' : '#e53935'),
-            borderWidth: 1,
-            stack: 's',
-          },
-          {
-            label: 'Benchmark',
-            data: data.benchmarks,
-            type: 'line',
-            borderColor: '#1D3461',
-            borderWidth: 2,
-            borderDash: [6, 4],
-            pointRadius: 4,
-            pointBackgroundColor: '#1D3461',
-            fill: false,
-            order: 0,
-            yAxisID: 'y',
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              afterBody(items) {
-                const idx = items[0]?.dataIndex;
-                if (idx === undefined) return [];
-                return [`Benchmark: ${data.benchmarks[idx]}%`];
-              }
-            }
-          }
-        },
-        scales: {
-          x: { stacked: true, ticks: { font: { size: 11 } } },
-          y: {
-            stacked: false,
-            min: 0, max: 100,
-            ticks: { callback: v => v + '%', stepSize: 20, font: { size: 11 } },
-            grid: { color: '#eee' }
-          }
-        }
-      }
-    });
-  }
+function saveCIItem(){
+  const measure=document.getElementById('ci-measure').value;
+  const findingTerm=document.getElementById('ci-finding-term').value.trim();
+  const finding=document.getElementById('ci-finding').value.trim();
+  const action=document.getElementById('ci-action').value.trim();
+  if(!measure||!findingTerm||!finding||!action){alert('Please fill in Sub-Measure, Review Term, Finding, and Action.');return;}
+  const course=Object.entries(CURRICULUM_MAP).find(([c,i])=>i.measures.includes(measure))?.[0]||'';
+  const item={id:Date.now().toString(),measure,course,soParent:'SO '+measure.split('-').slice(0,2).join('-'),
+    findingTerm,finding,action,
+    responsible:document.getElementById('ci-responsible').value.trim(),
+    targetTerm:document.getElementById('ci-target-term').value.trim(),
+    status:'Open',outcome:'',
+    linkedAssessmentId:document.getElementById('ci-linked-asmt').value||'',
+    closingAssessmentId:'',createdAt:new Date().toISOString(),closedAt:''};
+  const all=loadCIItems();all.push(item);saveCIItems(all);
+  ['ci-finding-term','ci-responsible','ci-target-term','ci-finding','ci-action'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('ci-measure').value='';document.getElementById('ci-linked-asmt').value='';
+  renderCITracker();alert('Action item saved.');}
 
-  const dataC  = buildChartData('pctCompetent',  yearC);
-  const dataHC = buildChartData('pctHC',         yearHC);
+function renderCITable(){
+  let items=loadCIItems();
+  const fs=document.getElementById('ci-filter-status')?.value||'';
+  const fm=document.getElementById('ci-filter-measure')?.value||'';
+  if(fs)items=items.filter(x=>x.status===fs);
+  if(fm)items=items.filter(x=>x.measure===fm);
+  const order={'Open':0,'In Progress':1,'Closed':2};
+  items.sort((a,b)=>(order[a.status]||0)-(order[b.status]||0)||b.createdAt.localeCompare(a.createdAt));
+  const tbody=document.getElementById('ci-tbody');if(!tbody)return;
+  if(!items.length){tbody.innerHTML='<tr><td colspan="9" class="no-data">No action items match the filter.</td></tr>';return;}
+  const sColor=s=>s==='Open'?'pill-nc':s==='In Progress'?'pill-c':'pill-hc';
+  tbody.innerHTML=items.map(item=>{
+    const linkedA=item.linkedAssessmentId?loadAssessments().find(a=>a.id===item.linkedAssessmentId):null;
+    const closeA=item.closingAssessmentId?loadAssessments().find(a=>a.id===item.closingAssessmentId):null;
+    const lt=linkedA?`<br><span style="font-size:10px;color:var(--text-muted)">📎 ${linkedA.course} ${linkedA.term}</span>`:'';
+    const ct=closeA?`<br><span style="font-size:10px;color:var(--green)">✓ ${closeA.course} ${closeA.term}</span>`:'';
+    return `<tr>
+      <td><strong>${item.measure}</strong><br><span style="font-size:11px;color:var(--text-muted)">${item.course} / ${item.soParent}</span>${lt}</td>
+      <td>${item.findingTerm}</td>
+      <td style="max-width:200px;font-size:12px">${item.finding}</td>
+      <td style="max-width:200px;font-size:12px">${item.action}</td>
+      <td style="font-size:12px">${item.responsible||'—'}</td>
+      <td>${item.targetTerm||'—'}</td>
+      <td><span class="score-pill ${sColor(item.status)}">${item.status}</span></td>
+      <td style="max-width:160px;font-size:12px">${item.outcome||'—'}${ct}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-secondary btn-sm" onclick="openCIUpdateModal('${item.id}')">${item.status==='Closed'?'View':'Update'}</button><br>
+        <button class="btn btn-danger btn-sm" onclick="deleteCIItem('${item.id}')" style="margin-top:3px">✕</button>
+      </td>
+    </tr>`}).join('');}
 
-  if (chartC)  { chartC.destroy();  chartC  = null; }
-  if (chartHC) { chartHC.destroy(); chartHC = null; }
-  chartC  = makeChart('chart-canvas-c',  dataC,  'Competent');
-  chartHC = makeChart('chart-canvas-hc', dataHC, 'Highly Competent');
-}
+function openCIUpdateModal(id){
+  _ciEditId=id;const item=loadCIItems().find(x=>x.id===id);if(!item)return;
+  document.getElementById('ci-close-title').textContent=`Update — SO ${item.measure} | ${item.findingTerm}`;
+  document.getElementById('ci-close-status').value=item.status;
+  document.getElementById('ci-close-outcome').value=item.outcome||'';
+  populateCILinkedSelect('ci-close-linked',item.measure,item.closingAssessmentId);
+  document.getElementById('ci-close-modal').classList.add('open');}
+
+function confirmCIUpdate(){
+  if(!_ciEditId)return;
+  const all=loadCIItems();const item=all.find(x=>x.id===_ciEditId);if(!item)return;
+  item.status=document.getElementById('ci-close-status').value;
+  item.outcome=document.getElementById('ci-close-outcome').value.trim();
+  item.closingAssessmentId=document.getElementById('ci-close-linked').value||'';
+  if(item.status==='Closed'&&!item.closedAt)item.closedAt=new Date().toISOString();
+  saveCIItems(all);document.getElementById('ci-close-modal').classList.remove('open');
+  _ciEditId=null;renderCITracker();}
+
+function deleteCIItem(id){
+  if(!confirm('Delete this action item?'))return;
+  saveCIItems(loadCIItems().filter(x=>x.id!==id));renderCITracker();}
+
+function prefillCIFromAssessment(asmtId){
+  const a=loadAssessments().find(x=>x.id===asmtId);if(!a)return;
+  closeDetail();
+  const ciBtn=document.querySelectorAll('.tab-btn')[3];
+  showTab('ci',ciBtn);
+  setTimeout(()=>{
+    populateCIMeasureSelect('ci-measure',a.measure);
+    document.getElementById('ci-measure').value=a.measure;
+    document.getElementById('ci-finding-term').value=a.term;
+    document.getElementById('ci-finding').value=
+      `SO ${a.measure} in ${a.course} ${a.term}: `+
+      (a.pctCompetent!==null?`${a.pctCompetent}% ≥70% (req. ${a.benchmarkCompetent}%)`:'') +
+      (a.pctHC!==null?`, ${a.pctHC}% ≥90% (req. ${a.benchmarkHC}%)`:'')+` — ${a.status}`;
+    document.getElementById('ci-action').value=a.action||'';
+    populateCILinkedSelect('ci-linked-asmt',a.measure,a.id);
+    document.getElementById('ci-linked-asmt').value=a.id;},150);}
 
 // ════════════════════════════════════════════
 // EXPORT / IMPORT
 // ════════════════════════════════════════════
-
-function exportJSON() {
-  const blob = new Blob([JSON.stringify(loadAssessments(), null, 2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `wne_bme_abet_${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-}
-function exportCSV() {
-  const all = loadAssessments();
-  if (!all.length) { alert('No data to export.'); return; }
-  const headers = ['Course','Term','Measure','SO','Assessor','N','%Competent',
-    '%HighlyCompetent','BenchmarkCompetent','BenchmarkHC','Components','Status','Action','Notes','SavedAt'];
-  const rows = all.map(a => [
-    a.course, a.term, a.measure, a.soParent, a.assessor, a.n,
-    a.pctCompetent, a.pctHC, a.benchmarkCompetent, a.benchmarkHC,
-    `"${(a.components||[]).map(c=>c.label).join('+')}"`  ,
-    a.status,
-    `"${(a.action||'').replace(/"/g,'""')}"`,
-    `"${(a.notes||'').replace(/"/g,'""')}"`,
-    a.savedAt
-  ].join(','));
-  const blob = new Blob([[headers.join(','), ...rows].join('\n')], {type:'text/csv'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `wne_bme_abet_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-}
-function importJSON() {
-  const input = document.createElement('input');
-  input.type = 'file'; input.accept = '.json';
-  input.onchange = e => {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try {
-        const data = JSON.parse(ev.target.result);
-        if (!Array.isArray(data)) throw new Error('Invalid format');
-        const existing = loadAssessments();
-        const ids = new Set(existing.map(a => a.id));
-        const newR = data.filter(a => !ids.has(a.id));
-        saveAssessments([...existing, ...newR]);
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(loadAssessments(),null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`wne_bme_abet_${new Date().toISOString().slice(0,10)}.json`;a.click();}
+function exportCSV(){
+  const all=loadAssessments();if(!all.length){alert('No data to export.');return;}
+  const headers=['Course','Term','Measure','SO','Assessor','N','%Competent','%HighlyCompetent','BenchmarkC','BenchmarkHC','Components','Status','Action','Notes','SavedAt'];
+  const rows=all.map(a=>[a.course,a.term,a.measure,a.soParent,a.assessor,a.n,
+    a.pctCompetent,a.pctHC,a.benchmarkCompetent,a.benchmarkHC,
+    `"${(a.components||[]).map(c=>c.label).join('+')}"`,a.status,
+    `"${(a.action||'').replace(/"/g,'""')}"`,`"${(a.notes||'').replace(/"/g,'""')}"`,a.savedAt].join(','));
+  const blob=new Blob([[headers.join(','),...rows].join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`wne_bme_abet_${new Date().toISOString().slice(0,10)}.csv`;a.click();}
+function importJSON(){
+  const input=document.createElement('input');input.type='file';input.accept='.json';
+  input.onchange=e=>{
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{const data=JSON.parse(ev.target.result);
+        if(!Array.isArray(data))throw new Error('Invalid format');
+        const existing=loadAssessments();const ids=new Set(existing.map(a=>a.id));
+        const newR=data.filter(a=>!ids.has(a.id));
+        saveAssessments([...existing,...newR]);
         alert(`Imported ${newR.length} new record(s). ${data.length-newR.length} duplicate(s) skipped.`);
-        renderSavedTable(); updateBadge();
-      } catch(e) { alert('Error: ' + e.message); }
-    };
-    reader.readAsText(file);
-  };
-  input.click();
-}
+        renderSavedTable();updateBadge();
+      }catch(e){alert('Error: '+e.message);}};
+    reader.readAsText(file);};
+  input.click();}
 
 // ════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════
-
 initComponents();
 updateBadge();
+updateCIBadge();
 </script>
 </body>
 </html>
