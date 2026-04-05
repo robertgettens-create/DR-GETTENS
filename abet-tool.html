@@ -295,13 +295,18 @@
   <div class="card">
     <div class="card-header">
       <span class="step-num">3</span> Student Scores
-      <span style="margin-left:auto;font-size:11px;opacity:.7">Use "+ Add Component" to average multiple assessments</span>
+      <span style="margin-left:auto;font-size:11px;opacity:.7">If this measure uses multiple assessments, add a component for each one</span>
     </div>
     <div class="card-body">
       <div class="component-banner" id="component-banner">
-        <label>Components:</label>
-        <div id="component-chips"></div>
-        <button class="btn btn-secondary btn-sm" onclick="addComponent()">+ Add Component</button>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%">
+          <label style="white-space:nowrap">Scored assessments used for this sub-measure:</label>
+          <div id="component-chips" style="display:flex;flex-wrap:wrap;gap:6px;flex:1"></div>
+          <button class="btn btn-secondary btn-sm" onclick="addComponent()" style="white-space:nowrap">+ Add Another Assessment</button>
+        </div>
+      </div>
+      <div id="multi-comp-hint" style="display:none;background:#fff8e1;border:1px solid #f9a825;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#5d4037">
+        <strong>Multiple assessments active.</strong> Each assessment gets its own column in the table below — enter each student's score in every column. The tool will average them automatically. Use the <em>Paste Scores</em> button to fill one column at a time.
       </div>
       <div class="score-toolbar">
         <button class="btn btn-secondary btn-sm" onclick="addScoreRow()">+ Add Student</button>
@@ -653,9 +658,10 @@ function updateCIBadge(){const n=loadCIItems().filter(x=>x.status!=='Closed').le
 let components=[{id:1,label:'Assessment',maxScore:100}];
 let compCounter=1,rowCounter=0;
 
-function initComponents(){components=[{id:1,label:'Assessment',maxScore:100}];compCounter=1;renderComponentChips();renderTableHeader();}
+function initComponents(){components=[{id:1,label:'Assessment',maxScore:100}];compCounter=1;renderComponentChips();renderTableHeader();updateMultiHint();}
+function updateMultiHint(){const h=document.getElementById('multi-comp-hint');if(h)h.style.display=components.length>1?'block':'none';}
 
-function addComponent(){compCounter++;components.push({id:compCounter,label:'Assessment '+compCounter,maxScore:100});renderComponentChips();renderTableHeader();
+function addComponent(){compCounter++;components.push({id:compCounter,label:'Assessment '+compCounter,maxScore:100});renderComponentChips();renderTableHeader();updateMultiHint();
   document.querySelectorAll('#score-tbody tr').forEach(tr=>{
     const last=tr.lastElementChild,prev=last.previousSibling;
     const td=document.createElement('td');
@@ -663,7 +669,7 @@ function addComponent(){compCounter++;components.push({id:compCounter,label:'Ass
     tr.insertBefore(td,prev);recalcAll();});}
 
 function removeComponent(cid){if(components.length===1){alert('At least one component required.');return;}
-  components=components.filter(c=>c.id!==cid);renderComponentChips();renderTableHeader();
+  components=components.filter(c=>c.id!==cid);renderComponentChips();renderTableHeader();updateMultiHint();
   document.querySelectorAll(`#score-tbody [data-comp="${cid}"]`).forEach(i=>i.closest('td').remove());recalcAll();}
 
 function renderComponentChips(){
