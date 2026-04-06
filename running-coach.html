@@ -29,7 +29,7 @@
     const WEEKS_LEFT = Math.floor(DAYS_LEFT / 7);
     const FITBIT_AUTH_URL = "https://www.fitbit.com/oauth2/authorize";
     const FITBIT_TOKEN_URL = "https://api.fitbit.com/oauth2/token";
-    const APP_VERSION = "v20";
+    const APP_VERSION = "v21";
     const FITBIT_API = "https://api.fitbit.com/1";
     const WORKOUT_ICONS = { Run: "🏃", Bike: "🚴", Kayak: "🛶", Gardening: "🌱", Walk: "🚶", Rest: "😴", Other: "⚡" };
 
@@ -764,6 +764,8 @@ COACHING PRINCIPLES:
       const [audioEnabled, setAudioEnabled] = useState(true);
       const [saved, setSaved] = useState(false);
       const [gpsAccuracy, setGpsAccuracy] = useState(null);
+      const [countdown, setCountdown] = useState(null); // null or number 30..0
+      const countdownRef = useRef(null);
       const [voices, setVoices] = useState([]);
       const [selectedVoiceName, setSelectedVoiceName] = useState(() => localStorage.getItem("rc_voice") || "");
       const selectedVoiceRef = useRef(null);
@@ -862,6 +864,7 @@ COACHING PRINCIPLES:
       // Cleanup on unmount
       useEffect(() => {
         return () => {
+          if (countdownRef.current) clearInterval(countdownRef.current);
           stopTracking(true);
           if (leafletMapRef.current) { leafletMapRef.current.remove(); leafletMapRef.current = null; mapInitRef.current = false; }
         };
@@ -870,9 +873,32 @@ COACHING PRINCIPLES:
       function stopTracking(silent = false) {
         if (watchRef.current != null) { navigator.geolocation.clearWatch(watchRef.current); watchRef.current = null; }
         if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-        if (!silent) {
-          pausedElapsedRef.current = elapsed;
-        }
+        if (!silent) { pausedElapsedRef.current = elapsed; }
+      }
+
+      function cancelCountdown() {
+        if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
+        setCountdown(null);
+        setStatus("idle");
+      }
+
+      function beginCountdown() {
+        const SECS = 30;
+        setCountdown(SECS);
+        setStatus("countdown");
+        speak("30 second countdown starting. Get ready!");
+        let remaining = SECS;
+        countdownRef.current = setInterval(() => {
+          remaining -= 1;
+          setCountdown(remaining);
+          if (remaining <= 5 && remaining > 0) speak(String(remaining));
+          if (remaining <= 0) {
+            clearInterval(countdownRef.current);
+            countdownRef.current = null;
+            setCountdown(null);
+            startRun();
+          }
+        }, 1000);
       }
 
       function startRun() {
@@ -1092,8 +1118,17 @@ COACHING PRINCIPLES:
                   3. Keep the screen on and don't lock your phone mid-run — locking pauses GPS in Safari.
                 </div>
               </div>
-              <button className="btn btn-primary" style={{fontSize:20,padding:"16px",letterSpacing:1}} onClick={startRun}>▶ Start Run</button>
+              <button className="btn btn-primary" style={{fontSize:20,padding:"16px",letterSpacing:1}} onClick={beginCountdown}>▶ Start Run</button>
             </>
+          )}
+
+          {status === "countdown" && (
+            <div style={{textAlign:"center",padding:"40px 20px"}}>
+              <div style={{fontSize:16,color:"#a0a8c0",marginBottom:16}}>Get ready — run starts in</div>
+              <div style={{fontSize:120,fontWeight:700,color: countdown <= 5 ? "#f03030" : "#f07030",lineHeight:1}}>{countdown}</div>
+              <div style={{fontSize:14,color:"#5a6080",marginTop:16,marginBottom:32}}>Put your phone away now</div>
+              <button className="btn btn-secondary" onClick={cancelCountdown}>✕ Cancel</button>
+            </div>
           )}
 
           {(status === "running" || status === "paused") && (
