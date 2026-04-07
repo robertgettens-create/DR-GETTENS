@@ -29,7 +29,7 @@
     const WEEKS_LEFT = Math.floor(DAYS_LEFT / 7);
     const FITBIT_AUTH_URL = "https://www.fitbit.com/oauth2/authorize";
     const FITBIT_TOKEN_URL = "https://api.fitbit.com/oauth2/token";
-    const APP_VERSION = "v21";
+    const APP_VERSION = "v22";
     const FITBIT_API = "https://api.fitbit.com/1";
     const WORKOUT_ICONS = { Run: "🏃", Bike: "🚴", Kayak: "🛶", Gardening: "🌱", Walk: "🚶", Rest: "😴", Other: "⚡" };
 
@@ -766,6 +766,7 @@ COACHING PRINCIPLES:
       const [gpsAccuracy, setGpsAccuracy] = useState(null);
       const [countdown, setCountdown] = useState(null); // null or number 30..0
       const countdownRef = useRef(null);
+      const runActiveRef = useRef(false); // true only when run is actually in progress (not countdown)
       const [voices, setVoices] = useState([]);
       const [selectedVoiceName, setSelectedVoiceName] = useState(() => localStorage.getItem("rc_voice") || "");
       const selectedVoiceRef = useRef(null);
@@ -871,13 +872,63 @@ COACHING PRINCIPLES:
       }, []);
 
       function stopTracking(silent = false) {
+        runActiveRef.current = false;
         if (watchRef.current != null) { navigator.geolocation.clearWatch(watchRef.current); watchRef.current = null; }
         if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
         if (!silent) { pausedElapsedRef.current = elapsed; }
       }
 
+      function startGpsWatch() {
+        if (watchRef.current != null) return; // already watching
+        watchRef.current = navigator.geolocation.watchPosition(
+          pos => {
+            const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+            if (accuracy > 65) return;
+            setGpsAccuracy(Math.round(accuracy));
+            const newPt = { lat, lon, ts: Date.now() };
+            // Only accumulate distance and announce splits once run is active
+            if (runActiveRef.current) {
+              if (lastPosRef.current) {
+                const d = haversine(lastPosRef.current, newPt);
+                if (d > 0.001 && d < 0.5) {
+                  accDistRef.current += d;
+                  setDistance(accDistRef.current);
+                }
+              }
+              setPositions(prev => [...prev, newPt]);
+              latLngsRef.current = [...latLngsRef.current, [lat, lon]];
+              if (polylineRef.current && leafletMapRef.current) {
+                polylineRef.current.setLatLngs(latLngsRef.current);
+                leafletMapRef.current.setView([lat, lon], leafletMapRef.current.getZoom() || 16);
+              }
+              const completedQuarter = Math.floor(accDistRef.current / 0.25);
+              if (completedQuarter > lastSplitMileRef.current) {
+                const currentElapsed = Math.floor((Date.now() - startTimeRef.current) / 1000) + pausedElapsedRef.current;
+                const pace = fmtPace(accDistRef.current, currentElapsed);
+                const label = quarterLabel(completedQuarter);
+                const split = { quarter: completedQuarter, label, pace, time: fmtTime(currentElapsed) };
+                setSplits(prev => [...prev, split]);
+                lastSplitMileRef.current = completedQuarter;
+                const isMile = completedQuarter % 4 === 0;
+                const completedMile = completedQuarter / 4;
+                if (isMile) {
+                  speak(`${quarterLabelSpoken(completedQuarter)}. Pace ${pace ? pace.replace(":"," minutes ") + " seconds per mile" : "calculating"}. Total time ${fmtTime(currentElapsed)}.`);
+                  if (apiKey && [2,4,6].includes(completedMile)) fetchCoachTip(completedMile, pace, currentElapsed, accDistRef.current);
+                } else {
+                  speak(`${quarterLabelSpoken(completedQuarter)}. Pace ${pace ? pace.replace(":"," minutes ") + " seconds per mile" : "calculating"}.`);
+                }
+              }
+            }
+            lastPosRef.current = newPt; // always update position so we have a good fix ready
+          },
+          err => console.warn("GPS error:", err.message),
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      }
+
       function cancelCountdown() {
         if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
+        stopTracking(true);
         setCountdown(null);
         setStatus("idle");
       }
@@ -886,6 +937,8 @@ COACHING PRINCIPLES:
         const SECS = 30;
         setCountdown(SECS);
         setStatus("countdown");
+        // Start GPS NOW so permission dialog appears before phone goes in belt
+        startGpsWatch();
         speak("30 second countdown starting. Get ready!");
         let remaining = SECS;
         countdownRef.current = setInterval(() => {
@@ -904,61 +957,19 @@ COACHING PRINCIPLES:
       function startRun() {
         setSaved(false);
         setStatus("running");
-        setElapsed(0); setDistance(0); setPositions([]); setSplits([]); setCurrentPace(null); setCoachMsg(""); setGpsAccuracy(null);
-        accDistRef.current = 0; lastSplitMileRef.current = 0; lastPosRef.current = null; latLngsRef.current = [];
+        setElapsed(0); setDistance(0); setPositions([]); setSplits([]); setCurrentPace(null); setCoachMsg("");
+        accDistRef.current = 0; lastSplitMileRef.current = 0; latLngsRef.current = [];
+        // Don't reset lastPosRef — keep the GPS fix from countdown warmup
         pausedElapsedRef.current = 0;
         startTimeRef.current = Date.now();
+        runActiveRef.current = true; // start accumulating distance
         // Timer
         timerRef.current = setInterval(() => {
           const e = Math.floor((Date.now() - startTimeRef.current) / 1000) + pausedElapsedRef.current;
           setElapsed(e);
-          // Update rolling pace every 5 sec
           if (accDistRef.current > 0.1) setCurrentPace(fmtPace(accDistRef.current, e));
         }, 1000);
-        // GPS watch
-        watchRef.current = navigator.geolocation.watchPosition(
-          pos => {
-            const { latitude: lat, longitude: lon, accuracy } = pos.coords;
-            if (accuracy > 65) return; // ignore poor fixes
-            setGpsAccuracy(Math.round(accuracy));
-            const newPt = { lat, lon, ts: Date.now() };
-            if (lastPosRef.current) {
-              const d = haversine(lastPosRef.current, newPt);
-              if (d > 0.001 && d < 0.5) { // ignore micro-jitter and GPS jumps
-                accDistRef.current += d;
-                setDistance(accDistRef.current);
-              }
-            }
-            lastPosRef.current = newPt;
-            setPositions(prev => [...prev, newPt]);
-            latLngsRef.current = [...latLngsRef.current, [lat, lon]];
-            // Update map
-            if (polylineRef.current && leafletMapRef.current) {
-              polylineRef.current.setLatLngs(latLngsRef.current);
-              leafletMapRef.current.setView([lat, lon], leafletMapRef.current.getZoom() || 16);
-            }
-            // Quarter-mile split announcements
-            const completedQuarter = Math.floor(accDistRef.current / 0.25);
-            if (completedQuarter > lastSplitMileRef.current) {
-              const currentElapsed = Math.floor((Date.now() - startTimeRef.current) / 1000) + pausedElapsedRef.current;
-              const pace = fmtPace(accDistRef.current, currentElapsed);
-              const label = quarterLabel(completedQuarter);
-              const split = { quarter: completedQuarter, label, pace, time: fmtTime(currentElapsed) };
-              setSplits(prev => [...prev, split]);
-              lastSplitMileRef.current = completedQuarter;
-              const isMile = completedQuarter % 4 === 0;
-              const completedMile = completedQuarter / 4;
-              if (isMile) {
-                speak(`${quarterLabelSpoken(completedQuarter)}. Pace ${pace ? pace.replace(":"," minutes ") + " seconds per mile" : "calculating"}. Total time ${fmtTime(currentElapsed)}.`);
-                if (apiKey && [2,4,6].includes(completedMile)) fetchCoachTip(completedMile, pace, currentElapsed, accDistRef.current);
-              } else {
-                speak(`${quarterLabelSpoken(completedQuarter)}. Pace ${pace ? pace.replace(":"," minutes ") + " seconds per mile" : "calculating"}.`);
-              }
-            }
-          },
-          err => console.warn("GPS error:", err.message),
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
+        startGpsWatch(); // already running from countdown warmup; no-op if so
         speak("Run started. Good luck!");
       }
 
@@ -978,44 +989,8 @@ COACHING PRINCIPLES:
           setElapsed(e);
           if (accDistRef.current > 0.1) setCurrentPace(fmtPace(accDistRef.current, e));
         }, 1000);
-        watchRef.current = navigator.geolocation.watchPosition(
-          pos => {
-            const { latitude: lat, longitude: lon, accuracy } = pos.coords;
-            if (accuracy > 65) return;
-            setGpsAccuracy(Math.round(accuracy));
-            const newPt = { lat, lon, ts: Date.now() };
-            if (lastPosRef.current) {
-              const d = haversine(lastPosRef.current, newPt);
-              if (d > 0.001 && d < 0.5) { accDistRef.current += d; setDistance(accDistRef.current); }
-            }
-            lastPosRef.current = newPt;
-            latLngsRef.current = [...latLngsRef.current, [lat, lon]];
-            if (polylineRef.current && leafletMapRef.current) {
-              polylineRef.current.setLatLngs(latLngsRef.current);
-              leafletMapRef.current.setView([lat, lon], leafletMapRef.current.getZoom() || 16);
-            }
-            // Continue quarter-mile splits after resume
-            const completedQuarter = Math.floor(accDistRef.current / 0.25);
-            if (completedQuarter > lastSplitMileRef.current) {
-              const currentElapsed = Math.floor((Date.now() - startTimeRef.current) / 1000) + pausedElapsedRef.current;
-              const pace = fmtPace(accDistRef.current, currentElapsed);
-              const label = quarterLabel(completedQuarter);
-              const split = { quarter: completedQuarter, label, pace, time: fmtTime(currentElapsed) };
-              setSplits(prev => [...prev, split]);
-              lastSplitMileRef.current = completedQuarter;
-              const isMile = completedQuarter % 4 === 0;
-              const completedMile = completedQuarter / 4;
-              if (isMile) {
-                speak(`${quarterLabelSpoken(completedQuarter)}. Pace ${pace ? pace.replace(":"," minutes ") + " seconds per mile" : "calculating"}. Total time ${fmtTime(currentElapsed)}.`);
-                if (apiKey && [2,4,6].includes(completedMile)) fetchCoachTip(completedMile, pace, currentElapsed, accDistRef.current);
-              } else {
-                speak(`${quarterLabelSpoken(completedQuarter)}. Pace ${pace ? pace.replace(":"," minutes ") + " seconds per mile" : "calculating"}.`);
-              }
-            }
-          },
-          err => console.warn("GPS error:", err),
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
+        runActiveRef.current = true;
+        startGpsWatch();
         speak("Run resumed.");
       }
 
