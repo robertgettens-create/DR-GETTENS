@@ -29,7 +29,7 @@
     const WEEKS_LEFT = Math.floor(DAYS_LEFT / 7);
     const FITBIT_AUTH_URL = "https://www.fitbit.com/oauth2/authorize";
     const FITBIT_TOKEN_URL = "https://api.fitbit.com/oauth2/token";
-    const APP_VERSION = "v22";
+    const APP_VERSION = "v23";
     const FITBIT_API = "https://api.fitbit.com/1";
     const WORKOUT_ICONS = { Run: "🏃", Bike: "🚴", Kayak: "🛶", Gardening: "🌱", Walk: "🚶", Rest: "😴", Other: "⚡" };
 
@@ -764,9 +764,17 @@ COACHING PRINCIPLES:
       const [audioEnabled, setAudioEnabled] = useState(true);
       const [saved, setSaved] = useState(false);
       const [gpsAccuracy, setGpsAccuracy] = useState(null);
-      const [countdown, setCountdown] = useState(null); // null or number 30..0
+      const [countdown, setCountdown] = useState(null);
       const countdownRef = useRef(null);
-      const runActiveRef = useRef(false); // true only when run is actually in progress (not countdown)
+      const runActiveRef = useRef(false);
+      // Structured workout state
+      const [workoutMode, setWorkoutMode] = useState("free"); // "free"|"interval"|"tempo"
+      const [intervalCfg, setIntervalCfg] = useState({ repeats:8, hardSec:60, recSec:120, warmup:5, cooldown:5, includeWarmup:true, includeCooldown:true });
+      const [tempoCfg, setTempoCfg]       = useState({ warmup:5, tempo:25, cooldown:5 });
+      const [currentPhase, setCurrentPhase] = useState(null);
+      const phasesRef      = useRef([]);
+      const phaseIdxRef    = useRef(0);
+      const phaseElapsedRef = useRef(0); // true only when run is actually in progress (not countdown)
       const [voices, setVoices] = useState([]);
       const [selectedVoiceName, setSelectedVoiceName] = useState(() => localStorage.getItem("rc_voice") || "");
       const selectedVoiceRef = useRef(null);
@@ -818,6 +826,42 @@ COACHING PRINCIPLES:
         const secsPerMile = secs / miles;
         const m = Math.floor(secsPerMile / 60), s = Math.round(secsPerMile % 60);
         return `${m}:${String(s).padStart(2,"0")}`;
+      }
+
+      function phaseColor(type) {
+        if (type==="hard")  return "#f03030";
+        if (type==="walk")  return "#4080ff";
+        if (type==="tempo") return "#f07030";
+        return "#40c070"; // easy
+      }
+      function phaseLabel(type) {
+        if (type==="hard")  return "⚡ HARD EFFORT";
+        if (type==="walk")  return "🚶 Walk Recovery";
+        if (type==="tempo") return "🔥 Tempo Effort";
+        return "🟢 Easy Pace";
+      }
+      function buildPhases(mode, iCfg, tCfg) {
+        const phases = [];
+        if (mode === "interval") {
+          if (iCfg.includeWarmup && iCfg.warmup > 0)
+            phases.push({ name:"Warm-Up", type:"easy", duration:iCfg.warmup*60, spoken:`Warm-up. Easy pace for ${iCfg.warmup} minutes. Get loose.` });
+          for (let i = 1; i <= iCfg.repeats; i++) {
+            const isLast = i === iCfg.repeats;
+            phases.push({ name:`Interval ${i} of ${iCfg.repeats}`, type:"hard", duration:iCfg.hardSec,
+              spoken: isLast ? `Last interval! Number ${i} of ${iCfg.repeats}. Hard effort. Go!` : `Interval ${i} of ${iCfg.repeats}. Hard effort. Go!` });
+            if (i < iCfg.repeats)
+              phases.push({ name:`Recovery ${i}`, type:"walk", duration:iCfg.recSec, spoken:`Walk recovery. ${Math.floor(iCfg.recSec/60)} minute${iCfg.recSec>=120?"s":""}.` });
+          }
+          if (iCfg.includeCooldown && iCfg.cooldown > 0)
+            phases.push({ name:"Cool-Down", type:"easy", duration:iCfg.cooldown*60, spoken:`Cool down. Easy pace for ${iCfg.cooldown} minutes. Well done!` });
+        } else if (mode === "tempo") {
+          if (tCfg.warmup > 0)
+            phases.push({ name:"Warm-Up", type:"easy", duration:tCfg.warmup*60, spoken:`Warm-up. Easy pace for ${tCfg.warmup} minutes.` });
+          phases.push({ name:"Tempo Run", type:"tempo", duration:tCfg.tempo*60, spoken:`Tempo effort. Comfortably hard — Zone 3 to 4. Sustain for ${tCfg.tempo} minutes.` });
+          if (tCfg.cooldown > 0)
+            phases.push({ name:"Cool-Down", type:"easy", duration:tCfg.cooldown*60, spoken:`Cool down. Easy pace. ${tCfg.cooldown} minutes. Great work!` });
+        }
+        return phases;
       }
 
       function quarterLabel(n) {
@@ -957,20 +1001,55 @@ COACHING PRINCIPLES:
       function startRun() {
         setSaved(false);
         setStatus("running");
-        setElapsed(0); setDistance(0); setPositions([]); setSplits([]); setCurrentPace(null); setCoachMsg("");
+        setElapsed(0); setDistance(0); setPositions([]); setSplits([]); setCurrentPace(null); setCoachMsg(""); setCurrentPhase(null);
         accDistRef.current = 0; lastSplitMileRef.current = 0; latLngsRef.current = [];
-        // Don't reset lastPosRef — keep the GPS fix from countdown warmup
         pausedElapsedRef.current = 0;
         startTimeRef.current = Date.now();
-        runActiveRef.current = true; // start accumulating distance
+        runActiveRef.current = true;
+        // Build structured phases if needed
+        const phases = buildPhases(workoutMode, intervalCfg, tempoCfg);
+        phasesRef.current = phases;
+        phaseIdxRef.current = 0;
+        phaseElapsedRef.current = 0;
         // Timer
         timerRef.current = setInterval(() => {
           const e = Math.floor((Date.now() - startTimeRef.current) / 1000) + pausedElapsedRef.current;
           setElapsed(e);
           if (accDistRef.current > 0.1) setCurrentPace(fmtPace(accDistRef.current, e));
+          // Structured phase management
+          const allPhases = phasesRef.current;
+          if (allPhases.length > 0) {
+            phaseElapsedRef.current += 1;
+            const idx = phaseIdxRef.current;
+            if (idx < allPhases.length) {
+              const phase = allPhases[idx];
+              const remaining = phase.duration - phaseElapsedRef.current;
+              const nextPhase = allPhases[idx + 1] || null;
+              setCurrentPhase({ ...phase, remaining: Math.max(0, remaining), phaseIdx: idx, totalPhases: allPhases.length, nextPhase });
+              if (remaining === 10) speak("10 seconds.");
+              if (remaining === 3) speak("3");
+              if (remaining === 2) speak("2");
+              if (remaining === 1) speak("1");
+              if (remaining <= 0) {
+                const nextIdx = idx + 1;
+                phaseIdxRef.current = nextIdx;
+                phaseElapsedRef.current = 0;
+                if (nextIdx < allPhases.length) {
+                  speak(allPhases[nextIdx].spoken);
+                } else {
+                  speak("Workout complete! Excellent work!");
+                  setCurrentPhase(null);
+                }
+              }
+            }
+          }
         }, 1000);
-        startGpsWatch(); // already running from countdown warmup; no-op if so
-        speak("Run started. Good luck!");
+        startGpsWatch();
+        if (phases.length > 0) {
+          speak(phases[0].spoken);
+        } else {
+          speak("Run started. Good luck!");
+        }
       }
 
       function pauseRun() {
@@ -1084,6 +1163,72 @@ COACHING PRINCIPLES:
                   </button>
                 </div>
               )}
+              {/* Workout mode selector */}
+              <div className="card" style={{marginBottom:12}}>
+                <div className="card-title" style={{marginBottom:8}}>Workout Type</div>
+                <div style={{display:"flex",gap:8,marginBottom:12}}>
+                  {[["free","🏃 Free Run"],["interval","⚡ Intervals"],["tempo","🔥 Tempo"]].map(([m,label])=>(
+                    <button key={m} onClick={()=>setWorkoutMode(m)} style={{flex:1,padding:"10px 4px",fontSize:13,fontWeight:workoutMode===m?700:400,background:workoutMode===m?"#1a2a3a":"#1a1d2a",border:`1px solid ${workoutMode===m?"#4080ff":"#2a2d3e"}`,borderRadius:10,color:workoutMode===m?"#60a0ff":"#a0a8c0",cursor:"pointer"}}>{label}</button>
+                  ))}
+                </div>
+
+                {workoutMode==="interval" && (
+                  <div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
+                      {[["Repeats",intervalCfg.repeats,v=>setIntervalCfg(c=>({...c,repeats:Math.max(1,v)})),1,20],
+                        ["Hard (sec)",intervalCfg.hardSec,v=>setIntervalCfg(c=>({...c,hardSec:Math.max(15,v)})),15,600],
+                        ["Walk (sec)",intervalCfg.recSec,v=>setIntervalCfg(c=>({...c,recSec:Math.max(15,v)})),15,600]
+                      ].map(([label,val,setter,min,max])=>(
+                        <div key={label} style={{textAlign:"center"}}>
+                          <div style={{fontSize:10,color:"#5a6080",marginBottom:4}}>{label}</div>
+                          <div style={{display:"flex",alignItems:"center",gap:4}}>
+                            <button onClick={()=>setter(val-( label==="Repeats"?1:15))} style={{width:24,height:24,background:"#2a2d3e",border:"none",borderRadius:6,color:"#a0a8c0",cursor:"pointer",fontSize:14}}>−</button>
+                            <span style={{flex:1,textAlign:"center",fontSize:13,fontWeight:600,color:"#f0ede8"}}>{label==="Repeats"?val:val+"s"}</span>
+                            <button onClick={()=>setter(val+(label==="Repeats"?1:15))} style={{width:24,height:24,background:"#2a2d3e",border:"none",borderRadius:6,color:"#a0a8c0",cursor:"pointer",fontSize:14}}>+</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{display:"flex",gap:8}}>
+                      <label style={{flex:1,fontSize:12,color:"#a0a8c0",display:"flex",alignItems:"center",gap:6}}>
+                        <input type="checkbox" checked={intervalCfg.includeWarmup} onChange={e=>setIntervalCfg(c=>({...c,includeWarmup:e.target.checked}))} />
+                        Warmup ({intervalCfg.warmup} min)
+                      </label>
+                      <label style={{flex:1,fontSize:12,color:"#a0a8c0",display:"flex",alignItems:"center",gap:6}}>
+                        <input type="checkbox" checked={intervalCfg.includeCooldown} onChange={e=>setIntervalCfg(c=>({...c,includeCooldown:e.target.checked}))} />
+                        Cooldown ({intervalCfg.cooldown} min)
+                      </label>
+                    </div>
+                    <div style={{marginTop:8,fontSize:11,color:"#5a6080"}}>
+                      Total: {intervalCfg.repeats} intervals · {Math.round(((intervalCfg.includeWarmup?intervalCfg.warmup*60:0)+(intervalCfg.hardSec+intervalCfg.recSec)*intervalCfg.repeats+(intervalCfg.includeCooldown?intervalCfg.cooldown*60:0))/60)} min est.
+                    </div>
+                  </div>
+                )}
+
+                {workoutMode==="tempo" && (
+                  <div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                      {[["Warmup (min)",tempoCfg.warmup,v=>setTempoCfg(c=>({...c,warmup:Math.max(0,v)}))],
+                        ["Tempo (min)",tempoCfg.tempo,v=>setTempoCfg(c=>({...c,tempo:Math.max(5,v)}))],
+                        ["Cooldown (min)",tempoCfg.cooldown,v=>setTempoCfg(c=>({...c,cooldown:Math.max(0,v)}))]
+                      ].map(([label,val,setter])=>(
+                        <div key={label} style={{textAlign:"center"}}>
+                          <div style={{fontSize:10,color:"#5a6080",marginBottom:4}}>{label}</div>
+                          <div style={{display:"flex",alignItems:"center",gap:4}}>
+                            <button onClick={()=>setter(val-1)} style={{width:24,height:24,background:"#2a2d3e",border:"none",borderRadius:6,color:"#a0a8c0",cursor:"pointer",fontSize:14}}>−</button>
+                            <span style={{flex:1,textAlign:"center",fontSize:13,fontWeight:600,color:"#f0ede8"}}>{val}</span>
+                            <button onClick={()=>setter(val+1)} style={{width:24,height:24,background:"#2a2d3e",border:"none",borderRadius:6,color:"#a0a8c0",cursor:"pointer",fontSize:14}}>+</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{marginTop:8,fontSize:11,color:"#5a6080"}}>
+                      Total: {tempoCfg.warmup+tempoCfg.tempo+tempoCfg.cooldown} min · Tempo Zone 3–4 HR (134–150 bpm)
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="alert alert-info" style={{fontSize:12}}>
                 <div style={{marginBottom:6}}>When prompted, <strong>allow location access</strong>. Keep your screen on during the run.</div>
                 <div style={{marginBottom:6,color:"#c0a020",fontWeight:600}}>📱 iPhone tips for best GPS:</div>
@@ -1108,6 +1253,18 @@ COACHING PRINCIPLES:
 
           {(status === "running" || status === "paused") && (
             <>
+              {/* Structured workout phase indicator */}
+              {currentPhase && (
+                <div style={{background:`${phaseColor(currentPhase.type)}18`,border:`2px solid ${phaseColor(currentPhase.type)}`,borderRadius:14,padding:"14px 16px",marginBottom:12}}>
+                  <div style={{fontSize:20,fontWeight:700,color:phaseColor(currentPhase.type),marginBottom:2}}>{phaseLabel(currentPhase.type)}</div>
+                  <div style={{fontSize:13,color:"#a0a8c0",marginBottom:8}}>{currentPhase.name} · Phase {currentPhase.phaseIdx+1} of {currentPhase.totalPhases}</div>
+                  <div style={{fontSize:44,fontWeight:700,color:"#f0ede8",lineHeight:1}}>{fmtTime(currentPhase.remaining)}</div>
+                  {currentPhase.nextPhase && (
+                    <div style={{fontSize:11,color:"#5a6080",marginTop:6}}>Next → {currentPhase.nextPhase.name} ({fmtTime(currentPhase.nextPhase.duration)})</div>
+                  )}
+                </div>
+              )}
+
               {/* Big live stats */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
                 <div className="card" style={{textAlign:"center",padding:"16px 8px"}}>
