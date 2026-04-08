@@ -219,13 +219,7 @@
         <div class="tick-row"><span>Low</span><span>High</span></div>
       </div>
     </div>
-    <div style="margin-top:6px">
-      <div class="section-label">Sample Type</div>
-      <div class="mat-grid">
-        <button class="mat-btn active" id="cs-poly"    onclick="setCharSample('poly')">Poly-<br>crystalline</button>
-        <button class="mat-btn"        id="cs-single"  onclick="setCharSample('single')">Single<br>Crystal</button>
-      </div>
-    </div>
+    <!-- Sample type removed — polycrystalline is the standard case -->
   </div>
 
   <div id="scenario-note">Toggle defect types and adjust temperature to explore vacancy concentration via the Arrhenius equation.</div>
@@ -1879,14 +1873,26 @@ function drawCharacterization(W, H) {
     ctx.arc(cx, cy, viewR + 1, 0, Math.PI * 2, true);
     ctx.fill();
 
-    // Scale bar
+    // Scale bar — adjusts with magnification
     const barW = viewR * 0.4;
     const barY = cy + viewR - 16;
     ctx.fillStyle = '#e0e0e0';
     ctx.fillRect(cx - barW / 2, barY, barW, 3);
+    ctx.fillRect(cx - barW / 2, barY - 2, 2, 7); // left tick
+    ctx.fillRect(cx + barW / 2 - 2, barY - 2, 2, 7); // right tick
     ctx.font = '9px Segoe UI'; ctx.textAlign = 'center';
-    const scales = { optical: '50 μm', sem: '5 μm', tem: '200 nm' };
-    ctx.fillText(scales[tech], cx, barY + 14);
+    let scaleLabel;
+    if (tech === 'optical') {
+      const um = Math.round(500 / (S.charMag / 50));
+      scaleLabel = um >= 1000 ? (um / 1000).toFixed(1) + ' mm' : um + ' μm';
+    } else if (tech === 'sem') {
+      const um = 200 / (S.charMag / 500);
+      scaleLabel = um >= 1 ? Math.round(um) + ' μm' : Math.round(um * 1000) + ' nm';
+    } else {
+      const nm = 2000 / (S.charMag / 10000);
+      scaleLabel = nm >= 1 ? Math.round(nm) + ' nm' : nm.toFixed(1) + ' nm';
+    }
+    ctx.fillText(scaleLabel, cx, barY + 14);
   }
 
   // Magnification label
@@ -1898,119 +1904,310 @@ function drawCharacterization(W, H) {
 }
 
 function drawOpticalView(cx, cy, R) {
-  // Simulated etched grain structure
+  // Simulated etched grain structure — optical microscopy (reflected light)
+  // Low mag → many grains visible; High mag → zoomed into fewer grains
   const rng = seededRng(17);
-  const nGrains = 8 + Math.floor(S.charMag / 80);
+  const magFrac = (S.charMag - 50) / (1000 - 50); // 0=low, 1=high
+  const nGrains = Math.max(3, Math.round(16 - magFrac * 12));
   const pts = [];
   for (let i = 0; i < nGrains; i++) {
     pts.push({ x: (rng() - 0.5) * R * 2, y: (rng() - 0.5) * R * 2, bright: 0.15 + rng() * 0.25 });
   }
 
-  // Voronoi-color each grain with different brightness
-  const step = 3;
+  // Voronoi-color each grain with different brightness (single pass with boundary detection)
+  const step = 4;
   for (let y = -R; y < R; y += step) {
     for (let x = -R; x < R; x += step) {
       if (x * x + y * y > R * R) continue;
-      let minD = Infinity, minI = 0;
+      let minD = Infinity, minI = 0, secondD = Infinity;
       for (let i = 0; i < pts.length; i++) {
         const d = (x - pts[i].x) ** 2 + (y - pts[i].y) ** 2;
-        if (d < minD) { minD = d; minI = i; }
-      }
-      const b = pts[minI].bright;
-      ctx.fillStyle = `rgb(${Math.floor(b * 200)},${Math.floor(b * 210)},${Math.floor(b * 230)})`;
-      ctx.fillRect(cx + x, cy + y, step, step);
-    }
-  }
-
-  // Dark grain boundaries
-  for (let y = -R; y < R; y += step) {
-    for (let x = -R; x < R; x += step) {
-      if (x * x + y * y > R * R) continue;
-      let minD = Infinity, secondD = Infinity;
-      for (let i = 0; i < pts.length; i++) {
-        const d = (x - pts[i].x) ** 2 + (y - pts[i].y) ** 2;
-        if (d < minD) { secondD = minD; minD = d; }
+        if (d < minD) { secondD = minD; minI = i; minD = d; }
         else if (d < secondD) secondD = d;
       }
-      if (Math.sqrt(secondD) - Math.sqrt(minD) < step * 2) {
+      const isBoundary = Math.sqrt(secondD) - Math.sqrt(minD) < step * 2;
+      if (isBoundary) {
         ctx.fillStyle = '#080a10';
-        ctx.fillRect(cx + x, cy + y, step, step);
+      } else {
+        const b = pts[minI].bright;
+        ctx.fillStyle = `rgb(${Math.floor(b * 200)},${Math.floor(b * 210)},${Math.floor(b * 230)})`;
       }
+      ctx.fillRect(cx + x, cy + y, step, step);
     }
   }
 }
 
 function drawSEMView(cx, cy, R) {
-  // Simulated SEM fracture surface (bright edges, grainy)
+  // SEM: secondary electron image — grayscale topographic contrast
+  // Lower mag: grain structure with 3D relief; Higher mag: surface detail + particles
   const rng = seededRng(23);
-  const step = 2;
+  const magFrac = (S.charMag - 100) / (50000 - 100); // 0 = low mag, 1 = high mag
+
+  // --- Generate grain structure (Voronoi, like optical but with topographic contrast) ---
+  // Fewer, larger grains at low mag; more at high mag (zooming in)
+  // Low mag → many grains visible; High mag → zoomed into ~1 grain
+  const nGrains = Math.max(2, Math.round(14 - magFrac * 11));
+  const grainPts = [];
+  const grng = seededRng(77);
+  for (let i = 0; i < nGrains; i++) {
+    grainPts.push({
+      x: (grng() - 0.5) * R * 2,
+      y: (grng() - 0.5) * R * 2,
+      height: 0.15 + grng() * 0.45,
+      tilt: grng() * Math.PI * 2
+    });
+  }
+
+  // Second-phase particles (only visible when zoomed in enough)
+  const nParticles = magFrac > 0.2 ? Math.round(3 + magFrac * 8) : 0;
+  const particles = [];
+  const prng = seededRng(41);
+  for (let i = 0; i < nParticles; i++) {
+    const px = (prng() - 0.5) * R * 1.6;
+    const py = (prng() - 0.5) * R * 1.6;
+    if (px * px + py * py < R * R * 0.8) {
+      particles.push({
+        x: px, y: py,
+        r: 2 + prng() * (3 + magFrac * 6),
+        bright: prng() > 0.5 // BSE contrast: some bright (heavy), some dark (light element)
+      });
+    }
+  }
+
+  // Draw grain regions with topographic SEM contrast (single pass for performance)
+  const step = 4;
+  const noiseScale = 0.02 + magFrac * 0.12; // finer surface texture at higher mag
   for (let y = -R; y < R; y += step) {
     for (let x = -R; x < R; x += step) {
       if (x * x + y * y > R * R) continue;
-      // Topographic simulation: random height field
-      const h = rng() * 0.5 + 0.25;
-      // Edge-brightening: brighter if steep gradient
-      const edge = Math.abs(Math.sin(x * 0.08 + rng() * 3) * Math.cos(y * 0.06));
-      const b = h * 0.7 + edge * 0.3;
-      const v = Math.floor(b * 220);
-      ctx.fillStyle = `rgb(${v},${v},${v + 10})`;
+
+      // Find nearest and second-nearest grain
+      let minD = Infinity, minI = 0, secondD = Infinity;
+      for (let i = 0; i < grainPts.length; i++) {
+        const d = (x - grainPts[i].x) ** 2 + (y - grainPts[i].y) ** 2;
+        if (d < minD) { secondD = minD; minI = i; minD = d; }
+        else if (d < secondD) secondD = d;
+      }
+
+      const diff = Math.sqrt(secondD) - Math.sqrt(minD);
+      const isBoundary = diff < step * 2.2;
+      const isEdge = !isBoundary && diff < step * 4.5;
+
+      if (isBoundary) {
+        ctx.fillStyle = 'rgb(25,25,30)';
+      } else {
+        const grain = grainPts[minI];
+        const base = grain.height;
+        const nx = x * noiseScale, ny = y * noiseScale;
+        const texture = 0.08 * (Math.sin(nx * 3.7 + ny * 2.3) * Math.cos(nx * 1.9 - ny * 4.1)
+                       + 0.5 * Math.sin(nx * 7.1 + ny * 5.3));
+        let v = Math.max(0, Math.min(255, Math.floor((base + texture) * 220)));
+        if (isEdge) v = Math.min(255, v + 30); // bright edge effect from SE emission
+        ctx.fillStyle = `rgb(${v},${v},${Math.min(255, v + 5)})`;
+      }
       ctx.fillRect(cx + x, cy + y, step, step);
     }
   }
 
-  // Some river marks / features
-  ctx.strokeStyle = 'rgba(200,200,220,0.3)'; ctx.lineWidth = 1;
-  for (let i = 0; i < 5; i++) {
+  // Draw second-phase particles
+  particles.forEach(p => {
     ctx.beginPath();
-    const sx = (rng() - 0.5) * R, sy = (rng() - 0.5) * R;
-    ctx.moveTo(cx + sx, cy + sy);
-    ctx.lineTo(cx + sx + (rng() - 0.5) * R * 0.6, cy + sy + (rng() - 0.5) * R * 0.3);
-    ctx.stroke();
+    ctx.arc(cx + p.x, cy + p.y, p.r, 0, Math.PI * 2);
+    if (p.bright) {
+      // Heavy element particle — bright in BSE
+      ctx.fillStyle = '#e0e0e0';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 0.8; ctx.stroke();
+    } else {
+      // Light element / void — dark
+      ctx.fillStyle = '#181818';
+      ctx.fill();
+    }
+  });
+
+  // At higher magnification, label some features
+  if (magFrac > 0.3 && particles.length > 0) {
+    ctx.fillStyle = '#e0e060'; ctx.font = '8px Segoe UI'; ctx.textAlign = 'left';
+    const lp = particles.find(p => p.bright);
+    if (lp) ctx.fillText('precipitate', cx + lp.x + lp.r + 3, cy + lp.y + 3);
+    const dp = particles.find(p => !p.bright);
+    if (dp) ctx.fillText('void', cx + dp.x + dp.r + 3, cy + dp.y + 3);
+  }
+
+  // At very high mag, show surface scratches (polishing marks)
+  if (magFrac > 0.6) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
+    ctx.strokeStyle = 'rgba(180,180,190,0.15)'; ctx.lineWidth = 0.5;
+    const srng = seededRng(99);
+    const angle = 0.3; // scratch direction
+    for (let i = 0; i < 8; i++) {
+      const sy = (srng() - 0.5) * R * 2;
+      const sx = -R;
+      ctx.beginPath();
+      ctx.moveTo(cx + sx, cy + sy);
+      ctx.lineTo(cx + sx + R * 2, cy + sy + Math.tan(angle) * R * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 }
 
 function drawTEMView(cx, cy, R) {
-  // Simulated TEM: lighter background with dark dislocation lines
-  ctx.fillStyle = '#c8c8c0';
-  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+  // Bright-field TEM: light background, dark contrast from defects
+  // Higher magnification → fewer but larger/clearer features visible
+  const magFrac = (S.charMag - 10000) / (500000 - 10000); // 0=low, 1=high
 
-  // Bend contours (broad dark bands)
-  ctx.strokeStyle = 'rgba(40,40,40,0.15)'; ctx.lineWidth = 8;
-  ctx.beginPath();
-  ctx.moveTo(cx - R, cy - R * 0.3);
-  ctx.quadraticCurveTo(cx, cy + R * 0.2, cx + R, cy - R * 0.1);
-  ctx.stroke();
-
-  // Dislocation lines (dark wiggly lines)
+  // Background: slight mottled grey (thin foil contrast)
   const rng = seededRng(31);
-  ctx.strokeStyle = '#303030'; ctx.lineWidth = 1.5;
-  for (let n = 0; n < 12; n++) {
+  const step = 3;
+  for (let y = -R; y < R; y += step) {
+    for (let x = -R; x < R; x += step) {
+      if (x * x + y * y > R * R) continue;
+      // Slight variation to simulate thickness/diffraction contrast
+      const nx = x * 0.015, ny = y * 0.015;
+      const base = 0.78 + 0.08 * Math.sin(nx * 2.1 + ny * 1.7) + 0.04 * Math.cos(nx * 4.3 - ny * 3.1);
+      const v = Math.floor(base * 255);
+      ctx.fillStyle = `rgb(${v},${v},${Math.max(0, v - 8)})`;
+      ctx.fillRect(cx + x, cy + y, step, step);
+    }
+  }
+
+  // --- Bend contours (broad sweeping dark bands from foil bending) ---
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
+  // Two broad contours at different angles
+  for (let bc = 0; bc < 2; bc++) {
+    const bcy = bc === 0 ? -R * 0.25 : R * 0.4;
+    const angle = bc === 0 ? 0.15 : -0.1;
+    ctx.strokeStyle = `rgba(60,55,50,${0.12 + bc * 0.05})`; ctx.lineWidth = 12 + bc * 6;
     ctx.beginPath();
-    let px = (rng() - 0.5) * R * 1.5, py = (rng() - 0.5) * R * 1.5;
+    ctx.moveTo(cx - R, cy + bcy);
+    ctx.quadraticCurveTo(cx + R * 0.3, cy + bcy + R * angle, cx + R, cy + bcy + R * angle * 1.5);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // --- Dislocation lines ---
+  // At lower mag: dense network; at higher mag: individual lines clearer
+  const nDislocations = Math.round(18 - magFrac * 10);
+  const disRng = seededRng(47);
+  ctx.lineCap = 'round';
+
+  for (let n = 0; n < nDislocations; n++) {
+    // Dislocations tend to be straight or gently curved (crystallographic directions)
+    const startX = (disRng() - 0.5) * R * 1.6;
+    const startY = (disRng() - 0.5) * R * 1.6;
+    // Preferred direction (crystallographic)
+    const baseAngle = Math.floor(disRng() * 3) * Math.PI / 3 + (disRng() - 0.5) * 0.3;
+    const length = R * (0.2 + disRng() * 0.5);
+    const segs = 6;
+
+    ctx.strokeStyle = `rgba(30,28,25,${0.6 + disRng() * 0.3})`;
+    ctx.lineWidth = 1.0 + disRng() * 0.8;
+    ctx.beginPath();
+    let px = startX, py = startY;
     ctx.moveTo(cx + px, cy + py);
-    const segs = 4 + Math.floor(rng() * 4);
     for (let s = 0; s < segs; s++) {
-      px += (rng() - 0.5) * R * 0.3;
-      py += (rng() - 0.5) * R * 0.3;
+      // Mostly straight with slight waviness
+      px += (length / segs) * Math.cos(baseAngle) + (disRng() - 0.5) * 4;
+      py += (length / segs) * Math.sin(baseAngle) + (disRng() - 0.5) * 4;
       ctx.lineTo(cx + px, cy + py);
     }
     ctx.stroke();
   }
 
-  // Stacking fault fringe (striped region)
-  ctx.save();
-  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
-  ctx.strokeStyle = 'rgba(60,60,60,0.25)'; ctx.lineWidth = 2;
-  for (let i = -10; i <= 10; i++) {
-    const y = cy + R * 0.5 + i * 5;
+  // --- Dislocation pile-up at a boundary (a few lines converging) ---
+  ctx.strokeStyle = 'rgba(25,22,20,0.7)'; ctx.lineWidth = 1.2;
+  const pileX = R * 0.25, pileY = -R * 0.1;
+  for (let i = 0; i < 5; i++) {
     ctx.beginPath();
-    ctx.moveTo(cx - R * 0.3, y);
-    ctx.lineTo(cx + R * 0.2, y);
+    const offY = (i - 2) * 8;
+    ctx.moveTo(cx + pileX - R * 0.4, cy + pileY + offY - 15);
+    ctx.quadraticCurveTo(cx + pileX - 10, cy + pileY + offY * 0.3, cx + pileX, cy + pileY);
     ctx.stroke();
   }
+
+  // --- Stacking fault fringes (parallel alternating light/dark bands) ---
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
+  // Triangular/trapezoidal stacking fault region
+  const sfCx = cx - R * 0.25, sfCy = cy + R * 0.35;
+  const sfAngle = 0.4;
+  const sfW = R * 0.45, sfH = R * 0.22;
+  ctx.save();
+  ctx.translate(sfCx, sfCy);
+  ctx.rotate(sfAngle);
+  // Draw alternating bright/dark fringes
+  for (let i = -8; i <= 8; i++) {
+    const fy = i * 4;
+    if (Math.abs(fy) > sfH) continue;
+    // Fringe intensity alternates
+    const bright = i % 2 === 0;
+    ctx.strokeStyle = bright ? 'rgba(200,195,185,0.6)' : 'rgba(40,38,35,0.4)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    // Narrower at ends (bounded by partial dislocations)
+    const halfW = sfW * (1 - (fy / sfH) ** 2) * 0.5;
+    ctx.moveTo(-halfW, fy);
+    ctx.lineTo(halfW, fy);
+    ctx.stroke();
+  }
+  // Bounding partial dislocation lines
+  ctx.strokeStyle = 'rgba(30,25,20,0.7)'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-sfW * 0.5, -sfH); ctx.lineTo(sfW * 0.5, -sfH);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-sfW * 0.3, sfH); ctx.lineTo(sfW * 0.3, sfH);
+  ctx.stroke();
   ctx.restore();
-  ctx.fillStyle = '#505050'; ctx.font = '8px Segoe UI'; ctx.textAlign = 'left';
-  ctx.fillText('SF fringes', cx + R * 0.25, cy + R * 0.5);
+  ctx.restore();
+
+  // Label stacking fault
+  ctx.fillStyle = 'rgba(80,75,65,0.8)'; ctx.font = '8px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText('SF', sfCx + sfW * 0.3, sfCy - sfH * 0.5);
+
+  // --- Precipitates (dark or light spots depending on coherency) ---
+  if (magFrac > 0.1) {
+    const nPrec = Math.round(3 + magFrac * 8);
+    const pRng = seededRng(63);
+    for (let i = 0; i < nPrec; i++) {
+      const px = (pRng() - 0.5) * R * 1.4;
+      const py = (pRng() - 0.5) * R * 1.4;
+      if (px * px + py * py > R * R * 0.85) continue;
+      const pr = 2 + pRng() * (2 + magFrac * 5);
+      const coherent = pRng() > 0.4;
+      ctx.beginPath(); ctx.arc(cx + px, cy + py, pr, 0, Math.PI * 2);
+      if (coherent) {
+        // Coherent precipitate: dark with strain-field butterfly lobes
+        ctx.fillStyle = 'rgba(40,35,30,0.6)'; ctx.fill();
+        // Strain contrast lobes (butterfly pattern)
+        if (pr > 3) {
+          ctx.fillStyle = 'rgba(35,30,25,0.25)';
+          ctx.beginPath();
+          ctx.ellipse(cx + px - pr * 1.2, cy + py, pr * 0.8, pr * 1.5, 0.3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(cx + px + pr * 1.2, cy + py, pr * 0.8, pr * 1.5, 0.3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else {
+        // Incoherent: sharp dark boundary
+        ctx.fillStyle = 'rgba(50,45,40,0.5)'; ctx.fill();
+        ctx.strokeStyle = 'rgba(30,25,20,0.4)'; ctx.lineWidth = 1; ctx.stroke();
+      }
+    }
+    // Label one
+    if (nPrec > 0) {
+      ctx.fillStyle = 'rgba(80,75,65,0.8)'; ctx.font = '8px Segoe UI'; ctx.textAlign = 'left';
+      ctx.fillText('ppt', cx + R * 0.35, cy - R * 0.3);
+    }
+  }
+
+  // --- Diffraction label in corner ---
+  ctx.fillStyle = 'rgba(90,85,75,0.6)'; ctx.font = '8px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText('BF', cx - R + 8, cy - R + 14);
 }
 
 function drawXRDView(leftW, H) {
