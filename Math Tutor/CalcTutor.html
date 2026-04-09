@@ -162,6 +162,8 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--navy); 
 .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
 .btn-secondary { background: var(--navy3); color: var(--text); }
 .btn-secondary:hover { background: var(--border); }
+.btn-override { background: #92400e; color: #fef3c7; }
+.btn-override:hover { background: #b45309; }
 .btn-danger { background: var(--red); color: #fff; }
 .btn-danger:hover { opacity: 0.85; }
 .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
@@ -678,6 +680,7 @@ select.settings-input { width: 180px; cursor: pointer; }
 
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
               <button class="btn btn-primary" id="next-btn" style="display:none">Next Problem →</button>
+              <button class="btn btn-override btn-sm" id="override-btn" style="display:none" title="My answer matches the explanation but was marked wrong">✋ I was right — give me credit</button>
               <button class="btn btn-secondary btn-sm" id="flag-btn" title="Think there's a mistake? Ask Cal to recheck." style="opacity:0.7">⚠️ Flag a mistake</button>
               <div id="encouragement-msg" style="display:flex;align-items:center;font-size:0.9rem;color:var(--green);font-weight:600"></div>
             </div>
@@ -2508,7 +2511,7 @@ Each element must follow this exact shape:
 
 Rules:
 - All 8 problems must test DIFFERENT sub-skills within ${topicName}
-- CRITICAL: Verify every answer yourself before writing it. Arithmetic errors (e.g. -x=-3 so x=-3) are unacceptable. Double-check signs, algebra steps, and the correct index.
+- CRITICAL ACCURACY CHECK: After writing each problem, re-read your explanation and confirm the answer it describes matches the choice at index "correct". The most common error is the explanation saying one thing but "correct" pointing to a different choice. Triple-check the index.
 - Use common student misconceptions as wrong answer distractors — but the CORRECT answer must be mathematically verified
 - Hints must guide without revealing the answer
 - LaTeX: \\\\(x^2\\\\) not $x^2$. Use \\\\frac{}{}, \\\\sqrt{}, \\\\cdot, \\\\sin, \\\\cos, \\\\lim etc.
@@ -2647,6 +2650,8 @@ function showProblem() {
   document.getElementById('flag-result').innerHTML = '';
   document.getElementById('flag-btn').disabled = false;
   document.getElementById('flag-btn').textContent = '⚠️ Flag a mistake';
+  document.getElementById('override-btn').style.display = 'none';
+  document.getElementById('override-btn').disabled = false;
   updateDrillBanner();
   // Show diagram immediately if problem specifies one or question text triggers one
   if (prob.visual) showVisual(prob.visual);
@@ -2755,6 +2760,11 @@ function handleAnswer(choiceIndex, prob) {
 
   document.getElementById('next-btn').style.display = 'inline-block';
 
+  // Show override button on wrong answers so students can dispute an index mismatch
+  if (!isCorrect) {
+    document.getElementById('override-btn').style.display = 'inline-block';
+  }
+
   // Show visual on wrong answer — scan explanation + question for diagram triggers
   if (!isCorrect) {
     const scanText = (prob.explanation || '') + ' ' + (prob.question || '');
@@ -2831,6 +2841,33 @@ document.getElementById('hint-btn').addEventListener('click', () => {
   typesetMath();
 });
 
+document.getElementById('override-btn').addEventListener('click', () => {
+  if (!currentTopicId) return;
+  const btn = document.getElementById('override-btn');
+  btn.disabled = true;
+  btn.textContent = '✅ Credit applied';
+
+  // Retroactively credit this problem as correct
+  state.topics[currentTopicId].correct++;
+  // Make up the XP difference (already gave XP_PER_WRONG, top up to XP_PER_CORRECT)
+  state.xp += (XP_PER_CORRECT - XP_PER_WRONG);
+  state.level = Math.floor(state.xp / XP_PER_LEVEL) + 1;
+  sessionCorrect++;
+  sessionScore++;
+
+  saveState();
+  updateHeader();
+  updateSessionStats();
+  buildSidebar();
+
+  // Update the feedback box to reflect the correction
+  const fb = document.getElementById('feedback-box');
+  fb.className = 'feedback-box feedback-correct';
+  document.getElementById('feedback-title').textContent = '✅ Credited — index error overridden';
+  document.getElementById('encouragement-msg').textContent = 'Credit given! 💪 Flag it too so Cal can recheck the problem.';
+  document.getElementById('encouragement-msg').style.color = 'var(--green)';
+});
+
 document.getElementById('flag-btn').addEventListener('click', async () => {
   const prob = currentProblems[currentProblemIndex];
   if (!prob) return;
@@ -2847,6 +2884,7 @@ document.getElementById('flag-btn').addEventListener('click', async () => {
   flagBtn.textContent = '🔍 Rechecking…';
   flagResult.style.display = 'block';
   flagResult.innerHTML = '<em>Cal is carefully verifying this problem…</em>';
+  flagResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
   const questionText = (prob.question || '').replace(/<[^>]+>/g, '');
   const choicesText = (prob.choices || []).map((c, i) => `${['A','B','C','D'][i]}: ${c.replace(/<[^>]+>/g,'')}`).join('\n');
