@@ -2208,17 +2208,16 @@ function updateDrillBanner() {
 // VISUAL DIAGRAMS
 // ============================================================
 const VISUAL_KEYWORDS = {
-  unit_circle: [/unit circle/i, /arcsin|arccos|arctan/i, /sin\s*\(?\s*π|cos\s*\(?\s*π|tan\s*\(?\s*π/i,
-    /which quadrant/i, /astc/i, /all students take/i, /radian/i,
-    /sin is (neg|pos)/i, /cos is (neg|pos)/i],
-  triangle_30_60_90: [/30.{0,3}60.{0,3}90/i, /\\(\\s*\\\\frac\{\\\\pi\}\{6\}/i, /pi\/6|π\/6/i, /pi\/3|π\/3/i,
-    /sin\(?30|cos\(?30|sin\(?60|cos\(?60/i, /sqrt\{3\}\/2|√3\/2/i, /\\\\frac\{\\\\sqrt\{3\}\}\{2\}/i],
-  triangle_45_45_90: [/45.{0,3}45.{0,3}90/i, /pi\/4|π\/4/i,
-    /sin\(?45|cos\(?45/i, /sqrt\{2\}\/2|√2\/2/i, /1\/sqrt|1\/√2/i, /\\\\frac\{\\\\sqrt\{2\}\}\{2\}/i],
+  unit_circle: [/unit circle/i, /arcsin|arccos|arctan/i, /radian/i, /astc/i,
+    /all students take/i, /which quadrant/i, /sin.*negative|cos.*negative/i],
+  triangle_30_60_90: [/30.60.90/i, /pi\/6/i, /\bπ\/6\b/, /pi\/3/i, /\bπ\/3\b/,
+    /sin.*30|cos.*30|sin.*60|cos.*60/i, /sqrt.3.\/2/i, /√3\/2/],
+  triangle_45_45_90: [/45.45.90/i, /pi\/4/i, /\bπ\/4\b/,
+    /sin.*45|cos.*45/i, /sqrt.2.\/2/i, /√2\/2/],
   right_triangle: [/hypotenuse/i, /sohcahtoa/i, /soh.cah.toa/i,
     /opposite.*adjacent|adjacent.*opposite/i, /trig ratio/i],
-  quadrant_signs: [/which quadrant.*negative|negative.*quadrant/i,
-    /sign.*sin|sign.*cos|sign.*tan/i, /astc/i, /quadrant (I|II|III|IV)/i],
+  quadrant_signs: [/which quadrant/i, /sign of sin|sign of cos|sign of tan/i,
+    /\bastc\b/i, /quadrant (I|II|III|IV)/i],
 };
 
 function detectVisualType(text) {
