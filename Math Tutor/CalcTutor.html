@@ -636,8 +636,13 @@ select.settings-input { width: 180px; cursor: pointer; }
 
         <div id="problem-area" style="display:none">
           <div id="problem-loading">
-            <div class="spinner"></div>
-            <p>Cal is generating fresh problems for you…</p>
+            <div class="spinner" id="loading-spinner"></div>
+            <p id="loading-msg">Cal is generating fresh problems for you…</p>
+            <div id="loading-error" style="display:none;text-align:center;max-width:340px">
+              <p id="loading-error-msg" style="color:var(--red);font-size:0.88rem;margin-bottom:10px"></p>
+              <button class="btn btn-secondary btn-sm" id="retry-btn">🔄 Retry</button>
+              <button class="btn btn-secondary btn-sm" id="use-static-btn" style="margin-left:6px">📚 Use built-in problems</button>
+            </div>
           </div>
           <div class="problem-card" id="problem-card">
             <div id="drill-banner">
@@ -2107,8 +2112,15 @@ function masteryPct(topicId) {
 }
 
 function masteryStars(topicId) {
+  const t = state.topics[topicId];
+  if (!t) return 0;
   const pct = masteryPct(topicId);
-  if (pct >= 90) return 3;
+  const n = t.attempted;
+  // Require meaningful practice before awarding stars
+  if (n < 5)  return 0;          // need at least 5 attempts for any star
+  if (n < 8  && pct >= 90) return 2;   // cap at 2 stars before 8 attempts
+  if (n >= 10 && pct >= 90) return 3;  // 3 stars: 10+ attempts, 90%+
+  if (n >= 8  && pct >= 90) return 3;  // 3 stars: 8+ attempts, 90%+
   if (pct >= 70) return 2;
   if (pct >= 40) return 1;
   return 0;
@@ -2447,10 +2459,28 @@ Use LaTeX \\\\( \\\\) for all math. Wrong choices should reflect common errors.`
 // ============================================================
 // DYNAMIC PROBLEM GENERATION
 // ============================================================
-function showProblemLoading(show) {
+function showProblemLoading(show, errorMsg) {
   document.getElementById('problem-loading').style.display = show ? 'flex' : 'none';
   document.getElementById('problem-card').style.display = show ? 'none' : 'block';
+  if (show) {
+    const hasError = !!errorMsg;
+    document.getElementById('loading-spinner').style.display = hasError ? 'none' : 'block';
+    document.getElementById('loading-msg').style.display = hasError ? 'none' : 'block';
+    document.getElementById('loading-error').style.display = hasError ? 'block' : 'none';
+    if (hasError) document.getElementById('loading-error-msg').textContent = errorMsg;
+  }
 }
+
+document.getElementById('retry-btn').addEventListener('click', () => {
+  if (currentTopicId) loadProblems(currentTopicId);
+});
+
+document.getElementById('use-static-btn').addEventListener('click', () => {
+  if (!currentTopicId) return;
+  currentProblems = getFilteredProblems(currentTopicId);
+  showProblemLoading(false);
+  showProblem();
+});
 
 async function generateProblems(topicId) {
   const topic = TOPICS.find(t => t.id === topicId);
@@ -2485,28 +2515,46 @@ Rules:
 - Make problems realistic for a university Calculus 1 course
 - For the "visual" field, set one of: "unit_circle", "triangle_30_60_90", "triangle_45_45_90", "right_triangle", "quadrant_signs", or null. Set it when a diagram would genuinely help the student.`;
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': state.apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: prompt }]
-    })
-  });
+  let response;
+  try {
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': state.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+  } catch(netErr) {
+    throw new Error('Network error — check your internet connection.');
+  }
 
   const data = await response.json();
-  if (!data.content || !data.content[0]) throw new Error('Empty API response');
+
+  if (!response.ok) {
+    const apiMsg = data?.error?.message || '';
+    if (response.status === 401) throw new Error('Invalid API key (401). Go to ⚙️ Settings and re-enter your key from console.anthropic.com.');
+    if (response.status === 429) throw new Error('Rate limit reached (429). Wait a moment and click Retry.');
+    if (response.status === 500 || response.status === 529) throw new Error(`Anthropic API temporarily unavailable (${response.status}). Click Retry in a few seconds.`);
+    throw new Error(`API error ${response.status}${apiMsg ? ': ' + apiMsg : ''}`);
+  }
+
+  if (!data.content || !data.content[0]) throw new Error('Empty response from API — click Retry.');
   let text = data.content[0].text.trim();
-  // Strip any accidental markdown fences
   text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
-  const problems = JSON.parse(text);
-  if (!Array.isArray(problems) || problems.length === 0) throw new Error('Invalid problem array');
+  let problems;
+  try {
+    problems = JSON.parse(text);
+  } catch(parseErr) {
+    throw new Error('Problem data was malformed (JSON parse error) — click Retry.');
+  }
+  if (!Array.isArray(problems) || problems.length === 0) throw new Error('No problems returned — click Retry.');
   return problems;
 }
 
@@ -2546,12 +2594,12 @@ async function loadProblems(topicId) {
     showProblemLoading(true);
     try {
       currentProblems = await generateProblems(topicId);
+      showProblemLoading(false);
     } catch(e) {
-      console.warn('Problem generation failed, falling back to static bank:', e);
-      showToast('⚠️ Could not generate problems — using built-in set', 'warning');
-      currentProblems = getFilteredProblems(topicId);
+      console.warn('Problem generation failed:', e.message);
+      showProblemLoading(true, e.message);
+      return; // wait for Retry or Use built-in
     }
-    showProblemLoading(false);
   } else {
     currentProblems = getFilteredProblems(topicId);
   }
