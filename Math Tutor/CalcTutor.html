@@ -671,10 +671,12 @@ select.settings-input { width: 180px; cursor: pointer; }
               <div id="feedback-explanation"></div>
             </div>
 
-            <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
               <button class="btn btn-primary" id="next-btn" style="display:none">Next Problem →</button>
+              <button class="btn btn-secondary btn-sm" id="flag-btn" title="Think there's a mistake? Ask Cal to recheck." style="opacity:0.7">⚠️ Flag a mistake</button>
               <div id="encouragement-msg" style="display:flex;align-items:center;font-size:0.9rem;color:var(--green);font-weight:600"></div>
             </div>
+            <div id="flag-result" style="display:none;margin-top:12px;padding:12px;background:var(--navy3);border-radius:8px;border-left:3px solid var(--yellow);font-size:0.88rem;line-height:1.6"></div>
           </div>
 
           <div class="session-stats" id="session-stats">
@@ -2476,7 +2478,8 @@ Each element must follow this exact shape:
 
 Rules:
 - All 8 problems must test DIFFERENT sub-skills within ${topicName}
-- Use common student misconceptions as wrong answer distractors
+- CRITICAL: Verify every answer yourself before writing it. Arithmetic errors (e.g. -x=-3 so x=-3) are unacceptable. Double-check signs, algebra steps, and the correct index.
+- Use common student misconceptions as wrong answer distractors — but the CORRECT answer must be mathematically verified
 - Hints must guide without revealing the answer
 - LaTeX: \\\\(x^2\\\\) not $x^2$. Use \\\\frac{}{}, \\\\sqrt{}, \\\\cdot, \\\\sin, \\\\cos, \\\\lim etc.
 - Make problems realistic for a university Calculus 1 course
@@ -2592,6 +2595,10 @@ function showProblem() {
   document.getElementById('encouragement-msg').textContent = '';
 
   hideVisual();
+  document.getElementById('flag-result').style.display = 'none';
+  document.getElementById('flag-result').innerHTML = '';
+  document.getElementById('flag-btn').disabled = false;
+  document.getElementById('flag-btn').textContent = '⚠️ Flag a mistake';
   updateDrillBanner();
   // Show diagram immediately if problem specifies one or question text triggers one
   if (prob.visual) showVisual(prob.visual);
@@ -2774,6 +2781,66 @@ document.getElementById('hint-btn').addEventListener('click', () => {
   // Show reference diagram if hint text mentions a geometric concept
   tryShowVisual(hintText);
   typesetMath();
+});
+
+document.getElementById('flag-btn').addEventListener('click', async () => {
+  const prob = currentProblems[currentProblemIndex];
+  if (!prob) return;
+  const flagResult = document.getElementById('flag-result');
+  const flagBtn = document.getElementById('flag-btn');
+
+  if (!state.apiKey) {
+    flagResult.style.display = 'block';
+    flagResult.innerHTML = '⚙️ Add your Claude API key in Settings to have Cal recheck problems.';
+    return;
+  }
+
+  flagBtn.disabled = true;
+  flagBtn.textContent = '🔍 Rechecking…';
+  flagResult.style.display = 'block';
+  flagResult.innerHTML = '<em>Cal is carefully verifying this problem…</em>';
+
+  const questionText = (prob.question || '').replace(/<[^>]+>/g, '');
+  const choicesText = (prob.choices || []).map((c, i) => `${['A','B','C','D'][i]}: ${c.replace(/<[^>]+>/g,'')}`).join('\n');
+  const markedCorrect = (prob.choices || [])[prob.correct] || '';
+  const explanationText = (prob.explanation || '').replace(/<[^>]+>/g, '');
+
+  const verifyPrompt = `Please carefully verify this math problem for correctness. Check every step of arithmetic and algebra.
+
+QUESTION: ${questionText}
+
+ANSWER CHOICES:
+${choicesText}
+
+MARKED AS CORRECT: ${markedCorrect.replace(/<[^>]+>/g,'')} (choice index ${prob.correct})
+
+EXPLANATION GIVEN: ${explanationText}
+
+Instructions:
+1. Work through the problem yourself from scratch
+2. State whether the marked answer is CORRECT or INCORRECT
+3. If incorrect, give the right answer and explain the error
+4. If correct, briefly confirm why
+5. Be concise and direct`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': state.apiKey,
+        'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 400,
+        messages: [{ role: 'user', content: verifyPrompt }] })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || 'Could not get a response.';
+    flagResult.innerHTML = `<strong>🔍 Cal's Verification:</strong><br><br>${reply.replace(/\n/g,'<br>')}`;
+  } catch(e) {
+    flagResult.innerHTML = 'Connection error — check your API key in Settings.';
+  }
+
+  flagBtn.disabled = false;
+  flagBtn.textContent = '⚠️ Flag a mistake';
+  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([flagResult]).catch(()=>{});
 });
 
 document.getElementById('weak-spots-btn').addEventListener('click', () => {
