@@ -1,0 +1,3179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CalcTutor — Deliberate Practice for Calculus</title>
+<script>
+MathJax = {
+  tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]'], ['$$', '$$']] },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+<style>
+:root {
+  --sidebar-w: 240px;
+  --navy: #0f172a;
+  --navy2: #1e293b;
+  --navy3: #334155;
+  --accent: #6366f1;
+  --accent2: #818cf8;
+  --green: #22c55e;
+  --yellow: #eab308;
+  --red: #ef4444;
+  --blue: #3b82f6;
+  --text: #f1f5f9;
+  --text2: #94a3b8;
+  --surface: #1e293b;
+  --surface2: #243044;
+  --border: #334155;
+  --radius: 10px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+.light-mode {
+  --navy: #e8edf5;
+  --navy2: #f1f5fb;
+  --navy3: #d0d8e8;
+  --accent: #4f46e5;
+  --accent2: #6366f1;
+  --text: #1e293b;
+  --text2: #475569;
+  --surface: #ffffff;
+  --surface2: #f8fafc;
+  --border: #cbd5e1;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--navy); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+/* HEADER */
+#header {
+  background: var(--navy2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+#header .logo { font-size: 1.25rem; font-weight: 800; color: var(--accent2); letter-spacing: -0.5px; margin-right: auto; }
+#header .logo span { color: var(--text); }
+.hdr-stat { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; font-weight: 600; }
+.hdr-stat .label { color: var(--text2); font-weight: 400; font-size: 0.78rem; }
+#xp-bar-wrap { width: 80px; height: 8px; background: var(--navy3); border-radius: 4px; overflow: hidden; }
+#xp-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 4px; transition: width 0.4s; }
+.streak-fire { font-size: 1.1rem; }
+
+/* BODY LAYOUT */
+#app { display: flex; flex: 1; overflow: hidden; }
+
+/* SIDEBAR */
+#sidebar {
+  width: var(--sidebar-w);
+  background: var(--navy2);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  flex-shrink: 0;
+  padding-bottom: 20px;
+}
+#sidebar::-webkit-scrollbar { width: 4px; }
+#sidebar::-webkit-scrollbar-track { background: transparent; }
+#sidebar::-webkit-scrollbar-thumb { background: var(--navy3); border-radius: 2px; }
+
+.sidebar-section { padding: 10px 0 4px; }
+.sidebar-section-title {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text2);
+  padding: 6px 16px 4px;
+}
+.topic-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  margin: 1px 6px;
+  transition: background 0.15s;
+  user-select: none;
+}
+.topic-row:hover { background: var(--navy3); }
+.topic-row.active { background: var(--accent); }
+.topic-row.active .topic-name { color: #fff; }
+.topic-row.locked { opacity: 0.45; cursor: default; }
+.topic-row.locked:hover { background: transparent; }
+
+.topic-check { width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+.topic-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-0 { background: var(--red); }
+.dot-1 { background: var(--yellow); }
+.dot-2 { background: var(--blue); }
+.dot-3 { background: var(--green); }
+.topic-name { font-size: 0.8rem; flex: 1; color: var(--text); line-height: 1.3; }
+.topic-stars { font-size: 0.65rem; color: var(--yellow); white-space: nowrap; }
+.lock-icon { font-size: 0.7rem; color: var(--text2); }
+
+/* MAIN CONTENT */
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* TABS */
+#tabs {
+  display: flex;
+  gap: 2px;
+  padding: 10px 20px 0;
+  background: var(--navy2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.tab-btn {
+  padding: 8px 18px;
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.tab-btn:hover { color: var(--text); background: var(--navy3); }
+.tab-btn.active { color: var(--accent2); border-bottom-color: var(--accent); background: var(--navy); }
+
+/* TAB CONTENT */
+#tab-content { flex: 1; overflow-y: auto; padding: 24px; }
+#tab-content::-webkit-scrollbar { width: 6px; }
+#tab-content::-webkit-scrollbar-track { background: transparent; }
+#tab-content::-webkit-scrollbar-thumb { background: var(--navy3); border-radius: 3px; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* PRACTICE TAB */
+.practice-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: gap; gap: 10px; }
+.practice-header h2 { font-size: 1.1rem; font-weight: 700; color: var(--accent2); }
+.btn { padding: 8px 16px; border: none; border-radius: var(--radius); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+.btn-secondary { background: var(--navy3); color: var(--text); }
+.btn-secondary:hover { background: var(--border); }
+.btn-danger { background: var(--red); color: #fff; }
+.btn-danger:hover { opacity: 0.85; }
+.btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+.btn:disabled { opacity: 0.5; cursor: default; transform: none !important; }
+
+#no-topic-msg { text-align: center; padding: 60px 20px; color: var(--text2); }
+#no-topic-msg h3 { font-size: 1.2rem; margin-bottom: 8px; color: var(--text); }
+
+.problem-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.problem-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.problem-counter { font-size: 0.78rem; color: var(--text2); }
+.difficulty-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.diff-easy { background: rgba(34,197,94,0.2); color: var(--green); }
+.diff-medium { background: rgba(234,179,8,0.2); color: var(--yellow); }
+.diff-hard { background: rgba(239,68,68,0.2); color: var(--red); }
+
+.problem-question { font-size: 1rem; line-height: 1.7; margin-bottom: 20px; }
+
+.choices { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.choice-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--text);
+  transition: all 0.15s;
+  width: 100%;
+}
+.choice-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(99,102,241,0.1); }
+.choice-btn.correct { border-color: var(--green); background: rgba(34,197,94,0.15); color: var(--green); }
+.choice-btn.wrong { border-color: var(--red); background: rgba(239,68,68,0.15); color: var(--red); }
+.choice-btn:disabled { cursor: default; }
+.choice-label { font-weight: 700; min-width: 20px; }
+
+.hint-section { margin-bottom: 16px; }
+#hint-btn { margin-bottom: 8px; }
+.hint-box {
+  background: rgba(99,102,241,0.1);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.hint-label { font-weight: 700; color: var(--accent2); font-size: 0.78rem; margin-bottom: 4px; }
+
+.feedback-box {
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  display: none;
+}
+.feedback-correct { background: rgba(34,197,94,0.12); border: 1px solid var(--green); }
+.feedback-wrong { background: rgba(239,68,68,0.1); border: 1px solid var(--red); }
+.feedback-title { font-weight: 700; margin-bottom: 6px; font-size: 0.88rem; }
+.feedback-correct .feedback-title { color: var(--green); }
+.feedback-wrong .feedback-title { color: var(--red); }
+
+.session-stats {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.stat-item { text-align: center; }
+.stat-value { font-size: 1.4rem; font-weight: 800; color: var(--accent2); }
+.stat-label { font-size: 0.72rem; color: var(--text2); margin-top: 2px; }
+
+/* Daily goal */
+.daily-goal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  margin-bottom: 16px;
+}
+.daily-goal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.85rem; }
+.daily-goal-bar-wrap { height: 8px; background: var(--navy3); border-radius: 4px; overflow: hidden; }
+.daily-goal-bar { height: 100%; background: linear-gradient(90deg, var(--green), #86efac); border-radius: 4px; transition: width 0.5s; }
+
+/* PROGRESS TAB */
+.progress-section { margin-bottom: 28px; }
+.progress-section h3 { font-size: 0.95rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; font-size: 0.75rem; }
+.overall-bar-wrap { height: 16px; background: var(--navy3); border-radius: 8px; overflow: hidden; margin-bottom: 8px; }
+.overall-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 8px; transition: width 0.6s; }
+.overall-pct { font-size: 0.85rem; color: var(--text2); }
+
+.topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.topic-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  cursor: default;
+}
+.topic-card.mastery-0 { border-color: rgba(239,68,68,0.4); }
+.topic-card.mastery-1 { border-color: rgba(234,179,8,0.4); }
+.topic-card.mastery-2 { border-color: rgba(59,130,246,0.4); }
+.topic-card.mastery-3 { border-color: rgba(34,197,94,0.5); background: rgba(34,197,94,0.05); }
+.tc-name { font-size: 0.78rem; font-weight: 600; margin-bottom: 6px; line-height: 1.3; }
+.tc-bar-wrap { height: 5px; background: var(--navy3); border-radius: 3px; overflow: hidden; margin-bottom: 5px; }
+.tc-bar { height: 100%; border-radius: 3px; transition: width 0.5s; }
+.tc-meta { font-size: 0.7rem; color: var(--text2); display: flex; justify-content: space-between; }
+
+.weak-list { display: flex; flex-direction: column; gap: 8px; }
+.weak-item {
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+.weak-item-name { font-weight: 600; }
+.weak-item-pct { color: var(--red); font-weight: 700; font-size: 0.88rem; }
+
+.stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stats-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; text-align: center; }
+.stats-card .val { font-size: 1.5rem; font-weight: 800; color: var(--accent2); }
+.stats-card .lbl { font-size: 0.72rem; color: var(--text2); margin-top: 4px; }
+
+/* AI TUTOR TAB */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 180px);
+  max-height: 700px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.chat-messages::-webkit-scrollbar { width: 4px; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.msg { max-width: 80%; }
+.msg-cal { align-self: flex-start; }
+.msg-user { align-self: flex-end; }
+.msg-bubble {
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+.msg-cal .msg-bubble { background: var(--navy3); border-bottom-left-radius: 4px; }
+.msg-user .msg-bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+.msg-name { font-size: 0.72rem; color: var(--text2); margin-bottom: 4px; font-weight: 600; }
+.thinking-dots { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+.thinking-dots span {
+  width: 6px; height: 6px; background: var(--text2); border-radius: 50%;
+  animation: bounce 1.2s infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
+}
+
+.chat-input-row {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+}
+#chat-input {
+  flex: 1;
+  background: var(--navy3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-size: 0.9rem;
+  resize: none;
+  height: 44px;
+  min-height: 44px;
+  max-height: 120px;
+  font-family: inherit;
+}
+#chat-input:focus { outline: none; border-color: var(--accent); }
+#chat-send { height: 44px; padding: 0 18px; }
+
+.api-key-prompt {
+  text-align: center;
+  padding: 40px 20px;
+}
+.api-key-prompt h3 { margin-bottom: 10px; }
+.api-key-prompt p { color: var(--text2); font-size: 0.88rem; margin-bottom: 16px; }
+
+/* SETTINGS TAB */
+.settings-section { margin-bottom: 28px; }
+.settings-section h3 { font-size: 0.85rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; }
+.setting-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
+.setting-label { font-size: 0.88rem; font-weight: 600; }
+.setting-sub { font-size: 0.76rem; color: var(--text2); margin-top: 2px; }
+.setting-control { flex-shrink: 0; margin-left: 16px; }
+.settings-input {
+  background: var(--navy3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.88rem;
+  width: 280px;
+}
+.settings-input:focus { outline: none; border-color: var(--accent); }
+select.settings-input { width: 180px; cursor: pointer; }
+
+/* Toggle switch */
+.toggle-wrap { display: flex; align-items: center; gap: 8px; }
+.toggle {
+  position: relative; width: 42px; height: 24px;
+  background: var(--navy3); border-radius: 12px; cursor: pointer;
+  transition: background 0.2s;
+}
+.toggle.on { background: var(--accent); }
+.toggle::after {
+  content: ''; position: absolute; top: 3px; left: 3px;
+  width: 18px; height: 18px; background: #fff; border-radius: 50%;
+  transition: transform 0.2s;
+}
+.toggle.on::after { transform: translateX(18px); }
+
+/* TOAST */
+#toast-container {
+  position: fixed; bottom: 24px; right: 24px;
+  display: flex; flex-direction: column; gap: 10px; z-index: 9999;
+  pointer-events: none;
+}
+.toast {
+  background: var(--navy2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+  max-width: 320px;
+}
+.toast-success { border-left: 4px solid var(--green); }
+.toast-info { border-left: 4px solid var(--accent); }
+.toast-warning { border-left: 4px solid var(--yellow); }
+@keyframes toastIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateX(30px); } }
+
+/* LEVEL UP OVERLAY */
+#levelup-overlay {
+  display: none;
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  z-index: 10000; align-items: center; justify-content: center;
+}
+#levelup-overlay.show { display: flex; }
+.levelup-card {
+  background: var(--navy2);
+  border: 2px solid var(--accent);
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 0 60px rgba(99,102,241,0.4);
+  animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes popIn { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
+.levelup-card h2 { font-size: 2rem; margin-bottom: 8px; }
+.levelup-card p { color: var(--text2); margin-bottom: 20px; }
+
+/* Empty states */
+.empty-state { text-align: center; padding: 40px; color: var(--text2); }
+.empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+/* Responsive */
+@media (max-width: 700px) {
+  :root { --sidebar-w: 190px; }
+  #header .logo { font-size: 1rem; }
+  .settings-input { width: 180px; }
+}
+@media (max-width: 520px) {
+  #app { flex-direction: column; }
+  #sidebar { width: 100%; height: 200px; }
+}
+/* Problem generation loading state */
+#problem-loading {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 70px 20px;
+  gap: 18px;
+}
+#problem-loading p { color: var(--text2); font-size: 0.95rem; }
+.spinner {
+  width: 44px; height: 44px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.gen-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+/* Drill mode banner */
+#drill-banner {
+  display: none;
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+#drill-banner .drill-label { font-weight: 700; color: #fff; font-size: 0.9rem; }
+#drill-banner .drill-sub { color: rgba(255,255,255,0.8); font-size: 0.78rem; margin-top: 2px; }
+.drill-pips { display: flex; gap: 7px; flex-shrink: 0; }
+.drill-pip {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  border: 2px solid rgba(255,255,255,0.4);
+  transition: background 0.3s;
+}
+.drill-pip.filled { background: #fff; border-color: #fff; }
+/* Visual diagram panel */
+#visual-panel {
+  display: none;
+  margin: 14px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.visual-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 12px;
+  background: var(--navy3);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text2);
+}
+.visual-close-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--text2); font-size: 0.82rem; padding: 2px 4px;
+}
+.visual-close-btn:hover { color: var(--text); }
+.visual-body {
+  padding: 12px 8px;
+  display: flex;
+  justify-content: center;
+  background: var(--surface2);
+  overflow-x: auto;
+}
+.visual-body svg { max-width: 100%; height: auto; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header id="header">
+  <div class="logo">Calc<span>Tutor</span></div>
+  <div class="hdr-stat">
+    <span class="streak-fire">🔥</span>
+    <span id="hdr-streak">0</span>
+    <span class="label">streak</span>
+  </div>
+  <div class="hdr-stat" style="flex-direction:column;align-items:flex-end;gap:2px">
+    <div style="display:flex;align-items:center;gap:6px">
+      <span>⭐</span>
+      <span id="hdr-xp">0</span>
+      <span class="label">XP</span>
+    </div>
+    <div id="xp-bar-wrap"><div id="xp-bar" style="width:0%"></div></div>
+  </div>
+  <div class="hdr-stat">
+    <span style="font-size:1rem">🎓</span>
+    <span>Level</span>
+    <span id="hdr-level" style="color:var(--accent2);font-weight:800">1</span>
+  </div>
+</header>
+
+<!-- APP BODY -->
+<div id="app">
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Prerequisites</div>
+      <div id="sidebar-prereq"></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Calculus 1</div>
+      <div id="sidebar-calc1"></div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="tabs">
+      <button class="tab-btn active" data-tab="practice">📝 Practice</button>
+      <button class="tab-btn" data-tab="progress">📊 Progress</button>
+      <button class="tab-btn" data-tab="tutor">🤖 AI Tutor</button>
+      <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+    </div>
+
+    <div id="tab-content">
+      <!-- PRACTICE TAB -->
+      <div class="tab-panel active" id="tab-practice">
+        <div class="practice-header">
+          <h2 id="practice-topic-title">Select a topic to begin</h2>
+          <button class="btn btn-primary btn-sm" id="weak-spots-btn">⚡ Practice Weak Spots</button>
+        </div>
+
+        <div class="daily-goal">
+          <div class="daily-goal-header">
+            <span>📅 Daily Goal</span>
+            <span id="daily-goal-text">0 / 10 problems</span>
+          </div>
+          <div class="daily-goal-bar-wrap">
+            <div class="daily-goal-bar" id="daily-goal-bar" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div id="no-topic-msg">
+          <h3>👈 Choose a topic from the sidebar</h3>
+          <p>Check topics as "covered in class" to unlock them for practice. Then click a topic name to start!</p>
+        </div>
+
+        <div id="problem-area" style="display:none">
+          <div id="problem-loading">
+            <div class="spinner"></div>
+            <p>Cal is generating fresh problems for you…</p>
+          </div>
+          <div class="problem-card" id="problem-card">
+            <div id="drill-banner">
+              <div>
+                <div class="drill-label">🔁 Drill Mode — same concept, fresh problem</div>
+                <div class="drill-sub">Get <span id="drill-needed">2</span> more correct in a row to move on</div>
+              </div>
+              <div class="drill-pips" id="drill-pips"></div>
+            </div>
+            <div class="problem-meta">
+              <span class="problem-counter" id="problem-counter">Problem 1</span>
+              <span class="difficulty-badge diff-medium" id="diff-badge">medium</span>
+            </div>
+            <div class="problem-question" id="problem-question"></div>
+            <div class="choices" id="choices-container"></div>
+
+            <div class="hint-section">
+              <button class="btn btn-secondary btn-sm" id="hint-btn">💡 Need a hint?</button>
+              <div id="hints-display"></div>
+              <div id="visual-panel">
+                <div class="visual-header">
+                  <span id="visual-title">📐 Reference Diagram</span>
+                  <button class="visual-close-btn" onclick="document.getElementById('visual-panel').style.display='none'">✕ close</button>
+                </div>
+                <div class="visual-body" id="visual-body"></div>
+              </div>
+            </div>
+
+            <div class="feedback-box" id="feedback-box">
+              <div class="feedback-title" id="feedback-title"></div>
+              <div id="feedback-explanation"></div>
+            </div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn btn-primary" id="next-btn" style="display:none">Next Problem →</button>
+              <div id="encouragement-msg" style="display:flex;align-items:center;font-size:0.9rem;color:var(--green);font-weight:600"></div>
+            </div>
+          </div>
+
+          <div class="session-stats" id="session-stats">
+            <div class="stat-item"><div class="stat-value" id="sess-score">0</div><div class="stat-label">Session Score</div></div>
+            <div class="stat-item"><div class="stat-value" id="sess-streak">0</div><div class="stat-label">Current Streak</div></div>
+            <div class="stat-item"><div class="stat-value" id="sess-today">0</div><div class="stat-label">Today's Problems</div></div>
+            <div class="stat-item"><div class="stat-value" id="sess-acc">—</div><div class="stat-label">Session Accuracy</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROGRESS TAB -->
+      <div class="tab-panel" id="tab-progress">
+        <div class="progress-section">
+          <h3>Overall Mastery</h3>
+          <div class="overall-bar-wrap"><div class="overall-bar" id="overall-bar" style="width:0%"></div></div>
+          <div class="overall-pct" id="overall-pct">0% of topics at 2+ stars</div>
+        </div>
+
+        <div class="progress-section">
+          <h3>Summary Stats</h3>
+          <div class="stats-row" id="stats-row"></div>
+        </div>
+
+        <div class="progress-section">
+          <h3>Weak Spots (Covered Topics)</h3>
+          <div class="weak-list" id="weak-list"></div>
+        </div>
+
+        <div class="progress-section">
+          <h3>Topic Mastery Grid</h3>
+          <div class="topic-grid" id="topic-grid"></div>
+        </div>
+
+        <div style="margin-top:20px">
+          <button class="btn btn-danger btn-sm" id="reset-progress-btn">🗑️ Reset All Progress</button>
+        </div>
+      </div>
+
+      <!-- AI TUTOR TAB -->
+      <div class="tab-panel" id="tab-tutor">
+        <div id="api-key-prompt" class="api-key-prompt" style="display:none">
+          <div style="font-size:2.5rem;margin-bottom:12px">🤖</div>
+          <h3>Meet Cal, your AI Tutor</h3>
+          <p>Cal uses the Claude API to give you Socratic guidance — never giving answers away, only asking the right questions.</p>
+          <p>To get started, add your Claude API key in <strong>Settings</strong>.</p>
+          <button class="btn btn-primary" onclick="switchTab('settings')">Go to Settings ⚙️</button>
+        </div>
+        <div id="chat-wrap" style="display:none">
+          <div class="chat-container">
+            <div class="chat-messages" id="chat-messages"></div>
+            <div class="chat-input-row">
+              <textarea id="chat-input" placeholder="Ask Cal a question about calculus..." rows="1"></textarea>
+              <button class="btn btn-primary" id="chat-send">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS TAB -->
+      <div class="tab-panel" id="tab-settings">
+        <div class="settings-section">
+          <h3>AI Tutor</h3>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Claude API Key</div>
+              <div class="setting-sub">Get yours at console.anthropic.com — stored locally only</div>
+            </div>
+            <div class="setting-control">
+              <input type="password" class="settings-input" id="apikey-input" placeholder="sk-ant-...">
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="save-apikey-btn">Save API Key</button>
+        </div>
+
+        <div class="settings-section">
+          <h3>Appearance & Difficulty</h3>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Light Mode</div>
+              <div class="setting-sub">Toggle between dark and light themes</div>
+            </div>
+            <div class="setting-control">
+              <div class="toggle" id="dark-toggle" onclick="toggleDarkMode()"></div>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Difficulty Filter</div>
+              <div class="setting-sub">Show only problems of the selected difficulty</div>
+            </div>
+            <div class="setting-control">
+              <select class="settings-input" id="diff-filter">
+                <option value="all">All Difficulties</option>
+                <option value="easy">Easy Only</option>
+                <option value="medium">Medium Only</option>
+                <option value="hard">Hard Only</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Data</h3>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-secondary" id="export-btn">📤 Export Progress</button>
+            <label class="btn btn-secondary" style="cursor:pointer">
+              📥 Import Progress
+              <input type="file" id="import-file" accept=".json" style="display:none">
+            </label>
+            <button class="btn btn-danger" id="reset-all-btn">🗑️ Reset Everything</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Level-up overlay -->
+<div id="levelup-overlay">
+  <div class="levelup-card">
+    <div style="font-size:3rem;margin-bottom:8px">🎉</div>
+    <h2>Level Up!</h2>
+    <p id="levelup-msg">You reached Level 2!</p>
+    <button class="btn btn-primary" onclick="document.getElementById('levelup-overlay').classList.remove('show')">Keep Going! 💪</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONSTANTS & CONFIG
+// ============================================================
+const STORAGE_KEY = 'calctutorState';
+const XP_PER_CORRECT = 10;
+const XP_PER_WRONG = 3;
+const XP_PER_MASTERY = 25;
+const XP_PER_LEVEL = 200;
+const DAILY_GOAL = 10;
+
+const TUTOR_SYSTEM_PROMPT = `You are Cal, a warm and encouraging Socratic calculus tutor. NEVER give direct answers to problems. Instead, guide students with targeted questions that help them discover the solution themselves. If a student asks for the answer directly, say something encouraging and ask a guiding question instead. Keep responses concise (2-4 sentences maximum). Focus on the specific error or misconception you detect. Be warm, patient, and encouraging. Use phrases like "Great question!", "You're on the right track!", "What do you think happens when...?" Format any math using LaTeX with \\( \\) delimiters.`;
+
+const ENCOURAGE_CORRECT = [
+  "Great work! Keep it up! 🎯",
+  "You're on fire! 🔥",
+  "Nailed it! 💪",
+  "Excellent! Your skills are growing!",
+  "That's the way! 📈",
+  "Outstanding! 🌟",
+  "You're getting stronger at this!",
+  "Perfect! Keep that momentum!"
+];
+const ENCOURAGE_WRONG = [
+  "Not quite — but every mistake helps you learn!",
+  "Good try! Check the explanation and try again.",
+  "Keep going! This is how learning works 💪",
+  "That's a tough one — read the hint and give it another shot!"
+];
+
+// ============================================================
+// TOPIC DEFINITIONS
+// ============================================================
+const TOPICS = [
+  // Prerequisites
+  { id: 'prereq_algebra',  name: 'Algebra',                         group: 'prereq' },
+  { id: 'prereq_trig',     name: 'Trigonometry',                    group: 'prereq' },
+  { id: 'prereq_precalc',  name: 'Pre-Calculus',                    group: 'prereq' },
+  { id: 'prereq_geometry', name: 'Geometry',                        group: 'prereq' },
+  // Calculus 1
+  { id: 'exp_log',         name: 'Exponential & Logarithmic Functions', group: 'calc1' },
+  { id: 'trig_inv',        name: 'Trigonometric & Inverse Functions',   group: 'calc1' },
+  { id: 'limits',          name: 'Limits, Computing Limits',            group: 'calc1' },
+  { id: 'diff_rules',      name: 'Rules of Differentiation',           group: 'calc1' },
+  { id: 'limits_inf',      name: 'Limits at Infinity, Continuity',     group: 'calc1' },
+  { id: 'derivatives',     name: 'The Derivative & Working with Derivatives', group: 'calc1' },
+  { id: 'deriv_trig',      name: 'Derivatives of Trig Functions',      group: 'calc1' },
+  { id: 'chain_rule',      name: 'The Chain Rule',                     group: 'calc1' },
+  { id: 'prod_quot',       name: 'Product & Quotient Rules',           group: 'calc1' },
+  { id: 'implicit',        name: 'Implicit Differentiation',           group: 'calc1' },
+  { id: 'rates',           name: 'Derivatives as Rates of Change',     group: 'calc1' },
+  { id: 'deriv_exp_log',   name: 'Derivatives of Exp & Log Functions', group: 'calc1' },
+  { id: 'deriv_inv_trig',  name: 'Derivatives of Inverse Trig',       group: 'calc1' },
+  { id: 'maxmin',          name: 'Maxima and Minima',                  group: 'calc1' },
+  { id: 'deriv_tests',     name: 'First & Second Derivative Tests',    group: 'calc1' },
+  { id: 'optimization',    name: 'Optimization Problems',              group: 'calc1' },
+  { id: 'linear_approx',   name: 'Linear Approximation',              group: 'calc1' },
+  { id: 'lhopital',        name: "L'Hôpital's Rule",                  group: 'calc1' },
+  { id: 'antideriv',       name: 'Antiderivatives',                    group: 'calc1' },
+  { id: 'areas',           name: 'Approximating Areas',               group: 'calc1' },
+  { id: 'ftc',             name: 'Definite Integrals & FTC',          group: 'calc1' },
+  { id: 'substitution',    name: 'Working with Integrals, Substitution', group: 'calc1' },
+];
+
+// ============================================================
+// PROBLEM BANK
+// ============================================================
+const PROBLEMS = {
+prereq_algebra: [
+  {
+    id:'alg1', difficulty:'easy',
+    question:'Which of the following is a correct simplification of \\(\\sqrt{a^2 + b^2}\\)?',
+    choices:['\\(a + b\\)','\\(a^2 + b^2\\)','\\(\\sqrt{a^2+b^2}\\) cannot be simplified further','\\(ab\\)'],
+    correct:2,
+    explanation:'\\(\\sqrt{a^2+b^2}\\) does NOT equal \\(a+b\\). For example, \\(\\sqrt{3^2+4^2}=\\sqrt{25}=5\\neq 3+4=7\\). There is no general simplification.',
+    hints:['Try a specific example: let \\(a=3,b=4\\). What is \\(\\sqrt{9+16}\\)?','Is \\(\\sqrt{9+16} = \\sqrt{9}+\\sqrt{16}\\)?','The square root of a sum is NOT the sum of square roots.']
+  },
+  {
+    id:'alg2', difficulty:'easy',
+    question:'Which identity is TRUE?',
+    choices:['\\(\\dfrac{a}{b+c} = \\dfrac{a}{b}+\\dfrac{a}{c}\\)','\\(\\dfrac{a+b}{c} = \\dfrac{a}{c}+\\dfrac{b}{c}\\)','\\((a+b)^2 = a^2+b^2\\)','\\(\\sqrt{a+b}=\\sqrt{a}+\\sqrt{b}\\)'],
+    correct:1,
+    explanation:'\\(\\dfrac{a+b}{c}=\\dfrac{a}{c}+\\dfrac{b}{c}\\) is true because you can split a fraction when the sum is in the numerator. The others are common algebra errors.',
+    hints:['Try \\(a=2,b=3,c=5\\) for each option.','Which option splits a sum in the numerator over the denominator?','A denominator that is a sum CANNOT be split.']
+  },
+  {
+    id:'alg3', difficulty:'medium',
+    question:'Simplify \\(\\dfrac{x^2-9}{x-3}\\) for \\(x\\neq 3\\).',
+    choices:['\\(x-3\\)','\\(x+3\\)','\\(x^2+3\\)','\\(\\dfrac{x+3}{x-3}\\)'],
+    correct:1,
+    explanation:'Factor the numerator as a difference of squares: \\(x^2-9=(x-3)(x+3)\\). Then \\(\\dfrac{(x-3)(x+3)}{x-3}=x+3\\) for \\(x\\neq 3\\).',
+    hints:['Can you factor \\(x^2-9\\)?','Recall the difference of squares: \\(a^2-b^2=(a-b)(a+b)\\).','After factoring, cancel the common factor in numerator and denominator.']
+  },
+  {
+    id:'alg4', difficulty:'easy',
+    question:'Which equals \\(x^2 \\cdot x^3\\)?',
+    choices:['\\(x^6\\)','\\(x^5\\)','\\(2x^5\\)','\\(x^{2\\cdot 3}\\)'],
+    correct:1,
+    explanation:'When multiplying same bases, add the exponents: \\(x^2\\cdot x^3 = x^{2+3}=x^5\\). You do NOT multiply the exponents.',
+    hints:['Write out \\(x^2 = x\\cdot x\\) and \\(x^3=x\\cdot x\\cdot x\\). How many \\(x\\)s total?','The rule for multiplying with the same base is: add the exponents.','\\(x^m\\cdot x^n = x^{m+n}\\)']
+  },
+  {
+    id:'alg5', difficulty:'medium',
+    question:'Expand and simplify \\(-(x-3)^2\\).',
+    choices:['\\(-x^2-9\\)','\\(-x^2+6x-9\\)','\\(x^2-6x+9\\)','\\(-x^2+9\\)'],
+    correct:1,
+    explanation:'First expand: \\((x-3)^2=x^2-6x+9\\). Then distribute the negative: \\(-(x^2-6x+9)=-x^2+6x-9\\). A common error is forgetting to distribute the negative to ALL terms.',
+    hints:['First, what is \\((x-3)^2\\)? Write it out step by step.','Use FOIL: \\((x-3)(x-3)=?\\)','After expanding, distribute the negative sign to every term.']
+  },
+  {
+    id:'alg6', difficulty:'easy',
+    question:'Simplify \\((2x^3)^2\\).',
+    choices:['\\(2x^6\\)','\\(4x^5\\)','\\(4x^6\\)','\\(2x^9\\)'],
+    correct:2,
+    explanation:'Apply the power to every factor: \\((2x^3)^2 = 2^2\\cdot(x^3)^2 = 4x^6\\). You must square both the coefficient 2 and the variable part \\(x^3\\).',
+    hints:['What is \\(2^2\\)?','What is \\((x^3)^2\\)? Use the rule \\((x^m)^n = x^{mn}\\).','Apply the exponent to BOTH the 2 and the \\(x^3\\).']
+  },
+  {
+    id:'alg7', difficulty:'medium',
+    question:'Factor \\(x^2-5x+6\\).',
+    choices:['\\((x+2)(x+3)\\)','\\((x-2)(x-3)\\)','\\((x-1)(x-6)\\)','\\((x+1)(x-6)\\)'],
+    correct:1,
+    explanation:'Find two numbers that multiply to \\(+6\\) and add to \\(-5\\): those are \\(-2\\) and \\(-3\\). So \\(x^2-5x+6=(x-2)(x-3)\\). Check: \\(-2+(-3)=-5\\), \\((-2)(-3)=6\\). ✓',
+    hints:['You need two numbers that multiply to \\(6\\) and add to \\(-5\\).','List factor pairs of 6: (1,6), (2,3). Which pair sums to 5?','Since the middle term is negative and the constant is positive, both factors should be negative.']
+  },
+  {
+    id:'alg8', difficulty:'medium',
+    question:'Solve: \\(|x-2| < 3\\).',
+    choices:['\\(x < 5\\)','\\(-1 < x < 5\\)','\\(-5 < x < 1\\)','\\(x < -1\\) or \\(x > 5\\)'],
+    correct:1,
+    explanation:'\\(|x-2|<3\\) means \\(-3 < x-2 < 3\\). Add 2 to all parts: \\(-1 < x < 5\\). The solution is the open interval \\((-1,5)\\).',
+    hints:['What does \\(|A|<3\\) mean? It means \\(-3 < A < 3\\).','Replace \\(A\\) with \\(x-2\\): \\(-3 < x-2 < 3\\).','Now add 2 to all three parts of the inequality.']
+  },
+],
+
+prereq_trig: [
+  {
+    id:'trig1', difficulty:'easy',
+    question:'What is \\(\\sin\\!\\left(\\dfrac{\\pi}{6}\\right)\\)?',
+    choices:['\\(\\dfrac{\\sqrt{3}}{2}\\)','\\(\\dfrac{1}{2}\\)','\\(1\\)','\\(\\dfrac{\\sqrt{2}}{2}\\)'],
+    correct:1,
+    explanation:'\\(\\sin(\\pi/6)=\\sin(30°)=\\tfrac{1}{2}\\). This is one of the standard values from the unit circle.',
+    hints:['What angle in degrees is \\(\\pi/6\\) radians?','Think about a 30-60-90 triangle.','In a 30-60-90 triangle, the side opposite 30° has length 1 (hypotenuse 2).']
+  },
+  {
+    id:'trig2', difficulty:'easy',
+    question:'What is \\(\\cos\\!\\left(\\dfrac{\\pi}{3}\\right)\\)?',
+    choices:['\\(\\dfrac{\\sqrt{3}}{2}\\)','\\(\\dfrac{1}{2}\\)','\\(0\\)','\\(\\dfrac{\\sqrt{2}}{2}\\)'],
+    correct:1,
+    explanation:'\\(\\cos(\\pi/3)=\\cos(60°)=\\tfrac{1}{2}\\). In a 30-60-90 triangle, \\(\\cos(60°)\\) is the adjacent side over hypotenuse = \\(1/2\\).',
+    hints:['\\(\\pi/3\\) radians = how many degrees?','Use the 30-60-90 triangle.','\\(\\cos(60°)=\\) adjacent/hypotenuse for the 60° angle.']
+  },
+  {
+    id:'trig3', difficulty:'easy',
+    question:'What does \\(\\sin^2(x)+\\cos^2(x)\\) equal for all \\(x\\)?',
+    choices:['\\(0\\)','\\(2\\)','\\(1\\)','Depends on \\(x\\)'],
+    correct:2,
+    explanation:'This is the Pythagorean Identity: \\(\\sin^2(x)+\\cos^2(x)=1\\) for all values of \\(x\\). It follows directly from the unit circle definition.',
+    hints:['Think about the unit circle. A point on it has coordinates \\((\\cos\\theta, \\sin\\theta)\\).','What equation does every point on the unit circle satisfy?','\\(x^2+y^2=1\\) on the unit circle gives us...?']
+  },
+  {
+    id:'trig4', difficulty:'easy',
+    question:'Convert \\(180°\\) to radians.',
+    choices:['\\(2\\pi\\)','\\(\\pi/2\\)','\\(\\pi\\)','\\(3\\pi/2\\)'],
+    correct:2,
+    explanation:'The conversion is: radians = degrees × \\(\\pi/180\\). So \\(180°\\times(\\pi/180)=\\pi\\) radians.',
+    hints:['Use the formula: radians = degrees × \\(\\dfrac{\\pi}{180}\\)','Multiply \\(180 \\times \\dfrac{\\pi}{180}\\).','The 180s cancel to leave just \\(\\pi\\).']
+  },
+  {
+    id:'trig5', difficulty:'easy',
+    question:'What is \\(\\tan\\!\\left(\\dfrac{\\pi}{4}\\right)\\)?',
+    choices:['\\(\\sqrt{3}\\)','\\(\\dfrac{\\sqrt{2}}{2}\\)','\\(0\\)','\\(1\\)'],
+    correct:3,
+    explanation:'\\(\\tan(\\pi/4)=\\tan(45°)=\\sin(45°)/\\cos(45°)=(\\sqrt{2}/2)/(\\sqrt{2}/2)=1\\).',
+    hints:['\\(\\tan\\theta = \\dfrac{\\sin\\theta}{\\cos\\theta}\\)','What are \\(\\sin(\\pi/4)\\) and \\(\\cos(\\pi/4)\\)?','In a 45-45-90 triangle, all sides are equal...']
+  },
+  {
+    id:'trig6', difficulty:'medium',
+    question:'In which quadrant is \\(\\sin(\\theta)<0\\) and \\(\\cos(\\theta)>0\\)?',
+    choices:['Quadrant I','Quadrant II','Quadrant III','Quadrant IV'],
+    correct:3,
+    explanation:'In Quadrant IV, \\(x>0\\) (so \\(\\cos>0\\)) and \\(y<0\\) (so \\(\\sin<0\\)). Remember: "All Students Take Calculus" — All positive in Q1, Sin in Q2, Tan in Q3, Cos in Q4.',
+    hints:['Recall the ASTC rule: All, Sin, Tan, Cos are positive in Quadrants I, II, III, IV respectively.','We want sin negative and cos positive simultaneously.','Which quadrant has the x-axis positive and y-axis negative?']
+  },
+],
+
+prereq_precalc: [
+  {
+    id:'pre1', difficulty:'easy',
+    question:'If \\(f(x)=x^2\\) and \\(g(x)=x+1\\), what is \\(f(g(x))\\)?',
+    choices:['\\(x^2+1\\)','\\((x+1)^2\\)','\\(x^2(x+1)\\)','\\(x^3+x^2\\)'],
+    correct:1,
+    explanation:'\\(f(g(x))=f(x+1)=(x+1)^2\\). You substitute \\(g(x)=x+1\\) into \\(f\\), replacing \\(x\\) with \\(x+1\\).',
+    hints:['Composition means: plug \\(g(x)\\) into \\(f\\).','\\(f(\\text{something})=(\\text{something})^2\\)','What is "something" here? It\'s \\(g(x)=x+1\\).']
+  },
+  {
+    id:'pre2', difficulty:'medium',
+    question:'What is the inverse of \\(f(x)=2x-6\\)?',
+    choices:['\\(f^{-1}(x)=2x+6\\)','\\(f^{-1}(x)=\\dfrac{x-6}{2}\\)','\\(f^{-1}(x)=\\dfrac{x+6}{2}\\)','\\(f^{-1}(x)=\\dfrac{1}{2x-6}\\)'],
+    correct:2,
+    explanation:'To find the inverse: replace \\(f(x)\\) with \\(y\\), swap \\(x\\) and \\(y\\), then solve for \\(y\\). \\(y=2x-6\\to x=2y-6\\to x+6=2y\\to y=\\frac{x+6}{2}\\).',
+    hints:['Write \\(y=2x-6\\).','Swap \\(x\\) and \\(y\\): \\(x=2y-6\\).','Now solve for \\(y\\): add 6 to both sides, then divide by 2.']
+  },
+  {
+    id:'pre3', difficulty:'easy',
+    question:'Which logarithm property is correct?',
+    choices:['\\(\\log_b(x+y)=\\log_b x+\\log_b y\\)','\\(\\log_b(xy)=\\log_b x+\\log_b y\\)','\\(\\log_b(xy)=\\log_b x\\cdot\\log_b y\\)','\\(\\log_b(x-y)=\\log_b x-\\log_b y\\)'],
+    correct:1,
+    explanation:'The product rule for logarithms: \\(\\log_b(xy)=\\log_b x+\\log_b y\\). This is because logarithms convert multiplication into addition.',
+    hints:['Logarithms convert multiplication to addition.','Think: \\(\\log_b(x)=m\\) and \\(\\log_b(y)=n\\) means \\(b^m=x\\) and \\(b^n=y\\).','What is \\(\\log_b(xy)=\\log_b(b^m\\cdot b^n)=\\log_b(b^{m+n})\\)?']
+  },
+  {
+    id:'pre4', difficulty:'easy',
+    question:'Simplify \\(e^{\\ln 5}\\).',
+    choices:['\\(5e\\)','\\(\\ln 5\\)','\\(5\\)','\\(\\ln(e^5)\\)'],
+    correct:2,
+    explanation:'\\(e^{\\ln 5}=5\\) because \\(e^x\\) and \\(\\ln x\\) are inverse functions. Applying them in sequence undoes the operation.',
+    hints:['What are \\(e^x\\) and \\(\\ln x\\) to each other?','Inverse functions: \\(f(f^{-1}(x))=x\\)','So \\(e^{\\ln(\\text{anything})}=\\text{that thing}\\).']
+  },
+  {
+    id:'pre5', difficulty:'medium',
+    question:'What is the domain of \\(f(x)=\\sqrt{x-3}\\)?',
+    choices:['\\(x>3\\)','\\(x\\geq 0\\)','\\(x\\geq 3\\)','All real numbers'],
+    correct:2,
+    explanation:'We need \\(x-3\\geq 0\\) (can\'t take square root of a negative number), which gives \\(x\\geq 3\\). The domain is \\([3,\\infty)\\).',
+    hints:['What values are NOT allowed under a square root?','We need \\(x-3\\geq 0\\).','Solve: \\(x-3\\geq 0\\).']
+  },
+],
+
+prereq_geometry: [
+  {
+    id:'geo1', difficulty:'easy',
+    question:'What is the area of a circle with radius \\(r\\)?',
+    choices:['\\(2\\pi r\\)','\\(\\pi r^2\\)','\\(\\pi r\\)','\\(4\\pi r^2\\)'],
+    correct:1,
+    explanation:'The area of a circle is \\(A=\\pi r^2\\). The circumference is \\(2\\pi r\\) (don\'t confuse the two!).',
+    hints:['There are two common circle formulas. Which involves the area?','Area involves \\(r^2\\), while circumference involves \\(r\\).','Area = \\(\\pi\\) times the radius squared.']
+  },
+  {
+    id:'geo2', difficulty:'easy',
+    question:'What is the volume of a sphere with radius \\(r\\)?',
+    choices:['\\(\\pi r^3\\)','\\(\\dfrac{2}{3}\\pi r^3\\)','\\(4\\pi r^2\\)','\\(\\dfrac{4}{3}\\pi r^3\\)'],
+    correct:3,
+    explanation:'Volume of a sphere: \\(V=\\dfrac{4}{3}\\pi r^3\\). Note \\(4\\pi r^2\\) is the surface area, not the volume.',
+    hints:['The volume formula involves \\(r^3\\) (cubic).','There\'s a fraction \\(\\frac{4}{3}\\) in the formula.','Volume of a sphere \\(=\\dfrac{4}{3}\\pi r^3\\).']
+  },
+  {
+    id:'geo3', difficulty:'easy',
+    question:'In a right triangle with legs \\(a,b\\) and hypotenuse \\(c\\), the Pythagorean theorem states:',
+    choices:['\\(a+b=c\\)','\\(a^2+b^2=c^2\\)','\\(a^2+b^2=c\\)','\\(a+b=c^2\\)'],
+    correct:1,
+    explanation:'The Pythagorean theorem: \\(a^2+b^2=c^2\\), where \\(c\\) is the hypotenuse (side opposite the right angle).',
+    hints:['The relationship involves the squares of the sides.','Which side is the hypotenuse?','The sum of the squares of the two legs equals the square of the hypotenuse.']
+  },
+  {
+    id:'geo4', difficulty:'easy',
+    question:'What is the area of a rectangle with length \\(l\\) and width \\(w\\)?',
+    choices:['\\(2(l+w)\\)','\\(lw\\)','\\(l+w\\)','\\(\\frac{1}{2}lw\\)'],
+    correct:1,
+    explanation:'Area of a rectangle = length × width = \\(lw\\). The perimeter (distance around) is \\(2(l+w)\\).',
+    hints:['Area measures the space inside the shape.','Think about a 3×4 rectangle: how many unit squares fit inside?','Area = length times width.']
+  },
+],
+
+exp_log: [
+  {
+    id:'el1', difficulty:'easy',
+    question:'Solve for \\(x\\): \\(e^x = 7\\).',
+    choices:['\\(x=7/e\\)','\\(x=e^7\\)','\\(x=\\ln 7\\)','\\(x=7\\)'],
+    correct:2,
+    explanation:'Apply \\(\\ln\\) to both sides: \\(\\ln(e^x)=\\ln 7\\), so \\(x=\\ln 7\\). Since \\(\\ln\\) and \\(e^{\\cdot}\\) are inverses, \\(\\ln(e^x)=x\\).',
+    hints:['What function "undoes" the exponential \\(e^x\\)?','Apply \\(\\ln\\) to both sides.','\\(\\ln(e^x)=x\\) because they are inverse functions.']
+  },
+  {
+    id:'el2', difficulty:'easy',
+    question:'Which logarithm property is correct?',
+    choices:['\\(\\ln(a-b)=\\ln a-\\ln b\\)','\\(\\ln\\!\\left(\\dfrac{a}{b}\\right)=\\ln a-\\ln b\\)','\\(\\ln(a/b)=\\ln a/\\ln b\\)','\\(\\ln(ab)=\\ln a-\\ln b\\)'],
+    correct:1,
+    explanation:'The quotient rule: \\(\\ln(a/b)=\\ln a-\\ln b\\). This is because \\(\\ln(a/b)=\\ln(a\\cdot b^{-1})=\\ln a+\\ln(b^{-1})=\\ln a-\\ln b\\).',
+    hints:['Division inside a log corresponds to what operation outside?','Think: \\(\\ln(a/b)=\\ln(a\\cdot b^{-1})\\)','Use the product rule: \\(\\ln(xy)=\\ln x+\\ln y\\), then the power rule.']
+  },
+  {
+    id:'el3', difficulty:'medium',
+    question:'Solve: \\(\\log_2(x)=5\\).',
+    choices:['\\(x=10\\)','\\(x=32\\)','\\(x=5/2\\)','\\(x=\\log_2 5\\)'],
+    correct:1,
+    explanation:'\\(\\log_2(x)=5\\) means \\(2^5=x\\), so \\(x=32\\). Convert log form to exponential form: \\(\\log_b(x)=y\\Leftrightarrow b^y=x\\).',
+    hints:['What does \\(\\log_b(x)=y\\) mean in exponential form?','Convert: \\(\\log_2(x)=5\\) to \\(2^?=x\\)','What is \\(2^5\\)?']
+  },
+  {
+    id:'el4', difficulty:'easy',
+    question:'Simplify \\(\\ln(e^4)\\).',
+    choices:['\\(4e\\)','\\(e^4\\)','\\(4\\)','\\(1/4\\)'],
+    correct:2,
+    explanation:'\\(\\ln(e^4)=4\\) because \\(\\ln\\) and \\(e^{\\cdot}\\) are inverse functions, so they cancel: \\(\\ln(e^x)=x\\).',
+    hints:['What is the relationship between \\(\\ln\\) and \\(e\\)?','They are inverse functions.','\\(\\ln(e^x)=x\\) for any \\(x\\).']
+  },
+  {
+    id:'el5', difficulty:'medium',
+    question:'Which statement best describes the graph of \\(y=e^x\\)?',
+    choices:['Passes through \\((0,0)\\), always increasing','Passes through \\((0,1)\\), always positive, always increasing','Passes through \\((1,0)\\), has a horizontal asymptote at \\(y=1\\)','Is defined only for \\(x>0\\)'],
+    correct:1,
+    explanation:'\\(y=e^x\\): passes through \\((0,1)\\) because \\(e^0=1\\); always positive because \\(e^x>0\\) for all \\(x\\); always increasing; horizontal asymptote \\(y=0\\) as \\(x\\to-\\infty\\).',
+    hints:['What is \\(e^0\\)?','Can \\(e^x\\) ever be 0 or negative?','As \\(x\\to-\\infty\\), what happens to \\(e^x\\)?']
+  },
+],
+
+trig_inv: [
+  {
+    id:'ti1', difficulty:'easy',
+    question:'What is \\(\\arcsin\\!\\left(\\dfrac{1}{2}\\right)\\)?',
+    choices:['\\(\\pi/3\\)','\\(\\pi/4\\)','\\(\\pi/6\\)','\\(\\pi\\)'],
+    correct:2,
+    explanation:'\\(\\arcsin(1/2)=\\pi/6\\) because \\(\\sin(\\pi/6)=1/2\\). Arcsine asks: "what angle has this sine value?" (restricted to \\([-\\pi/2,\\pi/2]\\)).',
+    hints:['\\(\\arcsin(x)\\) asks: what angle \\(\\theta\\) satisfies \\(\\sin\\theta=x\\)?','Which standard angle has \\(\\sin\\theta=1/2\\)?','Think 30-60-90 triangle.']
+  },
+  {
+    id:'ti2', difficulty:'easy',
+    question:'What is the domain of \\(\\arcsin(x)\\)?',
+    choices:['All real numbers','\\([0,\\pi]\\)','\\([-1,1]\\)','\\((-\\infty,\\infty)\\)'],
+    correct:2,
+    explanation:'The domain of \\(\\arcsin(x)\\) is \\([-1,1]\\) because \\(\\sin\\theta\\) only produces values in \\([-1,1]\\), so only those values have an arcsine.',
+    hints:['What values can \\(\\sin\\theta\\) produce?','The range of \\(\\sin\\) becomes the domain of \\(\\arcsin\\).','\\(\\sin\\theta\\) always satisfies \\(-1\\leq\\sin\\theta\\leq 1\\).']
+  },
+  {
+    id:'ti3', difficulty:'easy',
+    question:'What is \\(\\sin(\\arcsin(0.7))\\)?',
+    choices:['\\(\\arcsin(0.7)\\)','\\(0.7\\)','\\(\\sin(0.7)\\)','Undefined'],
+    correct:1,
+    explanation:'\\(\\sin(\\arcsin(x))=x\\) for \\(x\\in[-1,1]\\). The functions are inverses, so they cancel each other out.',
+    hints:['What happens when you apply a function and then its inverse?','\\(f(f^{-1}(x))=x\\)','\\(\\sin\\) and \\(\\arcsin\\) are inverse functions.']
+  },
+  {
+    id:'ti4', difficulty:'easy',
+    question:'What is \\(\\arctan(1)\\)?',
+    choices:['\\(1\\)','\\(\\pi/3\\)','\\(\\pi/2\\)','\\(\\pi/4\\)'],
+    correct:3,
+    explanation:'\\(\\arctan(1)=\\pi/4\\) because \\(\\tan(\\pi/4)=1\\). The range of \\(\\arctan\\) is \\((-\\pi/2,\\pi/2)\\).',
+    hints:['\\(\\arctan(x)\\) asks: what angle \\(\\theta\\) satisfies \\(\\tan\\theta=x\\)?','For which standard angle is \\(\\tan\\theta=1\\)?','In a 45-45-90 triangle, \\(\\tan(45°)=?\\)']
+  },
+  {
+    id:'ti5', difficulty:'easy',
+    question:'What is \\(\\arccos(0)\\)?',
+    choices:['\\(0\\)','\\(\\pi/2\\)','\\(\\pi\\)','\\(2\\pi\\)'],
+    correct:1,
+    explanation:'\\(\\arccos(0)=\\pi/2\\) because \\(\\cos(\\pi/2)=0\\). The range of \\(\\arccos\\) is \\([0,\\pi]\\).',
+    hints:['\\(\\arccos(x)\\) asks: what angle \\(\\theta\\) (in \\([0,\\pi]\\)) satisfies \\(\\cos\\theta=x\\)?','For which angle is \\(\\cos\\theta=0\\)?','Think about the unit circle at \\(90°\\).']
+  },
+],
+
+limits: [
+  {
+    id:'lim1', difficulty:'medium',
+    question:'Evaluate: \\(\\displaystyle\\lim_{x\\to 2}\\frac{x^2-4}{x-2}\\).',
+    choices:['\\(0\\)','\\(2\\)','\\(4\\)','Does not exist'],
+    correct:2,
+    explanation:'Factor the numerator: \\(x^2-4=(x-2)(x+2)\\). Cancel: \\(\\dfrac{(x-2)(x+2)}{x-2}=x+2\\) (for \\(x\\neq 2\\)). Now \\(\\lim_{x\\to 2}(x+2)=4\\).',
+    hints:['Try direct substitution first. What goes wrong?','Can you factor the numerator \\(x^2-4\\)?','Difference of squares: \\(x^2-4=(x-2)(x+2)\\). Cancel with the denominator.']
+  },
+  {
+    id:'lim2', difficulty:'medium',
+    question:'What is \\(\\displaystyle\\lim_{x\\to 0}\\frac{\\sin x}{x}\\)?',
+    choices:['\\(0\\)','\\(\\infty\\)','Does not exist','\\(1\\)'],
+    correct:3,
+    explanation:'\\(\\lim_{x\\to 0}\\dfrac{\\sin x}{x}=1\\) is a fundamental limit. It can be proven geometrically using the squeeze theorem. This limit is the basis for the derivative of \\(\\sin x\\).',
+    hints:['This is a famous special limit that must be memorized.','Direct substitution gives \\(0/0\\) (indeterminate form).','This limit equals 1 — it\'s a foundational result in calculus.']
+  },
+  {
+    id:'lim3', difficulty:'easy',
+    question:'To evaluate \\(\\displaystyle\\lim_{x\\to 3} f(x)\\), which is required?',
+    choices:['\\(f(3)\\) must be defined','\\(f(3)\\) must equal the limit','Neither — the limit depends only on values of \\(f\\) near \\(x=3\\)','\\(f\\) must be continuous at \\(x=3\\)'],
+    correct:2,
+    explanation:'A limit \\(\\lim_{x\\to a}f(x)\\) only cares about what \\(f(x)\\) does as \\(x\\) approaches \\(a\\), NOT the value at \\(a\\). The function doesn\'t even need to be defined at \\(a\\).',
+    hints:['What does "limit as \\(x\\to a\\)" actually mean?','Does a hole in the graph at \\(x=3\\) prevent the limit from existing?','The limit describes approach, not arrival.']
+  },
+  {
+    id:'lim4', difficulty:'easy',
+    question:'What is \\(\\displaystyle\\lim_{x\\to\\infty}\\frac{1}{x}\\)?',
+    choices:['\\(\\infty\\)','\\(1\\)','\\(0\\)','Undefined'],
+    correct:2,
+    explanation:'As \\(x\\) grows without bound, \\(1/x\\) gets closer and closer to 0. The denominator grows, making the fraction shrink toward 0.',
+    hints:['What happens to \\(1/x\\) when \\(x=100\\)? When \\(x=1{,}000{,}000\\)?','As \\(x\\to\\infty\\), the denominator grows. What does that do to the fraction?','A larger and larger denominator makes the fraction closer and closer to...?']
+  },
+  {
+    id:'lim5', difficulty:'medium',
+    question:'What is \\(\\displaystyle\\lim_{x\\to 0}\\frac{1-\\cos x}{x}\\)?',
+    choices:['\\(1\\)','\\(0\\)','\\(\\infty\\)','Does not exist'],
+    correct:1,
+    explanation:'\\(\\lim_{x\\to 0}\\dfrac{1-\\cos x}{x}=0\\). This is another standard limit (the companion to \\(\\sin x/x\\)). One approach: multiply by \\((1+\\cos x)/(1+\\cos x)\\) and use \\(\\sin^2 x + \\cos^2 x = 1\\).',
+    hints:['Try L\'Hôpital\'s rule or recall this standard limit.','This is \\(0/0\\) form. Can you apply L\'Hôpital or a known result?','The limit \\(\\lim_{x\\to 0}(1-\\cos x)/x = 0\\) is a standard result to memorize.']
+  },
+  {
+    id:'lim6', difficulty:'medium',
+    question:'If \\(\\lim_{x\\to 2^-}f(x)=3\\) and \\(\\lim_{x\\to 2^+}f(x)=5\\), does \\(\\lim_{x\\to 2}f(x)\\) exist?',
+    choices:['Yes, it equals 4 (average)','Yes, it equals 3','Yes, it equals 5','No, the two-sided limit does not exist'],
+    correct:3,
+    explanation:'The two-sided limit \\(\\lim_{x\\to a}f(x)\\) exists only if the left-hand and right-hand limits are EQUAL. Since \\(3\\neq 5\\), the limit at \\(x=2\\) does not exist.',
+    hints:['What condition must hold for a two-sided limit to exist?','The left limit is 3 and the right limit is 5. Are they equal?','A two-sided limit requires: left limit = right limit.']
+  },
+],
+
+diff_rules: [
+  {
+    id:'dr1', difficulty:'easy',
+    question:'What is \\(\\dfrac{d}{dx}\\left[x^n\\right]\\)?',
+    choices:['\\(x^{n-1}\\)','\\(nx^n\\)','\\(nx^{n-1}\\)','\\((n-1)x^n\\)'],
+    correct:2,
+    explanation:'The Power Rule: \\(\\dfrac{d}{dx}[x^n]=nx^{n-1}\\). Bring the exponent down as a multiplier and reduce the exponent by 1.',
+    hints:['This is the Power Rule.','The exponent becomes a coefficient, then the exponent decreases by 1.','\\(\\frac{d}{dx}[x^n]=\\text{(exponent)}\\cdot x^{\\text{exponent}-1}\\)']
+  },
+  {
+    id:'dr2', difficulty:'easy',
+    question:'What is \\(\\dfrac{d}{dx}[5]\\)?',
+    choices:['\\(5\\)','\\(1\\)','\\(0\\)','\\(5x\\)'],
+    correct:2,
+    explanation:'The derivative of any constant is 0. Constants don\'t change, so their rate of change is 0.',
+    hints:['The derivative measures rate of change.','Does the value 5 change as \\(x\\) changes?','A constant has no rate of change.']
+  },
+  {
+    id:'dr3', difficulty:'easy',
+    question:'What is \\(\\dfrac{d}{dx}[3x^4]\\)?',
+    choices:['\\(12x^3\\)','\\(3x^3\\)','\\(12x^4\\)','\\(3x^5/5\\)'],
+    correct:0,
+    explanation:'Constant Multiple Rule + Power Rule: \\(\\dfrac{d}{dx}[3x^4]=3\\cdot\\dfrac{d}{dx}[x^4]=3\\cdot 4x^3=12x^3\\).',
+    hints:['Constants factor out of derivatives.','Apply the Power Rule to \\(x^4\\).','\\(\\frac{d}{dx}[x^4]=4x^3\\), then multiply by the constant 3.']
+  },
+  {
+    id:'dr4', difficulty:'medium',
+    question:'What is \\(\\dfrac{d}{dx}\\left[x^{1/2}\\right]\\)?',
+    choices:['\\(x^{-1/2}\\)','\\(\\dfrac{1}{2}x^{-1/2}\\)','\\(\\dfrac{1}{2}x^{1/2}\\)','\\(2x^{3/2}\\)'],
+    correct:1,
+    explanation:'Power Rule works for all exponents: \\(\\dfrac{d}{dx}[x^{1/2}]=\\dfrac{1}{2}x^{1/2-1}=\\dfrac{1}{2}x^{-1/2}=\\dfrac{1}{2\\sqrt{x}}\\).',
+    hints:['The Power Rule applies to fractional exponents too.','Bring the exponent \\(1/2\\) down and subtract 1 from it.','\\(1/2-1=-1/2\\).']
+  },
+  {
+    id:'dr5', difficulty:'medium',
+    question:'What is \\(\\dfrac{d}{dx}[x^{-2}]\\)?',
+    choices:['\\(-2x^{-1}\\)','\\(2x^{-3}\\)','\\(-2x^{-3}\\)','\\(-2x^{-1}\\)'],
+    correct:2,
+    explanation:'Power Rule: \\(\\dfrac{d}{dx}[x^{-2}]=-2x^{-2-1}=-2x^{-3}\\). The same rule applies to negative exponents.',
+    hints:['The Power Rule applies to negative exponents too.','Bring \\(-2\\) down as the coefficient.','Reduce the exponent: \\(-2-1=-3\\).']
+  },
+  {
+    id:'dr6', difficulty:'medium',
+    question:'If \\(f(x)=x^5-3x^2+2\\), what is \\(f\'(x)\\)?',
+    choices:['\\(5x^4-6x\\)','\\(5x^4-3x\\)','\\(x^4-6x\\)','\\(5x^4-6x+2\\)'],
+    correct:0,
+    explanation:'Differentiate term by term: \\(\\frac{d}{dx}[x^5]=5x^4\\), \\(\\frac{d}{dx}[-3x^2]=-6x\\), \\(\\frac{d}{dx}[2]=0\\). Sum: \\(f\'(x)=5x^4-6x\\).',
+    hints:['Differentiate each term separately.','What is the derivative of \\(x^5\\)?','What is the derivative of \\(-3x^2\\)? Of the constant 2?']
+  },
+],
+
+limits_inf: [
+  {
+    id:'li1', difficulty:'medium',
+    question:'What is \\(\\displaystyle\\lim_{x\\to\\infty}\\frac{3x^2+1}{x^2-2}\\)?',
+    choices:['\\(3\\)','\\(0\\)','\\(\\infty\\)','\\(1\\)'],
+    correct:0,
+    explanation:'Divide numerator and denominator by \\(x^2\\): \\(\\dfrac{3+1/x^2}{1-2/x^2}\\). As \\(x\\to\\infty\\), terms with \\(1/x^2\\to 0\\), giving \\(3/1=3\\). Equivalently, compare leading terms: \\(3x^2/x^2=3\\).',
+    hints:['What happens to \\(1/x^2\\) as \\(x\\to\\infty\\)?','Divide every term by the highest power of \\(x\\) (which is \\(x^2\\)).','The answer is determined by the ratio of the leading coefficients.']
+  },
+  {
+    id:'li2', difficulty:'medium',
+    question:'What is the horizontal asymptote of \\(y=\\dfrac{2x+1}{x-3}\\)?',
+    choices:['\\(y=0\\)','\\(y=3\\)','\\(y=2\\)','\\(y=1/3\\)'],
+    correct:2,
+    explanation:'Compare degrees: numerator and denominator are both degree 1. The horizontal asymptote is the ratio of leading coefficients: \\(2/1=2\\). So \\(y=2\\).',
+    hints:['Horizontal asymptotes are found by taking \\(\\lim_{x\\to\\infty}\\).','What are the leading terms of the numerator and denominator?','When degrees are equal, the asymptote = ratio of leading coefficients.']
+  },
+  {
+    id:'li3', difficulty:'medium',
+    question:'A function \\(f\\) is continuous at \\(x=a\\) when:',
+    choices:['\\(f(a)\\) is defined','The limit \\(\\lim_{x\\to a}f(x)\\) exists','\\(f(a)\\) is defined AND \\(\\lim_{x\\to a}f(x)=f(a)\\)','\\(f(a)=0\\)'],
+    correct:2,
+    explanation:'Continuity at \\(x=a\\) requires THREE conditions: (1) \\(f(a)\\) is defined, (2) \\(\\lim_{x\\to a}f(x)\\) exists, and (3) \\(\\lim_{x\\to a}f(x)=f(a)\\). All three must hold.',
+    hints:['There are three conditions for continuity. What are they?','The limit must exist, the function must be defined, AND they must agree.','Continuity means: no jump, no hole, no asymptote at \\(x=a\\).']
+  },
+  {
+    id:'li4', difficulty:'easy',
+    question:'What is \\(\\displaystyle\\lim_{x\\to\\infty}e^{-x}\\)?',
+    choices:['\\(\\infty\\)','\\(1\\)','\\(e\\)','\\(0\\)'],
+    correct:3,
+    explanation:'As \\(x\\to\\infty\\), \\(e^{-x}=1/e^x\\to 0\\) because the denominator \\(e^x\\to\\infty\\). The exponential decay to 0.',
+    hints:['Write \\(e^{-x}=1/e^x\\).','What happens to \\(e^x\\) as \\(x\\to\\infty\\)?','If the denominator goes to infinity, what does the fraction approach?']
+  },
+  {
+    id:'li5', difficulty:'easy',
+    question:'Is \\(f(x)=\\dfrac{1}{x}\\) continuous at \\(x=0\\)?',
+    choices:['Yes, the limit exists','Yes, the function approaches \\(\\infty\\)','No — it is not defined at \\(x=0\\)','Yes, with value 0'],
+    correct:2,
+    explanation:'\\(f(x)=1/x\\) is NOT defined at \\(x=0\\) (division by zero is undefined). Since the first condition for continuity fails, \\(f\\) is discontinuous at \\(x=0\\).',
+    hints:['What is \\(f(0)=1/0\\)?','Division by zero is...?','Check the first condition for continuity: is \\(f(0)\\) defined?']
+  },
+],
+
+derivatives: [
+  {
+    id:'dv1', difficulty:'easy',
+    question:'Geometrically, \\(f\'(a)\\) represents the slope of:',
+    choices:['The secant line through \\((a,f(a))\\) and another point','The tangent line to \\(f\\) at \\(x=a\\)','The normal line to \\(f\\) at \\(x=a\\)','The x-axis'],
+    correct:1,
+    explanation:'The derivative \\(f\'(a)\\) is the slope of the tangent line to the curve \\(y=f(x)\\) at the point \\((a,f(a))\\). It\'s the instantaneous rate of change.',
+    hints:['The derivative is a limit of secant slopes as two points get closer.','As the second point approaches \\((a,f(a))\\), the secant approaches...?','The tangent line "just touches" the curve at one point.']
+  },
+  {
+    id:'dv2', difficulty:'easy',
+    question:'If \\(f(x)=x^3\\), what is \\(f\'(2)\\)?',
+    choices:['\\(8\\)','\\(6\\)','\\(12\\)','\\(3\\)'],
+    correct:2,
+    explanation:'\\(f\'(x)=3x^2\\) (Power Rule). Then \\(f\'(2)=3(2)^2=3\\cdot 4=12\\).',
+    hints:['First find \\(f\'(x)\\) using the Power Rule.','\\(f\'(x)=3x^2\\)','Now substitute \\(x=2\\).']
+  },
+  {
+    id:'dv3', difficulty:'easy',
+    question:'The derivative of a constant function \\(f(x)=c\\) is:',
+    choices:['\\(c\\)','\\(x\\)','\\(cx\\)','\\(0\\)'],
+    correct:3,
+    explanation:'A constant doesn\'t change, so its rate of change is 0. Formally: \\(\\frac{d}{dx}[c]=0\\).',
+    hints:['What does the derivative measure?','Does the value \\(c\\) depend on \\(x\\) at all?','No change → rate of change is...?']
+  },
+  {
+    id:'dv4', difficulty:'easy',
+    question:'If position is \\(s(t)\\), what does \\(s\'(t)\\) represent?',
+    choices:['Acceleration','Speed','Velocity','Distance'],
+    correct:2,
+    explanation:'\\(s\'(t)=v(t)\\) is velocity — the instantaneous rate of change of position with respect to time. Acceleration is \\(s\'\'(t)\\).',
+    hints:['The derivative of position with respect to time is...?','Think about units: if position is in meters and time is in seconds...','Rate of change of position = ?']
+  },
+  {
+    id:'dv5', difficulty:'medium',
+    question:'What is the equation of the tangent line to \\(y=x^2\\) at \\(x=3\\)?',
+    choices:['\\(y=9x-3\\)','\\(y-9=6(x-3)\\)','\\(y=6x\\)','\\(y-3=9(x-6)\\)'],
+    correct:1,
+    explanation:'At \\(x=3\\): \\(y=9\\). Slope \\(=f\'(3)=2(3)=6\\). Point-slope form: \\(y-9=6(x-3)\\).',
+    hints:['Find the point: what is \\(y\\) when \\(x=3\\)?','Find the slope: what is \\(f\'(x)=\\frac{d}{dx}[x^2]\\) at \\(x=3\\)?','Use point-slope form: \\(y-y_1=m(x-x_1)\\).']
+  },
+],
+
+deriv_trig: [
+  {
+    id:'dt1', difficulty:'easy',
+    question:'What is \\(\\dfrac{d}{dx}[\\sin x]\\)?',
+    choices:['\\(-\\cos x\\)','\\(\\cos x\\)','\\(-\\sin x\\)','\\(\\tan x\\)'],
+    correct:1,
+    explanation:'\\(\\dfrac{d}{dx}[\\sin x]=\\cos x\\). This is a fundamental derivative to memorize.',
+    hints:['This is a standard trig derivative to memorize.','Think of the unit circle: as \\(\\sin\\) reaches its max, the slope (rate of change) is...?','The derivative of sine is cosine.']
+  },
+  {
+    id:'dt2', difficulty:'easy',
+    question:'What is \\(\\dfrac{d}{dx}[\\cos x]\\)?',
+    choices:['\\(\\sin x\\)','\\(-\\cos x\\)','\\(-\\sin x\\)','\\(\\sec x\\)'],
+    correct:2,
+    explanation:'\\(\\dfrac{d}{dx}[\\cos x]=-\\sin x\\). Don\'t forget the negative sign!',
+    hints:['The derivative of cosine involves a negative sign.','Recall: \\(\\frac{d}{dx}[\\sin x]=\\cos x\\). The derivative of \\(\\cos x\\) is the "reverse with a negative."','\\(\\frac{d}{dx}[\\cos x]=-\\sin x\\)']
+  },
+  {
+    id:'dt3', difficulty:'easy',
+    question:'What is \\(\\dfrac{d}{dx}[\\tan x]\\)?',
+    choices:['\\(\\sec x\\)','\\(-\\csc^2 x\\)','\\(\\sec^2 x\\)','\\(\\cot x\\)'],
+    correct:2,
+    explanation:'\\(\\dfrac{d}{dx}[\\tan x]=\\sec^2 x\\). You can derive this using the Quotient Rule on \\(\\sin x/\\cos x\\).',
+    hints:['Write \\(\\tan x=\\sin x/\\cos x\\) and use the Quotient Rule.','Or just memorize: \\(\\frac{d}{dx}[\\tan x]=\\sec^2 x\\).','The answer involves \\(\\sec^2 x\\).']
+  },
+  {
+    id:'dt4', difficulty:'medium',
+    question:'What is \\(\\dfrac{d}{dx}[\\sin x]\\) evaluated at \\(x=\\pi/2\\)?',
+    choices:['\\(1\\)','\\(-1\\)','\\(0\\)','\\(\\pi/2\\)'],
+    correct:2,
+    explanation:'\\(\\dfrac{d}{dx}[\\sin x]=\\cos x\\). At \\(x=\\pi/2\\): \\(\\cos(\\pi/2)=0\\). This makes sense: \\(\\sin\\) is at its maximum at \\(\\pi/2\\), so its slope is 0.',
+    hints:['First find the derivative of \\(\\sin x\\).','Then substitute \\(x=\\pi/2\\).','What is \\(\\cos(\\pi/2)\\)?']
+  },
+  {
+    id:'dt5', difficulty:'medium',
+    question:'What is \\(\\dfrac{d}{dx}[\\sec x]\\)?',
+    choices:['\\(\\sec x\\tan x\\)','\\(-\\csc x\\cot x\\)','\\(\\sec^2 x\\)','\\(\\tan x\\)'],
+    correct:0,
+    explanation:'\\(\\dfrac{d}{dx}[\\sec x]=\\sec x\\tan x\\). Derive it using \\(\\sec x=1/\\cos x\\) and the Quotient or Chain Rule.',
+    hints:['Write \\(\\sec x=(\\cos x)^{-1}\\).','Use the Chain Rule: \\(\\frac{d}{dx}[(\\cos x)^{-1}]=-(\\cos x)^{-2}\\cdot(-\\sin x)\\).','Simplify: \\(\\dfrac{\\sin x}{\\cos^2 x}=\\dfrac{1}{\\cos x}\\cdot\\dfrac{\\sin x}{\\cos x}=\\sec x\\tan x\\).']
+  },
+  {
+    id:'dt6', difficulty:'hard',
+    question:'What is \\(\\dfrac{d}{dx}[\\sin^2 x]\\)?',
+    choices:['\\(2\\sin x\\)','\\(\\cos^2 x\\)','\\(2\\sin x\\cos x\\)','\\(-2\\sin x\\cos x\\)'],
+    correct:2,
+    explanation:'Use the Chain Rule: \\(\\dfrac{d}{dx}[(\\sin x)^2]=2\\sin x\\cdot\\cos x=\\sin(2x)\\). The outer function is \\(u^2\\), inner is \\(\\sin x\\).',
+    hints:['Write \\(\\sin^2 x=(\\sin x)^2\\). What is the outer function? Inner function?','Chain Rule: derivative of outer × derivative of inner.','\\(\\frac{d}{du}[u^2]=2u\\) where \\(u=\\sin x\\), and \\(\\frac{d}{dx}[\\sin x]=\\cos x\\).']
+  },
+],
+
+chain_rule: [
+  {
+    id:'cr1', difficulty:'easy',
+    question:'The Chain Rule states: \\(\\dfrac{d}{dx}[f(g(x))]=\\)?',
+    choices:["\\(f'(x)\\cdot g'(x)\\)","\\(f'(g(x))\\cdot g'(x)\\)","\\(f'(g(x))+g'(x)\\)","\\(f(g'(x))\\)"],
+    correct:1,
+    explanation:"The Chain Rule: \\(\\frac{d}{dx}[f(g(x))]=f'(g(x))\\cdot g'(x)\\). Differentiate the outer function (leaving the inner unchanged), then multiply by the derivative of the inner function.",
+    hints:['The Chain Rule is for composite functions.','Differentiate the "outside" function first, keeping the inside intact.','Then multiply by the derivative of the "inside" function.']
+  },
+  {
+    id:'cr2', difficulty:'easy',
+    question:'What is \\(\\dfrac{d}{dx}[\\sin(3x)]\\)?',
+    choices:['\\(\\cos(3x)\\)','\\(3\\sin(3x)\\)','\\(3\\cos(3x)\\)','\\(-3\\cos(3x)\\)'],
+    correct:2,
+    explanation:'Outer: \\(\\sin(u)\\), inner: \\(u=3x\\). Chain Rule: \\(\\cos(3x)\\cdot\\dfrac{d}{dx}[3x]=\\cos(3x)\\cdot 3=3\\cos(3x)\\).',
+    hints:['Identify the outer function (\\(\\sin\\)) and inner function (\\(3x\\)).','Derivative of outer: \\(\\cos(3x)\\) (keep the inner the same).','Multiply by derivative of inner: \\(\\frac{d}{dx}[3x]=3\\).']
+  },
+  {
+    id:'cr3', difficulty:'medium',
+    question:'What is \\(\\dfrac{d}{dx}[(x^2+1)^5]\\)?',
+    choices:['\\(5(x^2+1)^4\\)','\\(10x(x^2+1)^4\\)','\\(5x(x^2+1)^4\\)','\\(10x(x^2+1)^5\\)'],
+    correct:1,
+    explanation:'Outer: \\(u^5\\), inner: \\(u=x^2+1\\). Chain Rule: \\(5(x^2+1)^4\\cdot\\dfrac{d}{dx}[x^2+1]=5(x^2+1)^4\\cdot 2x=10x(x^2+1)^4\\).',
+    hints:['Outer function: \\(u^5\\). Inner function: \\(x^2+1\\).','Derivative of outer (keep inner): \\(5(x^2+1)^4\\).','Multiply by derivative of inner: \\(\\frac{d}{dx}[x^2+1]=2x\\).']
+  },
+  {
+    id:'cr4', difficulty:'medium',
+    question:'What is \\(\\dfrac{d}{dx}[e^{x^2}]\\)?',
+    choices:['\\(e^{x^2}\\)','\\(2xe^x\\)','\\(2xe^{x^2}\\)','\\(x^2e^{x^2-1}\\)'],
+    correct:2,
+    explanation:'Outer: \\(e^u\\), inner: \\(u=x^2\\). Chain Rule: \\(e^{x^2}\\cdot\\dfrac{d}{dx}[x^2]=e^{x^2}\\cdot 2x=2xe^{x^2}\\).',
+    hints:['The outer function is \\(e^u\\), inner is \\(u=x^2\\).','Derivative of \\(e^u\\) with respect to \\(u\\) is \\(e^u\\).','Multiply by \\(\\frac{d}{dx}[x^2]=2x\\).']
+  },
+  {
+    id:'cr5', difficulty:'hard',
+    question:'What is \\(\\dfrac{d}{dx}[\\sqrt{\\sin x}]\\)?',
+    choices:['\\(\\dfrac{1}{2\\sqrt{\\cos x}}\\)','\\(\\dfrac{\\cos x}{2\\sqrt{\\sin x}}\\)','\\(\\dfrac{1}{2\\sqrt{\\sin x}}\\)','\\(\\dfrac{\\cos x}{\\sqrt{\\sin x}}\\)'],
+    correct:1,
+    explanation:'Write \\(\\sqrt{\\sin x}=(\\sin x)^{1/2}\\). Chain Rule: \\(\\dfrac{1}{2}(\\sin x)^{-1/2}\\cdot\\cos x=\\dfrac{\\cos x}{2\\sqrt{\\sin x}}\\).',
+    hints:['Write \\(\\sqrt{\\sin x}=(\\sin x)^{1/2}\\).','Outer: \\(u^{1/2}\\); inner: \\(u=\\sin x\\).','Apply Chain Rule: \\(\\frac{1}{2}(\\sin x)^{-1/2}\\cdot \\cos x\\).']
+  },
+  {
+    id:'cr6', difficulty:'medium',
+    question:'A student computes \\(\\dfrac{d}{dx}[(2x+3)^4]=4(2x+3)^3\\). What is wrong?',
+    choices:['The exponent should be 3, not used correctly','Nothing is wrong','They forgot to multiply by the inner derivative (2), giving \\(8(2x+3)^3\\)','The outer derivative should be \\(4(2x+3)^5/5\\)'],
+    correct:2,
+    explanation:'By the Chain Rule, you must multiply by the derivative of the inner function \\(2x+3\\), which is \\(2\\). Correct: \\(4(2x+3)^3\\cdot 2=8(2x+3)^3\\).',
+    hints:['The student applied the outer derivative correctly but forgot the Chain Rule\'s second part.','What is the derivative of the inner function \\(2x+3\\)?','Chain Rule requires multiplying by the inner derivative.']
+  },
+],
+
+prod_quot: [
+  {
+    id:'pq1', difficulty:'easy',
+    question:'The Product Rule states: \\(\\dfrac{d}{dx}[f\\cdot g]=\\)?',
+    choices:["\\(f'\\cdot g'\\)","\\(f'g+fg'\\)","\\(f'g-fg'\\)","\\((f'g-fg')/g^2\\)"],
+    correct:1,
+    explanation:"Product Rule: \\(\\frac{d}{dx}[f\\cdot g]=f'g+fg'\\). \"First times derivative of second, plus second times derivative of first.\"",
+    hints:['The Product Rule says: derivative of a product ≠ product of derivatives.','Think "d(first)·second + first·d(second)".','The Product Rule: \\(f\'g+fg\'\\).']
+  },
+  {
+    id:'pq2', difficulty:'medium',
+    question:'What is \\(\\dfrac{d}{dx}[x\\sin x]\\)?',
+    choices:['\\(\\sin x+x\\cos x\\)','\\(\\cos x\\)','\\(x\\cos x\\)','\\(\\sin x\\cos x\\)'],
+    correct:0,
+    explanation:'Product Rule with \\(f=x\\), \\(g=\\sin x\\): \\(f\'g+fg\'=1\\cdot\\sin x+x\\cdot\\cos x=\\sin x+x\\cos x\\).',
+    hints:['Let \\(f=x\\) and \\(g=\\sin x\\).','\\(f\'=1\\) and \\(g\'=\\cos x\\).','Product Rule: \\(f\'g+fg\'=1\\cdot\\sin x+x\\cdot\\cos x\\).']
+  },
+  {
+    id:'pq3', difficulty:'easy',
+    question:'The Quotient Rule states: \\(\\dfrac{d}{dx}[f/g]=\\)?',
+    choices:["\\(f'/g'\\)","\\((f'g+fg')/g^2\\)","\\((f'g-fg')/g^2\\)","\\(f'/g-f/g^2\\)"],
+    correct:2,
+    explanation:"Quotient Rule: \\(\\dfrac{d}{dx}\\left[\\dfrac{f}{g}\\right]=\\dfrac{f'g-fg'}{g^2}\\). Remember: \"Low d-High minus High d-Low, all over Low squared.\"",
+    hints:['The Quotient Rule: "Low d-High minus High d-Low, over Low squared."','Numerator: \\(f\'g-fg\'\\). Denominator: \\(g^2\\).','Be careful about the ORDER — it\'s f\'g MINUS fg\', not plus.']
+  },
+  {
+    id:'pq4', difficulty:'hard',
+    question:'What is \\(\\dfrac{d}{dx}\\!\\left[\\dfrac{x^2}{\\cos x}\\right]\\)?',
+    choices:['\\(\\dfrac{2x\\cos x+x^2\\sin x}{\\cos^2 x}\\)','\\(\\dfrac{2x\\cos x-x^2\\sin x}{\\cos^2 x}\\)','\\(\\dfrac{2x}{-\\sin x}\\)','\\(2x\\cos x+x^2\\sin x\\)'],
+    correct:0,
+    explanation:'Quotient Rule: \\(f=x^2\\), \\(g=\\cos x\\). \\(f\'=2x\\), \\(g\'=-\\sin x\\). \\(\\dfrac{f\'g-fg\'}{g^2}=\\dfrac{2x\\cos x-(x^2)(-\\sin x)}{\\cos^2 x}=\\dfrac{2x\\cos x+x^2\\sin x}{\\cos^2 x}\\).',
+    hints:['Let \\(f=x^2\\), \\(g=\\cos x\\). Find \\(f\'\\) and \\(g\'\\).','\\(g\'=\\dfrac{d}{dx}[\\cos x]=-\\sin x\\).','Apply Quotient Rule: \\(\\frac{f\'g-fg\'}{g^2}\\). Watch the minus signs!']
+  },
+  {
+    id:'pq5', difficulty:'medium',
+    question:'What is \\(\\dfrac{d}{dx}[x^2 e^x]\\)?',
+    choices:['\\(2xe^x\\)','\\(x^2e^x\\)','\\(xe^x(x+2)\\)','\\(2xe^{x-1}\\)'],
+    correct:2,
+    explanation:'Product Rule: \\(f=x^2\\), \\(g=e^x\\). \\(f\'=2x\\), \\(g\'=e^x\\). Result: \\(2xe^x+x^2e^x=xe^x(2+x)=xe^x(x+2)\\).',
+    hints:['Let \\(f=x^2\\) and \\(g=e^x\\).','\\(f\'=2x\\) and \\(g\'=e^x\\).','Apply Product Rule, then factor out \\(xe^x\\).']
+  },
+],
+
+implicit: [
+  {
+    id:'im1', difficulty:'medium',
+    question:'Differentiate \\(x^2+y^2=25\\) implicitly to find \\(\\dfrac{dy}{dx}\\).',
+    choices:['\\(dy/dx=-x/y\\)','\\(dy/dx=x/y\\)','\\(dy/dx=-y/x\\)','\\(dy/dx=2x/2y\\)'],
+    correct:0,
+    explanation:'Differentiate both sides: \\(2x+2y\\dfrac{dy}{dx}=0\\). Solve: \\(2y\\dfrac{dy}{dx}=-2x\\), so \\(\\dfrac{dy}{dx}=\\dfrac{-x}{y}\\).',
+    hints:['Differentiate both sides with respect to \\(x\\).','When you differentiate \\(y^2\\), use the Chain Rule: \\(\\frac{d}{dx}[y^2]=2y\\cdot\\frac{dy}{dx}\\).','Solve the resulting equation for \\(\\frac{dy}{dx}\\).']
+  },
+  {
+    id:'im2', difficulty:'easy',
+    question:'In implicit differentiation, why do we multiply by \\(\\dfrac{dy}{dx}\\) when differentiating \\(y^2\\)?',
+    choices:['It\'s a correction factor','Because \\(y^2\\) is nonlinear','Chain Rule — \\(y\\) is a function of \\(x\\)','To eliminate the \\(y\\)'],
+    correct:2,
+    explanation:'By the Chain Rule: \\(\\dfrac{d}{dx}[y^2]=2y\\cdot\\dfrac{dy}{dx}\\). Since \\(y\\) is an implicit function of \\(x\\), differentiating \\(y\\) with respect to \\(x\\) produces \\(dy/dx\\).',
+    hints:['What does the Chain Rule say about differentiating a composite function?','Is \\(y\\) a function of \\(x\\) in an implicit equation?','\\(\\frac{d}{dx}[y^2]=\\frac{d}{dy}[y^2]\\cdot\\frac{dy}{dx}\\)']
+  },
+  {
+    id:'im3', difficulty:'medium',
+    question:'Find \\(\\dfrac{dy}{dx}\\) for \\(xy=5\\).',
+    choices:['\\(dy/dx=y/x\\)','\\(dy/dx=-y/x\\)','\\(dy/dx=5/x^2\\)','\\(dy/dx=-1\\)'],
+    correct:1,
+    explanation:'Differentiate using Product Rule: \\(y+x\\dfrac{dy}{dx}=0\\). Solve: \\(\\dfrac{dy}{dx}=-\\dfrac{y}{x}\\).',
+    hints:['Differentiate both sides. The right side gives 0.','Use the Product Rule on \\(xy\\): \\(\\frac{d}{dx}[xy]=y+x\\frac{dy}{dx}\\).','Solve for \\(\\frac{dy}{dx}\\).']
+  },
+  {
+    id:'im4', difficulty:'hard',
+    question:'Find \\(\\dfrac{dy}{dx}\\) for \\(x^3+y^3=6xy\\).',
+    choices:['\\(\\dfrac{2y-x^2}{y^2-2x}\\)','\\(\\dfrac{x^2-y}{y^2-x}\\)','\\(\\dfrac{3x^2-6y}{6x-3y^2}\\)','\\(\\dfrac{y-x^2}{y^2-x}\\)'],
+    correct:0,
+    explanation:'Differentiate: \\(3x^2+3y^2\\frac{dy}{dx}=6y+6x\\frac{dy}{dx}\\). Collect \\(dy/dx\\): \\((3y^2-6x)\\frac{dy}{dx}=6y-3x^2\\). Divide: \\(\\frac{dy}{dx}=\\frac{6y-3x^2}{3y^2-6x}=\\frac{2y-x^2}{y^2-2x}\\).',
+    hints:['Differentiate both sides. The right side needs the Product Rule.','Collect all \\(\\frac{dy}{dx}\\) terms on one side.','Factor out \\(\\frac{dy}{dx}\\) and solve by dividing.']
+  },
+  {
+    id:'im5', difficulty:'medium',
+    question:'True or false: In implicit differentiation, every term involving \\(y\\) gets multiplied by \\(\\dfrac{dy}{dx}\\).',
+    choices:['True','False — only when we differentiate \\(y\\) with respect to \\(x\\) via the Chain Rule','True — this is how implicit differentiation works','False — \\(y\\) terms never involve \\(dy/dx\\)'],
+    correct:1,
+    explanation:'FALSE. We multiply by \\(dy/dx\\) only when we DIFFERENTIATE a \\(y\\) expression with respect to \\(x\\) (by Chain Rule). A term like \\(y\\) itself (not being differentiated) does not get \\(dy/dx\\) attached.',
+    hints:['Think about the Product Rule applied to \\(xy\\): \\(y+x\\frac{dy}{dx}\\). Does the first \\(y\\) get a \\(dy/dx\\)?','\\(dy/dx\\) appears only when you are actually TAKING the derivative of a \\(y\\) expression.','In \\(y+x\\frac{dy}{dx}\\), the \\(y\\) is not differentiated; the \\(\\frac{dy}{dx}\\) comes from differentiating \\(y\\).']
+  },
+],
+
+rates: [
+  {
+    id:'rt1', difficulty:'medium',
+    question:"A ball's position is \\(s(t)=-16t^2+64t\\). When does it reach maximum height?",
+    choices:['\\(t=1\\)','\\(t=2\\)','\\(t=4\\)','\\(t=64\\)'],
+    correct:1,
+    explanation:'Velocity \\(v(t)=s\'(t)=-32t+64\\). Set \\(v=0\\): \\(-32t+64=0\\Rightarrow t=2\\). Maximum height occurs when velocity is zero.',
+    hints:['At maximum height, the velocity is...?','Find \\(v(t)=s\'(t)\\) using the Power Rule.','Set \\(v(t)=0\\) and solve for \\(t\\).']
+  },
+  {
+    id:'rt2', difficulty:'hard',
+    question:'The radius of a circle grows at \\(2\\) cm/s. At what rate does the area grow when \\(r=5\\) cm?',
+    choices:['\\(10\\pi\\) cm²/s','\\(20\\pi\\) cm²/s','\\(25\\pi\\) cm²/s','\\(4\\pi\\) cm²/s'],
+    correct:1,
+    explanation:'\\(A=\\pi r^2\\). Differentiate: \\(\\frac{dA}{dt}=2\\pi r\\frac{dr}{dt}\\). Substitute \\(r=5\\), \\(dr/dt=2\\): \\(\\frac{dA}{dt}=2\\pi(5)(2)=20\\pi\\) cm²/s.',
+    hints:['Start with the formula \\(A=\\pi r^2\\).','Differentiate both sides with respect to \\(t\\).','Substitute the known values \\(r=5\\) and \\(dr/dt=2\\).']
+  },
+  {
+    id:'rt3', difficulty:'easy',
+    question:'What is the average rate of change of \\(f(x)=x^2\\) from \\(x=1\\) to \\(x=3\\)?',
+    choices:['\\(2\\)','\\(4\\)','\\(6\\)','\\(8\\)'],
+    correct:1,
+    explanation:'Average rate of change \\(=\\dfrac{f(3)-f(1)}{3-1}=\\dfrac{9-1}{2}=\\dfrac{8}{2}=4\\).',
+    hints:['Average rate of change formula: \\(\\frac{f(b)-f(a)}{b-a}\\).','Calculate \\(f(3)=9\\) and \\(f(1)=1\\).','Divide the change in output by the change in input.']
+  },
+  {
+    id:'rt4', difficulty:'easy',
+    question:'The instantaneous rate of change of \\(f\\) at \\(x=a\\) equals:',
+    choices:['The average rate of change','The integral of \\(f\\)','The derivative \\(f\'(a)\\)','The limit as \\(a\\to\\infty\\)'],
+    correct:2,
+    explanation:'The instantaneous rate of change at \\(x=a\\) is exactly \\(f\'(a)\\), the derivative. It\'s the limit of the average rate of change as the interval shrinks to zero.',
+    hints:['The instantaneous rate of change is the "limiting" version of the average rate.','What does the derivative measure?','As \\(\\Delta x\\to 0\\), the average rate becomes the...?']
+  },
+  {
+    id:'rt5', difficulty:'hard',
+    question:'If \\(V=\\dfrac{4}{3}\\pi r^3\\) and \\(\\dfrac{dr}{dt}=1\\), what is \\(\\dfrac{dV}{dt}\\) when \\(r=2\\)?',
+    choices:['\\(4\\pi\\)','\\(16\\pi\\)','\\(8\\pi\\)','\\(32\\pi/3\\)'],
+    correct:1,
+    explanation:'Differentiate: \\(\\dfrac{dV}{dt}=4\\pi r^2\\dfrac{dr}{dt}\\). At \\(r=2\\), \\(dr/dt=1\\): \\(\\frac{dV}{dt}=4\\pi(4)(1)=16\\pi\\).',
+    hints:['Differentiate \\(V=\\frac{4}{3}\\pi r^3\\) with respect to \\(t\\) using Chain Rule.','\\(\\frac{dV}{dt}=4\\pi r^2\\cdot\\frac{dr}{dt}\\)','Substitute \\(r=2\\) and \\(dr/dt=1\\).']
+  },
+],
+
+deriv_exp_log: [
+  {
+    id:'del1', difficulty:'easy',
+    question:'What is \\(\\dfrac{d}{dx}[e^x]\\)?',
+    choices:['\\(xe^{x-1}\\)','\\(e^x\\)','\\(e^{x-1}\\)','\\(1\\)'],
+    correct:1,
+    explanation:'The natural exponential function is its own derivative: \\(\\dfrac{d}{dx}[e^x]=e^x\\). This is one of the most important facts in calculus!',
+    hints:['This is one of the special derivatives to memorize.','The exponential \\(e^x\\) is unique because it equals its own rate of change.','\\(\\frac{d}{dx}[e^x]=e^x\\).']
+  },
+  {
+    id:'del2', difficulty:'easy',
+    question:'What is \\(\\dfrac{d}{dx}[\\ln x]\\)?',
+    choices:['\\(1/x^2\\)','\\(e^x\\)','\\(1/x\\)','\\(x\\)'],
+    correct:2,
+    explanation:'\\(\\dfrac{d}{dx}[\\ln x]=\\dfrac{1}{x}\\) for \\(x>0\\). This follows from the inverse function theorem applied to \\(e^x\\).',
+    hints:['This is a standard derivative to memorize.','\\(\\ln x\\) is the inverse of \\(e^x\\).','\\(\\frac{d}{dx}[\\ln x]=\\frac{1}{x}\\).']
+  },
+  {
+    id:'del3', difficulty:'medium',
+    question:'What is \\(\\dfrac{d}{dx}[a^x]\\) for constant \\(a>0\\)?',
+    choices:['\\(a^x\\)','\\(xa^{x-1}\\)','\\(a^x\\ln a\\)','\\(a^{x-1}\\)'],
+    correct:2,
+    explanation:'\\(\\dfrac{d}{dx}[a^x]=a^x\\ln a\\). Write \\(a^x=e^{x\\ln a}\\) and apply Chain Rule: \\(e^{x\\ln a}\\cdot\\ln a=a^x\\ln a\\).',
+    hints:['Write \\(a^x=e^{x\\ln a}\\) using the identity \\(a=e^{\\ln a}\\).','Now apply Chain Rule to \\(e^{x\\ln a}\\).','The derivative of \\(e^{x\\ln a}\\) with respect to \\(x\\) is \\(e^{x\\ln a}\\cdot\\ln a\\).']
+  },
+  {
+    id:'del4', difficulty:'medium',
+    question:'What is \\(\\dfrac{d}{dx}[\\ln(x^2+1)]\\)?',
+    choices:['\\(1/(x^2+1)\\)','\\(2/(x^2+1)\\)','\\(2x/(x^2+1)\\)','\\(\\ln(2x)\\)'],
+    correct:2,
+    explanation:'Chain Rule: outer \\(=\\ln(u)\\), inner \\(=u=x^2+1\\). \\(\\dfrac{1}{x^2+1}\\cdot 2x=\\dfrac{2x}{x^2+1}\\).',
+    hints:['Apply Chain Rule. Outer: \\(\\ln(u)\\), inner: \\(u=x^2+1\\).','Derivative of \\(\\ln(u)\\) is \\(1/u\\).','Multiply by derivative of inner: \\(\\frac{d}{dx}[x^2+1]=2x\\).']
+  },
+  {
+    id:'del5', difficulty:'medium',
+    question:'What is \\(\\dfrac{d}{dx}[e^{3x}]\\)?',
+    choices:['\\(e^{3x}\\)','\\(e^{3x}/3\\)','\\(3e^{3x}\\)','\\(3xe^{3x}\\)'],
+    correct:2,
+    explanation:'Chain Rule: outer \\(=e^u\\), inner \\(=u=3x\\). Result: \\(e^{3x}\\cdot 3=3e^{3x}\\).',
+    hints:['Apply Chain Rule. Outer: \\(e^u\\), inner: \\(3x\\).','Derivative of \\(e^u\\) is \\(e^u\\).','Multiply by derivative of inner: \\(\\frac{d}{dx}[3x]=3\\).']
+  },
+],
+
+deriv_inv_trig: [
+  {
+    id:'dit1', difficulty:'medium',
+    question:'What is \\(\\dfrac{d}{dx}[\\arcsin x]\\)?',
+    choices:['\\(\\cos x\\)','\\(1/\\sqrt{1-x^2}\\)','\\(-1/\\sqrt{1-x^2}\\)','\\(1/(1+x^2)\\)'],
+    correct:1,
+    explanation:'\\(\\dfrac{d}{dx}[\\arcsin x]=\\dfrac{1}{\\sqrt{1-x^2}}\\), valid for \\(|x|<1\\). Derive using implicit differentiation of \\(\\sin y=x\\).',
+    hints:['This is a formula to memorize.','It comes from implicit differentiation: if \\(\\sin y=x\\), differentiate both sides.','\\(\\cos y\\cdot\\frac{dy}{dx}=1\\Rightarrow\\frac{dy}{dx}=\\frac{1}{\\cos y}=\\frac{1}{\\sqrt{1-x^2}}\\).']
+  },
+  {
+    id:'dit2', difficulty:'medium',
+    question:'What is \\(\\dfrac{d}{dx}[\\arctan x]\\)?',
+    choices:['\\(1/\\sqrt{1-x^2}\\)','\\(-1/(1+x^2)\\)','\\(1/(1+x^2)\\)','\\(\\sec^2(x)\\)'],
+    correct:2,
+    explanation:'\\(\\dfrac{d}{dx}[\\arctan x]=\\dfrac{1}{1+x^2}\\). Derived by implicit differentiation of \\(\\tan y=x\\).',
+    hints:['This is a standard formula to memorize.','If \\(\\tan y=x\\), differentiate both sides implicitly.','\\(\\sec^2y\\cdot\\frac{dy}{dx}=1\\). Express \\(\\sec^2 y\\) in terms of \\(x\\).']
+  },
+  {
+    id:'dit3', difficulty:'medium',
+    question:'What is \\(\\dfrac{d}{dx}[\\arccos x]\\)?',
+    choices:['\\(1/\\sqrt{1-x^2}\\)','\\(-1/\\sqrt{1-x^2}\\)','\\(1/(1+x^2)\\)','\\(-\\sin x\\)'],
+    correct:1,
+    explanation:'\\(\\dfrac{d}{dx}[\\arccos x]=-\\dfrac{1}{\\sqrt{1-x^2}}\\). Notice it is the NEGATIVE of \\(\\arcsin\\)\'s derivative, since \\(\\arcsin x+\\arccos x=\\pi/2\\).',
+    hints:['This is the negative of the arcsin derivative.','Since \\(\\arcsin x+\\arccos x=\\pi/2\\) (constant), their derivatives must sum to...?','\\(\\frac{d}{dx}[\\arcsin x]+\\frac{d}{dx}[\\arccos x]=0\\).']
+  },
+  {
+    id:'dit4', difficulty:'medium',
+    question:'What is \\(\\dfrac{d}{dx}[\\arctan(2x)]\\)?',
+    choices:['\\(1/(1+4x^2)\\)','\\(2/(1+4x^2)\\)','\\(2/(1+2x^2)\\)','\\(1/(1+2x^2)\\)'],
+    correct:1,
+    explanation:'Chain Rule: outer \\(=\\arctan(u)\\), inner \\(=u=2x\\). \\(\\dfrac{1}{1+(2x)^2}\\cdot 2=\\dfrac{2}{1+4x^2}\\).',
+    hints:['Apply Chain Rule. Outer: \\(\\arctan(u)\\), inner: \\(u=2x\\).','Derivative of \\(\\arctan(u)\\) is \\(1/(1+u^2)\\).','Substitute \\(u=2x\\) and multiply by \\(\\frac{d}{dx}[2x]=2\\).']
+  },
+  {
+    id:'dit5', difficulty:'easy',
+    question:'Why is the range of \\(\\arcsin\\) restricted to \\([-\\pi/2,\\pi/2]\\)?',
+    choices:['To match the domain of \\(\\sin\\)','Because \\(\\sin\\) is negative outside this range','To make \\(\\arcsin\\) a function — \\(\\sin\\) is not one-to-one on a larger domain','For computational convenience only'],
+    correct:2,
+    explanation:'\\(\\sin x\\) is not one-to-one over all reals (it repeats). To define an inverse, we must restrict to an interval where \\(\\sin\\) IS one-to-one. The interval \\([-\\pi/2,\\pi/2]\\) is the standard choice.',
+    hints:['What does it mean for a function to have an inverse?','For an inverse to exist, the function must be one-to-one (pass the horizontal line test).','Is \\(\\sin x\\) one-to-one over all real numbers?']
+  },
+],
+
+maxmin: [
+  {
+    id:'mm1', difficulty:'easy',
+    question:'A critical point of \\(f\\) occurs where:',
+    choices:["\\(f(x)=0\\)","\\(f'(x)=0\\) or \\(f'(x)\\) is undefined","\\(f''(x)=0\\)","\\(f(x)\\) is at its maximum"],
+    correct:1,
+    explanation:"A critical point occurs where \\(f'(x)=0\\) OR where \\(f'(x)\\) does not exist (but \\(f\\) is defined). Not every critical point is a max or min!",
+    hints:["Critical points involve the first derivative.","Either the derivative equals zero, or the derivative doesn't exist.","Both conditions (\\(f'=0\\) or \\(f'\\) undefined) can produce critical points."]
+  },
+  {
+    id:'mm2', difficulty:'medium',
+    question:"Find the critical points of \\(f(x)=x^3-3x\\).",
+    choices:['\\(x=0\\) only','\\(x=1\\) and \\(x=-1\\)','\\(x=3\\)','\\(x=0\\) and \\(x=3\\)'],
+    correct:1,
+    explanation:"\\(f'(x)=3x^2-3=3(x^2-1)=3(x-1)(x+1)\\). Set \\(f'=0\\): \\(x=1\\) or \\(x=-1\\).",
+    hints:['Find \\(f\'(x)\\) using the Power Rule.','\\(f\'(x)=3x^2-3\\). Factor it.','Set the factored form equal to zero and solve.']
+  },
+  {
+    id:'mm3', difficulty:'easy',
+    question:'What is the difference between a local max and a global (absolute) max?',
+    choices:['There is no difference','Local max is the highest value on the entire domain; global max is the highest nearby','Local max is greatest in a neighborhood; global max is greatest on the entire domain','Global max occurs at a boundary; local max occurs in the interior'],
+    correct:2,
+    explanation:'A local maximum is the greatest value in some neighborhood around the point. A global (absolute) maximum is the greatest value over the ENTIRE domain. A global max is always a local max, but not vice versa.',
+    hints:['Think about a mountain range: there can be many local peaks, but only one highest peak.','Local = "greatest nearby." Global = "greatest everywhere."','Can a function have a local max that is not the global max?']
+  },
+  {
+    id:'mm4', difficulty:'medium',
+    question:'Find the global minimum of \\(f(x)=x^2\\) on \\([-2,3]\\).',
+    choices:['\\(x=-2\\), minimum value 4','\\(x=0\\), minimum value 0','\\(x=3\\), minimum value 9','\\(x=1\\), minimum value 1'],
+    correct:1,
+    explanation:'\\(f\'(x)=2x=0\\Rightarrow x=0\\). Check endpoints and critical point: \\(f(-2)=4\\), \\(f(0)=0\\), \\(f(3)=9\\). Minimum is 0 at \\(x=0\\).',
+    hints:['Find critical points by solving \\(f\'(x)=0\\).','On a closed interval, also check the endpoints.','Compare all values: \\(f(-2)\\), \\(f(0)\\), \\(f(3)\\).']
+  },
+  {
+    id:'mm5', difficulty:'easy',
+    question:'The Extreme Value Theorem says a continuous function on \\([a,b]\\) always has:',
+    choices:['A critical point at \\(x=(a+b)/2\\)','Both a global maximum and a global minimum','A zero somewhere on \\([a,b]\\)','An inflection point'],
+    correct:1,
+    explanation:'The Extreme Value Theorem (EVT): if \\(f\\) is continuous on a closed bounded interval \\([a,b]\\), then \\(f\\) attains both its absolute maximum and absolute minimum on \\([a,b]\\).',
+    hints:['The EVT applies to continuous functions on CLOSED intervals.','It guarantees extreme values exist — they must be attained.','The function must reach both its highest and lowest values.']
+  },
+],
+
+deriv_tests: [
+  {
+    id:'dtest1', difficulty:'medium',
+    question:"First Derivative Test: if \\(f'\\) changes from positive to negative at \\(c\\), then \\(c\\) is a:",
+    choices:['Local minimum','Inflection point','Neither','Local maximum'],
+    correct:3,
+    explanation:"If \\(f'\\) goes from \\(+\\) to \\(-\\) at \\(c\\), the function rises then falls, creating a local maximum at \\(c\\).",
+    hints:["If \\(f'>0\\), the function is increasing. If \\(f'<0\\), it's decreasing.","Increasing then decreasing means the function peaks at \\(c\\).","A peak is a local maximum."]
+  },
+  {
+    id:'dtest2', difficulty:'medium',
+    question:"Second Derivative Test: if \\(f'(c)=0\\) and \\(f''(c)>0\\), then \\(c\\) is a:",
+    choices:['Local maximum','Inflection point','Local minimum','Saddle point'],
+    correct:2,
+    explanation:"If \\(f''(c)>0\\), the function is concave up at \\(c\\). Combined with \\(f'(c)=0\\), this gives a local minimum (like the bottom of a bowl).",
+    hints:["What does \\(f''(c)>0\\) mean about concavity?","Concave up looks like a bowl (\\(\\cup\\)). A critical point at the bottom of a bowl is a...?","Second Derivative Test: \\(f''>0\\) at critical point → local min; \\(f''<0\\) → local max."]
+  },
+  {
+    id:'dtest3', difficulty:'medium',
+    question:"An inflection point occurs where:",
+    choices:["\\(f''(x)=0\\) (always)","\\(f'(x)=0\\)","\\(f''\\) changes sign","\\(f\\) reaches a maximum or minimum"],
+    correct:2,
+    explanation:"An inflection point is where concavity changes (from up to down or vice versa). This requires \\(f''\\) to CHANGE SIGN. Just having \\(f''(c)=0\\) is not sufficient.",
+    hints:["An inflection point is about change in concavity.","Does \\(f''(c)=0\\) guarantee an inflection point?","Consider \\(f(x)=x^4\\): \\(f''(0)=0\\) but concavity doesn't change there."]
+  },
+  {
+    id:'dtest4', difficulty:'easy',
+    question:"If \\(f''(x)>0\\) on an interval, then \\(f\\) is:",
+    choices:['Decreasing','Concave down','Concave up','At a minimum'],
+    correct:2,
+    explanation:"\\(f''(x)>0\\) means \\(f'\\) is increasing, which means \\(f\\) is concave up (shaped like \\(\\cup\\)).",
+    hints:["The second derivative measures the rate of change of the first derivative.","If \\(f'>0\\) means increasing, what does \\(f''>0\\) say about \\(f'\\)?","Concave up: the function curves upward, like a bowl (\\(\\cup\\))."]
+  },
+  {
+    id:'dtest5', difficulty:'hard',
+    question:"Classify \\(x=0\\) for \\(f(x)=x^3\\) using the First Derivative Test.",
+    choices:['Local maximum','Local minimum','Neither a max nor a min','Inflection point only'],
+    correct:2,
+    explanation:"\\(f'(x)=3x^2\\geq 0\\) for all \\(x\\), so \\(f'\\) does NOT change sign at \\(x=0\\). It is positive on both sides of 0, so \\(x=0\\) is neither a max nor a min (the function is always increasing).",
+    hints:["Find \\(f'(x)\\) and check its sign on both sides of \\(x=0\\).","\\(f'(x)=3x^2\\). Is this positive or negative for \\(x\\neq 0\\)?","If \\(f'\\) doesn't change sign at \\(c\\), then \\(c\\) is neither a max nor min."]
+  },
+],
+
+optimization: [
+  {
+    id:'opt1', difficulty:'easy',
+    question:'On a closed interval, after finding critical points, you must also check:',
+    choices:['The second derivative only','The critical points only','The endpoints','The inflection points'],
+    correct:2,
+    explanation:'On a closed interval \\([a,b]\\), the global maximum and minimum can occur either at critical points OR at the endpoints \\(a\\) and \\(b\\). Always check both!',
+    hints:['The Extreme Value Theorem says the extremes ARE attained on \\([a,b]\\).','They could be at interior critical points OR at the boundary.','Check \\(f(a)\\), \\(f(b)\\), and all \\(f(c_i)\\) where \\(c_i\\) are critical points.']
+  },
+  {
+    id:'opt2', difficulty:'medium',
+    question:'Maximize the area of a rectangle with perimeter 20. What is the maximum area?',
+    choices:['20','25','16','10'],
+    correct:1,
+    explanation:'Let sides be \\(x\\) and \\(10-x\\) (since \\(2x+2y=20\\Rightarrow y=10-x\\)). Area \\(A=x(10-x)=10x-x^2\\). \\(A\'=10-2x=0\\Rightarrow x=5\\). Max area \\(=5\\times 5=25\\).',
+    hints:['Write the perimeter constraint: \\(2l+2w=20\\), so \\(l+w=10\\).','Express area in terms of one variable: \\(A=l\\cdot(10-l)\\).','Differentiate \\(A\\) and set equal to zero.']
+  },
+  {
+    id:'opt3', difficulty:'hard',
+    question:'A farmer has 100 m of fence for 3 sides of a rectangular pen (one side is a wall). What is the maximum area?',
+    choices:['1000 m²','1250 m²','2500 m²','500 m²'],
+    correct:1,
+    explanation:'Let length (parallel to wall) \\(=l\\) and width \\(=w\\). Constraint: \\(l+2w=100\\Rightarrow l=100-2w\\). Area \\(A=lw=(100-2w)w=100w-2w^2\\). \\(A\'=100-4w=0\\Rightarrow w=25\\). \\(l=50\\). Max area \\(=50\\times 25=1250\\) m².',
+    hints:['Set up the constraint. There are two widths and one length: \\(l+2w=100\\).','Express area in terms of \\(w\\): \\(A=(100-2w)w\\).','Differentiate and set \\(A\'=0\\) to find optimal \\(w\\).']
+  },
+  {
+    id:'opt4', difficulty:'easy',
+    question:'To confirm a critical point is a maximum in an optimization problem, you can use:',
+    choices:["The Fundamental Theorem of Calculus","\\(f'\\) changes from \\(-\\) to \\(+\\) (first derivative test)","\\(f'\\) changes from \\(+\\) to \\(-\\) (first derivative test) or \\(f''<0\\) (second derivative test)","Checking that \\(f(c)>0\\)"],
+    correct:2,
+    explanation:"Maximum: \\(f'\\) changes from \\(+\\) to \\(-\\) (function increases then decreases) OR \\(f''(c)<0\\) (concave down). Both confirm a local maximum.",
+    hints:["What does the first derivative test say about local maxima?","If \\(f'\\) goes \\(+\\to-\\), the function rises then falls — that's a peak.","The second derivative test: \\(f''<0\\) means concave down, like an arch."]
+  },
+  {
+    id:'opt5', difficulty:'hard',
+    question:'Minimize \\(f(x)=x^2+\\dfrac{4}{x}\\) for \\(x>0\\). The minimum occurs at \\(x=\\)?',
+    choices:['\\(x=1\\)','\\(x=4\\)','\\(x=\\sqrt[3]{2}\\)','\\(x=2\\)'],
+    correct:2,
+    explanation:"\\(f'(x)=2x-4/x^2\\). Set to 0: \\(2x=4/x^2\\Rightarrow 2x^3=4\\Rightarrow x^3=2\\Rightarrow x=\\sqrt[3]{2}\\).",
+    hints:['Differentiate \\(f(x)=x^2+4x^{-1}\\).','\\(f\'(x)=2x-4/x^2\\). Set this equal to zero.','Multiply both sides by \\(x^2\\) and solve for \\(x\\).']
+  },
+],
+
+linear_approx: [
+  {
+    id:'la1', difficulty:'easy',
+    question:'The linear approximation of \\(f\\) near \\(x=a\\) is:',
+    choices:['\\(L(x)=f(a)\\)','\\(L(x)=f\'(a)\\)','\\(L(x)=f(a)+f\'(a)(x-a)\\)','\\(L(x)=f(a)\\cdot f\'(a)\\cdot x\\)'],
+    correct:2,
+    explanation:'\\(L(x)=f(a)+f\'(a)(x-a)\\). This is the equation of the tangent line at \\(x=a\\), which approximates \\(f\\) for \\(x\\) near \\(a\\).',
+    hints:['Linear approximation uses the tangent line at \\(x=a\\).','Tangent line equation: passes through \\((a,f(a))\\) with slope \\(f\'(a)\\).','Point-slope: \\(y=f(a)+f\'(a)(x-a)\\).']
+  },
+  {
+    id:'la2', difficulty:'medium',
+    question:"Use linear approximation to estimate \\(\\sqrt{4.1}\\).",
+    choices:['\\(2.01\\)','\\(2.025\\)','\\(2.1\\)','\\(2.05\\)'],
+    correct:1,
+    explanation:'\\(f(x)=\\sqrt{x}\\), \\(a=4\\). \\(f(4)=2\\), \\(f\'(x)=1/(2\\sqrt{x})\\), \\(f\'(4)=1/4\\). \\(L(x)=2+\\frac{1}{4}(x-4)\\). \\(L(4.1)=2+\\frac{1}{4}(0.1)=2+0.025=2.025\\).',
+    hints:['Choose \\(a=4\\) (near 4.1 and easy to compute).','Find \\(f(4)\\) and \\(f\'(4)\\) for \\(f(x)=\\sqrt{x}\\).','Apply \\(L(4.1)=f(4)+f\'(4)\\cdot(4.1-4)\\).']
+  },
+  {
+    id:'la3', difficulty:'easy',
+    question:'Linear approximation is valid because:',
+    choices:['All functions are linear near a point','The derivative exists everywhere','A differentiable function looks approximately linear near a point of differentiability','The error is always exactly zero'],
+    correct:2,
+    explanation:'A function that is differentiable at \\(a\\) looks increasingly like its tangent line as you zoom in. This "local linearity" justifies the linear approximation.',
+    hints:['What does it mean to zoom in on a smooth curve?','A differentiable function, when magnified enough, looks like a...?','This is the concept of "local linearity."']
+  },
+  {
+    id:'la4', difficulty:'medium',
+    question:'Is the linear approximation \\(L(x)\\) always an overestimate or underestimate?',
+    choices:['Always an overestimate','Always an underestimate','Overestimate if \\(f\\) is concave up; underestimate if concave down','Underestimate if \\(f\\) is concave up; overestimate if concave down'],
+    correct:3,
+    explanation:'If \\(f\\) is concave up (\\(f\'\'>0\\)), the curve lies ABOVE its tangent line, so \\(L(x)\\) underestimates \\(f(x)\\). If \\(f\\) is concave down (\\(f\'\'<0\\)), the curve lies BELOW its tangent, so \\(L(x)\\) overestimates.',
+    hints:['Think about a concave up parabola: where does the tangent line lie relative to the curve?','For concave up (\\(\\cup\\) shape): the tangent line is below the curve.','For concave down (\\(\\cap\\) shape): the tangent line is above the curve.']
+  },
+],
+
+lhopital: [
+  {
+    id:'lh1', difficulty:'easy',
+    question:"L'Hôpital's Rule applies when the limit takes the indeterminate form:",
+    choices:['\\(0/1\\) or \\(1/\\infty\\)','\\(0/0\\) or \\(\\infty/\\infty\\)','\\(\\infty/0\\) or \\(0/\\infty\\)','\\(1/0\\) or \\(1/1\\)'],
+    correct:1,
+    explanation:"L'Hôpital's Rule applies to indeterminate forms \\(0/0\\) or \\(\\infty/\\infty\\). For other indeterminate forms (like \\(0\\cdot\\infty\\)), algebraic manipulation may first be needed.",
+    hints:["L'Hôpital's Rule requires the limit to be in one of two indeterminate forms.","What happens when you substitute and get \\(0/0\\)?","Both \\(0/0\\) and \\(\\infty/\\infty\\) are indeterminate forms that L'Hôpital handles."]
+  },
+  {
+    id:'lh2', difficulty:'medium',
+    question:"Use L'Hôpital's Rule to find \\(\\displaystyle\\lim_{x\\to 0}\\frac{\\sin x}{x}\\).",
+    choices:['\\(\\infty\\)','\\(0\\)','Does not exist','\\(1\\)'],
+    correct:3,
+    explanation:"The limit is \\(0/0\\). Apply L'Hôpital: \\(\\lim_{x\\to 0}\\frac{\\cos x}{1}=\\cos(0)=1\\).",
+    hints:["Verify it's \\(0/0\\) by direct substitution.","L'Hôpital says: take the derivative of numerator and denominator separately.","\\(\\frac{d}{dx}[\\sin x]=\\cos x\\) and \\(\\frac{d}{dx}[x]=1\\). Now evaluate at \\(x=0\\)."]
+  },
+  {
+    id:'lh3', difficulty:'medium',
+    question:"Use L'Hôpital's Rule to find \\(\\displaystyle\\lim_{x\\to\\infty}\\frac{x}{e^x}\\).",
+    choices:['\\(1\\)','\\(\\infty\\)','\\(e\\)','\\(0\\)'],
+    correct:3,
+    explanation:"Form \\(\\infty/\\infty\\). Apply L'Hôpital: \\(\\lim_{x\\to\\infty}\\frac{1}{e^x}=0\\).",
+    hints:["Direct substitution gives \\(\\infty/\\infty\\).","L'Hôpital: differentiate top and bottom.","\\(\\frac{d}{dx}[x]=1\\) and \\(\\frac{d}{dx}[e^x]=e^x\\)."]
+  },
+  {
+    id:'lh4', difficulty:'medium',
+    question:"When can you NOT apply L'Hôpital's Rule?",
+    choices:["When the numerator is 0","When the limit is \\(3/0\\) (not an indeterminate form)","When the functions are trigonometric","When \\(x\\to\\infty\\)"],
+    correct:1,
+    explanation:"L'Hôpital's Rule requires an INDETERMINATE form (\\(0/0\\) or \\(\\infty/\\infty\\)). \\(3/0\\) is not indeterminate — it diverges to \\(\\pm\\infty\\). Applying L'Hôpital there would give an incorrect result.",
+    hints:["L'Hôpital requires a specific type of limit form.","What are the two indeterminate forms L'Hôpital addresses?","Is \\(3/0\\) one of those forms? What does \\(3/0\\) actually mean?"]
+  },
+  {
+    id:'lh5', difficulty:'medium',
+    question:"Find \\(\\displaystyle\\lim_{x\\to 0}\\frac{e^x-1}{x}\\) using L'Hôpital's Rule.",
+    choices:['\\(0\\)','\\(e\\)','\\(\\infty\\)','\\(1\\)'],
+    correct:3,
+    explanation:"Form is \\(0/0\\). L'Hôpital: \\(\\lim_{x\\to 0}\\frac{e^x}{1}=e^0=1\\).",
+    hints:["Substitute \\(x=0\\) to confirm the \\(0/0\\) form.","Differentiate numerator and denominator separately.","\\(\\frac{d}{dx}[e^x-1]=e^x\\)."]
+  },
+],
+
+antideriv: [
+  {
+    id:'ad1', difficulty:'easy',
+    question:'What is the antiderivative of \\(x^n\\) (\\(n\\neq -1\\))?',
+    choices:['\\(nx^{n-1}+C\\)','\\(x^{n+1}+C\\)','\\(\\dfrac{x^{n+1}}{n+1}+C\\)','\\(\\dfrac{x^n}{n}+C\\)'],
+    correct:2,
+    explanation:'Power Rule for integrals: \\(\\int x^n\\,dx=\\dfrac{x^{n+1}}{n+1}+C\\) for \\(n\\neq -1\\). "Increase the exponent by 1, divide by the new exponent."',
+    hints:['The antiderivative "reverses" differentiation.','If \\(\\frac{d}{dx}[x^{n+1}/(n+1)]= x^n\\), then what is \\(\\int x^n\\,dx\\)?','Increase the exponent by 1, then divide by the new exponent.']
+  },
+  {
+    id:'ad2', difficulty:'easy',
+    question:'What is \\(\\displaystyle\\int \\cos x\\,dx\\)?',
+    choices:['\\(-\\sin x+C\\)','\\(-\\cos x+C\\)','\\(\\sin x+C\\)','\\(\\tan x+C\\)'],
+    correct:2,
+    explanation:'\\(\\int\\cos x\\,dx=\\sin x+C\\) because \\(\\dfrac{d}{dx}[\\sin x]=\\cos x\\). Integration reverses differentiation.',
+    hints:['Think: whose derivative is \\(\\cos x\\)?','\\(\\frac{d}{dx}[\\sin x]=\\cos x\\).','So \\(\\int\\cos x\\,dx=\\sin x+C\\).']
+  },
+  {
+    id:'ad3', difficulty:'easy',
+    question:'What is \\(\\displaystyle\\int e^x\\,dx\\)?',
+    choices:['\\(e^x/x+C\\)','\\(xe^{x-1}+C\\)','\\(e^{x+1}+C\\)','\\(e^x+C\\)'],
+    correct:3,
+    explanation:'\\(\\int e^x\\,dx=e^x+C\\) because \\(e^x\\) is its own derivative (and antiderivative).',
+    hints:['What function has derivative \\(e^x\\)?','\\(e^x\\) is its own derivative.','So its antiderivative is also \\(e^x\\) (plus constant).']
+  },
+  {
+    id:'ad4', difficulty:'easy',
+    question:'What is \\(\\displaystyle\\int \\frac{1}{x}\\,dx\\)?',
+    choices:['\\(x^0+C\\)','\\(\\ln|x|+C\\)','\\(1/x^2+C\\)','\\(-1/x^2+C\\)'],
+    correct:1,
+    explanation:'\\(\\int\\dfrac{1}{x}\\,dx=\\ln|x|+C\\). Note the absolute value — this works for both positive and negative \\(x\\). This is the special case excluded from the power rule (\\(n=-1\\)).',
+    hints:['This is the special case of the power rule where \\(n=-1\\) (which doesn\'t work for the power rule).','Whose derivative is \\(1/x\\)?','\\(\\frac{d}{dx}[\\ln|x|]=1/x\\).']
+  },
+  {
+    id:'ad5', difficulty:'easy',
+    question:'Why do we add \\(+C\\) to antiderivatives?',
+    choices:["To make the formula look nicer","Because the derivative of any constant is 0, so we can't determine the constant from the derivative alone","To shift the function vertically","Because all functions have a constant term"],
+    correct:1,
+    explanation:'Adding \\(+C\\) accounts for the fact that infinitely many functions differ by a constant but have the same derivative. Without extra information (like an initial condition), we cannot determine which one is correct.',
+    hints:['What is the derivative of \\(x^2+5\\)? Of \\(x^2+100\\)? Of \\(x^2\\)?','They all have the same derivative!','If we only know the derivative, we can\'t determine the constant term.']
+  },
+],
+
+areas: [
+  {
+    id:'ar1', difficulty:'medium',
+    question:'A Left Riemann Sum tends to overestimate the area when the function is:',
+    choices:['Decreasing','Concave up','Increasing','Concave down'],
+    correct:2,
+    explanation:'For an increasing function, the left endpoint of each subinterval is BELOW the rest of the function on that interval, creating rectangles that are too TALL — wait, actually that overestimates if... Let\'s be careful: for an INCREASING function, the left rectangle uses the smaller (left) value, which is LESS than the function on the interval, so left sums UNDERESTIMATE for increasing functions. The correct answer is DECREASING (the left value is higher than the rest of the interval).',
+    hints:['Draw a picture: if the function is decreasing on \\([a,b]\\), what is \\(f(a)\\) relative to \\(f(b)\\)?','The left Riemann sum uses \\(f(x_i)\\) at the LEFT of each subinterval.','If \\(f\\) is decreasing, the left value is the HIGHEST on that subinterval, so rectangles are taller than the actual area.']
+  },
+  {
+    id:'ar2', difficulty:'easy',
+    question:'As the number of subintervals in a Riemann sum increases (with fixed interval), the approximation:',
+    choices:['Becomes less accurate','Becomes more accurate','Stays the same','Depends on the function'],
+    correct:1,
+    explanation:'More subintervals means narrower rectangles that better fit the shape of the curve, leading to a more accurate approximation of the area.',
+    hints:['Think about what happens when you use very thin rectangles.','Do thin rectangles better fit the curve than wide ones?','In the limit as \\(n\\to\\infty\\), the Riemann sum approaches the exact integral.']
+  },
+  {
+    id:'ar3', difficulty:'medium',
+    question:'The Trapezoid Rule approximates area by:',
+    choices:['Using rectangles with height equal to the function midpoint','Averaging the left and right Riemann sums','Using parabolas instead of lines','Using the second derivative'],
+    correct:1,
+    explanation:'The Trapezoid Rule uses trapezoids (averaging the function values at both endpoints of each subinterval). This is equivalent to averaging the Left and Right Riemann sums.',
+    hints:['A trapezoid has two parallel sides. Which function values do those correspond to?','The area of a trapezoid with parallel sides \\(a\\) and \\(b\\) and height \\(h\\) is \\(h(a+b)/2\\).','Averaging the heights at the left and right endpoints gives the trapezoid rule.']
+  },
+  {
+    id:'ar4', difficulty:'easy',
+    question:'If \\(v(t)\\) is a velocity function, what does \\(\\displaystyle\\int_a^b v(t)\\,dt\\) represent?',
+    choices:['Total distance traveled','Speed at time \\(b\\)','Displacement (net change in position) from \\(t=a\\) to \\(t=b\\)','Acceleration'],
+    correct:2,
+    explanation:'\\(\\int_a^b v(t)\\,dt\\) gives the NET displacement (signed change in position) from \\(t=a\\) to \\(t=b\\). This is not the same as total distance (which uses \\(\\int|v|\\)).',
+    hints:['The integral of velocity represents accumulated change in position.','Is this the total distance or the net displacement?','Think: what if the object goes 5m right then 5m left? What is displacement vs. distance?']
+  },
+],
+
+ftc: [
+  {
+    id:'ftc1', difficulty:'medium',
+    question:'FTC Part 1: \\(\\dfrac{d}{dx}\\displaystyle\\int_a^x f(t)\\,dt=\\)?',
+    choices:['\\(F(x)-F(a)\\)','\\(f(a)\\)','\\(f(x)\\)','\\(f(x)-f(a)\\)'],
+    correct:2,
+    explanation:'FTC Part 1: The derivative of an integral (with variable upper limit) is just the integrand evaluated at the upper limit: \\(\\dfrac{d}{dx}\\int_a^x f(t)\\,dt=f(x)\\).',
+    hints:['The FTC says that differentiation and integration are inverse operations.','What happens when you differentiate the accumulated area function?','The answer is just the original integrand, \\(f(x)\\).']
+  },
+  {
+    id:'ftc2', difficulty:'easy',
+    question:'FTC Part 2: \\(\\displaystyle\\int_a^b f(x)\\,dx=\\)?',
+    choices:['\\(f(b)-f(a)\\)','\\(F\'(x)\\)','\\(F(b)-F(a)\\) where \\(F\'=f\\)','\\(f(a)\\cdot(b-a)\\)'],
+    correct:2,
+    explanation:'FTC Part 2: \\(\\int_a^b f(x)\\,dx=F(b)-F(a)\\), where \\(F\\) is any antiderivative of \\(f\\). This connects the definite integral to antiderivatives.',
+    hints:['The FTC Part 2 connects definite integrals to antiderivatives.','Find an antiderivative \\(F\\) of \\(f\\).','Evaluate: \\(F(b)-F(a)\\).']
+  },
+  {
+    id:'ftc3', difficulty:'medium',
+    question:'Evaluate \\(\\displaystyle\\int_0^2 x^2\\,dx\\).',
+    choices:['\\(4\\)','\\(8/3\\)','\\(4/3\\)','\\(3\\)'],
+    correct:1,
+    explanation:'Antiderivative: \\(F(x)=x^3/3\\). \\(F(2)-F(0)=8/3-0=8/3\\).',
+    hints:['Find the antiderivative of \\(x^2\\).','\\(\\int x^2\\,dx=x^3/3+C\\).','Evaluate \\(F(2)-F(0)\\).']
+  },
+  {
+    id:'ftc4', difficulty:'medium',
+    question:'Evaluate \\(\\displaystyle\\int_0^{\\pi}\\sin x\\,dx\\).',
+    choices:['\\(0\\)','\\(-2\\)','\\(2\\)','\\(\\pi\\)'],
+    correct:2,
+    explanation:'Antiderivative of \\(\\sin x\\) is \\(-\\cos x\\). \\([-\\cos x]_0^\\pi=(-\\cos\\pi)-(-\\cos 0)=(-(-1))-(-1)=1+1=2\\).',
+    hints:['What is the antiderivative of \\(\\sin x\\)?','\\(\\int\\sin x\\,dx=-\\cos x+C\\).','Evaluate \\(-\\cos(\\pi)-(-\\cos(0))=?\\)']
+  },
+  {
+    id:'ftc5', difficulty:'easy',
+    question:'Geometrically, \\(\\displaystyle\\int_a^b f(x)\\,dx\\) represents:',
+    choices:['The average value of \\(f\\)','The length of the curve','The net signed area between \\(f(x)\\) and the \\(x\\)-axis from \\(a\\) to \\(b\\)','The slope of \\(f\\)'],
+    correct:2,
+    explanation:'The definite integral \\(\\int_a^b f(x)\\,dx\\) is the NET signed area: area above the \\(x\\)-axis is positive, area below is negative. They can cancel each other.',
+    hints:['Think about the Riemann sum: each rectangle has signed area (positive above x-axis, negative below).','The integral sums all these signed areas.','Regions below the \\(x\\)-axis contribute negative area.']
+  },
+],
+
+substitution: [
+  {
+    id:'sub1', difficulty:'easy',
+    question:'In \\(u\\)-substitution, you choose \\(u=g(x)\\) so that:',
+    choices:['\\(u\\) is the most complicated part','\\(g\'(x)\\,dx\\) appears elsewhere in the integral','\\(u\\) simplifies the numerator','The integral becomes \\(\\int u\\,du\\)'],
+    correct:1,
+    explanation:'The key to \\(u\\)-substitution: choose \\(u=g(x)\\) such that \\(du=g\'(x)\\,dx\\) appears in the integrand. This allows full substitution, transforming the integral to one in \\(u\\).',
+    hints:['Look for a function and its derivative both present in the integrand.','If \\(u=g(x)\\), then \\(du=g\'(x)dx\\).','You need \\(g\'(x)dx\\) to be present so you can substitute.']
+  },
+  {
+    id:'sub2', difficulty:'medium',
+    question:'Use \\(u=x^2\\) to evaluate \\(\\displaystyle\\int 2x\\cos(x^2)\\,dx\\).',
+    choices:['\\(-\\sin(x^2)+C\\)','\\(2\\sin(x^2)+C\\)','\\(\\sin(x^2)+C\\)','\\(\\cos(x^2)+C\\)'],
+    correct:2,
+    explanation:'\\(u=x^2\\Rightarrow du=2x\\,dx\\). Integral becomes \\(\\int\\cos(u)\\,du=\\sin(u)+C=\\sin(x^2)+C\\).',
+    hints:['With \\(u=x^2\\), what is \\(du\\)?','\\(du=2x\\,dx\\) — does \\(2x\\,dx\\) appear in the integral?','Substitute to get \\(\\int\\cos(u)\\,du\\), then integrate.']
+  },
+  {
+    id:'sub3', difficulty:'medium',
+    question:'Use \\(u=x^3+1\\) to evaluate \\(\\displaystyle\\int 3x^2(x^3+1)^4\\,dx\\).',
+    choices:['\\(4(x^3+1)^3+C\\)','\\(\\dfrac{(x^3+1)^5}{5}+C\\)','\\(\\dfrac{3(x^3+1)^5}{5}+C\\)','\\((x^3+1)^5+C\\)'],
+    correct:1,
+    explanation:'\\(u=x^3+1\\Rightarrow du=3x^2\\,dx\\). Integral becomes \\(\\int u^4\\,du=u^5/5+C=(x^3+1)^5/5+C\\).',
+    hints:['With \\(u=x^3+1\\), what is \\(du\\)?','\\(du=3x^2\\,dx\\) — does that appear in the integral?','Substitute to get \\(\\int u^4\\,du\\) and use the Power Rule.']
+  },
+  {
+    id:'sub4', difficulty:'hard',
+    question:'Evaluate \\(\\displaystyle\\int_0^1 2x\\,e^{x^2}\\,dx\\) using \\(u=x^2\\).',
+    choices:['\\(e^2-1\\)','\\(e-1\\)','\\(2(e-1)\\)','\\(1-e\\)'],
+    correct:1,
+    explanation:'\\(u=x^2\\), \\(du=2x\\,dx\\). Limits: \\(x=0\\Rightarrow u=0\\); \\(x=1\\Rightarrow u=1\\). \\(\\int_0^1 e^u\\,du=[e^u]_0^1=e-1\\).',
+    hints:['With \\(u=x^2\\) and \\(du=2x\\,dx\\), the integral becomes \\(\\int e^u\\,du\\).','For a definite integral, change the limits: \\(x=0\\Rightarrow u=0\\), \\(x=1\\Rightarrow u=1\\).','Evaluate \\([e^u]_0^1=e^1-e^0\\).']
+  },
+  {
+    id:'sub5', difficulty:'medium',
+    question:"A student writes \\(\\int\\sin(x^2)\\,dx=-\\cos(x^2)+C\\). What error did they make?",
+    choices:['The antiderivative of \\(\\sin\\) is wrong','The sign is wrong; it should be \\(+\\cos(x^2)+C\\)','They ignored the Chain Rule — there is no \\(2x\\) factor to pair with \\(du=2x\\,dx\\)','Nothing is wrong'],
+    correct:2,
+    explanation:'\\(\\int\\sin(x^2)\\,dx\\) CANNOT be solved by simple reverse chain rule because the factor \\(2x\\) (needed for \\(du=2x\\,dx\\)) is missing. The correct antiderivative involves the Fresnel function and cannot be expressed in elementary terms.',
+    hints:['For \\(u\\)-substitution to work on \\(\\sin(x^2)\\), you need \\(u=x^2\\) and \\(du=2x\\,dx\\).','Is there a \\(2x\\) factor in \\(\\int\\sin(x^2)\\,dx\\)?','Without the \\(2x\\) factor, you cannot perform this substitution — the student applied it incorrectly.']
+  },
+],
+};
+
+// ============================================================
+// STATE MANAGEMENT
+// ============================================================
+let state = loadState();
+let currentTopicId = null;
+let currentProblems = [];
+let currentProblemIndex = 0;
+let sessionScore = 0;
+let sessionAttempts = 0;
+let sessionCorrect = 0;
+let hintsShown = 0;
+// Deliberate practice / drill mode
+let consecutiveCorrect = 0;
+let reinforcementMode = false;
+let lastWrongProblem = null;
+const DRILL_TARGET = 2;
+let answered = false;
+
+function defaultState() {
+  const topics = {};
+  TOPICS.forEach(t => { topics[t.id] = { covered: false, attempted: 0, correct: 0 }; });
+  return {
+    xp: 0, streak: 0, maxStreak: 0, level: 1,
+    topics,
+    dailyProblems: { date: todayStr(), count: 0 },
+    problemHistory: [],
+    chatHistory: [],
+    apiKey: '',
+    difficulty: 'all',
+    lightMode: false
+  };
+}
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Merge to ensure all topics present
+      const def = defaultState();
+      if (!parsed.topics) parsed.topics = def.topics;
+      TOPICS.forEach(t => {
+        if (!parsed.topics[t.id]) parsed.topics[t.id] = { covered: false, attempted: 0, correct: 0 };
+      });
+      if (!parsed.chatHistory) parsed.chatHistory = [];
+      if (!parsed.dailyProblems) parsed.dailyProblems = { date: todayStr(), count: 0 };
+      if (!parsed.apiKey) parsed.apiKey = '';
+      if (!parsed.difficulty) parsed.difficulty = 'all';
+      return parsed;
+    }
+  } catch(e) {}
+  return defaultState();
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// ============================================================
+// MASTERY
+// ============================================================
+function masteryPct(topicId) {
+  const t = state.topics[topicId];
+  if (!t || t.attempted === 0) return 0;
+  return Math.round((t.correct / t.attempted) * 100);
+}
+
+function masteryStars(topicId) {
+  const pct = masteryPct(topicId);
+  if (pct >= 90) return 3;
+  if (pct >= 70) return 2;
+  if (pct >= 40) return 1;
+  return 0;
+}
+
+function starsStr(n) {
+  if (n === 0) return '☆☆☆';
+  if (n === 1) return '⭐☆☆';
+  if (n === 2) return '⭐⭐☆';
+  return '⭐⭐⭐';
+}
+
+function dotClass(stars) {
+  return ['dot-0','dot-1','dot-2','dot-3'][stars];
+}
+
+// ============================================================
+// SIDEBAR
+// ============================================================
+function buildSidebar() {
+  const prereqEl = document.getElementById('sidebar-prereq');
+  const calc1El = document.getElementById('sidebar-calc1');
+  prereqEl.innerHTML = '';
+  calc1El.innerHTML = '';
+
+  TOPICS.forEach(topic => {
+    const topicState = state.topics[topic.id];
+    const covered = topicState.covered;
+    const stars = masteryStars(topic.id);
+
+    const row = document.createElement('div');
+    row.className = 'topic-row' + (covered ? '' : ' locked') + (currentTopicId === topic.id ? ' active' : '');
+    row.dataset.id = topic.id;
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'topic-check';
+    cb.checked = covered;
+    cb.title = 'Covered in class';
+    cb.addEventListener('change', e => {
+      e.stopPropagation();
+      state.topics[topic.id].covered = cb.checked;
+      saveState();
+      buildSidebar();
+    });
+
+    const dot = document.createElement('span');
+    dot.className = `topic-dot ${dotClass(stars)}`;
+
+    const name = document.createElement('span');
+    name.className = 'topic-name';
+    name.textContent = topic.name;
+
+    const starsEl = document.createElement('span');
+    starsEl.className = 'topic-stars';
+    starsEl.textContent = starsStr(stars);
+
+    if (!covered) {
+      const lock = document.createElement('span');
+      lock.className = 'lock-icon';
+      lock.textContent = '🔒';
+      row.appendChild(cb);
+      row.appendChild(lock);
+      row.appendChild(name);
+    } else {
+      row.appendChild(cb);
+      row.appendChild(dot);
+      row.appendChild(name);
+      row.appendChild(starsEl);
+      row.addEventListener('click', () => selectTopic(topic.id));
+    }
+
+    if (topic.group === 'prereq') prereqEl.appendChild(row);
+    else calc1El.appendChild(row);
+  });
+}
+
+// ============================================================
+// TOPIC SELECTION & PRACTICE
+// ============================================================
+// ============================================================
+// DRILL MODE UI
+// ============================================================
+function updateDrillBanner() {
+  const banner = document.getElementById('drill-banner');
+  if (!reinforcementMode) { banner.style.display = 'none'; return; }
+  banner.style.display = 'flex';
+  document.getElementById('drill-needed').textContent = DRILL_TARGET - consecutiveCorrect;
+  const pips = document.getElementById('drill-pips');
+  pips.innerHTML = '';
+  for (let i = 0; i < DRILL_TARGET; i++) {
+    const pip = document.createElement('div');
+    pip.className = 'drill-pip' + (i < consecutiveCorrect ? ' filled' : '');
+    pips.appendChild(pip);
+  }
+}
+
+// ============================================================
+// VISUAL DIAGRAMS
+// ============================================================
+const VISUAL_KEYWORDS = {
+  unit_circle: [/unit circle/i, /arcsin|arccos|arctan/i, /sin\s*\(?\s*π|cos\s*\(?\s*π|tan\s*\(?\s*π/i,
+    /which quadrant/i, /astc/i, /all students take/i, /radian/i,
+    /sin is (neg|pos)/i, /cos is (neg|pos)/i],
+  triangle_30_60_90: [/30.{0,3}60.{0,3}90/i, /\\(\\s*\\\\frac\{\\\\pi\}\{6\}/i, /pi\/6|π\/6/i, /pi\/3|π\/3/i,
+    /sin\(?30|cos\(?30|sin\(?60|cos\(?60/i, /sqrt\{3\}\/2|√3\/2/i, /\\\\frac\{\\\\sqrt\{3\}\}\{2\}/i],
+  triangle_45_45_90: [/45.{0,3}45.{0,3}90/i, /pi\/4|π\/4/i,
+    /sin\(?45|cos\(?45/i, /sqrt\{2\}\/2|√2\/2/i, /1\/sqrt|1\/√2/i, /\\\\frac\{\\\\sqrt\{2\}\}\{2\}/i],
+  right_triangle: [/hypotenuse/i, /sohcahtoa/i, /soh.cah.toa/i,
+    /opposite.*adjacent|adjacent.*opposite/i, /trig ratio/i],
+  quadrant_signs: [/which quadrant.*negative|negative.*quadrant/i,
+    /sign.*sin|sign.*cos|sign.*tan/i, /astc/i, /quadrant (I|II|III|IV)/i],
+};
+
+function detectVisualType(text) {
+  if (!text) return null;
+  for (const [type, patterns] of Object.entries(VISUAL_KEYWORDS)) {
+    if (patterns.some(p => p.test(text))) return type;
+  }
+  return null;
+}
+
+function showVisual(type, title) {
+  const builders = {
+    unit_circle:        [buildUnitCircleSVG,    '📐 Unit Circle'],
+    triangle_30_60_90:  [build306090SVG,         '📐 30-60-90 Triangle'],
+    triangle_45_45_90:  [build454590SVG,         '📐 45-45-90 Triangle'],
+    right_triangle:     [buildRightTriangleSVG,  '📐 SOH-CAH-TOA Reference'],
+    quadrant_signs:     [buildQuadrantSVG,       '📐 Quadrant Signs (ASTC)'],
+  };
+  if (!builders[type]) return;
+  const [fn, defaultTitle] = builders[type];
+  document.getElementById('visual-body').innerHTML = fn();
+  document.getElementById('visual-title').textContent = title || defaultTitle;
+  document.getElementById('visual-panel').style.display = 'block';
+  if (window.MathJax && MathJax.typesetPromise)
+    MathJax.typesetPromise([document.getElementById('visual-panel')]).catch(()=>{});
+}
+
+function hideVisual() {
+  document.getElementById('visual-panel').style.display = 'none';
+  document.getElementById('visual-body').innerHTML = '';
+}
+
+function tryShowVisual(text) {
+  // Don't override a visual that's already visible
+  if (document.getElementById('visual-panel').style.display === 'block') return;
+  const type = detectVisualType(text);
+  if (type) showVisual(type);
+}
+
+// SVG builder functions
+function buildUnitCircleSVG() {
+  const W = 420, H = 450, CX = 210, CY = 235, R = 148, RLAB = 1.22;
+  const pts = [
+    {d:0,   r:'0',      x:1,           y:0,           c:'(1, 0)'},
+    {d:30,  r:'π/6',    x:.866025,     y:.5,          c:'(√3/2, 1/2)'},
+    {d:45,  r:'π/4',    x:.707107,     y:.707107,     c:'(√2/2, √2/2)'},
+    {d:60,  r:'π/3',    x:.5,          y:.866025,     c:'(1/2, √3/2)'},
+    {d:90,  r:'π/2',    x:0,           y:1,           c:'(0, 1)'},
+    {d:120, r:'2π/3',   x:-.5,         y:.866025,     c:'(-1/2, √3/2)'},
+    {d:135, r:'3π/4',   x:-.707107,    y:.707107,     c:'(-√2/2, √2/2)'},
+    {d:150, r:'5π/6',   x:-.866025,    y:.5,          c:'(-√3/2, 1/2)'},
+    {d:180, r:'π',      x:-1,          y:0,           c:'(-1, 0)'},
+    {d:210, r:'7π/6',   x:-.866025,    y:-.5,         c:'(-√3/2, -1/2)'},
+    {d:225, r:'5π/4',   x:-.707107,    y:-.707107,    c:'(-√2/2, -√2/2)'},
+    {d:240, r:'4π/3',   x:-.5,         y:-.866025,    c:'(-1/2, -√3/2)'},
+    {d:270, r:'3π/2',   x:0,           y:-1,          c:'(0, -1)'},
+    {d:300, r:'5π/3',   x:.5,          y:-.866025,    c:'(1/2, -√3/2)'},
+    {d:315, r:'7π/4',   x:.707107,     y:-.707107,    c:'(√2/2, -√2/2)'},
+    {d:330, r:'11π/6',  x:.866025,     y:-.5,         c:'(√3/2, -1/2)'},
+  ];
+  const px = x => CX + R * x, py = y => CY - R * y;
+  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI',system-ui,sans-serif">`;
+  s += `<text x="${CX}" y="19" text-anchor="middle" font-size="13" font-weight="700" fill="#94a3b8">Unit Circle — Angles, Radians &amp; Coordinates</text>`;
+  // Quadrant backgrounds
+  const arc = (x1,y1,x2,y2,sw) => `<path d="M${CX},${CY} L${x1},${y1} A${R},${R} 0 0,${sw} ${x2},${y2} Z"`;
+  s += arc(CX+R,CY, CX,CY-R,0)+` fill="#22c55e" opacity="0.07"/>`;
+  s += arc(CX,CY-R, CX-R,CY,0)+` fill="#3b82f6" opacity="0.07"/>`;
+  s += arc(CX-R,CY, CX,CY+R,0)+` fill="#eab308" opacity="0.07"/>`;
+  s += arc(CX,CY+R, CX+R,CY,0)+` fill="#ef4444" opacity="0.07"/>`;
+  // ASTC quadrant labels
+  s += `<text x="${CX+R*.55}" y="${CY-R*.55}" text-anchor="middle" font-size="10" fill="#22c55e" font-weight="700" opacity="0.9">All +</text>`;
+  s += `<text x="${CX-R*.55}" y="${CY-R*.55}" text-anchor="middle" font-size="10" fill="#3b82f6" font-weight="700" opacity="0.9">Sin +</text>`;
+  s += `<text x="${CX-R*.55}" y="${CY+R*.6}" text-anchor="middle" font-size="10" fill="#eab308" font-weight="700" opacity="0.9">Tan +</text>`;
+  s += `<text x="${CX+R*.55}" y="${CY+R*.6}" text-anchor="middle" font-size="10" fill="#ef4444" font-weight="700" opacity="0.9">Cos +</text>`;
+  // Axes
+  s += `<line x1="${CX-R-12}" y1="${CY}" x2="${CX+R+12}" y2="${CY}" stroke="#475569" stroke-width="1" stroke-dasharray="5,4"/>`;
+  s += `<line x1="${CX}" y1="${CY-R-12}" x2="${CX}" y2="${CY+R+12}" stroke="#475569" stroke-width="1" stroke-dasharray="5,4"/>`;
+  // Axis endpoint labels
+  s += `<text x="${CX+R+4}" y="${CY-4}" font-size="9" fill="#64748b">1</text>`;
+  s += `<text x="${CX-R-14}" y="${CY-4}" font-size="9" fill="#64748b">-1</text>`;
+  s += `<text x="${CX+5}" y="${CY-R-5}" font-size="9" fill="#64748b">1</text>`;
+  s += `<text x="${CX+5}" y="${CY+R+12}" font-size="9" fill="#64748b">-1</text>`;
+  s += `<text x="${CX+R+13}" y="${CY+4}" font-size="10" fill="#64748b" font-style="italic">x</text>`;
+  s += `<text x="${CX+6}" y="${CY-R-14}" font-size="10" fill="#64748b" font-style="italic">y</text>`;
+  // Circle
+  s += `<circle cx="${CX}" cy="${CY}" r="${R}" stroke="#6366f1" stroke-width="1.5" fill="none"/>`;
+  s += `<circle cx="${CX}" cy="${CY}" r="3" fill="#94a3b8"/>`;
+  // Angle ticks and labels
+  for (const a of pts) {
+    const cx_ = px(a.x), cy_ = py(a.y);
+    const ix = CX + (R-7)*a.x, iy = CY - (R-7)*a.y;
+    s += `<line x1="${ix}" y1="${iy}" x2="${cx_}" y2="${cy_}" stroke="#6366f1" stroke-width="1.5"/>`;
+    s += `<circle cx="${cx_}" cy="${cy_}" r="3.5" fill="#6366f1"/>`;
+    const lx = CX + R*a.x*RLAB, ly = CY - R*a.y*RLAB;
+    let ta = 'middle', dy1 = 0, dy2 = 11;
+    if (a.x > 0.6) ta = 'start';
+    else if (a.x < -0.6) ta = 'end';
+    if (a.y > 0.7) { dy1 = -11; dy2 = 0; }
+    else if (a.y < -0.7) { dy1 = 4; dy2 = 15; }
+    s += `<text x="${lx}" y="${ly+dy1}" text-anchor="${ta}" font-size="9.5" fill="#818cf8" font-weight="600">${a.r}</text>`;
+    s += `<text x="${lx}" y="${ly+dy1+dy2}" text-anchor="${ta}" font-size="8.5" fill="#64748b">${a.d}°</text>`;
+  }
+  s += `<text x="${CX}" y="${H-6}" text-anchor="middle" font-size="9" fill="#475569">Each point = (cos θ, sin θ)</text>`;
+  s += `</svg>`;
+  return s;
+}
+
+function build306090SVG() {
+  return `<svg width="340" height="210" viewBox="0 0 340 210" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI',system-ui,sans-serif">
+    <text x="170" y="16" text-anchor="middle" font-size="13" font-weight="700" fill="#94a3b8">30-60-90 Triangle</text>
+    <polygon points="44,182 296,182 44,62" fill="#6366f1" fill-opacity="0.12" stroke="#6366f1" stroke-width="2"/>
+    <rect x="44" y="163" width="19" height="19" fill="none" stroke="#6366f1" stroke-width="1.5"/>
+    <text x="50" y="180" font-size="11" fill="#ef4444" font-weight="700">90°</text>
+    <text x="270" y="180" font-size="11" fill="#22c55e" font-weight="700">30°</text>
+    <text x="52" y="80" font-size="11" fill="#3b82f6" font-weight="700">60°</text>
+    <text x="168" y="200" text-anchor="middle" font-size="14" fill="#eab308" font-weight="700">√3</text>
+    <text x="27" y="128" text-anchor="middle" font-size="14" fill="#eab308" font-weight="700">1</text>
+    <text x="185" y="108" text-anchor="middle" font-size="14" fill="#eab308" font-weight="700" transform="rotate(-25,185,108)">2 (hyp)</text>
+    <line x1="44" y1="182" x2="44" y2="62" stroke="#94a3b8" stroke-width="0.5" stroke-dasharray="4,3"/>
+    <text x="170" y="148" text-anchor="middle" font-size="9.5" fill="#94a3b8">sin 30° = 1/2 · cos 30° = √3/2 · tan 30° = 1/√3</text>
+    <text x="170" y="162" text-anchor="middle" font-size="9.5" fill="#94a3b8">sin 60° = √3/2 · cos 60° = 1/2 · tan 60° = √3</text>
+  </svg>`;
+}
+
+function build454590SVG() {
+  return `<svg width="300" height="210" viewBox="0 0 300 210" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI',system-ui,sans-serif">
+    <text x="150" y="16" text-anchor="middle" font-size="13" font-weight="700" fill="#94a3b8">45-45-90 Triangle</text>
+    <polygon points="44,182 244,182 244,52" fill="#6366f1" fill-opacity="0.12" stroke="#6366f1" stroke-width="2"/>
+    <rect x="225" y="163" width="19" height="19" fill="none" stroke="#6366f1" stroke-width="1.5"/>
+    <text x="52" y="180" font-size="11" fill="#22c55e" font-weight="700">45°</text>
+    <text x="210" y="180" font-size="11" fill="#ef4444" font-weight="700">90°</text>
+    <text x="225" y="72" font-size="11" fill="#22c55e" font-weight="700">45°</text>
+    <text x="142" y="200" text-anchor="middle" font-size="14" fill="#eab308" font-weight="700">1</text>
+    <text x="258" y="122" text-anchor="middle" font-size="14" fill="#eab308" font-weight="700">1</text>
+    <text x="127" y="103" text-anchor="middle" font-size="14" fill="#eab308" font-weight="700" transform="rotate(-39,127,103)">√2</text>
+    <text x="150" y="160" text-anchor="middle" font-size="9.5" fill="#94a3b8">sin 45° = cos 45° = √2/2 ≈ 0.707 · tan 45° = 1</text>
+    <text x="150" y="174" text-anchor="middle" font-size="9.5" fill="#94a3b8">π/4 = 45° · π/2 = 90°</text>
+  </svg>`;
+}
+
+function buildRightTriangleSVG() {
+  return `<svg width="360" height="230" viewBox="0 0 360 230" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI',system-ui,sans-serif">
+    <text x="180" y="16" text-anchor="middle" font-size="13" font-weight="700" fill="#94a3b8">Right Triangle — SOH-CAH-TOA</text>
+    <polygon points="44,185 294,185 294,55" fill="#6366f1" fill-opacity="0.12" stroke="#6366f1" stroke-width="2"/>
+    <rect x="275" y="166" width="19" height="19" fill="none" stroke="#6366f1" stroke-width="1.5"/>
+    <path d="M 78,185 A 34,34 0 0,0 63,156" fill="none" stroke="#ef4444" stroke-width="1.5"/>
+    <text x="86" y="178" font-size="14" fill="#ef4444" font-weight="700">θ</text>
+    <text x="170" y="205" text-anchor="middle" font-size="12" fill="#22c55e" font-weight="600">adjacent</text>
+    <text x="310" y="125" text-anchor="middle" font-size="12" fill="#3b82f6" font-weight="600">opposite</text>
+    <text x="154" y="106" text-anchor="middle" font-size="12" fill="#eab308" font-weight="600" transform="rotate(-27,154,106)">hypotenuse</text>
+    <rect x="8" y="207" width="344" height="20" rx="5" fill="#0f172a" opacity="0.85"/>
+    <text x="180" y="221" text-anchor="middle" font-size="10.5" fill="#f1f5f9" font-weight="600">sin θ = opp/hyp  ·  cos θ = adj/hyp  ·  tan θ = opp/adj</text>
+  </svg>`;
+}
+
+function buildQuadrantSVG() {
+  return `<svg width="280" height="234" viewBox="0 0 280 234" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI',system-ui,sans-serif">
+    <text x="140" y="15" text-anchor="middle" font-size="13" font-weight="700" fill="#94a3b8">Trig Signs by Quadrant (ASTC)</text>
+    <rect x="14" y="24" width="118" height="96" rx="5" fill="#3b82f6" fill-opacity="0.13" stroke="#3b82f6" stroke-width="1"/>
+    <rect x="148" y="24" width="118" height="96" rx="5" fill="#22c55e" fill-opacity="0.13" stroke="#22c55e" stroke-width="1"/>
+    <rect x="14" y="126" width="118" height="96" rx="5" fill="#eab308" fill-opacity="0.13" stroke="#eab308" stroke-width="1"/>
+    <rect x="148" y="126" width="118" height="96" rx="5" fill="#ef4444" fill-opacity="0.13" stroke="#ef4444" stroke-width="1"/>
+    <text x="73" y="41" text-anchor="middle" font-size="10" fill="#3b82f6" font-weight="700">Quadrant II</text>
+    <text x="73" y="56" text-anchor="middle" font-size="10" fill="#22c55e">sin: ✓</text>
+    <text x="73" y="70" text-anchor="middle" font-size="10" fill="#ef4444">cos: ✗</text>
+    <text x="73" y="84" text-anchor="middle" font-size="10" fill="#ef4444">tan: ✗</text>
+    <text x="73" y="108" text-anchor="middle" font-size="19" fill="#3b82f6" font-weight="800">S</text>
+    <text x="207" y="41" text-anchor="middle" font-size="10" fill="#22c55e" font-weight="700">Quadrant I</text>
+    <text x="207" y="56" text-anchor="middle" font-size="10" fill="#22c55e">sin: ✓</text>
+    <text x="207" y="70" text-anchor="middle" font-size="10" fill="#22c55e">cos: ✓</text>
+    <text x="207" y="84" text-anchor="middle" font-size="10" fill="#22c55e">tan: ✓</text>
+    <text x="207" y="108" text-anchor="middle" font-size="19" fill="#22c55e" font-weight="800">A</text>
+    <text x="73" y="143" text-anchor="middle" font-size="10" fill="#eab308" font-weight="700">Quadrant III</text>
+    <text x="73" y="158" text-anchor="middle" font-size="10" fill="#ef4444">sin: ✗</text>
+    <text x="73" y="172" text-anchor="middle" font-size="10" fill="#ef4444">cos: ✗</text>
+    <text x="73" y="186" text-anchor="middle" font-size="10" fill="#22c55e">tan: ✓</text>
+    <text x="73" y="210" text-anchor="middle" font-size="19" fill="#eab308" font-weight="800">T</text>
+    <text x="207" y="143" text-anchor="middle" font-size="10" fill="#ef4444" font-weight="700">Quadrant IV</text>
+    <text x="207" y="158" text-anchor="middle" font-size="10" fill="#ef4444">sin: ✗</text>
+    <text x="207" y="172" text-anchor="middle" font-size="10" fill="#22c55e">cos: ✓</text>
+    <text x="207" y="186" text-anchor="middle" font-size="10" fill="#ef4444">tan: ✗</text>
+    <text x="207" y="210" text-anchor="middle" font-size="19" fill="#ef4444" font-weight="800">C</text>
+    <text x="140" y="230" text-anchor="middle" font-size="9" fill="#475569">All Students Take Calculus</text>
+  </svg>`;
+}
+
+// ============================================================
+// REINFORCEMENT PROBLEM GENERATION
+// ============================================================
+async function generateReinforcementProblem(failedProblem) {
+  const topic = TOPICS.find(t => t.id === currentTopicId);
+  const topicName = topic ? topic.name : currentTopicId;
+  const prompt = `A calculus student just answered this problem INCORRECTLY:
+
+Topic: ${topicName}
+Problem: ${failedProblem.question.replace(/<[^>]+>/g,'')}
+Correct answer: ${failedProblem.choices[failedProblem.correct]}
+
+For deliberate practice, generate exactly 1 new problem that:
+- Tests the EXACT same sub-skill with DIFFERENT numbers or context
+- Difficulty: "${failedProblem.difficulty}"
+- Is approachable — the student should be able to succeed with careful thinking
+
+Return ONLY a raw JSON array with 1 object (no markdown, no code fences):
+[{"id":"reinf_${Date.now()}","difficulty":"${failedProblem.difficulty}","question":"...","choices":["A","B","C","D"],"correct":0,"explanation":"...","hints":["guiding question","concept nudge","step nudge"],"visual":null}]
+
+Use LaTeX \\\\( \\\\) for all math. Wrong choices should reflect common errors.`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': state.apiKey,
+      'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1600,
+      messages: [{ role: 'user', content: prompt }] })
+  });
+  const data = await response.json();
+  if (!data.content?.[0]) throw new Error('Empty response');
+  let text = data.content[0].text.trim()
+    .replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/i,'').trim();
+  const arr = JSON.parse(text);
+  if (!Array.isArray(arr) || !arr[0]) throw new Error('Bad response');
+  return arr[0];
+}
+
+// ============================================================
+// DYNAMIC PROBLEM GENERATION
+// ============================================================
+function showProblemLoading(show) {
+  document.getElementById('problem-loading').style.display = show ? 'flex' : 'none';
+  document.getElementById('problem-card').style.display = show ? 'none' : 'block';
+}
+
+async function generateProblems(topicId) {
+  const topic = TOPICS.find(t => t.id === topicId);
+  const topicName = topic ? topic.name : topicId;
+  const diff = state.difficulty || 'all';
+  const diffLine = diff === 'all'
+    ? 'Mix of easy (2), medium (4), and hard (2) problems.'
+    : `All 8 problems must have difficulty: "${diff}".`;
+
+  const prompt = `You are a university calculus problem writer. Generate exactly 8 DISTINCT multiple-choice practice problems on the topic: "${topicName}".
+${diffLine}
+
+IMPORTANT: Return ONLY a raw JSON array — no explanation, no markdown, no code fences, just the array.
+
+Each element must follow this exact shape:
+{
+  "id": "gen_${topicId}_<unique_integer>",
+  "difficulty": "easy" | "medium" | "hard",
+  "question": "<problem text — use LaTeX \\\\( \\\\) for inline math, \\\\[ \\\\] for display math>",
+  "choices": ["<A>", "<B>", "<C>", "<D>"],
+  "correct": <0-based index of correct choice>,
+  "explanation": "<thorough explanation with LaTeX>",
+  "hints": ["<Socratic guiding question>", "<concept nudge>", "<step nudge — still no answer>"]
+}
+
+Rules:
+- All 8 problems must test DIFFERENT sub-skills within ${topicName}
+- Use common student misconceptions as wrong answer distractors
+- Hints must guide without revealing the answer
+- LaTeX: \\\\(x^2\\\\) not $x^2$. Use \\\\frac{}{}, \\\\sqrt{}, \\\\cdot, \\\\sin, \\\\cos, \\\\lim etc.
+- Make problems realistic for a university Calculus 1 course
+- For the "visual" field, set one of: "unit_circle", "triangle_30_60_90", "triangle_45_45_90", "right_triangle", "quadrant_signs", or null. Set it when a diagram would genuinely help the student.`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': state.apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+
+  const data = await response.json();
+  if (!data.content || !data.content[0]) throw new Error('Empty API response');
+  let text = data.content[0].text.trim();
+  // Strip any accidental markdown fences
+  text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+  const problems = JSON.parse(text);
+  if (!Array.isArray(problems) || problems.length === 0) throw new Error('Invalid problem array');
+  return problems;
+}
+
+function selectTopic(topicId) {
+  if (!state.topics[topicId].covered) return;
+  currentTopicId = topicId;
+  buildSidebar();
+  switchTab('practice');
+  loadProblems(topicId);
+}
+
+function getFilteredProblems(topicId) {
+  let probs = PROBLEMS[topicId] || [];
+  const diff = state.difficulty || 'all';
+  if (diff !== 'all') probs = probs.filter(p => p.difficulty === diff);
+  if (probs.length === 0) probs = PROBLEMS[topicId] || []; // fallback
+  return shuffle([...probs]);
+}
+
+async function loadProblems(topicId) {
+  currentProblemIndex = 0;
+  sessionScore = 0;
+  sessionAttempts = 0;
+  sessionCorrect = 0;
+  consecutiveCorrect = 0;
+  reinforcementMode = false;
+  lastWrongProblem = null;
+
+  const topic = TOPICS.find(t => t.id === topicId);
+  const topicName = topic ? topic.name : '';
+  const genBadge = state.apiKey ? '<span class="gen-badge">AI-generated</span>' : '';
+  document.getElementById('practice-topic-title').innerHTML = topicName + genBadge;
+  document.getElementById('no-topic-msg').style.display = 'none';
+  document.getElementById('problem-area').style.display = 'block';
+
+  if (state.apiKey) {
+    showProblemLoading(true);
+    try {
+      currentProblems = await generateProblems(topicId);
+    } catch(e) {
+      console.warn('Problem generation failed, falling back to static bank:', e);
+      showToast('⚠️ Could not generate problems — using built-in set', 'warning');
+      currentProblems = getFilteredProblems(topicId);
+    }
+    showProblemLoading(false);
+  } else {
+    currentProblems = getFilteredProblems(topicId);
+  }
+
+  showProblem();
+}
+
+function showProblem() {
+  // Batch exhausted — loadNextBatch() handles regeneration asynchronously
+  if (currentProblemIndex >= currentProblems.length) return;
+  const prob = currentProblems[currentProblemIndex];
+  answered = false;
+  hintsShown = 0;
+
+  document.getElementById('problem-counter').textContent =
+    `Problem ${sessionAttempts + 1}`;
+
+  const diffBadge = document.getElementById('diff-badge');
+  diffBadge.textContent = prob.difficulty;
+  diffBadge.className = `difficulty-badge diff-${prob.difficulty}`;
+
+  document.getElementById('problem-question').innerHTML = prob.question;
+
+  const choicesEl = document.getElementById('choices-container');
+  choicesEl.innerHTML = '';
+  const labels = ['A','B','C','D'];
+  prob.choices.forEach((choice, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = `<span class="choice-label">${labels[i]}.</span><span>${choice}</span>`;
+    btn.addEventListener('click', () => handleAnswer(i, prob));
+    choicesEl.appendChild(btn);
+  });
+
+  document.getElementById('hints-display').innerHTML = '';
+  document.getElementById('hint-btn').textContent = '💡 Need a hint?';
+  document.getElementById('hint-btn').disabled = false;
+  document.getElementById('feedback-box').style.display = 'none';
+  document.getElementById('feedback-box').className = 'feedback-box';
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('encouragement-msg').textContent = '';
+
+  hideVisual();
+  updateDrillBanner();
+  // Show diagram immediately if problem specifies one or question text triggers one
+  if (prob.visual) showVisual(prob.visual);
+  else tryShowVisual(prob.question);
+
+  updateSessionStats();
+  typesetMath();
+}
+
+function handleAnswer(choiceIndex, prob) {
+  if (answered) return;
+  answered = true;
+
+  const buttons = document.querySelectorAll('.choice-btn');
+  buttons.forEach(b => b.disabled = true);
+  buttons[prob.correct].classList.add('correct');
+  if (choiceIndex !== prob.correct) buttons[choiceIndex].classList.add('wrong');
+
+  const isCorrect = choiceIndex === prob.correct;
+
+  // Deliberate practice drill tracking
+  if (isCorrect) {
+    if (reinforcementMode) {
+      consecutiveCorrect++;
+      if (consecutiveCorrect >= DRILL_TARGET) {
+        reinforcementMode = false;
+        consecutiveCorrect = 0;
+        lastWrongProblem = null;
+        setTimeout(() => showToast('🎯 Drilled it! Concept locked in — moving on.', 'success'), 600);
+      }
+    }
+  } else {
+    reinforcementMode = true;
+    consecutiveCorrect = 0;
+    lastWrongProblem = prob;
+  }
+
+  // Update state
+  state.topics[currentTopicId].attempted++;
+  if (isCorrect) state.topics[currentTopicId].correct++;
+
+  sessionAttempts++;
+  if (isCorrect) sessionCorrect++;
+  const prevStars = masteryStars(currentTopicId);
+
+  // XP
+  let xpGained = isCorrect ? XP_PER_CORRECT : XP_PER_WRONG;
+  const prevLevel = state.level;
+  state.xp += xpGained;
+  state.level = Math.floor(state.xp / XP_PER_LEVEL) + 1;
+
+  // Streak
+  if (isCorrect) {
+    state.streak++;
+    sessionScore++;
+    if (state.streak > state.maxStreak) state.maxStreak = state.streak;
+  } else {
+    state.streak = 0;
+  }
+
+  // Daily problems
+  if (state.dailyProblems.date !== todayStr()) {
+    state.dailyProblems = { date: todayStr(), count: 0 };
+  }
+  state.dailyProblems.count++;
+  const hitDailyGoal = state.dailyProblems.count === DAILY_GOAL;
+
+  // Check mastery
+  const newStars = masteryStars(currentTopicId);
+  const masteredNow = prevStars < 3 && newStars === 3;
+  if (masteredNow) {
+    state.xp += XP_PER_MASTERY;
+    state.level = Math.floor(state.xp / XP_PER_LEVEL) + 1;
+  }
+
+  // Problem history
+  state.problemHistory.push({
+    topicId: currentTopicId,
+    problemId: prob.id,
+    correct: isCorrect,
+    timestamp: Date.now()
+  });
+
+  saveState();
+  updateHeader();
+  updateSessionStats();
+  updateDailyGoal();
+  buildSidebar();
+
+  // Feedback
+  const fb = document.getElementById('feedback-box');
+  fb.style.display = 'block';
+  fb.className = `feedback-box ${isCorrect ? 'feedback-correct' : 'feedback-wrong'}`;
+  document.getElementById('feedback-title').textContent = isCorrect ? '✅ Correct!' : '❌ Incorrect';
+  document.getElementById('feedback-explanation').innerHTML = prob.explanation;
+
+  // Encouragement
+  const enc = document.getElementById('encouragement-msg');
+  if (isCorrect) {
+    enc.textContent = randomFrom(ENCOURAGE_CORRECT);
+    enc.style.color = 'var(--green)';
+  } else {
+    enc.textContent = randomFrom(ENCOURAGE_WRONG);
+    enc.style.color = 'var(--text2)';
+  }
+
+  document.getElementById('next-btn').style.display = 'inline-block';
+
+  // Show visual on wrong answer — scan explanation + question for diagram triggers
+  if (!isCorrect) {
+    const scanText = (prob.explanation || '') + ' ' + (prob.question || '');
+    if (prob.visual) showVisual(prob.visual);
+    else tryShowVisual(scanText);
+  }
+
+  updateDrillBanner();
+
+  // Toasts
+  if (state.level > prevLevel) showLevelUp(state.level);
+  if (masteredNow) showToast(`🌟 Topic Mastered: ${TOPICS.find(t=>t.id===currentTopicId).name}!`, 'success');
+  if (hitDailyGoal) showToast(`🎯 Daily Goal Reached! ${DAILY_GOAL} problems done!`, 'success');
+
+  typesetMath();
+}
+
+document.getElementById('next-btn').addEventListener('click', async () => {
+  // In drill mode: inject a targeted reinforcement problem right after current position
+  if (reinforcementMode && lastWrongProblem && state.apiKey) {
+    showProblemLoading(true);
+    try {
+      const drill = await generateReinforcementProblem(lastWrongProblem);
+      currentProblems.splice(currentProblemIndex + 1, 0, drill);
+    } catch(e) {
+      console.warn('Reinforcement generation failed, continuing queue:', e);
+    }
+    showProblemLoading(false);
+  }
+
+  currentProblemIndex++;
+  if (currentProblemIndex >= currentProblems.length) {
+    // Fetch a completely fresh batch
+    if (state.apiKey) {
+      showProblemLoading(true);
+      try {
+        currentProblems = await generateProblems(currentTopicId);
+      } catch(e) {
+        showToast('⚠️ Could not generate problems — using built-in set', 'warning');
+        currentProblems = getFilteredProblems(currentTopicId);
+      }
+      showProblemLoading(false);
+    } else {
+      currentProblems = getFilteredProblems(currentTopicId);
+    }
+    currentProblemIndex = 0;
+  }
+  showProblem();
+});
+
+document.getElementById('hint-btn').addEventListener('click', () => {
+  const prob = currentProblems[currentProblemIndex];
+  if (!prob || answered) return;
+  const hints = prob.hints || [];
+  if (hintsShown >= hints.length) {
+    document.getElementById('hint-btn').textContent = 'No more hints';
+    document.getElementById('hint-btn').disabled = true;
+    return;
+  }
+  const hintDiv = document.createElement('div');
+  hintDiv.className = 'hint-box';
+  const hintText = hints[hintsShown];
+  hintDiv.innerHTML = `<div class="hint-label">Hint ${hintsShown+1}</div>${hintText}`;
+  document.getElementById('hints-display').appendChild(hintDiv);
+  hintsShown++;
+  if (hintsShown >= hints.length) {
+    document.getElementById('hint-btn').textContent = 'No more hints';
+    document.getElementById('hint-btn').disabled = true;
+  } else {
+    document.getElementById('hint-btn').textContent = `💡 Another hint? (${hints.length - hintsShown} left)`;
+  }
+  // Show reference diagram if hint text mentions a geometric concept
+  tryShowVisual(hintText);
+  typesetMath();
+});
+
+document.getElementById('weak-spots-btn').addEventListener('click', () => {
+  const weakTopic = getWeakSpotTopic();
+  if (weakTopic) selectTopic(weakTopic);
+  else showToast('No covered topics to practice yet! Check some topics first.', 'info');
+});
+
+function getWeakSpotTopic() {
+  const covered = TOPICS.filter(t => state.topics[t.id].covered);
+  if (covered.length === 0) return null;
+
+  // Attempted ones sorted by mastery ascending
+  const attempted = covered.filter(t => state.topics[t.id].attempted > 0);
+  if (attempted.length > 0) {
+    attempted.sort((a, b) => masteryPct(a.id) - masteryPct(b.id));
+    return attempted[0].id;
+  }
+  return covered[0].id;
+}
+
+// ============================================================
+// SESSION STATS
+// ============================================================
+function updateSessionStats() {
+  document.getElementById('sess-score').textContent = sessionScore;
+  document.getElementById('sess-streak').textContent = state.streak;
+
+  const dp = state.dailyProblems;
+  const today = todayStr();
+  document.getElementById('sess-today').textContent = dp.date === today ? dp.count : 0;
+
+  if (sessionAttempts > 0) {
+    document.getElementById('sess-acc').textContent = Math.round(sessionCorrect / sessionAttempts * 100) + '%';
+  } else {
+    document.getElementById('sess-acc').textContent = '—';
+  }
+}
+
+function updateDailyGoal() {
+  const dp = state.dailyProblems;
+  const today = todayStr();
+  const count = dp.date === today ? dp.count : 0;
+  const pct = Math.min(100, Math.round(count / DAILY_GOAL * 100));
+  document.getElementById('daily-goal-text').textContent = `${count} / ${DAILY_GOAL} problems`;
+  document.getElementById('daily-goal-bar').style.width = pct + '%';
+}
+
+// ============================================================
+// HEADER
+// ============================================================
+function updateHeader() {
+  document.getElementById('hdr-streak').textContent = state.streak;
+  document.getElementById('hdr-xp').textContent = state.xp;
+  document.getElementById('hdr-level').textContent = state.level;
+  const xpInLevel = state.xp % XP_PER_LEVEL;
+  const pct = Math.round(xpInLevel / XP_PER_LEVEL * 100);
+  document.getElementById('xp-bar').style.width = pct + '%';
+}
+
+// ============================================================
+// PROGRESS TAB
+// ============================================================
+function renderProgress() {
+  // Overall mastery
+  const covered2plus = TOPICS.filter(t => masteryStars(t.id) >= 2).length;
+  const pct = Math.round(covered2plus / TOPICS.length * 100);
+  document.getElementById('overall-bar').style.width = pct + '%';
+  document.getElementById('overall-pct').textContent = `${pct}% of topics at 2+ stars (${covered2plus}/${TOPICS.length})`;
+
+  // Stats row
+  const totalAttempted = state.problemHistory.length;
+  const totalCorrect = state.problemHistory.filter(h => h.correct).length;
+  const acc = totalAttempted > 0 ? Math.round(totalCorrect / totalAttempted * 100) : 0;
+  const dp = state.dailyProblems;
+  const todayCount = dp.date === todayStr() ? dp.count : 0;
+
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stats-card"><div class="val">${totalAttempted}</div><div class="lbl">Total Problems</div></div>
+    <div class="stats-card"><div class="val">${totalCorrect}</div><div class="lbl">Total Correct</div></div>
+    <div class="stats-card"><div class="val">${acc}%</div><div class="lbl">Overall Accuracy</div></div>
+    <div class="stats-card"><div class="val">${state.maxStreak}</div><div class="lbl">Best Streak</div></div>
+    <div class="stats-card"><div class="val">${state.xp}</div><div class="lbl">Total XP</div></div>
+    <div class="stats-card"><div class="val">${todayCount}</div><div class="lbl">Today's Problems</div></div>
+  `;
+
+  // Weak spots
+  const coveredAttempted = TOPICS.filter(t => state.topics[t.id].covered && state.topics[t.id].attempted > 0);
+  coveredAttempted.sort((a, b) => masteryPct(a.id) - masteryPct(b.id));
+  const weakEl = document.getElementById('weak-list');
+  if (coveredAttempted.length === 0) {
+    weakEl.innerHTML = '<div class="empty-state"><div class="icon">📚</div>Start practicing to see your weak spots!</div>';
+  } else {
+    weakEl.innerHTML = coveredAttempted.slice(0, 3).map(t => `
+      <div class="weak-item">
+        <span class="weak-item-name">${t.name}</span>
+        <span class="weak-item-pct">${masteryPct(t.id)}% • ${starsStr(masteryStars(t.id))}</span>
+      </div>`).join('');
+  }
+
+  // Topic grid
+  const gridEl = document.getElementById('topic-grid');
+  gridEl.innerHTML = TOPICS.map(t => {
+    const pct2 = masteryPct(t.id);
+    const stars = masteryStars(t.id);
+    const s = state.topics[t.id];
+    const barColor = ['var(--red)','var(--yellow)','var(--blue)','var(--green)'][stars];
+    return `<div class="topic-card mastery-${stars}">
+      <div class="tc-name">${t.name}</div>
+      <div class="tc-bar-wrap"><div class="tc-bar" style="width:${pct2}%;background:${barColor}"></div></div>
+      <div class="tc-meta">
+        <span>${starsStr(stars)}</span>
+        <span>${s.attempted > 0 ? pct2+'%' : 'Not started'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('reset-progress-btn').addEventListener('click', () => {
+  if (confirm('Reset all progress? This cannot be undone.')) {
+    state = defaultState();
+    saveState();
+    updateHeader();
+    buildSidebar();
+    renderProgress();
+    currentTopicId = null;
+    document.getElementById('no-topic-msg').style.display = '';
+    document.getElementById('problem-area').style.display = 'none';
+    showToast('Progress reset.', 'info');
+  }
+});
+
+// ============================================================
+// AI TUTOR
+// ============================================================
+let conversationHistory = state.chatHistory || [];
+
+function renderTutor() {
+  const hasKey = !!(state.apiKey && state.apiKey.trim().startsWith('sk-'));
+  document.getElementById('api-key-prompt').style.display = hasKey ? 'none' : 'block';
+  document.getElementById('chat-wrap').style.display = hasKey ? 'block' : 'none';
+  if (hasKey) renderChatHistory();
+}
+
+function renderChatHistory() {
+  const msgs = document.getElementById('chat-messages');
+  msgs.innerHTML = '';
+  if (conversationHistory.length === 0) {
+    addChatMessage('cal', "Hi! I'm Cal, your Socratic calculus tutor 😊 Ask me anything about calculus — I won't just give you the answer, but I'll guide you to discover it yourself. What are you working on?");
+  } else {
+    conversationHistory.forEach(m => {
+      addChatMessage(m.role === 'user' ? 'user' : 'cal', m.content);
+    });
+  }
+  scrollChat();
+}
+
+function addChatMessage(role, text) {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `msg msg-${role}`;
+  div.innerHTML = `<div class="msg-name">${role === 'cal' ? 'Cal 🤖' : 'You'}</div>
+    <div class="msg-bubble">${text}</div>`;
+  msgs.appendChild(div);
+  scrollChat();
+  if (window.MathJax) MathJax.typesetPromise([div]).catch(()=>{});
+  return div;
+}
+
+function scrollChat() {
+  const msgs = document.getElementById('chat-messages');
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  input.style.height = '44px';
+
+  addChatMessage('user', text);
+  conversationHistory.push({ role: 'user', content: text });
+
+  // Thinking indicator
+  const thinkDiv = document.createElement('div');
+  thinkDiv.className = 'msg msg-cal';
+  thinkDiv.innerHTML = `<div class="msg-name">Cal 🤖</div>
+    <div class="msg-bubble"><div class="thinking-dots"><span></span><span></span><span></span></div></div>`;
+  document.getElementById('chat-messages').appendChild(thinkDiv);
+  scrollChat();
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': state.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 300,
+        system: TUTOR_SYSTEM_PROMPT,
+        messages: conversationHistory
+      })
+    });
+
+    const data = await response.json();
+    thinkDiv.remove();
+
+    if (data.content && data.content[0]) {
+      const reply = data.content[0].text;
+      conversationHistory.push({ role: 'assistant', content: reply });
+      state.chatHistory = conversationHistory;
+      saveState();
+      addChatMessage('cal', reply);
+    } else {
+      addChatMessage('cal', 'Hmm, I had trouble connecting. Please check your API key in Settings.');
+    }
+  } catch(e) {
+    thinkDiv.remove();
+    addChatMessage('cal', 'Connection error. Please check your API key and internet connection.');
+  }
+}
+
+document.getElementById('chat-send').addEventListener('click', sendChat);
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+});
+document.getElementById('chat-input').addEventListener('input', function() {
+  this.style.height = '44px';
+  this.style.height = Math.min(120, this.scrollHeight) + 'px';
+});
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function renderSettings() {
+  document.getElementById('apikey-input').value = state.apiKey || '';
+  document.getElementById('diff-filter').value = state.difficulty || 'all';
+
+  const toggle = document.getElementById('dark-toggle');
+  if (state.lightMode) toggle.classList.add('on');
+  else toggle.classList.remove('on');
+}
+
+document.getElementById('save-apikey-btn').addEventListener('click', () => {
+  state.apiKey = document.getElementById('apikey-input').value.trim();
+  saveState();
+  showToast('API key saved!', 'success');
+  renderTutor();
+});
+
+document.getElementById('diff-filter').addEventListener('change', e => {
+  state.difficulty = e.target.value;
+  saveState();
+});
+
+function toggleDarkMode() {
+  state.lightMode = !state.lightMode;
+  saveState();
+  applyTheme();
+  const toggle = document.getElementById('dark-toggle');
+  if (state.lightMode) toggle.classList.add('on');
+  else toggle.classList.remove('on');
+}
+
+function applyTheme() {
+  if (state.lightMode) document.body.classList.add('light-mode');
+  else document.body.classList.remove('light-mode');
+}
+
+document.getElementById('export-btn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'calctutorprogress.json'; a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('import-file').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      if (imported.xp !== undefined) {
+        state = imported;
+        saveState();
+        updateHeader();
+        buildSidebar();
+        applyTheme();
+        renderSettings();
+        renderProgress();
+        showToast('Progress imported!', 'success');
+      }
+    } catch(err) {
+      showToast('Invalid file format.', 'info');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+document.getElementById('reset-all-btn').addEventListener('click', () => {
+  if (confirm('Reset ALL progress and settings? This cannot be undone.')) {
+    localStorage.removeItem(STORAGE_KEY);
+    state = defaultState();
+    conversationHistory = [];
+    saveState();
+    updateHeader();
+    buildSidebar();
+    applyTheme();
+    renderSettings();
+    renderProgress();
+    currentTopicId = null;
+    document.getElementById('no-topic-msg').style.display = '';
+    document.getElementById('problem-area').style.display = 'none';
+    showToast('Everything reset.', 'info');
+  }
+});
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tabId);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('active', p.id === `tab-${tabId}`);
+  });
+  if (tabId === 'progress') renderProgress();
+  if (tabId === 'tutor') renderTutor();
+  if (tabId === 'settings') renderSettings();
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// ============================================================
+// TOASTS & LEVEL-UP
+// ============================================================
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3200);
+}
+
+function showLevelUp(level) {
+  document.getElementById('levelup-msg').textContent = `You reached Level ${level}!`;
+  document.getElementById('levelup-overlay').classList.add('show');
+}
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function randomFrom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function typesetMath() {
+  if (window.MathJax && MathJax.typesetPromise) {
+    MathJax.typesetPromise().catch(() => {});
+  }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  applyTheme();
+  updateHeader();
+  updateDailyGoal();
+  buildSidebar();
+  updateSessionStats();
+  // Restore daily count
+  if (state.dailyProblems.date !== todayStr()) {
+    state.dailyProblems = { date: todayStr(), count: 0 };
+    saveState();
+  }
+}
+
+init();
+</script>
+</body>
+</html>
