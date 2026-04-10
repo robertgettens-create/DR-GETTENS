@@ -2557,13 +2557,83 @@ Return ONLY a JSON object with corrected fields (only what changed):
     const patched = {};
     if (typeof fix.correct === 'number' && fix.correct >= 0 && fix.correct <= 3)
       patched.correct = fix.correct;
-    if (fix.explanation) patched.explanation = fix.explanation;
+    if (fix.explanation) patched.explanation = fixLatex(fix.explanation);
     return Object.keys(patched).length ? patched : null;
   } catch(e) { return null; }
 }
 
 function stripHtml(str) {
   return str.replace(/<[^>]+>/g, '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+}
+
+// ============================================================
+// LATEX SANITIZER — runs on every AI-generated problem
+// ============================================================
+function sanitizeProblem(p) {
+  const fix = s => fixLatex(s || '');
+  p.question    = fix(p.question);
+  p.explanation = fix(p.explanation);
+  if (Array.isArray(p.choices)) p.choices = p.choices.map(fix);
+  if (Array.isArray(p.hints))   p.hints   = p.hints.map(fix);
+  return p;
+}
+
+function fixLatex(s) {
+  // 1. Pre-parse corruption: JSON sometimes drops backslashes before
+  //    letters that are valid JSON escapes (e.g. \f → form-feed).
+  //    Re-introduce the backslash for all known LaTeX commands.
+  //    We match the letter-run that follows a forward-slash or a bare
+  //    letter when preceded by { or space and it looks like a command.
+  const CMDS = [
+    'frac','sqrt','cdot','times','div','pm','mp','leq','geq','neq',
+    'approx','infty','pi','theta','alpha','beta','gamma','delta',
+    'epsilon','lambda','mu','sigma','omega','phi','psi','rho',
+    'sin','cos','tan','cot','sec','csc',
+    'ln','log','exp','lim','sum','int','partial',
+    'left','right','text','mathrm','mathbf',
+    'Rightarrow','rightarrow','Leftarrow','leftarrow',
+    'Leftrightarrow','leftrightarrow',
+    'in','notin','subset','cup','cap','emptyset','forall','exists',
+    'displaystyle','dfrac','tfrac','binom','overline','hat','vec',
+    'qquad','quad',',',';',
+  ];
+  // Replace /cmd with \cmd (forward-slash corruption)
+  for (const cmd of CMDS) {
+    const re = new RegExp('/' + escapeRegex(cmd) + '(?=[^a-zA-Z]|$)', 'g');
+    s = s.replace(re, '\\' + cmd);
+  }
+
+  // 2. Ensure math delimiters: if a string contains LaTeX commands but
+  //    no \( \) or $ delimiters, wrap the whole thing in \( \).
+  //    Only do this for short strings (choices), not long explanations.
+  if (s.length < 200 && hasLatexCommand(s) && !hasMathDelimiters(s)) {
+    s = '\\(' + s.trim() + '\\)';
+  }
+
+  // 3. Fix doubled delimiters from overzealous wrapping: \\(\\( ... \\)\\)
+  s = s.replace(/\\\\\(\s*\\\\\(/g, '\\(').replace(/\\\\\)\s*\\\\\)/g, '\\)');
+
+  // 4. Replace lone $ delimiters with \( \) so MathJax v3 handles them
+  //    (MathJax v3 config already allows $, but this makes it explicit)
+  s = s.replace(/\$([^$]+)\$/g, '\\($1\\)');
+
+  return s;
+}
+
+function hasLatexCommand(s) {
+  return /\\[a-zA-Z]/.test(s) || /[_^]\{/.test(s) || /[_^][0-9a-zA-Z]/.test(s);
+}
+
+function hasMathDelimiters(s) {
+  return /\\\(|\\\[|\$/.test(s);
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function sanitizeProblems(arr) {
+  return arr.map(sanitizeProblem);
 }
 
 function refreshVerifyBadge(prob) {
@@ -2623,7 +2693,7 @@ Use LaTeX \\\\( \\\\) for all math. Wrong choices should reflect common errors.`
     .replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/i,'').trim();
   const arr = JSON.parse(text);
   if (!Array.isArray(arr) || !arr[0]) throw new Error('Bad response');
-  return arr[0];
+  return sanitizeProblem(arr[0]);
 }
 
 // ============================================================
@@ -2681,7 +2751,7 @@ Rules:
 - CRITICAL ACCURACY CHECK: After writing each problem, re-read your explanation and confirm the answer it describes matches the choice at index "correct". The most common error is the explanation saying one thing but "correct" pointing to a different choice. Triple-check the index.
 - Use common student misconceptions as wrong answer distractors — but the CORRECT answer must be mathematically verified
 - Hints must guide without revealing the answer
-- LaTeX: \\\\(x^2\\\\) not $x^2$. Use \\\\frac{}{}, \\\\sqrt{}, \\\\cdot, \\\\sin, \\\\cos, \\\\lim etc.
+- LaTeX CRITICAL: inside JSON strings you MUST double every backslash. Write \\\\(x^2\\\\) not $x^2$, \\\\frac{a}{b} not /frac{a}{b}, \\\\sqrt{x} not /sqrt{x}. Every LaTeX command starts with \\\\ (two backslashes in the JSON). Never use a forward slash for LaTeX.
 - Make problems realistic for a university Calculus 1 course
 - For the "visual" field, set one of: "unit_circle", "triangle_30_60_90", "triangle_45_45_90", "right_triangle", "quadrant_signs", or null. Set it when a diagram would genuinely help the student.`;
 
@@ -2725,7 +2795,7 @@ Rules:
     throw new Error('Problem data was malformed (JSON parse error) — click Retry.');
   }
   if (!Array.isArray(problems) || problems.length === 0) throw new Error('No problems returned — click Retry.');
-  return problems;
+  return sanitizeProblems(problems);
 }
 
 function selectTopic(topicId) {
