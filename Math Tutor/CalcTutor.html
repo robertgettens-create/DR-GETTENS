@@ -180,8 +180,21 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--navy); 
   margin-bottom: 16px;
   box-shadow: var(--shadow);
 }
-.problem-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.problem-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 6px; }
 .problem-counter { font-size: 0.78rem; color: var(--text2); }
+.verify-badge {
+  font-size: 0.7rem; font-weight: 700; padding: 2px 7px;
+  border-radius: 10px; display: inline-flex; align-items: center; gap: 4px;
+}
+.verify-badge.checking { background: rgba(99,102,241,0.15); color: var(--accent2); }
+.verify-badge.verified { background: rgba(34,197,94,0.15); color: #16a34a; }
+.verify-badge.fixed    { background: rgba(234,179,8,0.15);  color: #a16207; }
+.verify-badge.unverified { background: rgba(239,68,68,0.15); color: var(--red); }
+.verify-spinner {
+  width: 8px; height: 8px; border: 1.5px solid currentColor;
+  border-top-color: transparent; border-radius: 50%;
+  animation: spin 0.7s linear infinite; display: inline-block;
+}
 .difficulty-badge {
   font-size: 0.7rem;
   font-weight: 700;
@@ -656,6 +669,7 @@ select.settings-input { width: 180px; cursor: pointer; }
             </div>
             <div class="problem-meta">
               <span class="problem-counter" id="problem-counter">Problem 1</span>
+              <span id="verify-badge" class="verify-badge" style="display:none"></span>
               <span class="difficulty-badge diff-medium" id="diff-badge">medium</span>
             </div>
             <div class="problem-question" id="problem-question"></div>
@@ -2422,6 +2436,159 @@ function buildQuadrantSVG() {
 }
 
 // ============================================================
+// BACKGROUND VALIDATION
+// ============================================================
+// Tracks per-problem validation state: 'pending'|'checking'|'verified'|'fixed'|'removed'
+const validationState = {};   // keyed by prob.id
+let validationAbort = null;   // AbortController for the current batch
+
+async function validateProblemsInBackground(problems) {
+  if (!state.apiKey || problems.length <= 1) return;
+  // Cancel any in-flight validation from previous batch
+  if (validationAbort) validationAbort.abort();
+  validationAbort = new AbortController();
+  const signal = validationAbort.signal;
+
+  // Validate ALL problems in parallel — problem 0 badge will update while student reads it
+  const toValidate = problems;
+  toValidate.forEach(p => { validationState[p.id] = 'checking'; });
+
+  await Promise.allSettled(toValidate.map(async (prob) => {
+    if (signal.aborted) return;
+    try {
+      const result = await validateOneProblem(prob, signal);
+      if (signal.aborted) return;
+      if (result === 'pass') {
+        validationState[prob.id] = 'verified';
+        prob._verified = true;
+      } else {
+        // Try to auto-fix
+        const fixed = await tryFixProblem(prob, result, signal);
+        if (signal.aborted) return;
+        if (fixed) {
+          // Patch the problem in currentProblems in-place
+          const idx = currentProblems.indexOf(prob);
+          if (idx > 0) {
+            Object.assign(currentProblems[idx], fixed);
+            currentProblems[idx]._fixed = true;
+            currentProblems[idx]._verified = true;
+          }
+          validationState[prob.id] = 'fixed';
+        } else {
+          validationState[prob.id] = 'removed';
+          prob._invalid = true;
+        }
+      }
+    } catch(e) {
+      // Network error or aborted — leave problem as-is, don't punish the student
+      if (!signal.aborted) validationState[prob.id] = 'verified'; // give benefit of doubt
+    }
+  }));
+
+  if (signal.aborted) return;
+
+  // Purge invalid problems that haven't been reached yet
+  for (let i = currentProblems.length - 1; i > currentProblemIndex; i--) {
+    if (currentProblems[i]?._invalid) currentProblems.splice(i, 1);
+  }
+
+  // Refresh the badge if the current problem just got validated
+  const cur = currentProblems[currentProblemIndex];
+  if (cur) refreshVerifyBadge(cur);
+}
+
+async function validateOneProblem(prob, signal) {
+  const q    = stripHtml(prob.question || '').slice(0, 400);
+  const choices = (prob.choices || []).map((c, i) => `${i}: ${stripHtml(c)}`).join(' | ');
+  const ans  = stripHtml((prob.choices || [])[prob.correct] || '');
+  const expl = stripHtml(prob.explanation || '').slice(0, 350);
+
+  const prompt =
+`Verify this calculus problem. Reply with ONLY "PASS" or "FAIL: <one-line reason>".
+
+Question: ${q}
+Choices: ${choices}
+Marked correct: index ${prob.correct} = "${ans}"
+Explanation: ${expl}
+
+Is choice index ${prob.correct} mathematically correct AND consistent with the explanation?`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST', signal,
+    headers: { 'Content-Type': 'application/json', 'x-api-key': state.apiKey,
+      'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 60,
+      messages: [{ role: 'user', content: prompt }] })
+  });
+  const data = await res.json();
+  const text = (data.content?.[0]?.text || '').trim();
+  return text.toUpperCase().startsWith('PASS') ? 'pass' : text;
+}
+
+async function tryFixProblem(prob, failReason, signal) {
+  const q       = stripHtml(prob.question || '').slice(0, 400);
+  const choices = (prob.choices || []).map((c, i) => `${['A','B','C','D'][i]}: ${stripHtml(c)}`).join('\n');
+  const expl    = stripHtml(prob.explanation || '').slice(0, 350);
+
+  const prompt =
+`Fix this math problem. Validator said: "${failReason}"
+
+Question: ${q}
+Choices:
+${choices}
+Current correct index: ${prob.correct}
+Explanation: ${expl}
+
+Return ONLY a JSON object with corrected fields (only what changed):
+{"correct": <0-based index>, "explanation": "<corrected explanation>"}`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST', signal,
+    headers: { 'Content-Type': 'application/json', 'x-api-key': state.apiKey,
+      'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 300,
+      messages: [{ role: 'user', content: prompt }] })
+  });
+  const data = await res.json();
+  let text = (data.content?.[0]?.text || '').trim()
+    .replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/i,'').trim();
+  try {
+    const fix = JSON.parse(text);
+    const patched = {};
+    if (typeof fix.correct === 'number' && fix.correct >= 0 && fix.correct <= 3)
+      patched.correct = fix.correct;
+    if (fix.explanation) patched.explanation = fix.explanation;
+    return Object.keys(patched).length ? patched : null;
+  } catch(e) { return null; }
+}
+
+function stripHtml(str) {
+  return str.replace(/<[^>]+>/g, '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+}
+
+function refreshVerifyBadge(prob) {
+  const badge = document.getElementById('verify-badge');
+  if (!badge || !prob) return;
+  if (!state.apiKey) { badge.style.display = 'none'; return; }
+  const st = validationState[prob.id];
+  if (!st || st === 'checking') {
+    badge.className = 'verify-badge checking';
+    badge.innerHTML = '<span class="verify-spinner"></span> verifying…';
+    badge.style.display = 'inline-flex';
+  } else if (st === 'verified') {
+    badge.className = 'verify-badge verified';
+    badge.innerHTML = '✓ verified';
+    badge.style.display = 'inline-flex';
+  } else if (st === 'fixed') {
+    badge.className = 'verify-badge fixed';
+    badge.innerHTML = '⚠ auto-corrected';
+    badge.style.display = 'inline-flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ============================================================
 // REINFORCEMENT PROBLEM GENERATION
 // ============================================================
 async function generateReinforcementProblem(failedProblem) {
@@ -2601,13 +2768,15 @@ async function loadProblems(topicId) {
     } catch(e) {
       console.warn('Problem generation failed:', e.message);
       showProblemLoading(true, e.message);
-      return; // wait for Retry or Use built-in
+      return;
     }
+    // Show first problem immediately, then validate all in background
+    showProblem();
+    validateProblemsInBackground(currentProblems);
   } else {
     currentProblems = getFilteredProblems(topicId);
+    showProblem();
   }
-
-  showProblem();
 }
 
 function showProblem() {
@@ -2656,6 +2825,20 @@ function showProblem() {
   // Show diagram immediately if problem specifies one or question text triggers one
   if (prob.visual) showVisual(prob.visual);
   else tryShowVisual(prob.question);
+
+  // Show verification badge for this problem
+  refreshVerifyBadge(prob);
+  // If still checking, poll until it resolves (updates badge live)
+  if (state.apiKey && validationState[prob.id] === 'checking') {
+    const pollId = setInterval(() => {
+      const st = validationState[prob.id];
+      if (st && st !== 'checking') {
+        clearInterval(pollId);
+        // Only refresh if this problem is still on screen
+        if (currentProblems[currentProblemIndex] === prob) refreshVerifyBadge(prob);
+      }
+    }, 500);
+  }
 
   updateSessionStats();
   typesetMath();
@@ -2807,6 +2990,10 @@ document.getElementById('next-btn').addEventListener('click', async () => {
         currentProblems = getFilteredProblems(currentTopicId);
       }
       showProblemLoading(false);
+      currentProblemIndex = 0;
+      showProblem();
+      validateProblemsInBackground(currentProblems);
+      return;
     } else {
       currentProblems = getFilteredProblems(currentTopicId);
     }
