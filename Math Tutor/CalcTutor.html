@@ -403,6 +403,59 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--navy); 
 .api-key-prompt p { color: var(--text2); font-size: 0.88rem; margin-bottom: 16px; }
 
 /* SETTINGS TAB */
+/* FORMULA SHEET */
+.formulas-container { padding: 20px; max-width: 1100px; }
+.formula-section { margin-bottom: 20px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.formula-section-title {
+  font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  color: var(--text2); padding: 10px 16px; cursor: pointer; user-select: none;
+  background: var(--navy2); display: flex; align-items: center; gap: 6px;
+  list-style: none;
+}
+.formula-section-title::-webkit-details-marker { display: none; }
+.formula-section-title::before { content: '▶'; font-size: 0.65rem; transition: transform 0.2s; }
+details[open] .formula-section-title::before { transform: rotate(90deg); }
+.formula-section-title:hover { color: var(--text); }
+.formula-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  padding: 14px;
+  background: var(--navy);
+}
+.formula-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+.formula-card-wide { grid-column: 1 / -1; }
+.formula-label {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.7px; color: var(--accent2); margin-bottom: 8px;
+}
+.formula-body { font-size: 0.9rem; line-height: 1.75; }
+.formula-body br { display: block; margin: 2px 0; }
+.trig-table { border-collapse: collapse; font-size: 0.82rem; width: 100%; }
+.trig-table th, .trig-table td { border: 1px solid var(--border); padding: 4px 8px; text-align: center; }
+.trig-table th { background: var(--navy2); color: var(--text2); font-weight: 600; }
+.formula-diagrams { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.formula-diagram-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+.formula-diagram-item .visual-title-label {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.7px; color: var(--text2); padding: 6px 12px;
+  background: var(--navy3); width: 100%; text-align: center;
+}
+.formula-diagram-item svg { max-width: 100%; height: auto; display: block; }
+
 .settings-section { margin-bottom: 28px; }
 .settings-section h3 { font-size: 0.85rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; }
 .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
@@ -623,6 +676,7 @@ select.settings-input { width: 180px; cursor: pointer; }
       <button class="tab-btn active" data-tab="practice">📝 Practice</button>
       <button class="tab-btn" data-tab="progress">📊 Progress</button>
       <button class="tab-btn" data-tab="tutor">🤖 AI Tutor</button>
+      <button class="tab-btn" data-tab="formulas">📋 Formulas</button>
       <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
     </div>
 
@@ -813,6 +867,167 @@ select.settings-input { width: 180px; cursor: pointer; }
           </div>
         </div>
       </div>
+
+      <!-- FORMULAS TAB -->
+      <div class="tab-panel" id="tab-formulas">
+        <div class="formulas-container">
+
+          <details class="formula-section" open>
+            <summary class="formula-section-title">Algebra Essentials</summary>
+            <div class="formula-grid">
+              <div class="formula-card">
+                <div class="formula-label">Exponent Rules</div>
+                <div class="formula-body">\(a^m \cdot a^n = a^{m+n}\)<br>\(\dfrac{a^m}{a^n} = a^{m-n}\)<br>\((a^m)^n = a^{mn}\)<br>\(a^{-n} = \dfrac{1}{a^n}\)<br>\(a^0 = 1\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Quadratic Formula</div>
+                <div class="formula-body">\[x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}\]for \(ax^2 + bx + c = 0\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Factoring Identities</div>
+                <div class="formula-body">\(a^2 - b^2 = (a-b)(a+b)\)<br>\(a^2 + 2ab + b^2 = (a+b)^2\)<br>\(a^3 - b^3 = (a-b)(a^2+ab+b^2)\)<br>\(a^3 + b^3 = (a+b)(a^2-ab+b^2)\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Log Rules</div>
+                <div class="formula-body">\(\ln(ab) = \ln a + \ln b\)<br>\(\ln\!\left(\tfrac{a}{b}\right) = \ln a - \ln b\)<br>\(\ln(a^n) = n\ln a\)<br>\(\ln(e^x) = x,\quad e^{\ln x} = x\)<br>\(\log_b x = \dfrac{\ln x}{\ln b}\)</div>
+              </div>
+            </div>
+          </details>
+
+          <details class="formula-section" open>
+            <summary class="formula-section-title">Trigonometry</summary>
+            <div class="formula-grid">
+              <div class="formula-card">
+                <div class="formula-label">SOH-CAH-TOA</div>
+                <div class="formula-body">\(\sin\theta = \dfrac{\text{opp}}{\text{hyp}}\)<br>\(\cos\theta = \dfrac{\text{adj}}{\text{hyp}}\)<br>\(\tan\theta = \dfrac{\text{opp}}{\text{adj}}\)<br><br>\(\csc\theta = \dfrac{1}{\sin\theta}\quad \sec\theta = \dfrac{1}{\cos\theta}\quad \cot\theta = \dfrac{1}{\tan\theta}\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Pythagorean Identities</div>
+                <div class="formula-body">\(\sin^2\theta + \cos^2\theta = 1\)<br>\(1 + \tan^2\theta = \sec^2\theta\)<br>\(1 + \cot^2\theta = \csc^2\theta\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Exact Values</div>
+                <div class="formula-body" style="font-size:0.82rem">
+                  <table class="trig-table">
+                    <tr><th>\(\theta\)</th><th>\(\sin\theta\)</th><th>\(\cos\theta\)</th><th>\(\tan\theta\)</th></tr>
+                    <tr><td>\(0\)</td><td>\(0\)</td><td>\(1\)</td><td>\(0\)</td></tr>
+                    <tr><td>\(\frac{\pi}{6}\)</td><td>\(\frac{1}{2}\)</td><td>\(\frac{\sqrt{3}}{2}\)</td><td>\(\frac{1}{\sqrt{3}}\)</td></tr>
+                    <tr><td>\(\frac{\pi}{4}\)</td><td>\(\frac{\sqrt{2}}{2}\)</td><td>\(\frac{\sqrt{2}}{2}\)</td><td>\(1\)</td></tr>
+                    <tr><td>\(\frac{\pi}{3}\)</td><td>\(\frac{\sqrt{3}}{2}\)</td><td>\(\frac{1}{2}\)</td><td>\(\sqrt{3}\)</td></tr>
+                    <tr><td>\(\frac{\pi}{2}\)</td><td>\(1\)</td><td>\(0\)</td><td>undef</td></tr>
+                  </table>
+                </div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Inverse Trig Domains &amp; Ranges</div>
+                <div class="formula-body">\(\arcsin: [-1,1] \to [-\tfrac{\pi}{2}, \tfrac{\pi}{2}]\)<br>\(\arccos: [-1,1] \to [0,\pi]\)<br>\(\arctan: (-\infty,\infty) \to (-\tfrac{\pi}{2}, \tfrac{\pi}{2})\)<br><br>Cancellation: \(\sin(\arcsin x) = x\)<br>\(\arcsin(\sin\theta) = \theta\) for \(\theta\in[-\frac{\pi}{2},\frac{\pi}{2}]\)</div>
+              </div>
+              <div class="formula-card formula-card-wide">
+                <div class="formula-label">Diagrams</div>
+                <div class="formula-diagrams" id="formula-diagrams"></div>
+              </div>
+            </div>
+          </details>
+
+          <details class="formula-section" open>
+            <summary class="formula-section-title">Limits</summary>
+            <div class="formula-grid">
+              <div class="formula-card">
+                <div class="formula-label">Special Limits</div>
+                <div class="formula-body">\(\lim_{x\to 0}\dfrac{\sin x}{x} = 1\)<br><br>\(\lim_{x\to 0}\dfrac{1-\cos x}{x} = 0\)<br><br>\(\lim_{x\to \infty}\left(1+\tfrac{1}{x}\right)^x = e\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Limit Laws</div>
+                <div class="formula-body">\(\lim[f \pm g] = \lim f \pm \lim g\)<br>\(\lim[f \cdot g] = \lim f \cdot \lim g\)<br>\(\lim\dfrac{f}{g} = \dfrac{\lim f}{\lim g}\) (\(\lim g \ne 0\))<br>\(\lim[c \cdot f] = c \cdot \lim f\)<br>\(\lim f^n = (\lim f)^n\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Limits at Infinity</div>
+                <div class="formula-body">Rational function: degree of num vs denom<br><br>deg num &lt; deg denom \(\Rightarrow 0\)<br>deg num = deg denom \(\Rightarrow\) ratio of leading coefficients<br>deg num &gt; deg denom \(\Rightarrow \pm\infty\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">L'Hôpital's Rule</div>
+                <div class="formula-body">If \(\lim \frac{f}{g}\) is \(\frac{0}{0}\) or \(\frac{\infty}{\infty}\):<br><br>\[\lim_{x\to a}\frac{f(x)}{g(x)} = \lim_{x\to a}\frac{f'(x)}{g'(x)}\]</div>
+              </div>
+            </div>
+          </details>
+
+          <details class="formula-section" open>
+            <summary class="formula-section-title">Derivatives</summary>
+            <div class="formula-grid">
+              <div class="formula-card">
+                <div class="formula-label">Definition</div>
+                <div class="formula-body">\[f'(x) = \lim_{h\to 0}\frac{f(x+h)-f(x)}{h}\]</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Basic Rules</div>
+                <div class="formula-body">\(\dfrac{d}{dx}[c] = 0\)<br>\(\dfrac{d}{dx}[x^n] = nx^{n-1}\)<br>\(\dfrac{d}{dx}[cf] = cf'\)<br>\(\dfrac{d}{dx}[f\pm g] = f' \pm g'\)<br>\(\dfrac{d}{dx}[fg] = f'g + fg'\)<br>\(\dfrac{d}{dx}\!\left[\dfrac{f}{g}\right] = \dfrac{f'g - fg'}{g^2}\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Chain Rule</div>
+                <div class="formula-body">\[\frac{d}{dx}[f(g(x))] = f'(g(x))\cdot g'(x)\]<br>Leibniz form: \(\dfrac{dy}{dx} = \dfrac{dy}{du}\cdot\dfrac{du}{dx}\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Trig Derivatives</div>
+                <div class="formula-body">\(\frac{d}{dx}\sin x = \cos x\)<br>\(\frac{d}{dx}\cos x = -\sin x\)<br>\(\frac{d}{dx}\tan x = \sec^2 x\)<br>\(\frac{d}{dx}\cot x = -\csc^2 x\)<br>\(\frac{d}{dx}\sec x = \sec x\tan x\)<br>\(\frac{d}{dx}\csc x = -\csc x\cot x\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Exp &amp; Log Derivatives</div>
+                <div class="formula-body">\(\dfrac{d}{dx}e^x = e^x\)<br>\(\dfrac{d}{dx}a^x = a^x \ln a\)<br>\(\dfrac{d}{dx}\ln x = \dfrac{1}{x}\)<br>\(\dfrac{d}{dx}\log_a x = \dfrac{1}{x\ln a}\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Inverse Trig Derivatives</div>
+                <div class="formula-body">\(\dfrac{d}{dx}\arcsin x = \dfrac{1}{\sqrt{1-x^2}}\)<br>\(\dfrac{d}{dx}\arccos x = \dfrac{-1}{\sqrt{1-x^2}}\)<br>\(\dfrac{d}{dx}\arctan x = \dfrac{1}{1+x^2}\)<br>\(\dfrac{d}{dx}\text{arccot}\, x = \dfrac{-1}{1+x^2}\)<br>\(\dfrac{d}{dx}\text{arcsec}\, x = \dfrac{1}{|x|\sqrt{x^2-1}}\)<br>\(\dfrac{d}{dx}\text{arccsc}\, x = \dfrac{-1}{|x|\sqrt{x^2-1}}\)</div>
+              </div>
+            </div>
+          </details>
+
+          <details class="formula-section" open>
+            <summary class="formula-section-title">Applications of Derivatives</summary>
+            <div class="formula-grid">
+              <div class="formula-card">
+                <div class="formula-label">Linear Approximation</div>
+                <div class="formula-body">\[L(x) = f(a) + f'(a)(x-a)\]<br>Differential: \(dy = f'(x)\,dx\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Critical Points &amp; Tests</div>
+                <div class="formula-body"><b>1st Derivative Test:</b> \(f' &gt; 0\) (increasing), \(f' &lt; 0\) (decreasing); sign change at \(c\) → local extremum<br><br><b>2nd Derivative Test:</b> \(f''(c)&gt;0\) → local min, \(f''(c)&lt;0\) → local max<br><br>Inflection point: \(f''\) changes sign</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Rates of Change</div>
+                <div class="formula-body">Position \(s(t)\)<br>Velocity \(v(t) = s'(t)\)<br>Acceleration \(a(t) = v'(t) = s''(t)\)<br><br>Average rate: \(\dfrac{f(b)-f(a)}{b-a}\)<br>Instantaneous rate: \(f'(x)\)</div>
+              </div>
+            </div>
+          </details>
+
+          <details class="formula-section" open>
+            <summary class="formula-section-title">Integration</summary>
+            <div class="formula-grid">
+              <div class="formula-card">
+                <div class="formula-label">Basic Antiderivatives</div>
+                <div class="formula-body">\(\int x^n\,dx = \dfrac{x^{n+1}}{n+1} + C\quad (n\ne -1)\)<br>\(\int \dfrac{1}{x}\,dx = \ln|x| + C\)<br>\(\int e^x\,dx = e^x + C\)<br>\(\int a^x\,dx = \dfrac{a^x}{\ln a} + C\)<br>\(\int \sin x\,dx = -\cos x + C\)<br>\(\int \cos x\,dx = \sin x + C\)<br>\(\int \sec^2 x\,dx = \tan x + C\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">More Antiderivatives</div>
+                <div class="formula-body">\(\int \csc^2 x\,dx = -\cot x + C\)<br>\(\int \sec x\tan x\,dx = \sec x + C\)<br>\(\int \csc x\cot x\,dx = -\csc x + C\)<br>\(\int \dfrac{1}{\sqrt{1-x^2}}\,dx = \arcsin x + C\)<br>\(\int \dfrac{1}{1+x^2}\,dx = \arctan x + C\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Fundamental Theorem of Calculus</div>
+                <div class="formula-body"><b>Part 1:</b> \(\dfrac{d}{dx}\!\int_a^x f(t)\,dt = f(x)\)<br><br><b>Part 2:</b> \(\displaystyle\int_a^b f(x)\,dx = F(b) - F(a)\)<br>where \(F'(x) = f(x)\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">U-Substitution</div>
+                <div class="formula-body">Let \(u = g(x)\), then \(du = g'(x)\,dx\)<br><br>\[\int f(g(x))\,g'(x)\,dx = \int f(u)\,du\]<br><br>For definite integral, also change limits:<br>\(x=a \Rightarrow u=g(a)\), \(x=b \Rightarrow u=g(b)\)</div>
+              </div>
+              <div class="formula-card">
+                <div class="formula-label">Riemann Sums</div>
+                <div class="formula-body">\(\Delta x = \dfrac{b-a}{n}\), \(x_i = a + i\,\Delta x\)<br><br>Left: \(\displaystyle\sum_{i=0}^{n-1} f(x_i)\,\Delta x\)<br>Right: \(\displaystyle\sum_{i=1}^{n} f(x_i)\,\Delta x\)<br>Mid: \(\displaystyle\sum_{i=1}^{n} f\!\left(\tfrac{x_{i-1}+x_i}{2}\right)\Delta x\)</div>
+              </div>
+            </div>
+          </details>
+
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -2722,6 +2937,39 @@ document.getElementById('use-static-btn').addEventListener('click', () => {
   showProblem();
 });
 
+// ============================================================
+// TOPIC SEQUENCING CONSTRAINTS
+// Prevents AI from generating out-of-sequence content
+// ============================================================
+const TOPIC_SEQUENCE_CONSTRAINTS = {
+  prereq_algebra: 'Algebra fundamentals ONLY: exponent rules, factoring polynomials, solving linear/quadratic equations, inequalities, rational expressions, radicals. No trigonometry, no calculus concepts whatsoever.',
+  prereq_trig: 'Trigonometry fundamentals ONLY: right triangle trig (SOH-CAH-TOA), unit circle angles and values, trig identities (Pythagorean, co-function, even/odd), solving trig equations. No calculus, no inverse trig derivatives.',
+  prereq_precalc: 'Pre-Calculus ONLY: polynomial and rational functions, graphing, transformations, composition of functions, inverse functions concept (not derivatives of inverses), exponential and logarithmic functions as topics — no limits, no derivatives, no integrals.',
+  prereq_geometry: 'Geometry fundamentals ONLY: area/perimeter/volume formulas, similar triangles, Pythagorean theorem, circle properties, coordinate geometry basics. No calculus.',
+  exp_log: 'Exponential and logarithmic functions ONLY: properties of e^x and ln(x), log rules (product, quotient, power), solving exponential and log equations, graphs. This is a PRE-CALCULUS review. Do NOT include any derivatives or limits — those come in later topics.',
+  trig_inv: 'Evaluating inverse trig functions (arcsin, arccos, arctan) and their domains/ranges, the cancellation identities (e.g., sin(arcsin(x))=x), exact values at standard angles. Do NOT include derivatives of inverse trig functions — those appear in a much later topic.',
+  limits: 'Computing limits using substitution, factoring, rationalization, and the Squeeze Theorem. One-sided limits. Do NOT include limits at infinity, L\'Hôpital\'s rule, or any derivatives.',
+  diff_rules: 'Power rule, constant rule, sum/difference rule, and constant-multiple rule ONLY. Do NOT include product rule, quotient rule, chain rule, trig derivatives, exp/log derivatives, or implicit differentiation — those are all separate later topics.',
+  limits_inf: 'Limits at infinity (horizontal asymptotes, behavior of rational functions as x→±∞), continuity (definition, types of discontinuities, Intermediate Value Theorem). Do NOT include derivatives.',
+  derivatives: 'The definition of the derivative (limit definition), differentiability vs continuity, basic interpretations (slope of tangent line, instantaneous rate of change), and derivatives using power/constant/sum rules already covered. May also include higher-order derivatives. Do NOT include chain rule, product rule, quotient rule, or derivatives of trig/exp/log/inverse-trig.',
+  deriv_trig: 'Derivatives of the six trig functions (sin, cos, tan, cot, sec, csc) and applying them with the power/sum/constant rules already known. Do NOT include chain rule compositions — keep trig arguments as plain x only.',
+  chain_rule: 'The chain rule for composite functions. May combine with power, trig, exp/log derivatives as the outer/inner functions. Do NOT include implicit differentiation or related rates.',
+  prod_quot: 'Product rule and quotient rule. May combine with previously learned derivative rules. Do NOT include implicit differentiation or related rates.',
+  implicit: 'Implicit differentiation: differentiating equations not solved for y, finding dy/dx implicitly. May include related rates as a direct application. Builds on all previous derivative rules.',
+  rates: 'Derivatives as rates of change: instantaneous vs average rate, velocity/acceleration from position functions, related rates word problems. Builds on all previous derivative rules.',
+  deriv_exp_log: 'Derivatives of e^x, a^x, ln(x), and log_a(x). Combine with chain rule and other known rules. Do NOT include derivatives of inverse trig — that is a separate later topic.',
+  deriv_inv_trig: 'Derivatives of arcsin, arccos, arctan, arccot, arcsec, arccsc. Combine with chain rule and other known rules.',
+  maxmin: 'Absolute and local maxima/minima, critical points, Extreme Value Theorem, Fermat\'s Theorem. Builds on all derivative rules.',
+  deriv_tests: 'First derivative test (increasing/decreasing intervals, local extrema) and second derivative test (concavity, inflection points). Builds on maxmin material.',
+  optimization: 'Applied optimization problems: setting up an objective function, finding critical points, verifying it is a max/min. Real-world word problems. Builds on all derivative and extrema material.',
+  linear_approx: 'Linear approximation (tangent line approximation) L(x) = f(a) + f\'(a)(x-a), differentials (dy = f\'(x)dx), using these to estimate function values. Builds on derivative rules.',
+  lhopital: 'L\'Hôpital\'s Rule for indeterminate forms (0/0, ∞/∞). May include repeated application and converting 0·∞, ∞−∞, 1^∞, 0^0 forms. Builds on limits and derivatives.',
+  antideriv: 'Antiderivatives and indefinite integrals: power rule for integration, basic integral formulas (trig, exp, 1/x), initial value problems. Do NOT include definite integrals, u-substitution, or FTC yet.',
+  areas: 'Approximating areas under curves using Riemann sums (left, right, midpoint), sigma notation, and the limit definition of a definite integral. Do NOT include FTC or u-substitution.',
+  ftc: 'The Fundamental Theorem of Calculus (both parts): evaluating definite integrals, net change theorem. May include properties of definite integrals. Do NOT include u-substitution.',
+  substitution: 'U-substitution for both indefinite and definite integrals. Builds on all prior integration material including FTC.',
+};
+
 async function generateProblems(topicId) {
   const topic = TOPICS.find(t => t.id === topicId);
   const topicName = topic ? topic.name : topicId;
@@ -2730,8 +2978,12 @@ async function generateProblems(topicId) {
     ? 'Mix of easy (2), medium (4), and hard (2) problems.'
     : `All 8 problems must have difficulty: "${diff}".`;
 
+  const seqConstraint = TOPIC_SEQUENCE_CONSTRAINTS[topicId]
+    ? `\n\nSEQUENCING CONSTRAINT — this is critically important: ${TOPIC_SEQUENCE_CONSTRAINTS[topicId]}`
+    : '';
+
   const prompt = `You are a university calculus problem writer. Generate exactly 8 DISTINCT multiple-choice practice problems on the topic: "${topicName}".
-${diffLine}
+${diffLine}${seqConstraint}
 
 IMPORTANT: Return ONLY a raw JSON array — no explanation, no markdown, no code fences, just the array.
 
@@ -3522,6 +3774,31 @@ function switchTab(tabId) {
   if (tabId === 'progress') renderProgress();
   if (tabId === 'tutor') renderTutor();
   if (tabId === 'settings') renderSettings();
+  if (tabId === 'formulas') renderFormulas();
+}
+
+function renderFormulas() {
+  const diagramsEl = document.getElementById('formula-diagrams');
+  if (!diagramsEl || diagramsEl.dataset.rendered) return;
+  diagramsEl.dataset.rendered = '1';
+
+  const diagrams = [
+    { label: 'Unit Circle', svg: buildUnitCircleSVG() },
+    { label: '30-60-90 Triangle', svg: build306090SVG() },
+    { label: '45-45-90 Triangle', svg: build454590SVG() },
+    { label: 'Right Triangle (SOH-CAH-TOA)', svg: buildRightTriangleSVG() },
+  ];
+  for (const d of diagrams) {
+    const el = document.createElement('div');
+    el.className = 'formula-diagram-item';
+    el.innerHTML = `<div class="visual-title-label">${d.label}</div>${d.svg}`;
+    diagramsEl.appendChild(el);
+  }
+
+  // Trigger MathJax to typeset the formulas tab
+  if (window.MathJax && MathJax.typesetPromise) {
+    MathJax.typesetPromise([document.getElementById('tab-formulas')]).catch(() => {});
+  }
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
