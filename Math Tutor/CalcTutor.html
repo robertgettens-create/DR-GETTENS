@@ -717,7 +717,7 @@ select.settings-input { width: 180px; cursor: pointer; }
             <div id="drill-banner">
               <div>
                 <div class="drill-label">🔁 Drill Mode — same concept, fresh problem</div>
-                <div class="drill-sub">Get <span id="drill-needed">2</span> more correct in a row to move on</div>
+                <div class="drill-sub">Get <span id="drill-needed">4</span> more correct in a row to move on</div>
               </div>
               <div class="drill-pips" id="drill-pips"></div>
             </div>
@@ -2287,7 +2287,12 @@ let hintsShown = 0;
 let consecutiveCorrect = 0;
 let reinforcementMode = false;
 let lastWrongProblem = null;
-const DRILL_TARGET = 2;
+const DRILL_TARGET = 4;       // consecutive correct needed to exit drill
+const DRILL_BATCH_SIZE = 5;   // problems generated per drill batch
+let drillQueue = [];           // pre-generated drill problems ready to show
+let drillFetchInProgress = false;
+// Session-level question history: {topicId: [plaintext, ...]} — not persisted
+const seenQuestions = {};
 let answered = false;
 
 function defaultState() {
@@ -2876,39 +2881,72 @@ function refreshVerifyBadge(prob) {
 // ============================================================
 // REINFORCEMENT PROBLEM GENERATION
 // ============================================================
-async function generateReinforcementProblem(failedProblem) {
-  const topic = TOPICS.find(t => t.id === currentTopicId);
-  const topicName = topic ? topic.name : currentTopicId;
-  const prompt = `A calculus student just answered this problem INCORRECTLY:
+// Generate a batch of DRILL_BATCH_SIZE drill problems targeting the same sub-skill
+// as failedProblem but using completely different numbers/contexts.
+// Returns an array of sanitized problems.
+async function generateDrillBatch(failedProblem, topicId) {
+  const topic = TOPICS.find(t => t.id === topicId);
+  const topicName = topic ? topic.name : topicId;
+  const seqConstraint = TOPIC_SEQUENCE_CONSTRAINTS[topicId]
+    ? `\nSEQUENCING CONSTRAINT: ${TOPIC_SEQUENCE_CONSTRAINTS[topicId]}`
+    : '';
+  const recent = (seenQuestions[topicId] || []).slice(-12);
+  const avoidClause = recent.length > 0
+    ? `\nAVOID repeating or closely resembling any of these recently shown questions:\n${recent.map((q,i) => `${i+1}. ${q}`).join('\n')}`
+    : '';
+
+  const failedText = failedProblem.question.replace(/<[^>]+>/g,'').trim().slice(0, 200);
+  const failedAnswer = failedProblem.choices[failedProblem.correct] || '';
+
+  const prompt = `A calculus student is in DRILL MODE — they missed this problem:
 
 Topic: ${topicName}
-Problem: ${failedProblem.question.replace(/<[^>]+>/g,'')}
-Correct answer: ${failedProblem.choices[failedProblem.correct]}
+Failed problem: ${failedText}
+Correct answer: ${failedAnswer}
+Difficulty: ${failedProblem.difficulty}
+${seqConstraint}${avoidClause}
 
-For deliberate practice, generate exactly 1 new problem that:
-- Tests the EXACT same sub-skill with DIFFERENT numbers or context
-- Difficulty: "${failedProblem.difficulty}"
-- Is approachable — the student should be able to succeed with careful thinking
+Generate exactly ${DRILL_BATCH_SIZE} drill problems for deliberate practice. Each must:
+- Target the SAME sub-skill demonstrated in the failed problem
+- Use COMPLETELY DIFFERENT numbers, functions, or real-world contexts — no two problems should look alike
+- Be at difficulty "${failedProblem.difficulty}"
+- Be solvable with careful thinking — build confidence through success
 
-Return ONLY a raw JSON array with 1 object (no markdown, no code fences):
-[{"id":"reinf_${Date.now()}","difficulty":"${failedProblem.difficulty}","question":"...","choices":["A","B","C","D"],"correct":0,"explanation":"...","hints":["guiding question","concept nudge","step nudge"],"visual":null}]
+Return ONLY a raw JSON array of ${DRILL_BATCH_SIZE} objects. Each object:
+{"id":"drill_${Date.now()}_<N>","difficulty":"${failedProblem.difficulty}","question":"<LaTeX \\\\( \\\\) for math>","choices":["A","B","C","D"],"correct":<0-3>,"explanation":"<thorough with LaTeX>","hints":["guiding question","concept nudge","step nudge"],"visual":null}
 
-Use LaTeX \\\\( \\\\) for all math. Wrong choices should reflect common errors.`;
+LaTeX: double ALL backslashes inside JSON strings. \\\\frac not /frac. \\\\sqrt not /sqrt.
+CRITICAL: triple-check that "correct" index matches the choice your explanation describes.`;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': state.apiKey,
       'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1600,
+    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 3200,
       messages: [{ role: 'user', content: prompt }] })
   });
+  if (!response.ok) throw new Error(`Drill API error ${response.status}`);
   const data = await response.json();
-  if (!data.content?.[0]) throw new Error('Empty response');
+  if (!data.content?.[0]) throw new Error('Empty drill response');
   let text = data.content[0].text.trim()
     .replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/i,'').trim();
   const arr = JSON.parse(text);
-  if (!Array.isArray(arr) || !arr[0]) throw new Error('Bad response');
-  return sanitizeProblem(arr[0]);
+  if (!Array.isArray(arr) || arr.length === 0) throw new Error('Bad drill response');
+  return sanitizeProblems(arr);
+}
+
+// Trigger a background drill batch fetch; results land in drillQueue
+async function prefetchDrillBatch(failedProblem, topicId) {
+  if (drillFetchInProgress || !state.apiKey || !failedProblem) return;
+  drillFetchInProgress = true;
+  try {
+    const batch = await generateDrillBatch(failedProblem, topicId);
+    drillQueue.push(...batch);
+  } catch(e) {
+    console.warn('Drill batch prefetch failed:', e.message);
+  } finally {
+    drillFetchInProgress = false;
+  }
 }
 
 // ============================================================
@@ -2982,8 +3020,13 @@ async function generateProblems(topicId) {
     ? `\n\nSEQUENCING CONSTRAINT — this is critically important: ${TOPIC_SEQUENCE_CONSTRAINTS[topicId]}`
     : '';
 
+  const recent = (seenQuestions[topicId] || []).slice(-10);
+  const avoidClause = recent.length > 0
+    ? `\n\nVARIETY — these problems were ALREADY shown this session. Generate completely different sub-skills, functions, and numbers — do NOT repeat or closely resemble any of these:\n${recent.map((q,i) => `${i+1}. ${q}`).join('\n')}`
+    : '';
+
   const prompt = `You are a university calculus problem writer. Generate exactly 8 DISTINCT multiple-choice practice problems on the topic: "${topicName}".
-${diffLine}${seqConstraint}
+${diffLine}${seqConstraint}${avoidClause}
 
 IMPORTANT: Return ONLY a raw JSON array — no explanation, no markdown, no code fences, just the array.
 
@@ -3074,6 +3117,9 @@ async function loadProblems(topicId) {
   consecutiveCorrect = 0;
   reinforcementMode = false;
   lastWrongProblem = null;
+  drillQueue = [];
+  drillFetchInProgress = false;
+  seenQuestions[topicId] = [];
 
   const topic = TOPICS.find(t => t.id === topicId);
   const topicName = topic ? topic.name : '';
@@ -3107,6 +3153,14 @@ function showProblem() {
   const prob = currentProblems[currentProblemIndex];
   answered = false;
   hintsShown = 0;
+
+  // Track question in session history for variety enforcement
+  if (currentTopicId) {
+    if (!seenQuestions[currentTopicId]) seenQuestions[currentTopicId] = [];
+    const plain = prob.question.replace(/<[^>]+>/g, '').replace(/\\\(|\\\)/g, '').trim().slice(0, 120);
+    seenQuestions[currentTopicId].push(plain);
+    if (seenQuestions[currentTopicId].length > 20) seenQuestions[currentTopicId].shift();
+  }
 
   document.getElementById('problem-counter').textContent =
     `Problem ${sessionAttempts + 1}`;
@@ -3189,9 +3243,15 @@ function handleAnswer(choiceIndex, prob) {
       }
     }
   } else {
+    const wasAlreadyInDrill = reinforcementMode;
     reinforcementMode = true;
     consecutiveCorrect = 0;
     lastWrongProblem = prob;
+    // Kick off background drill batch generation immediately so it's ready when Next is clicked.
+    // Also refill if queue is running low.
+    if (state.apiKey && (drillQueue.length < 2 || !wasAlreadyInDrill)) {
+      prefetchDrillBatch(prob, currentTopicId);
+    }
   }
 
   // Update state
@@ -3288,18 +3348,47 @@ function handleAnswer(choiceIndex, prob) {
 }
 
 document.getElementById('next-btn').addEventListener('click', async () => {
-  // In drill mode: inject a targeted reinforcement problem right after current position
+  // --- DRILL MODE: pull from the pre-generated drillQueue ---
   if (reinforcementMode && lastWrongProblem && state.apiKey) {
-    showProblemLoading(true);
-    try {
-      const drill = await generateReinforcementProblem(lastWrongProblem);
+    if (drillQueue.length > 0) {
+      // Immediately inject the next drill problem — no waiting
+      const drill = drillQueue.shift();
       currentProblems.splice(currentProblemIndex + 1, 0, drill);
-    } catch(e) {
-      console.warn('Reinforcement generation failed, continuing queue:', e);
+      // Refill queue in background if running low
+      if (drillQueue.length < 2 && !drillFetchInProgress) {
+        prefetchDrillBatch(lastWrongProblem, currentTopicId);
+      }
+    } else if (drillFetchInProgress) {
+      // Batch is still generating — wait for it
+      showProblemLoading(true);
+      let waited = 0;
+      while (drillFetchInProgress && waited < 12000) {
+        await new Promise(r => setTimeout(r, 300));
+        waited += 300;
+      }
+      showProblemLoading(false);
+      if (drillQueue.length > 0) {
+        const drill = drillQueue.shift();
+        currentProblems.splice(currentProblemIndex + 1, 0, drill);
+      }
+    } else {
+      // Queue empty and no fetch in progress — generate synchronously as fallback
+      showProblemLoading(true);
+      try {
+        const batch = await generateDrillBatch(lastWrongProblem, currentTopicId);
+        drillQueue.push(...batch.slice(1));
+        currentProblems.splice(currentProblemIndex + 1, 0, batch[0]);
+      } catch(e) {
+        console.warn('Drill generation failed, continuing regular queue:', e);
+      }
+      showProblemLoading(false);
     }
-    showProblemLoading(false);
+    currentProblemIndex++;
+    showProblem();
+    return;
   }
 
+  // --- NORMAL MODE ---
   currentProblemIndex++;
   if (currentProblemIndex >= currentProblems.length) {
     // Fetch a completely fresh batch
