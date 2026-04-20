@@ -2821,6 +2821,22 @@ function sanitizeProblem(p) {
   p.explanation = fix(p.explanation);
   if (Array.isArray(p.choices)) p.choices = p.choices.map(fix);
   if (Array.isArray(p.hints))   p.hints   = p.hints.map(fix);
+
+  // Shuffle choices so the correct answer isn't always A.
+  // LLMs have a strong bias toward putting the correct answer first.
+  if (Array.isArray(p.choices) && p.choices.length > 1 &&
+      typeof p.correct === 'number' && p.correct >= 0 && p.correct < p.choices.length) {
+    const correctText = p.choices[p.correct];
+    // Fisher-Yates shuffle
+    const c = [...p.choices];
+    for (let i = c.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [c[i], c[j]] = [c[j], c[i]];
+    }
+    p.choices = c;
+    p.correct = c.indexOf(correctText);
+  }
+
   return p;
 }
 
