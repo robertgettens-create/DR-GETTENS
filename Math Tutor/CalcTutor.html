@@ -1687,32 +1687,16 @@ chain_rule: [
 
 prod_quot: [
   {
-    id:'pq1', difficulty:'easy',
-    question:'The Product Rule states: \\(\\dfrac{d}{dx}[f\\cdot g]=\\)?',
-    choices:["\\(f'\\cdot g'\\)","\\(f'g+fg'\\)","\\(f'g-fg'\\)","\\((f'g-fg')/g^2\\)"],
-    correct:1,
-    explanation:"Product Rule: \\(\\frac{d}{dx}[f\\cdot g]=f'g+fg'\\). \"First times derivative of second, plus second times derivative of first.\"",
-    hints:['The Product Rule says: derivative of a product ≠ product of derivatives.','Think "d(first)·second + first·d(second)".','The Product Rule: \\(f\'g+fg\'\\).']
-  },
-  {
     id:'pq2', difficulty:'medium',
-    question:'What is \\(\\dfrac{d}{dx}[x\\sin x]\\)?',
-    choices:['\\(\\sin x+x\\cos x\\)','\\(\\cos x\\)','\\(x\\cos x\\)','\\(\\sin x\\cos x\\)'],
+    question:'Find \\(\\dfrac{d}{dx}[x\\sin x]\\).',
+    choices:['\\(\\sin x+x\\cos x\\)','\\(\\cos x\\)','\\(x\\cos x\\)','\\(\\sin x-x\\cos x\\)'],
     correct:0,
-    explanation:'Product Rule with \\(f=x\\), \\(g=\\sin x\\): \\(f\'g+fg\'=1\\cdot\\sin x+x\\cdot\\cos x=\\sin x+x\\cos x\\).',
-    hints:['Let \\(f=x\\) and \\(g=\\sin x\\).','\\(f\'=1\\) and \\(g\'=\\cos x\\).','Product Rule: \\(f\'g+fg\'=1\\cdot\\sin x+x\\cdot\\cos x\\).']
-  },
-  {
-    id:'pq3', difficulty:'easy',
-    question:'The Quotient Rule states: \\(\\dfrac{d}{dx}[f/g]=\\)?',
-    choices:["\\(f'/g'\\)","\\((f'g+fg')/g^2\\)","\\((f'g-fg')/g^2\\)","\\(f'/g-f/g^2\\)"],
-    correct:2,
-    explanation:"Quotient Rule: \\(\\dfrac{d}{dx}\\left[\\dfrac{f}{g}\\right]=\\dfrac{f'g-fg'}{g^2}\\). Remember: \"Low d-High minus High d-Low, all over Low squared.\"",
-    hints:['The Quotient Rule: "Low d-High minus High d-Low, over Low squared."','Numerator: \\(f\'g-fg\'\\). Denominator: \\(g^2\\).','Be careful about the ORDER — it\'s f\'g MINUS fg\', not plus.']
+    explanation:'Product Rule: \\(f=x\\), \\(g=\\sin x\\). \\(f\'=1\\), \\(g\'=\\cos x\\). Result: \\(1\\cdot\\sin x+x\\cdot\\cos x=\\sin x+x\\cos x\\).',
+    hints:['Identify \\(f=x\\) and \\(g=\\sin x\\).','\\(f\'=1\\) and \\(g\'=\\cos x\\).','Product Rule: \\(f\'g+fg\'=\\sin x+x\\cos x\\).']
   },
   {
     id:'pq4', difficulty:'hard',
-    question:'What is \\(\\dfrac{d}{dx}\\!\\left[\\dfrac{x^2}{\\cos x}\\right]\\)?',
+    question:'Find \\(\\dfrac{d}{dx}\\!\\left[\\dfrac{x^2}{\\cos x}\\right]\\).',
     choices:['\\(\\dfrac{2x\\cos x+x^2\\sin x}{\\cos^2 x}\\)','\\(\\dfrac{2x\\cos x-x^2\\sin x}{\\cos^2 x}\\)','\\(\\dfrac{2x}{-\\sin x}\\)','\\(2x\\cos x+x^2\\sin x\\)'],
     correct:0,
     explanation:'Quotient Rule: \\(f=x^2\\), \\(g=\\cos x\\). \\(f\'=2x\\), \\(g\'=-\\sin x\\). \\(\\dfrac{f\'g-fg\'}{g^2}=\\dfrac{2x\\cos x-(x^2)(-\\sin x)}{\\cos^2 x}=\\dfrac{2x\\cos x+x^2\\sin x}{\\cos^2 x}\\).',
@@ -1720,11 +1704,91 @@ prod_quot: [
   },
   {
     id:'pq5', difficulty:'medium',
-    question:'What is \\(\\dfrac{d}{dx}[x^2 e^x]\\)?',
+    question:'Find \\(\\dfrac{d}{dx}[x^2 e^x]\\).',
     choices:['\\(2xe^x\\)','\\(x^2e^x\\)','\\(xe^x(x+2)\\)','\\(2xe^{x-1}\\)'],
     correct:2,
-    explanation:'Product Rule: \\(f=x^2\\), \\(g=e^x\\). \\(f\'=2x\\), \\(g\'=e^x\\). Result: \\(2xe^x+x^2e^x=xe^x(2+x)=xe^x(x+2)\\).',
-    hints:['Let \\(f=x^2\\) and \\(g=e^x\\).','\\(f\'=2x\\) and \\(g\'=e^x\\).','Apply Product Rule, then factor out \\(xe^x\\).']
+    explanation:'Product Rule: \\(f=x^2\\), \\(g=e^x\\). \\(f\'=2x\\), \\(g\'=e^x\\). Result: \\(2xe^x+x^2e^x=xe^x(2+x)\\).',
+    hints:['Let \\(f=x^2\\) and \\(g=e^x\\).','\\(f\'=2x\\) and \\(g\'=e^x\\).','Apply Product Rule then factor out \\(xe^x\\).']
+  },
+  {
+    id:'pq6', difficulty:'easy',
+    question:'Find \\(\\dfrac{d}{dx}[3x^2\\cos x]\\).',
+    choices:['\\(6x\\cos x-3x^2\\sin x\\)','\\(6x\\cos x+3x^2\\sin x\\)','\\(-6x\\sin x\\)','\\(6x(-\\sin x)\\)'],
+    correct:0,
+    explanation:'Product Rule: \\(f=3x^2\\), \\(g=\\cos x\\). \\(f\'=6x\\), \\(g\'=-\\sin x\\). Result: \\(6x\\cos x+3x^2(-\\sin x)=6x\\cos x-3x^2\\sin x\\).',
+    hints:['Identify \\(f=3x^2\\) and \\(g=\\cos x\\).','\\(f\'=6x\\) and \\(g\'=-\\sin x\\). (Note the minus!)','Product Rule: \\(6x\\cos x+3x^2\\cdot(-\\sin x)\\).']
+  },
+  {
+    id:'pq7', difficulty:'medium',
+    question:'Find \\(\\dfrac{d}{dx}\\!\\left[\\dfrac{x^3}{x+1}\\right]\\).',
+    choices:['\\(\\dfrac{2x^3+3x^2}{(x+1)^2}\\)','\\(\\dfrac{3x^2}{1}\\)','\\(\\dfrac{3x^2(x+1)-x^3}{(x+1)^2}\\)','\\(\\dfrac{x^3-3x^2}{(x+1)^2}\\)'],
+    correct:2,
+    explanation:'Quotient Rule: \\(f=x^3\\), \\(g=x+1\\). \\(f\'=3x^2\\), \\(g\'=1\\). \\(\\dfrac{3x^2(x+1)-x^3\\cdot 1}{(x+1)^2}=\\dfrac{3x^3+3x^2-x^3}{(x+1)^2}=\\dfrac{2x^3+3x^2}{(x+1)^2}\\).',
+    hints:['\\(f=x^3\\), \\(g=x+1\\). Compute \\(f\'\\) and \\(g\'\\).','\\(f\'=3x^2\\) and \\(g\'=1\\).','Quotient Rule: \\(\\frac{f\'g-fg\'}{g^2}=\\frac{3x^2(x+1)-x^3}{(x+1)^2}\\). Simplify the numerator.']
+  },
+  {
+    id:'pq8', difficulty:'medium',
+    question:'Find \\(\\dfrac{d}{dx}[(x^2+1)\\ln x]\\).',
+    choices:['\\(2x\\ln x+\\dfrac{x^2+1}{x}\\)','\\(\\dfrac{2x}{x}\\)','\\(2x\\ln x-\\dfrac{x^2+1}{x}\\)','\\(\\dfrac{2x\\ln x}{x}\\)'],
+    correct:0,
+    explanation:'Product Rule: \\(f=x^2+1\\), \\(g=\\ln x\\). \\(f\'=2x\\), \\(g\'=1/x\\). Result: \\(2x\\ln x+(x^2+1)\\cdot\\dfrac{1}{x}=2x\\ln x+\\dfrac{x^2+1}{x}\\).',
+    hints:['Let \\(f=x^2+1\\) and \\(g=\\ln x\\).','\\(f\'=2x\\) and \\(g\'=\\dfrac{1}{x}\\).','Product Rule: \\(2x\\ln x+(x^2+1)\\cdot\\frac{1}{x}\\).']
+  },
+  {
+    id:'pq9', difficulty:'hard',
+    question:'Find \\(\\dfrac{d}{dx}\\!\\left[\\dfrac{\\sin x}{x^2}\\right]\\).',
+    choices:['\\(\\dfrac{x^2\\cos x-2x\\sin x}{x^4}\\)','\\(\\dfrac{\\cos x}{2x}\\)','\\(\\dfrac{x\\cos x+2\\sin x}{x^3}\\)','\\(\\dfrac{x^2\\cos x+2x\\sin x}{x^4}\\)'],
+    correct:0,
+    explanation:'Quotient Rule: \\(f=\\sin x\\), \\(g=x^2\\). \\(f\'=\\cos x\\), \\(g\'=2x\\). \\(\\dfrac{\\cos x\\cdot x^2-\\sin x\\cdot 2x}{x^4}=\\dfrac{x^2\\cos x-2x\\sin x}{x^4}\\). Can simplify: \\(\\dfrac{x\\cos x-2\\sin x}{x^3}\\).',
+    hints:['\\(f=\\sin x\\), \\(g=x^2\\). Find \\(f\'\\) and \\(g\'\\).','\\(f\'=\\cos x\\) and \\(g\'=2x\\).','Quotient Rule: \\(\\frac{\\cos x\\cdot x^2 - \\sin x\\cdot 2x}{(x^2)^2}\\).']
+  },
+  {
+    id:'pq10', difficulty:'easy',
+    question:'Find \\(\\dfrac{d}{dx}[x^3\\cdot e^x]\\).',
+    choices:['\\(3x^2 e^x\\)','\\(x^3 e^x\\)','\\(e^x(x^3+3x^2)\\)','\\(3x^2+e^x\\)'],
+    correct:2,
+    explanation:'Product Rule: \\(f=x^3\\), \\(g=e^x\\). \\(f\'=3x^2\\), \\(g\'=e^x\\). Result: \\(3x^2 e^x+x^3 e^x=e^x(3x^2+x^3)=e^x(x^3+3x^2)\\).',
+    hints:['Identify \\(f=x^3\\) and \\(g=e^x\\).','\\(f\'=3x^2\\) and \\(g\'=e^x\\).','Product Rule then factor out \\(e^x\\).']
+  },
+  {
+    id:'pq11', difficulty:'medium',
+    question:'Find \\(\\dfrac{d}{dx}\\!\\left[\\dfrac{e^x}{x^2+1}\\right]\\).',
+    choices:['\\(\\dfrac{e^x(x^2-2x+1)}{(x^2+1)^2}\\)','\\(\\dfrac{e^x}{2x}\\)','\\(\\dfrac{e^x(x^2+1)-2xe^x}{(x^2+1)^2}\\)','\\(\\dfrac{e^x}{x^2+1}\\)'],
+    correct:2,
+    explanation:'Quotient Rule: \\(f=e^x\\), \\(g=x^2+1\\). \\(f\'=e^x\\), \\(g\'=2x\\). \\(\\dfrac{e^x(x^2+1)-e^x\\cdot 2x}{(x^2+1)^2}=\\dfrac{e^x(x^2-2x+1)}{(x^2+1)^2}\\).',
+    hints:['\\(f=e^x\\), \\(g=x^2+1\\). Note \\(f\'=e^x\\) and \\(g\'=2x\\).','Quotient Rule: \\(\\frac{e^x(x^2+1)-e^x\\cdot 2x}{(x^2+1)^2}\\).','Factor \\(e^x\\) from the numerator and simplify.']
+  },
+  {
+    id:'pq12', difficulty:'hard',
+    question:'Find \\(\\dfrac{d}{dx}[x^2\\tan x]\\).',
+    choices:['\\(2x\\tan x+x^2\\sec^2 x\\)','\\(2x\\sec^2 x\\)','\\(x^2\\sec^2 x\\)','\\(2x\\tan x-x^2\\sec^2 x\\)'],
+    correct:0,
+    explanation:'Product Rule: \\(f=x^2\\), \\(g=\\tan x\\). \\(f\'=2x\\), \\(g\'=\\sec^2 x\\). Result: \\(2x\\tan x+x^2\\sec^2 x\\).',
+    hints:['\\(f=x^2\\), \\(g=\\tan x\\). What is \\(\\frac{d}{dx}[\\tan x]\\)?','\\(g\'=\\sec^2 x\\).','Apply Product Rule: \\(f\'g+fg\'=2x\\tan x+x^2\\sec^2 x\\).']
+  },
+  {
+    id:'pq13', difficulty:'medium',
+    question:'Find \\(\\dfrac{d}{dx}\\!\\left[\\dfrac{x^2-1}{x^2+1}\\right]\\).',
+    choices:['\\(\\dfrac{4x}{(x^2+1)^2}\\)','\\(\\dfrac{2x}{2x}=1\\)','\\(\\dfrac{(x^2+1)-(x^2-1)}{(x^2+1)^2}\\)','\\(\\dfrac{4x^2}{(x^2+1)^2}\\)'],
+    correct:0,
+    explanation:'Quotient Rule: \\(f=x^2-1\\), \\(g=x^2+1\\). \\(f\'=2x\\), \\(g\'=2x\\). Numerator: \\(2x(x^2+1)-(x^2-1)2x=2x[(x^2+1)-(x^2-1)]=2x\\cdot 2=4x\\). Denominator: \\((x^2+1)^2\\).',
+    hints:['\\(f=x^2-1\\), \\(g=x^2+1\\). Both have \\(g\'=f\'=2x\\).','Apply Quotient Rule: numerator is \\(2x(x^2+1)-(x^2-1)\\cdot 2x\\).','Factor \\(2x\\) from the numerator: \\(2x[(x^2+1)-(x^2-1)]=2x\\cdot 2\\).']
+  },
+  {
+    id:'pq14', difficulty:'hard',
+    question:'Find \\(\\dfrac{d}{dx}[x\\cos x\\cdot e^x]\\) (treat as product of two factors: \\(x\\cos x\\) and \\(e^x\\)).',
+    choices:['\\(e^x(\\cos x-x\\sin x+x\\cos x)\\)','\\(e^x\\cos x-xe^x\\sin x\\)','\\(e^x(x\\cos x-x\\sin x)\\)','\\(e^x(x+\\cos x)\\)'],
+    correct:0,
+    explanation:'Let \\(u=x\\cos x\\) and \\(v=e^x\\). \\(u\'=\\cos x-x\\sin x\\) (product rule), \\(v\'=e^x\\). Result: \\(u\'v+uv\'=(\\cos x-x\\sin x)e^x+x\\cos x\\cdot e^x=e^x(\\cos x-x\\sin x+x\\cos x)\\).',
+    hints:['Let \\(u=x\\cos x\\) (needs product rule itself) and \\(v=e^x\\).','\\(u\'=\\cos x+x(-\\sin x)=\\cos x-x\\sin x\\).','Apply product rule: \\(u\'v+uv\'\\). Factor out \\(e^x\\).']
+  },
+  {
+    id:'pq15', difficulty:'easy',
+    question:'Find \\(\\dfrac{d}{dx}[(2x+3)(x^2-1)]\\). (Expand first or use Product Rule.)',
+    choices:['\\(6x^2+6x-2\\)','\\(2(x^2-1)\\)','\\(6x^2+6x+2\\)','\\(2x^2+6x-2\\)'],
+    correct:0,
+    explanation:'Product Rule: \\(f=2x+3\\), \\(g=x^2-1\\). \\(f\'=2\\), \\(g\'=2x\\). Result: \\(2(x^2-1)+(2x+3)2x=2x^2-2+4x^2+6x=6x^2+6x-2\\).',
+    hints:['\\(f=2x+3\\), \\(g=x^2-1\\). \\(f\'=2\\) and \\(g\'=2x\\).','Product Rule: \\(2(x^2-1)+(2x+3)2x\\).','Expand and collect like terms.']
   },
 ],
 
@@ -3037,7 +3101,7 @@ const TOPIC_SEQUENCE_CONSTRAINTS = {
   derivatives: 'The definition of the derivative (limit definition), differentiability vs continuity, basic interpretations (slope of tangent line, instantaneous rate of change), and derivatives using power/constant/sum rules already covered. May also include higher-order derivatives. Do NOT include chain rule, product rule, quotient rule, or derivatives of trig/exp/log/inverse-trig.',
   deriv_trig: 'Derivatives of the six trig functions (sin, cos, tan, cot, sec, csc) and applying them with the power/sum/constant rules already known. Do NOT include chain rule compositions — keep trig arguments as plain x only.',
   chain_rule: 'The chain rule for composite functions. May combine with power, trig, exp/log derivatives as the outer/inner functions. Do NOT include implicit differentiation or related rates.',
-  prod_quot: 'Product rule and quotient rule. May combine with previously learned derivative rules. Do NOT include implicit differentiation or related rates.',
+  prod_quot: 'Product rule and quotient rule COMPUTATIONAL problems only — students must actually differentiate a given function. NEVER ask students to state or identify the rule formula (no "The product rule states..." questions). Every problem must give a specific function and ask for its derivative. Use a wide variety of function types: polynomials × trig, polynomials × exponentials, polynomials × logarithms, trig / polynomials, exponentials / polynomials, mixed. Do NOT include implicit differentiation or related rates.',
   implicit: 'Implicit differentiation: differentiating equations not solved for y, finding dy/dx implicitly. May include related rates as a direct application. Builds on all previous derivative rules.',
   rates: 'Derivatives as rates of change: instantaneous vs average rate, velocity/acceleration from position functions, related rates word problems. Builds on all previous derivative rules.',
   deriv_exp_log: 'Derivatives of e^x, a^x, ln(x), and log_a(x). Combine with chain rule and other known rules. Do NOT include derivatives of inverse trig — that is a separate later topic.',
@@ -3084,10 +3148,15 @@ const TOPIC_MATH_REMINDERS = {
   • d/dx[x²·sin(x)] = 2x·sin(x) + x²·cos(x)
   • d/dx[x³·e^x]    = 3x²·e^x + x³·e^x = e^x(3x² + x³)
   • d/dx[sin(x)/x]  = (cos(x)·x − sin(x)·1) / x² = (x·cos(x) − sin(x)) / x²
+  • d/dx[(x²-1)/(x+2)] = (2x(x+2) − (x²-1)·1) / (x+2)²
 
   COMMON MISTAKES:
   ✗ Subtracting instead of adding in product rule
-  ✗ Reversing f' and g' in quotient rule numerator (must be f'g − fg', NOT fg' − f'g)`,
+  ✗ Reversing f' and g' in quotient rule numerator (must be f'g − fg', NOT fg' − f'g)
+
+  PROBLEM FORMAT: Every problem MUST give a specific function and ask to differentiate it.
+  NEVER generate "What does the Product/Quotient Rule state?" or any formula-identification question.
+  Use varied function types each time: poly×trig, poly×exp, poly×ln, trig/poly, exp/poly, etc.`,
 
   diff_rules: `CRITICAL ARITHMETIC REMINDER for basic differentiation:
   Power rule: d/dx[x^n] = n·x^(n-1)   — bring down the exponent, reduce by 1
