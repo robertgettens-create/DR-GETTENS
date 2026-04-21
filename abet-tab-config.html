@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WNE BME ABET Tool — Add to Teams</title>
+  <script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f7fa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .box {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.1);
+      padding: 40px 48px;
+      text-align: center;
+      max-width: 400px;
+    }
+    .logo {
+      font-size: 26px;
+      font-weight: 800;
+      color: #1D3461;
+      letter-spacing: .5px;
+      margin-bottom: 6px;
+    }
+    .logo span { color: #C8972B; }
+    .subtitle {
+      font-size: 13px;
+      color: #607d8b;
+      margin-bottom: 24px;
+    }
+    .instruction {
+      font-size: 14px;
+      color: #1a2740;
+      line-height: 1.6;
+    }
+    .instruction strong { color: #1D3461; }
+    .ready-badge {
+      display: inline-block;
+      margin-top: 20px;
+      background: #e8f5e9;
+      color: #2E7D32;
+      border: 1px solid #2E7D32;
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="logo">WNE <span>BME</span></div>
+    <div class="subtitle">ABET Assessment Tool</div>
+    <div class="instruction">
+      Click <strong>Save</strong> to add the ABET Assessment Tool to this channel.
+    </div>
+    <div class="ready-badge">✓ Ready to add</div>
+  </div>
+
+  <script>
+    microsoftTeams.app.initialize().then(function() {
+      microsoftTeams.pages.config.registerOnSaveHandler(function(saveEvent) {
+        microsoftTeams.pages.config.setConfig({
+          contentUrl: 'https://robertgettens-create.github.io/DR-GETTENS/abet-tool.html',
+          websiteUrl: 'https://robertgettens-create.github.io/DR-GETTENS/abet-tool.html',
+          suggestedDisplayName: 'ABET Tool'
+        });
+        saveEvent.notifySuccess();
+      });
+      microsoftTeams.pages.config.setValidityState(true);
+    }).catch(function() {
+      // Not running inside Teams — show fallback
+      document.querySelector('.instruction').textContent =
+        'This page is used to add the ABET Tool as a tab in Microsoft Teams.';
+      document.querySelector('.ready-badge').textContent = 'Open in Teams to install';
+    });
+  </script>
+</body>
+</html>
