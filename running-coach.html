@@ -29,7 +29,7 @@
     const WEEKS_LEFT = Math.floor(DAYS_LEFT / 7);
     const FITBIT_AUTH_URL = "https://www.fitbit.com/oauth2/authorize";
     const FITBIT_TOKEN_URL = "https://api.fitbit.com/oauth2/token";
-    const APP_VERSION = "v24";
+    const APP_VERSION = "v25";
     const FITBIT_API = "https://api.fitbit.com/1";
     const WORKOUT_ICONS = { Run: "🏃", Bike: "🚴", Kayak: "🛶", Gardening: "🌱", Walk: "🚶", Rest: "😴", Other: "⚡" };
 
@@ -1729,7 +1729,7 @@ COACHING PRINCIPLES:
       const importFileRef = useRef(null);
       function showMsg(type, msg) { setStatus({ type, msg }); setTimeout(() => setStatus(null), 4000); }
 
-      const DATA_KEYS = ["rc_workouts","rc_shoes","rc_plan","rc_week_notes","rc_settings","rc_races","rc_feeling","rc_coach_messages","rc_pace_calc","rc_weather_location"];
+      const DATA_KEYS = ["rc_workouts","rc_shoes","rc_plan","rc_week_notes","rc_settings","rc_races","rc_feeling","rc_coach_messages","rc_pace_calc","rc_weather_location","rc_fitbit_blocked"];
 
       async function exportData() {
         const out = {};
@@ -2002,6 +2002,7 @@ COACHING PRINCIPLES:
       const [races, setRaces] = useState([]);
       const [feeling, setFeeling] = useState(null);
       const [coachMessages, setCoachMessages] = useState([]);
+      const [fitbitBlocked, setFitbitBlocked] = useState(new Set()); // IDs of Fitbit activities never to re-import
       const redirectUri = window.location.origin + window.location.pathname;
 
       useEffect(() => {
@@ -2028,7 +2029,7 @@ COACHING PRINCIPLES:
             }
           }
 
-          const [savedShoes, savedWorkouts, savedSettings, savedToken, savedPlanData, savedWeekNotes, savedRaces, savedFeeling, savedCoachMsgs] = await Promise.all([sget("rc_shoes"), sget("rc_workouts"), sget("rc_settings"), sget("rc_fitbit_token"), sget("rc_plan"), sget("rc_week_notes"), sget("rc_races"), sget("rc_feeling"), sget("rc_coach_messages")]);
+          const [savedShoes, savedWorkouts, savedSettings, savedToken, savedPlanData, savedWeekNotes, savedRaces, savedFeeling, savedCoachMsgs, savedBlocked] = await Promise.all([sget("rc_shoes"), sget("rc_workouts"), sget("rc_settings"), sget("rc_fitbit_token"), sget("rc_plan"), sget("rc_week_notes"), sget("rc_races"), sget("rc_feeling"), sget("rc_coach_messages"), sget("rc_fitbit_blocked")]);
           const savedLoc = await sget("rc_weather_location");
           const loc = savedLoc || PRESET_LOCATIONS[0];
           if (savedLoc) setWeatherLocation(savedLoc);
@@ -2041,6 +2042,7 @@ COACHING PRINCIPLES:
           if (savedRaces) setRaces(savedRaces);
           if (savedFeeling) setFeeling(savedFeeling);
           if (savedCoachMsgs) setCoachMessages(savedCoachMsgs);
+          if (savedBlocked) setFitbitBlocked(new Set(savedBlocked));
 
           const tokenToUse = freshPKCEToken || savedToken;
           if (tokenToUse?.access_token) {
@@ -2077,8 +2079,12 @@ COACHING PRINCIPLES:
           setFitbitStats(stats);
           const fbWorkouts = stats.activities.map(fitbitActToWorkout).filter(Boolean);
           const existingIds = new Set(existingWorkouts.map(w => w.id));
-          const manualKeys = new Set(existingWorkouts.filter(w => w.source !== "fitbit" && w.source !== "gps").map(w => `${w.date}_${w.type}`));
-          const newOnes = fbWorkouts.filter(w => !existingIds.has(w.id) && !manualKeys.has(`${w.date}_${w.type}`));
+          // Block Fitbit if there's already a manual OR GPS run on that date/type
+          const manualKeys = new Set(existingWorkouts.filter(w => w.source !== "fitbit").map(w => `${w.date}_${w.type}`));
+          // Also skip any Fitbit activity the user has explicitly deleted
+          const blocked = await sget("rc_fitbit_blocked");
+          const blockedIds = new Set(blocked || []);
+          const newOnes = fbWorkouts.filter(w => !existingIds.has(w.id) && !manualKeys.has(`${w.date}_${w.type}`) && !blockedIds.has(w.id));
           if (newOnes.length) {
             // Auto-assign runs to active shoe and update its mileage
             const currentShoes = await sget("rc_shoes") || [];
@@ -2157,8 +2163,16 @@ COACHING PRINCIPLES:
         setWorkouts(updated); await sset("rc_workouts", updated);
       }
       async function deleteWorkout(id) {
+        const toDelete = workouts.find(w => w.id === id);
         const updated = workouts.filter(w => w.id !== id);
         setWorkouts(updated); await sset("rc_workouts", updated);
+        // If it's a Fitbit run, permanently block that activity ID from re-syncing
+        if (toDelete?.source === "fitbit" && toDelete?.id) {
+          const newBlocked = new Set(fitbitBlocked);
+          newBlocked.add(toDelete.id);
+          setFitbitBlocked(newBlocked);
+          await sset("rc_fitbit_blocked", [...newBlocked]);
+        }
       }
       async function clearAndResync() {
         // Remove all Fitbit-sourced entries, then re-sync fresh
