@@ -254,6 +254,68 @@
 
     ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:#12131a;}::-webkit-scrollbar-thumb{background:#2a2d45;border-radius:3px;}
     @media(max-width:680px){#quiz-opts,#proj-opts{grid-template-columns:1fr;}#sidebar{width:220px;min-width:220px;}}
+
+    /* ── FINAL EXAM SPECIAL BUTTONS ── */
+    .mode-btn.final-btn{border-color:#e8c87a33;color:#9a8a40;}
+    .mode-btn.final-btn:hover{border-color:#e8c87a;color:#e8c87a;}
+    .mode-btn.final-btn.active{background:#2a2310;border-color:#e8c87a;color:#e8c87a;}
+
+    /* ── PSPP SCREEN ── */
+    #screen-pspp{padding:22px 22px 40px;gap:14px;align-items:center;overflow-y:auto;justify-content:flex-start;}
+    .pspp-header{max-width:700px;width:100%;text-align:center;}
+    .pspp-header h3{font-size:1.25rem;font-weight:700;color:#e8c87a;margin-bottom:6px;}
+    .pspp-header p{font-size:.82rem;color:#5a6a8a;line-height:1.5;}
+    .pspp-diagram{display:flex;align-items:center;justify-content:center;gap:0;max-width:700px;width:100%;flex-wrap:wrap;gap:6px;}
+    .pspp-node{padding:10px 16px;border-radius:10px;font-size:.85rem;font-weight:700;text-align:center;flex:1;min-width:110px;}
+    .pspp-arrow{font-size:1.3rem;color:#3a4a60;padding:0 2px;flex-shrink:0;}
+    .pspp-node.proc{background:#1e3558;border:2px solid #7eb8f7;color:#7eb8f7;}
+    .pspp-node.struc{background:#2a2310;border:2px solid #e8c87a;color:#e8c87a;}
+    .pspp-node.prop{background:#182818;border:2px solid #4caf50;color:#4caf50;}
+    .pspp-node.perf{background:#2a1818;border:2px solid #f44336;color:#f44336;}
+    .pspp-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;max-width:700px;width:100%;}
+    .pspp-select{background:#1a1d2e;border:1px solid #2a2d45;color:#dde1f0;border-radius:8px;padding:7px 12px;font-size:.88rem;font-family:inherit;cursor:pointer;flex:1;}
+    .pspp-step{max-width:700px;width:100%;background:#1a1d2e;border:1px solid #2a2d45;border-radius:10px;padding:14px 18px;}
+    .pspp-step-badge{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:20px;padding:3px 12px;display:inline-block;margin-bottom:8px;}
+    .pspp-step.proc .pspp-step-badge{background:#1e3558;color:#7eb8f7;border:1px solid #7eb8f755;}
+    .pspp-step.struc .pspp-step-badge{background:#2a2310;color:#e8c87a;border:1px solid #e8c87a55;}
+    .pspp-step.prop .pspp-step-badge{background:#182818;color:#4caf50;border:1px solid #4caf5055;}
+    .pspp-step.perf .pspp-step-badge{background:#2a1818;color:#f44336;border:1px solid #f4433655;}
+    .pspp-step-q{font-size:.95rem;color:#dde1f0;font-weight:600;margin-bottom:8px;line-height:1.4;}
+    .pspp-ta{width:100%;min-height:72px;background:#22253a;border:1px solid #2a2d45;border-radius:7px;color:#dde1f0;font-size:.86rem;padding:9px 12px;resize:vertical;font-family:inherit;line-height:1.5;margin-bottom:8px;}
+    .pspp-ta:focus{outline:none;border-color:#7eb8f755;}
+    .pspp-ans{background:#0f1e14;border:1px solid #4caf5033;border-left:3px solid #4caf50;border-radius:8px;padding:11px 15px;font-size:.85rem;color:#a8d8b8;line-height:1.65;display:none;white-space:pre-line;}
+    .pspp-reveal{padding:6px 16px;background:#182818;border:1px solid #4caf5055;color:#4caf50;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;transition:all .15s;}
+    .pspp-reveal:hover{background:#1e3818;border-color:#4caf50;}
+    .pspp-tip{max-width:700px;width:100%;background:#2a2310;border:1px solid #e8c87a33;border-radius:8px;padding:11px 15px;font-size:.82rem;color:#c8a848;line-height:1.55;}
+
+    /* ── CALC SCREEN ── */
+    #screen-calc{padding:22px 22px 40px;gap:14px;align-items:center;overflow-y:auto;justify-content:flex-start;}
+    .calc-banner{max-width:700px;width:100%;background:#152030;border:1px solid #7eb8f755;border-radius:10px;padding:14px 18px;border-left:4px solid #7eb8f7;}
+    .calc-banner h3{color:#7eb8f7;font-size:1rem;margin-bottom:5px;}
+    .calc-banner p{color:#7a90b0;font-size:.83rem;line-height:1.55;}
+    .calc-formula-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:9px;max-width:700px;width:100%;}
+    .calc-formula{background:#1a1d2e;border:1px solid #2a2d45;border-radius:8px;padding:11px 14px;}
+    .cf-name{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4a5a70;margin-bottom:5px;}
+    .cf-eq{font-size:1.05rem;font-weight:700;color:#e8c87a;font-family:monospace;}
+    .cf-note{font-size:.72rem;color:#4a5a70;margin-top:3px;line-height:1.4;}
+    .calc-section-lbl{max-width:700px;width:100%;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#5a6a8a;padding:4px 0 0;}
+    .calc-data{max-width:700px;width:100%;}
+    .calc-tbl{width:100%;border-collapse:collapse;font-size:.85rem;}
+    .calc-tbl th{background:#22253a;color:#7eb8f7;padding:7px 12px;text-align:center;border:1px solid #2a2d45;font-size:.78rem;}
+    .calc-tbl td{padding:6px 12px;text-align:center;border:1px solid #2a2d45;color:#c0d0e8;}
+    .calc-tbl tr:nth-child(even) td{background:#1a1d2e;}
+    .calc-tbl td.note{text-align:left;color:#7a9ab5;font-style:italic;font-size:.78rem;}
+    .calc-item{max-width:700px;width:100%;background:#1a1d2e;border:1px solid #2a2d45;border-radius:9px;overflow:hidden;}
+    .calc-item-hdr{background:#22253a;padding:10px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;}
+    .calc-num{width:26px;height:26px;border-radius:50%;background:#7eb8f7;color:#000;font-weight:800;font-size:.82rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .calc-q{font-size:.92rem;font-weight:600;color:#dde1f0;flex:1;}
+    .calc-chevron{color:#3a4a60;font-size:.8rem;transition:transform .2s;}
+    .calc-item.open .calc-chevron{transform:rotate(180deg);}
+    .calc-body{padding:13px 16px;font-size:.86rem;color:#a8bcd8;line-height:1.65;display:none;border-top:1px solid #2a2d45;}
+    .calc-item.open .calc-body{display:block;}
+    .calc-ans{background:#0d1a10;border-left:3px solid #4caf50;border-radius:0 6px 6px 0;padding:8px 13px;color:#8fd0a8;font-family:monospace;font-size:.9rem;margin:6px 0;display:block;line-height:1.6;}
+    .calc-warn{max-width:700px;width:100%;background:#1a1500;border:1px solid #e8c87a44;border-left:3px solid #e8c87a;border-radius:8px;padding:12px 16px;font-size:.85rem;color:#c8a848;line-height:1.6;}
+    .calc-warn strong{color:#e8c87a;}
   </style>
 </head>
 <body>
@@ -270,6 +332,12 @@
     <button class="preset-btn" data-p="m1" onclick="applyPreset('m1')">Midterm 1</button>
     <button class="preset-btn" data-p="m2" onclick="applyPreset('m2')">Midterm 2</button>
     <button class="preset-btn" data-p="fin" onclick="applyPreset('fin')">Final</button>
+  </div>
+
+  <div class="s-label">FINAL EXAM PREP <span style="font-size:.58rem;color:#b09050;font-weight:400;font-style:italic;">L9, 12-15 + open note</span></div>
+  <div class="mode-grid" style="gap:3px;">
+    <button class="mode-btn final-btn" data-m="pspp" onclick="setMode('pspp')"><span>🧩</span> PSPP Walkthrough</button>
+    <button class="mode-btn final-btn" data-m="calc" onclick="setMode('calc')"><span>📐</span> Stress-Strain Calc</button>
   </div>
 
   <div class="s-label">MODE</div>
@@ -299,6 +367,77 @@
 
 <!-- ═══ MAIN ═══ -->
 <div id="main">
+
+  <!-- PSPP WALKTHROUGH -->
+  <div class="screen" id="screen-pspp">
+    <div class="pspp-header">
+      <h3>🧩 PSPP Walkthrough — Final Exam Prep</h3>
+      <p>The final exam includes a guaranteed question asking you to apply the <strong style="color:#e8c87a">Processing → Structure → Properties → Performance</strong> framework to a biomedical material. Practice below. Select a device, write your own answer in each box, then reveal the model answer.</p>
+    </div>
+    <div class="pspp-diagram">
+      <div class="pspp-node proc">⚙️ Processing</div>
+      <div class="pspp-arrow">→</div>
+      <div class="pspp-node struc">🔬 Structure</div>
+      <div class="pspp-arrow">→</div>
+      <div class="pspp-node prop">📏 Properties</div>
+      <div class="pspp-arrow">→</div>
+      <div class="pspp-node perf">🏥 Performance</div>
+    </div>
+    <div class="pspp-controls">
+      <select class="pspp-select" id="pspp-select" onchange="renderPSPP()">
+        <option value="316l">316L Bone Plate — from your exam's processing question</option>
+        <option value="uhmwpe">UHMWPE Acetabular Liner — Total Hip Arthroplasty</option>
+      </select>
+      <button class="gbtn" onclick="psppRevealAll()" style="border-color:#4caf5055;color:#4caf50;white-space:nowrap;">Reveal All</button>
+      <button class="gbtn" onclick="psppClearAll()" style="white-space:nowrap;">Clear All</button>
+    </div>
+    <div id="pspp-steps"></div>
+    <div class="pspp-tip">
+      <strong style="color:#e8c87a;">💡 Exam tip:</strong> You don't need to describe every interaction — focus on the <em>primary</em> chain for your chosen device. The exam says "it would be great if you use your team project" but any device you know well is fine. Aim for 2-3 sentences per node, with specific material names, mechanisms, and clinical consequences.
+    </div>
+  </div>
+
+  <!-- STRESS-STRAIN CALC REFERENCE -->
+  <div class="screen" id="screen-calc">
+    <div class="calc-banner">
+      <h3>📐 Open Note — Stress-Strain Calculation Practice</h3>
+      <p>The final exam open note section includes a stress-strain calculation problem very similar to Exam 2. The data are given as a <strong>load-displacement table</strong> for a flat dog-bone specimen. Click each question to reveal the worked answer. <strong style="color:#7eb8f7">New this exam:</strong> you will be asked for specimen length in the elastic AND plastic region.</p>
+    </div>
+
+    <div class="calc-section-lbl">Key Formulas</div>
+    <div class="calc-formula-grid">
+      <div class="calc-formula"><div class="cf-name">Area</div><div class="cf-eq">A₀ = w × t</div><div class="cf-note">width × thickness (mm²)</div></div>
+      <div class="calc-formula"><div class="cf-name">Eng. Stress</div><div class="cf-eq">σ = F / A₀</div><div class="cf-note">N/mm² = MPa</div></div>
+      <div class="calc-formula"><div class="cf-name">Eng. Strain</div><div class="cf-eq">ε = ΔL / L₀</div><div class="cf-note">dimensionless (or %)</div></div>
+      <div class="calc-formula"><div class="cf-name">Young's Modulus</div><div class="cf-eq">E = σ / ε</div><div class="cf-note">use elastic data points only</div></div>
+      <div class="calc-formula"><div class="cf-name">Ductility</div><div class="cf-eq">%EL = (ΔL_f/L₀)×100</div><div class="cf-note">strain at fracture × 100</div></div>
+      <div class="calc-formula"><div class="cf-name">Resilience</div><div class="cf-eq">Uᵣ = σ²_YS / (2E)</div><div class="cf-note">J/m³ — use consistent SI units</div></div>
+      <div class="calc-formula" style="grid-column:1/-1;border-color:#7eb8f744;"><div class="cf-name" style="color:#7eb8f7;">⭐ Elastic Length Recovery</div><div class="cf-eq" style="color:#7eb8f7;">ΔL_elastic = (σ/E) × L₀</div><div class="cf-note" style="color:#4a7a9a;">If F &lt; F_YS → L_final = L₀ (full recovery). If F &gt; F_YS → L_final = L_loaded − ΔL_elastic (permanent set remains)</div></div>
+    </div>
+
+    <div class="calc-section-lbl">Practice Specimen — Co-28Cr-6Mo Alloy Dog-Bone</div>
+    <div class="calc-data">
+      <p style="font-size:.8rem;color:#5a6a8a;margin-bottom:6px;">Gage Width = 8 mm &nbsp;|&nbsp; Gage Thickness = 4 mm &nbsp;|&nbsp; Gage Length L₀ = 80 mm</p>
+      <table class="calc-tbl">
+        <tr><th>Load (N)</th><th>Displacement (mm)</th><th>Notes</th></tr>
+        <tr><td>0</td><td>0.000</td><td class="note"></td></tr>
+        <tr><td>6,400</td><td>0.080</td><td class="note"></td></tr>
+        <tr><td>12,800</td><td>0.160</td><td class="note"></td></tr>
+        <tr><td>16,000</td><td>0.200</td><td class="note">Onset of permanent deformation</td></tr>
+        <tr><td>18,000</td><td>1.000</td><td class="note"></td></tr>
+        <tr><td>24,000</td><td>4.800</td><td class="note"></td></tr>
+        <tr><td>28,800 (max)</td><td>9.600</td><td class="note">Maximum load — necking begins</td></tr>
+        <tr><td>26,000</td><td>14.400</td><td class="note">Fracture</td></tr>
+      </table>
+    </div>
+
+    <div class="calc-section-lbl">Worked Questions — click to reveal</div>
+    <div id="calc-items"></div>
+
+    <div class="calc-warn">
+      <strong>🔑 The key new concept:</strong> When a force in the <strong>elastic region</strong> is removed, the specimen returns exactly to L₀ — all deformation recovers. When a force in the <strong>plastic region</strong> is removed, only the elastic portion recovers (ΔL_elastic = σ/E × L₀). The plastic displacement — read directly from the data table — is <em>permanent</em>. This is the core difference being tested in parts (g) and (h).
+    </div>
+  </div>
 
   <!-- WELCOME -->
   <div class="screen visible" id="screen-welcome">
@@ -526,7 +665,7 @@ const TOPICS=[
 const PRESETS={
   m1:['01','02','03','04','05','06'],
   m2:['07','08','09','10','11'],
-  fin:['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15']
+  fin:['09','12','13','14','15']
 };
 
 // ════════════════════════ QUESTION BANK ══════════════════════════
@@ -1516,6 +1655,8 @@ function setMode(mode) {
   else if (mode==='explain') initExplain();
   else if (mode==='fib') initFIB();
   else if (mode==='seq') initSeq();
+  else if (mode==='pspp') initPSPP();
+  else if (mode==='calc') initCalc();
 }
 
 // ════════════════════════ localStorage ════════════════════════
@@ -2119,6 +2260,140 @@ function spawnConfetti(n) {
     document.body.appendChild(el);
     el.addEventListener('animationend',()=>el.remove());
   }
+}
+
+
+// ════════════════════════ PSPP WALKTHROUGH ════════════════════════
+const PSPP_DATA = {
+  '316l': {
+    name:'316L Stainless Steel Bone Plate (from your exam!)',
+    proc:{
+      prompt:'Describe the key manufacturing/processing steps for this bone plate.',
+      ans:'Starting material: wrought 316L sheet stock. Steps:\n(1) Hot rolling (above recrystallization T) → reduces ingot, produces equiaxed grains.\n(2) Cold rolling (below recrystallization T) → strain-hardens plate, increases σ_YS.\n(3) Machining to final plate geometry.\n(4) Annealing → restores ductility lost in cold rolling (recovery → recrystallization → grain growth).\n(5) Gamma irradiation sterilization — penetrates sealed polymer packaging without opening.'
+    },
+    struc:{
+      prompt:'What microstructural features result from this processing sequence?',
+      ans:'Hot rolled: equiaxed austenitic (FCC) grains, moderate dislocation density.\nCold rolled: elongated grains, high dislocation density (~10¹² cm⁻²), internal residual stresses.\nAfter annealing: strain-free recrystallized equiaxed grains, low dislocation density.\nKey feature: FCC austenite retained (Mo in 316L suppresses martensite) → no magnetic behavior, better corrosion resistance. Passive Cr₂O₃ oxide layer forms on surface.'
+    },
+    prop:{
+      prompt:'What mechanical and surface properties does this microstructure give the plate?',
+      ans:'Annealed 316L: σ_YS ≈ 200–310 MPa, UTS ≈ 500–600 MPa, %EL ≈ 40% (very ductile).\nE ≈ 193 GPa — much stiffer than cortical bone (15–25 GPa).\nHigh toughness (area under stress-strain curve).\nExcellent corrosion resistance in saline: passive Cr₂O₃ layer, Mo prevents pitting.\nBiocompatible: low ion release in physiological environment.'
+    },
+    perf:{
+      prompt:'How do these properties determine clinical performance as a bone fracture plate?',
+      ans:'High σ_YS and E → plate bears tensile loads at fracture site (tension-band principle) without yielding under physiological forces.\nHigh ductility → plate can be contoured intraoperatively to match bone anatomy without cracking.\nCorrosion resistance → long-term stability, minimal ion release, reduced inflammatory response.\n⚠️ Key limitation: stress shielding — E_plate (193 GPa) >> E_bone (15–25 GPa) → bone under plate is shielded from normal stress → disuse atrophy → bone resorption → implant loosening over time.'
+    }
+  },
+  'uhmwpe': {
+    name:'UHMWPE Acetabular Liner — Total Hip Arthroplasty',
+    proc:{
+      prompt:'How is UHMWPE processed for use as a bearing surface in a hip replacement?',
+      ans:'Starting material: UHMWPE powder (Mw = 3–6 million g/mol).\nProcessing: compression molding or ram extrusion into bar/sheet → CNC machining to liner geometry.\nKey step: crosslinking via gamma irradiation (50–100 kGy) or electron beam → creates covalent network → dramatically reduces wear.\nOptional: vitamin E doping to quench free radicals from irradiation (prevents oxidative embrittlement).\nSterilization: EO gas or low-dose gamma.'
+    },
+    struc:{
+      prompt:'What structural features of UHMWPE determine its in vivo behavior?',
+      ans:'Semi-crystalline: ~50% crystallinity (folded-chain lamellae in amorphous matrix).\nVery high Mw → extremely long, entangled chains → exceptional abrasion resistance.\nCrosslinking: γ or e-beam creates covalent bonds across chains → restricts chain pull-out → reduces wear by >50% vs conventional UHMWPE.\nCrystalline regions: harder, stiffer. Amorphous regions: absorb energy → toughness.\nNo melting/reprocessing after crosslinking (thermoset-like behavior).'
+    },
+    prop:{
+      prompt:'What are the key mechanical and tribological properties of UHMWPE?',
+      ans:'Outstanding wear resistance — defining property.\nHigh toughness (resists crack propagation under cyclic loading).\nLow E ≈ 0.7–1.4 GPa (compliant — allows conforming contact with femoral head).\nσ_YS ≈ 20–35 MPa (much lower than metals).\nHydrophobic surface → low coefficient of friction against CoCr or ceramic head.\nSelf-lubricating, biocompatible.'
+    },
+    perf:{
+      prompt:'How does UHMWPE\'s structure and properties determine its clinical performance?',
+      ans:'Excellent wear resistance → long service life (>15–20 years with XLPE).\nLow friction → smooth articulation, low energy consumption during gait.\nLow modulus → reduces stress concentration at implant rim.\n⚠️ Key failure mode: PE wear particles → macrophage engulfment → RANKL secretion → osteoclast activation → periprosthetic osteolysis → implant loosening (aseptic loosening = #1 cause of THA revision).\nCrosslinked UHMWPE (XLPE) dramatically reduced wear debris and osteolysis incidence.'
+    }
+  },
+};
+
+function initPSPP() { renderPSPP(); }
+
+function renderPSPP() {
+  const key = document.getElementById('pspp-select').value;
+  const dev = PSPP_DATA[key];
+  const steps = [
+    {cls:'proc', badge:'1️⃣  Processing', data: dev.proc},
+    {cls:'struc', badge:'2️⃣  Structure', data: dev.struc},
+    {cls:'prop',  badge:'3️⃣  Properties', data: dev.prop},
+    {cls:'perf',  badge:'4️⃣  Performance', data: dev.perf},
+  ];
+  const container = document.getElementById('pspp-steps');
+  container.innerHTML = '';
+  steps.forEach((s,i) => {
+    const div = document.createElement('div');
+    div.className = 'pspp-step ' + s.cls;
+    div.style.maxWidth = '700px'; div.style.width = '100%';
+    div.innerHTML = `
+      <div class="pspp-step-badge">${s.badge}</div>
+      <div class="pspp-step-q">${s.data.prompt}</div>
+      <textarea class="pspp-ta" placeholder="Write your answer here before revealing…" id="pspp-ta-${i}"></textarea>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="pspp-reveal" onclick="psppReveal(${i})">Show Model Answer</button>
+        <span style="font-size:.72rem;color:#3a4a60;">Try writing first — self-testing is the best study method</span>
+      </div>
+      <div class="pspp-ans" id="pspp-ans-${i}">${s.data.ans}</div>`;
+    container.appendChild(div);
+  });
+}
+
+function psppReveal(i) {
+  const ans = document.getElementById('pspp-ans-'+i);
+  ans.style.display = ans.style.display === 'block' ? 'none' : 'block';
+}
+function psppRevealAll() {
+  for(let i=0;i<4;i++){const a=document.getElementById('pspp-ans-'+i);if(a)a.style.display='block';}
+}
+function psppClearAll() {
+  for(let i=0;i<4;i++){
+    const a=document.getElementById('pspp-ans-'+i); if(a)a.style.display='none';
+    const t=document.getElementById('pspp-ta-'+i); if(t)t.value='';
+  }
+}
+
+// ════════════════════════ STRESS-STRAIN CALC ════════════════════════
+const CALC_ITEMS = [
+  {q:'(a) Calculate cross-sectional area A₀, then σ and ε at onset of permanent deformation.',
+   ans:'A₀ = 8 mm × 4 mm = 32 mm²\nσ = 16,000 N / 32 mm² = 500 MPa\nε = 0.200 mm / 80 mm = 0.0025  (0.25%)'},
+  {q:'(b) Calculate Young\'s Modulus E. State which data points you used.',
+   ans:'Using 6,400 N / 0.080 mm:\nσ = 6,400 / 32 = 200 MPa,   ε = 0.080 / 80 = 0.001\nE = 200 / 0.001 = 200,000 MPa = 200 GPa\n(Any elastic-region data pair accepted — e.g. 12,800 N / 0.160 mm also gives 200 GPa)'},
+  {q:'(c) Identify Yield Strength σ_YS and Ultimate Tensile Strength (UTS).',
+   ans:'σ_YS = 500 MPa  (onset of permanent deformation at 16,000 N)\nUTS = 28,800 N / 32 mm² = 900 MPa  (maximum load row)'},
+  {q:'(d) Calculate ductility (%EL). Brittle or ductile?',
+   ans:'%EL = (14.400 mm / 80 mm) × 100 = 18%\nDuctile — %EL ≥ 5% threshold.\nCo-28Cr-6Mo is moderately ductile; less ductile than 316L SS but adequate for load-bearing implants.'},
+  {q:'(e) Calculate Modulus of Resilience Uᵣ. What does it represent physically? Give units in J/m³.',
+   ans:'Uᵣ = σ²_YS / (2E) = (500 × 10⁶)² / (2 × 200 × 10⁹)\n    = 2.5 × 10¹⁷ / (4 × 10¹¹) = 6.25 × 10⁵ J/m³ = 625 kJ/m³\nPhysically: maximum elastic strain energy per unit volume the material can store and fully recover without permanent deformation — the area under the elastic portion of the stress-strain curve.'},
+  {q:'(g) Force 12,800 N applied — stress, length while loaded, length after removed.',
+   ans:'σ = 12,800 / 32 = 400 MPa  →  ELASTIC region (400 < 500 MPa = σ_YS)\nFrom data table at 12,800 N: displacement = 0.160 mm\nL_loaded = 80.000 + 0.160 = 80.160 mm\nL_unloaded = 80.000 mm  ← returns to ORIGINAL LENGTH\nReason: stress is below σ_YS — all deformation is elastic. The lattice stretches but no dislocations move permanently. Full recovery when load is removed.'},
+  {q:'⭐ (h) Force 24,000 N applied — stress, length while loaded, length after removed.',
+   ans:'σ = 24,000 / 32 = 750 MPa  →  PLASTIC region (750 > 500 MPa = σ_YS)\nFrom data table at 24,000 N: displacement = 4.800 mm\nL_loaded = 80.000 + 4.800 = 84.800 mm\n\nOnly elastic strain recovers on unloading:\nΔL_elastic = (σ / E) × L₀ = (750 / 200,000) × 80 = 0.300 mm\n\nL_unloaded = 84.800 − 0.300 = 84.500 mm  ← PERMANENT SET\nPermanent elongation = 4.500 mm\n\nWhy different from (g)? Stress exceeded σ_YS → dislocations moved irreversibly through crystal lattice → plastic strain is permanent. Only the elastic portion (0.300 mm) springs back on unloading.'}
+];
+
+function initCalc() { renderCalc(); }
+
+function renderCalc() {
+  const container = document.getElementById('calc-items');
+  if(container.innerHTML !== '') return; // already built
+  CALC_ITEMS.forEach((item,i) => {
+    const div = document.createElement('div');
+    div.className = 'calc-item';
+    div.innerHTML = `
+      <div class="calc-item-hdr" onclick="toggleCalc(${i})">
+        <div class="calc-num">${String.fromCharCode(65+i)}</div>
+        <div class="calc-q">${item.q}</div>
+        <span class="calc-chevron">▼</span>
+      </div>
+      <div class="calc-body" id="calc-body-${i}">
+        <code class="calc-ans">${item.ans.replace(/\n/g,'<br>')}</code>
+      </div>`;
+    container.appendChild(div);
+  });
+}
+
+function toggleCalc(i) {
+  const body = document.getElementById('calc-body-'+i);
+  const item = body.closest('.calc-item');
+  const isOpen = item.classList.contains('open');
+  item.classList.toggle('open', !isOpen);
+  body.style.display = isOpen ? 'none' : 'block';
 }
 
 window.onload=init;
