@@ -2726,57 +2726,73 @@ function buildQuadrantSVG() {
 const validationState = {};   // keyed by prob.id
 let validationAbort = null;   // AbortController for the current batch
 
+// Validate one problem at a time, updating state as each resolves
 async function validateProblemsInBackground(problems) {
   if (!state.apiKey || problems.length <= 1) return;
+
   // Cancel any in-flight validation from previous batch
   if (validationAbort) validationAbort.abort();
   validationAbort = new AbortController();
   const signal = validationAbort.signal;
 
-  // Validate ALL problems in parallel — problem 0 badge will update while student reads it
-  const toValidate = problems;
-  toValidate.forEach(p => { validationState[p.id] = 'checking'; });
+  // Mark all as checking upfront
+  problems.forEach(p => { validationState[p.id] = 'checking'; });
 
-  await Promise.allSettled(toValidate.map(async (prob) => {
+  // Process in small concurrent groups (2 at a time) with a gap between groups
+  // to avoid rate-limit spikes from 8 simultaneous API calls
+  const GROUP_SIZE = 2;
+  const GROUP_DELAY_MS = 400;
+
+  for (let i = 0; i < problems.length; i += GROUP_SIZE) {
     if (signal.aborted) return;
-    try {
-      const result = await validateOneProblem(prob, signal);
+    const group = problems.slice(i, i + GROUP_SIZE);
+
+    await Promise.allSettled(group.map(async (prob) => {
       if (signal.aborted) return;
-      if (result === 'pass') {
-        validationState[prob.id] = 'verified';
-        prob._verified = true;
-      } else {
-        // Try to auto-fix
-        const fixed = await tryFixProblem(prob, result, signal);
+      try {
+        const result = await validateOneProblem(prob, signal);
         if (signal.aborted) return;
-        if (fixed) {
-          // Patch the problem in currentProblems in-place
-          const idx = currentProblems.indexOf(prob);
-          if (idx > 0) {
-            Object.assign(currentProblems[idx], fixed);
-            currentProblems[idx]._fixed = true;
-            currentProblems[idx]._verified = true;
-          }
-          validationState[prob.id] = 'fixed';
+        if (result === 'pass') {
+          validationState[prob.id] = 'verified';
+          prob._verified = true;
         } else {
-          validationState[prob.id] = 'removed';
-          prob._invalid = true;
+          const fixed = await tryFixProblem(prob, result, signal);
+          if (signal.aborted) return;
+          if (fixed) {
+            const idx = currentProblems.indexOf(prob);
+            if (idx >= 0) {
+              Object.assign(currentProblems[idx], fixed);
+              currentProblems[idx]._fixed = true;
+              currentProblems[idx]._verified = true;
+            }
+            validationState[prob.id] = 'fixed';
+          } else {
+            validationState[prob.id] = 'removed';
+            prob._invalid = true;
+          }
         }
+      } catch(e) {
+        // Network/timeout — give benefit of the doubt, don't block the student
+        if (!signal.aborted) validationState[prob.id] = 'verified';
       }
-    } catch(e) {
-      // Network error or aborted — leave problem as-is, don't punish the student
-      if (!signal.aborted) validationState[prob.id] = 'verified'; // give benefit of doubt
+      // Refresh badge if this is the currently-displayed problem
+      const cur = currentProblems[currentProblemIndex];
+      if (cur && cur.id === prob.id) refreshVerifyBadge(cur);
+    }));
+
+    // Short pause between groups so we don't burst the rate limit
+    if (!signal.aborted && i + GROUP_SIZE < problems.length) {
+      await new Promise(r => setTimeout(r, GROUP_DELAY_MS));
     }
-  }));
+  }
 
   if (signal.aborted) return;
 
-  // Purge invalid problems that haven't been reached yet
+  // Purge invalid problems that haven't been shown yet
   for (let i = currentProblems.length - 1; i > currentProblemIndex; i--) {
     if (currentProblems[i]?._invalid) currentProblems.splice(i, 1);
   }
 
-  // Refresh the badge if the current problem just got validated
   const cur = currentProblems[currentProblemIndex];
   if (cur) refreshVerifyBadge(cur);
 }
@@ -3237,47 +3253,68 @@ Rules:
 - Make problems realistic for a university Calculus 1 course
 - For the "visual" field, set one of: "unit_circle", "triangle_30_60_90", "triangle_45_45_90", "right_triangle", "quadrant_signs", or null. Set it when a diagram would genuinely help the student.`;
 
-  let response;
+  const TIMEOUT_MS = 28000; // 28-second hard timeout per attempt
+
+  async function attempt() {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    let response;
+    try {
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': state.apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 4096,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+    } catch(netErr) {
+      const msg = netErr.name === 'AbortError'
+        ? 'Request timed out (28 s) — the API may be slow right now.'
+        : 'Network error — check your internet connection.';
+      throw new Error(msg);
+    } finally {
+      clearTimeout(timer);
+    }
+
+    const data = await response.json();
+    if (!response.ok) {
+      const apiMsg = data?.error?.message || '';
+      if (response.status === 401) throw new Error('Invalid API key (401). Go to ⚙️ Settings and re-enter your key from console.anthropic.com.');
+      if (response.status === 429) throw new Error('Rate limited (429) — too many requests. Waiting a few seconds before retry…');
+      if (response.status === 500 || response.status === 529) throw new Error(`Anthropic API temporarily unavailable (${response.status}).`);
+      throw new Error(`API error ${response.status}${apiMsg ? ': ' + apiMsg : ''}`);
+    }
+
+    if (!data.content || !data.content[0]) throw new Error('Empty response from API.');
+    let text = data.content[0].text.trim();
+    text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+    let problems;
+    try {
+      problems = JSON.parse(text);
+    } catch(parseErr) {
+      throw new Error('Response was malformed JSON — retrying…');
+    }
+    if (!Array.isArray(problems) || problems.length === 0) throw new Error('No problems returned.');
+    return sanitizeProblems(problems);
+  }
+
+  // Try up to 2 times before giving up
   try {
-    response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': state.apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 4096,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-  } catch(netErr) {
-    throw new Error('Network error — check your internet connection.');
+    return await attempt();
+  } catch(firstErr) {
+    // Pause briefly then retry once (especially helpful for 429 rate limits)
+    const delay = firstErr.message.includes('429') ? 3000 : 1200;
+    await new Promise(r => setTimeout(r, delay));
+    return await attempt(); // throws on second failure — caller handles it
   }
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    const apiMsg = data?.error?.message || '';
-    if (response.status === 401) throw new Error('Invalid API key (401). Go to ⚙️ Settings and re-enter your key from console.anthropic.com.');
-    if (response.status === 429) throw new Error('Rate limit reached (429). Wait a moment and click Retry.');
-    if (response.status === 500 || response.status === 529) throw new Error(`Anthropic API temporarily unavailable (${response.status}). Click Retry in a few seconds.`);
-    throw new Error(`API error ${response.status}${apiMsg ? ': ' + apiMsg : ''}`);
-  }
-
-  if (!data.content || !data.content[0]) throw new Error('Empty response from API — click Retry.');
-  let text = data.content[0].text.trim();
-  text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
-  let problems;
-  try {
-    problems = JSON.parse(text);
-  } catch(parseErr) {
-    throw new Error('Problem data was malformed (JSON parse error) — click Retry.');
-  }
-  if (!Array.isArray(problems) || problems.length === 0) throw new Error('No problems returned — click Retry.');
-  return sanitizeProblems(problems);
 }
 
 function selectTopic(topicId) {
@@ -3320,14 +3357,16 @@ async function loadProblems(topicId) {
     try {
       currentProblems = await generateProblems(topicId);
       showProblemLoading(false);
+      showProblem();
+      validateProblemsInBackground(currentProblems);
     } catch(e) {
-      console.warn('Problem generation failed:', e.message);
-      showProblemLoading(true, e.message);
-      return;
+      console.warn('Problem generation failed after retry:', e.message);
+      // Auto-fallback: show built-in problems immediately — never leave a dead loading screen
+      currentProblems = getFilteredProblems(topicId);
+      showProblemLoading(false);
+      showProblem();
+      showToast('⚠️ AI generation failed — showing built-in problems. Check your API key or try again later.', 'warning');
     }
-    // Show first problem immediately, then validate all in background
-    showProblem();
-    validateProblemsInBackground(currentProblems);
   } else {
     currentProblems = getFilteredProblems(topicId);
     showProblem();
