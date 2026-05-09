@@ -3375,29 +3375,33 @@ async function loadProblems(topicId) {
 
   const topic = TOPICS.find(t => t.id === topicId);
   const topicName = topic ? topic.name : '';
-  const genBadge = state.apiKey ? '<span class="gen-badge">AI-generated</span>' : '';
-  document.getElementById('practice-topic-title').innerHTML = topicName + genBadge;
+  document.getElementById('practice-topic-title').innerHTML = topicName;
   document.getElementById('no-topic-msg').style.display = 'none';
   document.getElementById('problem-area').style.display = 'block';
 
+  // Always show a built-in problem IMMEDIATELY — no loading wait on problem 1
+  currentProblems = getFilteredProblems(topicId);
+  showProblem();
+
+  // Generate AI problems in the background while the student works on problem 1.
+  // When ready, splice them in after the current position so problem 2+ are AI-generated.
   if (state.apiKey) {
-    showProblemLoading(true);
-    try {
-      currentProblems = await generateProblems(topicId);
-      showProblemLoading(false);
-      showProblem();
-      validateProblemsInBackground(currentProblems);
-    } catch(e) {
-      console.warn('Problem generation failed after retry:', e.message);
-      // Auto-fallback: show built-in problems immediately — never leave a dead loading screen
-      currentProblems = getFilteredProblems(topicId);
-      showProblemLoading(false);
-      showProblem();
-      showToast('⚠️ AI generation failed — showing built-in problems. Check your API key or try again later.', 'warning');
-    }
-  } else {
-    currentProblems = getFilteredProblems(topicId);
-    showProblem();
+    generateProblems(topicId).then(aiProblems => {
+      if (currentTopicId !== topicId) return; // student switched topic — discard
+      // Keep everything up to and including the current problem, append AI batch after
+      currentProblems = [
+        ...currentProblems.slice(0, currentProblemIndex + 1),
+        ...aiProblems
+      ];
+      // Show the AI-generated badge now that AI problems are queued
+      document.getElementById('practice-topic-title').innerHTML =
+        topicName + '<span class="gen-badge">AI-generated</span>';
+      validateProblemsInBackground(aiProblems);
+      prefetchNextBatch();
+    }).catch(e => {
+      console.warn('Background AI generation failed:', e.message);
+      // Static problems already showing — nothing to do, student can keep practising
+    });
   }
 }
 
