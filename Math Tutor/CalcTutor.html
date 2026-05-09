@@ -2359,6 +2359,12 @@ let drillFetchInProgress = false;
 const seenQuestions = {};
 let answered = false;
 
+// ---- Next-batch prefetch ----
+let nextBatch = null;          // silently pre-generated problems for after current batch
+let nextBatchFetching = false; // guard against duplicate fetches
+// Trigger prefetch when student reaches this fraction of the current batch
+const PREFETCH_AT_FRACTION = 0.4; // start at 40% through (problem 3 of 8)
+
 function defaultState() {
   const topics = {};
   TOPICS.forEach(t => { topics[t.id] = { covered: false, attempted: 0, correct: 0 }; });
@@ -3207,6 +3213,26 @@ const TOPIC_MATH_REMINDERS = {
   • d/dx[csc(x)] = -csc(x)cot(x)  (negative)`,
 };
 
+// Silently generate the next batch in the background so it's instant when needed.
+// Guards against duplicate fetches and stale results from topic switches.
+async function prefetchNextBatch() {
+  if (!state.apiKey || !currentTopicId || reinforcementMode) return;
+  if (nextBatchFetching || nextBatch !== null) return;
+  nextBatchFetching = true;
+  const topicSnapshot = currentTopicId;
+  try {
+    const batch = await generateProblems(topicSnapshot);
+    if (topicSnapshot === currentTopicId) { // still on same topic
+      nextBatch = batch;
+    }
+  } catch(e) {
+    // Silently discard — Next button will generate synchronously as fallback
+    console.warn('Background prefetch failed:', e.message);
+  } finally {
+    if (topicSnapshot === currentTopicId) nextBatchFetching = false;
+  }
+}
+
 async function generateProblems(topicId) {
   const topic = TOPICS.find(t => t.id === topicId);
   const topicName = topic ? topic.name : topicId;
@@ -3343,6 +3369,8 @@ async function loadProblems(topicId) {
   lastWrongProblem = null;
   drillQueue = [];
   drillFetchInProgress = false;
+  nextBatch = null;
+  nextBatchFetching = false;
   seenQuestions[topicId] = [];
 
   const topic = TOPICS.find(t => t.id === topicId);
@@ -3386,6 +3414,15 @@ function showProblem() {
     const plain = prob.question.replace(/<[^>]+>/g, '').replace(/\\\(|\\\)/g, '').trim().slice(0, 120);
     seenQuestions[currentTopicId].push(plain);
     if (seenQuestions[currentTopicId].length > 20) seenQuestions[currentTopicId].shift();
+  }
+
+  // Background prefetch: kick off next batch generation once student is 40% through
+  // current batch, so problems are ready instantly when this batch runs out.
+  if (state.apiKey && !reinforcementMode && currentProblems.length > 0) {
+    const threshold = Math.max(1, Math.floor(currentProblems.length * PREFETCH_AT_FRACTION));
+    if (currentProblemIndex >= threshold) {
+      prefetchNextBatch(); // no-op if already fetching or already have one
+    }
   }
 
   document.getElementById('problem-counter').textContent =
@@ -3617,8 +3654,19 @@ document.getElementById('next-btn').addEventListener('click', async () => {
   // --- NORMAL MODE ---
   currentProblemIndex++;
   if (currentProblemIndex >= currentProblems.length) {
-    // Fetch a completely fresh batch
     if (state.apiKey) {
+      if (nextBatch && nextBatch.length > 0) {
+        // Pre-generated batch is ready — instant swap, no loading screen
+        currentProblems = nextBatch;
+        nextBatch = null;
+        nextBatchFetching = false;
+        currentProblemIndex = 0;
+        showProblem();
+        validateProblemsInBackground(currentProblems);
+        prefetchNextBatch(); // start preparing the one after this
+        return;
+      }
+      // Prefetch didn't finish in time — generate synchronously with loading indicator
       showProblemLoading(true);
       try {
         currentProblems = await generateProblems(currentTopicId);
@@ -3630,6 +3678,7 @@ document.getElementById('next-btn').addEventListener('click', async () => {
       currentProblemIndex = 0;
       showProblem();
       validateProblemsInBackground(currentProblems);
+      prefetchNextBatch();
       return;
     } else {
       currentProblems = getFilteredProblems(currentTopicId);
