@@ -60,6 +60,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--navy); 
 }
 #header .logo { font-size: 1.25rem; font-weight: 800; color: var(--accent2); letter-spacing: -0.5px; margin-right: auto; }
 #header .logo span { color: var(--text); }
+#header .logo .version-tag { font-size: 0.65rem; font-weight: 500; color: var(--text2); letter-spacing: 0; vertical-align: middle; margin-left: 4px; }
 .hdr-stat { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; font-weight: 600; }
 .hdr-stat .label { color: var(--text2); font-weight: 400; font-size: 0.78rem; }
 #xp-bar-wrap { width: 80px; height: 8px; background: var(--navy3); border-radius: 4px; overflow: hidden; }
@@ -635,7 +636,7 @@ select.settings-input { width: 180px; cursor: pointer; }
 
 <!-- HEADER -->
 <header id="header">
-  <div class="logo">Calc<span>Tutor</span></div>
+  <div class="logo">Calc<span>Tutor</span> <span class="version-tag">v1.9</span></div>
   <div class="hdr-stat">
     <span class="streak-fire">🔥</span>
     <span id="hdr-streak">0</span>
