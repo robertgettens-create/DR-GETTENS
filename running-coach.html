@@ -23,13 +23,17 @@
     const { useState, useEffect, useRef } = React;
 
     // ─── Constants ─────────────────────────────────────────────────────────────
-    const RACE_DATE = new Date("2026-05-10T07:00:00");
     const TODAY = new Date();
-    const DAYS_LEFT = Math.max(0, Math.ceil((RACE_DATE - TODAY) / (1000 * 60 * 60 * 24)));
-    const WEEKS_LEFT = Math.floor(DAYS_LEFT / 7);
     const FITBIT_AUTH_URL = "https://www.fitbit.com/oauth2/authorize";
     const FITBIT_TOKEN_URL = "https://api.fitbit.com/oauth2/token";
-    const APP_VERSION = "v26";
+    const APP_VERSION = "v27";
+
+    // ─── Goal helpers ──────────────────────────────────────────────────────────
+    function computeDaysLeft(goal) {
+      if (goal?.type === "race" && goal?.date) return Math.max(0, Math.ceil((new Date(goal.date + "T12:00:00") - new Date()) / 86400000));
+      return null;
+    }
+    function computeWeeksLeft(goal) { const d = computeDaysLeft(goal); return d !== null ? Math.floor(d / 7) : null; }
     const FITBIT_API = "https://api.fitbit.com/1";
     const WORKOUT_ICONS = { Run: "🏃", Bike: "🚴", Kayak: "🛶", Gardening: "🌱", Walk: "🚶", Rest: "😴", Other: "⚡" };
 
@@ -95,7 +99,7 @@
     }
 
     // ─── Claude API ─────────────────────────────────────────────────────────────
-    function makeSystemPrompt(fitbitStats, races, feeling, workouts, daysSinceLastMsg) {
+    function makeSystemPrompt(fitbitStats, races, feeling, workouts, daysSinceLastMsg, goal) {
       const fb = fitbitStats;
       const fbSection = fb
         ? `\n\nRECENT FITBIT DATA (last 30 days):\n- Runs: ${fb.runCount} runs, ${fb.totalMiles.toFixed(1)} miles total\n- Most recent pace: ${fb.avgPace || "N/A"}\n- Avg resting HR: ${fb.restingHR ?? "N/A"} bpm\n- Avg HR during runs: ${fb.avgRunHR ?? "N/A"} bpm\n- Longest recent run: ${fb.longestRun?.toFixed(1) ?? "N/A"} miles\nUse this real data when giving specific advice about pacing, effort, and readiness.`
@@ -117,14 +121,24 @@
         ? `\n\nIMPORTANT: It has been ${daysSinceLastMsg} day${daysSinceLastMsg!==1?"s":""} since the runner's last message. Do NOT assume anything said previously still reflects their current state. Reference their recent workout log above for what has actually happened since then.`
         : "";
       const todaySection = `\n\nTODAY'S DATE: ${new Date().toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}`;
+      const g = goal || {};
+      const weeksLeftForPrompt = computeWeeksLeft(g);
+      let goalLine;
+      if (g.type === "race" && g.name) {
+        goalLine = `- Next race: ${g.name} on ${g.date}${weeksLeftForPrompt ? ` (${weeksLeftForPrompt} weeks away)` : ""}`;
+      } else if (g.type === "fitness") {
+        goalLine = `- Current goal: ${g.description || "Maintaining fitness and building base mileage"}`;
+      } else if (g.type === "activity") {
+        goalLine = `- Current focus: ${g.description || "Recreational running and active lifestyle"}`;
+      } else {
+        goalLine = `- Current goal: Recreational running for health and personal satisfaction`;
+      }
       return `You are a warm, encouraging personal running coach for a 54-year-old recreational runner in Western Massachusetts.
 
 RUNNER PROFILE:
 - Age: 54 · Running for fun and personal satisfaction
-- Goal: 5K to half marathon; long-term dream of a marathon
 - Training style: Hal Higdon — gradual mileage increase, long slow distance, adequate rest
-- Next race: Western Mass Mother's Day Half Marathon, May 10 2026 (${WEEKS_LEFT} weeks away)
-- Recent race: Holyoke 10K — completed without stopping, went very slow — solid endurance base
+${goalLine}
 - Cross-training: gardening, kayaking, biking (all count as active recovery)
 - Devices: Fitbit Charge 6, Runkeeper app (pace gradually slowing with age — completely normal)
 - Location: Western Massachusetts — variable spring weather${fbSection}
@@ -140,7 +154,7 @@ COACHING PRINCIPLES:
 - Never suggest faster-than-conversational paces unless explicitly asked.${todaySection}${timeGapSection}${recentSection}${feelingSection}${racesSection}`;
     }
 
-    async function callClaude(messages, apiKey, fitbitStats, races, feeling, workouts, daysSinceLastMsg) {
+    async function callClaude(messages, apiKey, fitbitStats, races, feeling, workouts, daysSinceLastMsg, goal) {
       if (!apiKey) return "Please add your Anthropic API key in ⚙️ Settings to enable AI coaching.";
       try {
         const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -154,7 +168,7 @@ COACHING PRINCIPLES:
           body: JSON.stringify({
             model: "claude-sonnet-4-20250514",
             max_tokens: 1500,
-            system: makeSystemPrompt(fitbitStats, races, feeling, workouts, daysSinceLastMsg),
+            system: makeSystemPrompt(fitbitStats, races, feeling, workouts, daysSinceLastMsg, goal),
             messages: messages.map(({ role, content }) => ({ role, content })),
           }),
         });
@@ -453,10 +467,11 @@ COACHING PRINCIPLES:
     }
 
     // ─── Dashboard ──────────────────────────────────────────────────────────────
-    function Dashboard({ workouts, fitbitStats, onAddWorkout, feeling, onSetFeeling }) {
+    function Dashboard({ workouts, fitbitStats, onAddWorkout, feeling, onSetFeeling, goal }) {
       const totalRuns = workouts.filter(w => w.type === "Run").length;
       const totalMiles = workouts.filter(w => w.type === "Run").reduce((s, w) => s + (parseFloat(w.distance) || 0), 0);
-      const progress = Math.min(100, Math.round((1 - DAYS_LEFT / 47) * 100));
+      const daysLeft = computeDaysLeft(goal);
+      const weeksLeft = computeWeeksLeft(goal);
       const fb = fitbitStats;
       const hrColor = fb?.avgRunHR ? (fb.avgRunHR > 133 ? "#c05010" : fb.avgRunHR < 116 ? "#4080c0" : "#40c070") : "#5a6080";
       const hrMsg = fb?.avgRunHR
@@ -465,16 +480,23 @@ COACHING PRINCIPLES:
           : `Your run HR of ${fb.avgRunHR} bpm is right in Zone 2 (116–133 bpm). Perfect conversational pace — keep it up!`
         : null;
 
+      const isRaceGoal = goal?.type === "race" && goal?.date;
       return (
         <div className="section">
-          <div className="countdown-bar">
-            <div className="countdown-label">🎯 Western Mass Mother's Day Half Marathon — May 10, 2026</div>
-            <div className="progress-track"><div className="progress-fill" style={{ width: `${progress}%` }} /></div>
-            <div className="progress-text">{DAYS_LEFT} days remaining · {WEEKS_LEFT} full weeks of training</div>
-          </div>
+          {isRaceGoal ? (
+            <div className="countdown-bar">
+              <div className="countdown-label">🎯 {goal.name || "Upcoming Race"} — {new Date(goal.date + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</div>
+              <div className="progress-track"><div className="progress-fill" style={{ width: `${Math.min(100, Math.round((1 - daysLeft / Math.max(daysLeft, 1)) * 100))}%` }} /></div>
+              <div className="progress-text">{daysLeft} days remaining · {weeksLeft} weeks of training</div>
+            </div>
+          ) : (
+            <div className="countdown-bar">
+              <div className="countdown-label">🎯 Current Goal: {goal?.description || "Maintaining fitness and building base mileage"}</div>
+            </div>
+          )}
           <FeelingCheckIn feeling={feeling} onSetFeeling={onSetFeeling} />
           <div className="stat-row">
-            <div className="stat"><div className="stat-num">{DAYS_LEFT}</div><div className="stat-label">Days to Race</div></div>
+            <div className="stat"><div className="stat-num">{daysLeft ?? "—"}</div><div className="stat-label">{isRaceGoal ? "Days to Race" : "Active Days"}</div></div>
             <div className="stat"><div className="stat-num">{fb ? fb.runCount : totalRuns}</div><div className="stat-label">Runs {fb ? "(30d)" : "Logged"}</div></div>
             <div className="stat"><div className="stat-num">{(fb ? fb.totalMiles : totalMiles).toFixed(1)}</div><div className="stat-label">Miles {fb ? "(30d)" : "This App"}</div></div>
           </div>
@@ -486,7 +508,7 @@ COACHING PRINCIPLES:
             </div>
           )}
           {hrMsg && <div className="tip-card"><strong style={{color:hrColor}}>Heart Rate Insight: </strong>{hrMsg}</div>}
-          {!fb && <div className="tip-card"><strong style={{color:"#f07030"}}>This week's focus: </strong>With {WEEKS_LEFT} weeks to go, keep long runs at a comfortable conversational pace. Connect Fitbit in ⚙️ Settings for personalized HR insights.</div>}
+          {!fb && <div className="tip-card"><strong style={{color:"#f07030"}}>This week's focus: </strong>{isRaceGoal ? `With ${weeksLeft} weeks to go, keep long runs at a comfortable conversational pace.` : "Keep your training consistent and enjoy every run."} Connect Fitbit in ⚙️ Settings for personalized HR insights.</div>}
           {fb?.paceHistory?.length > 0 && (
             <div className="card">
               <div className="card-title">Recent Run Pace History</div>
@@ -526,7 +548,7 @@ COACHING PRINCIPLES:
           </div>
           <div className="card">
             <div className="card-title">Your Profile</div>
-            {[["Age","54 years old"],["Target Race","Mother's Day Half Marathon"],["Training Style","Hal Higdon"],["Cross-Training","Gardening, Kayaking, Biking"],["Devices","Fitbit Charge 6 · Runkeeper"],["Zone 2 HR","116–133 bpm (conversational pace)"]].map(([k,v]) => (
+            {[["Age","54 years old"],["Current Goal", goal?.type === "race" ? (goal.name || "Upcoming Race") : (goal?.description || "Maintaining fitness")],["Training Style","Hal Higdon"],["Cross-Training","Gardening, Kayaking, Biking"],["Devices","Fitbit Charge 6 · Runkeeper"],["Zone 2 HR","116–133 bpm (conversational pace)"]].map(([k,v]) => (
               <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid #1e2030",fontSize:13}}>
                 <span style={{color:"#5a6080"}}>{k}</span>
                 <span style={{color:"#c0c8e0",textAlign:"right",maxWidth:"60%"}}>{v}</span>
@@ -571,7 +593,8 @@ COACHING PRINCIPLES:
 
     // ─── Plan Tab ────────────────────────────────────────────────────────────────
     const ALL_DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-    function PlanTab({ fitbitStats, apiKey, savedPlan, onSavePlan, weather, weatherLocation, onRefreshWeather, weekNotes, onSaveWeekNotes, workouts }) {
+    function PlanTab({ fitbitStats, apiKey, savedPlan, onSavePlan, weather, weatherLocation, onRefreshWeather, weekNotes, onSaveWeekNotes, workouts, goal }) {
+      const weeksLeft = computeWeeksLeft(goal);
       const [plan, setPlan] = useState(savedPlan || null);
       const [loading, setLoading] = useState(false);
       const [restDays, setRestDays] = useState(["Wednesday"]);
@@ -619,7 +642,7 @@ COACHING PRINCIPLES:
         const { weekNum, weekText, startIdx, endIdx } = adjustWeek;
         const notesCtx = weekNotes[weekNum] ? `Previously saved notes: ${weekNotes[weekNum]}\nNew notes: ${notes}` : notes;
         const intervalCtx = weekNum >= 3 ? `\n\nWORKOUT VARIETY FOR THIS WEEK: Include 1 interval session (e.g. "6 x 400m hard effort with 2 min WALK recovery") and 1 tempo run (comfortably hard, 20–30 min, Zone 3–4). WALK recoveries only — never jog. Hard effort = hard to hold a conversation, not all-out sprint.` : "";
-        const newWeekText = await callClaude([{ role: "user", content: `Rewrite only Week ${weekNum} of my half marathon training plan.\n\nCurrent Week ${weekNum}:\n${weekText}\n\nChanges for this week:\n${notesCtx}${intervalCtx}\n\nFORMATTING: Keep same format — Week heading line, then Monday through Sunday, each as "DayName — Activity: distance/duration. Tip: brief tip." Plain text only. Output ONLY Week ${weekNum} content, nothing before or after.` }], apiKey, fitbitStats, null, null);
+        const newWeekText = await callClaude([{ role: "user", content: `Rewrite only Week ${weekNum} of my training plan.\n\nCurrent Week ${weekNum}:\n${weekText}\n\nChanges for this week:\n${notesCtx}${intervalCtx}\n\nFORMATTING: Keep same format — Week heading line, then Monday through Sunday, each as "DayName — Activity: distance/duration. Tip: brief tip." Plain text only. Output ONLY Week ${weekNum} content, nothing before or after.` }], apiKey, fitbitStats, null, null, null, 0, goal);
         onSaveWeekNotes(weekNum, notes);
         const updated = [...planLines];
         const newLines = newWeekText.split("\n");
@@ -645,7 +668,7 @@ COACHING PRINCIPLES:
         const restCtx = restDays.length > 0 ? `\n\nPreferred rest days: ${restDays.join(", ")}.` : "";
         const wxCtx = weather?.length ? `\n\nThis week's 7AM forecast for Western MA (runner goes out at 7AM):\n${weather.slice(0,7).map(d=>`${d.dayName}: ${d.am7Temp}°F, ${wmoText(d.am7Code)}${d.am7Rain>30?`, ${d.am7Rain}% rain chance`:""}${d.maxWind>15?`, ${d.maxWind}mph wind`:""}`).join("\n")}\nNote any days with bad weather and suggest treadmill or schedule adjustments.` : "";
         // Compute exact Monday-start week dates so Claude can't get them wrong
-        const raceDate = new Date("2026-05-10");
+        const raceDate = goal?.type === "race" && goal?.date ? new Date(goal.date + "T12:00:00") : null;
         const todayDate = new Date();
         const dow = todayDate.getDay(); // 0=Sun,1=Mon
         const daysToMon = dow === 1 ? 0 : dow === 0 ? 1 : 8 - dow;
@@ -653,15 +676,31 @@ COACHING PRINCIPLES:
         weekStart.setHours(0,0,0,0);
         const fmt = d => d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
         const weekSchedule = [];
-        for (let w = 1; weekStart <= raceDate; w++) {
-          const sun = new Date(weekStart); sun.setDate(weekStart.getDate() + 6);
-          const weekEnd = sun > raceDate ? raceDate : sun;
-          const isRaceWeek = weekEnd >= raceDate;
-          weekSchedule.push(`Week ${w}: Monday ${fmt(weekStart)} – ${isRaceWeek ? `Sunday ${fmt(raceDate)} (RACE DAY — half marathon!)` : `Sunday ${fmt(weekEnd)}`}`);
-          weekStart.setDate(weekStart.getDate() + 7);
+        if (raceDate) {
+          for (let w = 1; weekStart <= raceDate; w++) {
+            const sun = new Date(weekStart); sun.setDate(weekStart.getDate() + 6);
+            const weekEnd = sun > raceDate ? raceDate : sun;
+            const isRaceWeek = weekEnd >= raceDate;
+            weekSchedule.push(`Week ${w}: Monday ${fmt(weekStart)} – ${isRaceWeek ? `Sunday ${fmt(raceDate)} (RACE DAY — ${goal.distance || "race"}!)` : `Sunday ${fmt(weekEnd)}`}`);
+            weekStart.setDate(weekStart.getDate() + 7);
+          }
+        } else {
+          for (let w = 1; w <= 12; w++) {
+            const sun = new Date(weekStart); sun.setDate(weekStart.getDate() + 6);
+            weekSchedule.push(`Week ${w}: Monday ${fmt(weekStart)} – Sunday ${fmt(sun)}`);
+            weekStart.setDate(weekStart.getDate() + 7);
+          }
         }
         const weekCtx = `\n\nEXACT WEEK DATES (use these precisely — do not invent different dates):\n${weekSchedule.join("\n")}`;
-        const text = await callClaude([{ role: "user", content: `Generate a training plan for the Mother's Day Half Marathon on Sunday May 10, 2026. Today is ${today}.${dataCtx}${longestCtx}${restCtx}${wxCtx}${weekCtx}\n\nLONG RUN SCHEDULING RULES (follow exactly):\n- Always schedule the long run on SATURDAY — never Sunday. This allows a rest day on Sunday.\n- The day after every long run (Sunday) must be Rest or very light cross-training (walk/stretch only).\n- A "long run" is any run that approaches or exceeds the runner's longest run to date. Shorter long runs (well within their comfort zone) may have an easy recovery run Sunday instead, but when pushing distance limits, Sunday is always full Rest.\n- This means each week follows the pattern: Mon easy/interval/tempo, Tue–Fri mix of easy runs and rest, Sat LONG RUN, Sun REST.\n\nWORKOUT VARIETY (starting week 3 once base is established):\n- Include 1 interval session per week: e.g. "6 x 400m hard effort with 2 min WALK recovery" or "8 x 1 min hard / 2 min walk". WALK recoveries only — never jog recoveries.\n- Include 1 tempo run per week: comfortably hard sustained effort, 20–30 min, Zone 3–4 HR (134–150 bpm). Not in weeks 1–2.\n- "Hard effort" for a 54-year-old means hard to hold a conversation, NOT all-out sprint.\n- All other runs remain easy/conversational (Zone 2, 116–133 bpm).\n- Race week: taper significantly, easy runs only Mon–Fri, Rest Saturday, RACE Sunday May 10.\n\nFORMATTING RULES:\n- Every week MUST start on Monday and end on Sunday\n- Show all 7 days for every week: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday\n- Plain text only, no markdown symbols (no **, no ##)\n- Each day: "DayName — Activity: distance/duration. Tip: one brief tip."\n- Week heading exactly: "Week N (Mon Date – Sun Date)"\n\nMake it practical and encouraging for a 54-year-old running for fun.` }], apiKey, fitbitStats, null, null);
+        let planPrompt;
+        if (goal?.type === "race" && raceDate) {
+          planPrompt = `Generate a training plan targeting ${goal.name || "an upcoming race"} (${goal.distance || "half marathon"}) on ${goal.date}. Today is ${today}.${dataCtx}${longestCtx}${restCtx}${wxCtx}${weekCtx}\n\nLONG RUN SCHEDULING RULES (follow exactly):\n- Always schedule the long run on SATURDAY — never Sunday. This allows a rest day on Sunday.\n- The day after every long run (Sunday) must be Rest or very light cross-training (walk/stretch only).\n- A "long run" is any run that approaches or exceeds the runner's longest run to date. Shorter long runs (well within their comfort zone) may have an easy recovery run Sunday instead, but when pushing distance limits, Sunday is always full Rest.\n- This means each week follows the pattern: Mon easy/interval/tempo, Tue–Fri mix of easy runs and rest, Sat LONG RUN, Sun REST.\n\nWORKOUT VARIETY (starting week 3 once base is established):\n- Include 1 interval session per week: e.g. "6 x 400m hard effort with 2 min WALK recovery" or "8 x 1 min hard / 2 min walk". WALK recoveries only — never jog recoveries.\n- Include 1 tempo run per week: comfortably hard sustained effort, 20–30 min, Zone 3–4 HR (134–150 bpm). Not in weeks 1–2.\n- "Hard effort" for a 54-year-old means hard to hold a conversation, NOT all-out sprint.\n- All other runs remain easy/conversational (Zone 2, 116–133 bpm).\n- Race week: taper significantly, easy runs only Mon–Fri, Rest Saturday, RACE on race day.\n\nFORMATTING RULES:\n- Every week MUST start on Monday and end on Sunday\n- Show all 7 days for every week: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday\n- Plain text only, no markdown symbols (no **, no ##)\n- Each day: "DayName — Activity: distance/duration. Tip: one brief tip."\n- Week heading exactly: "Week N (Mon Date – Sun Date)"\n\nMake it practical and encouraging for a 54-year-old running for fun.`;
+        } else if (goal?.type === "fitness") {
+          planPrompt = `Generate a 12-week fitness maintenance and base-building plan. Today is ${today}.${dataCtx}${longestCtx}${restCtx}${wxCtx}${weekCtx}\n\nGoal: ${goal.description || "Maintaining fitness and building base mileage"}\n\nFOCUS: Consistent easy running, gradual mileage increase, cross-training variety, enjoyment.\n\nFORMATTING RULES:\n- Every week MUST start on Monday and end on Sunday\n- Show all 7 days for every week: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday\n- Plain text only, no markdown symbols (no **, no ##)\n- Each day: "DayName — Activity: distance/duration. Tip: one brief tip."\n- Week heading exactly: "Week N (Mon Date – Sun Date)"\n\nMake it practical and encouraging for a 54-year-old running for fun.`;
+        } else {
+          planPrompt = `Generate a 12-week plan for: ${goal?.description || "recreational running and active lifestyle"}. Today is ${today}.${dataCtx}${longestCtx}${restCtx}${wxCtx}${weekCtx}\n\nFORMATTING RULES:\n- Every week MUST start on Monday and end on Sunday\n- Show all 7 days for every week: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday\n- Plain text only, no markdown symbols (no **, no ##)\n- Each day: "DayName — Activity: distance/duration. Tip: one brief tip."\n- Week heading exactly: "Week N (Mon Date – Sun Date)"\n\nMake it practical and encouraging for a 54-year-old running for fun.`;
+        }
+        const text = await callClaude([{ role: "user", content: planPrompt }], apiKey, fitbitStats, null, null, null, 0, goal);
         setPlan(text); setPlanLines(text.split("\n")); onSavePlan(text); setLoading(false);
       }
 
@@ -709,7 +748,7 @@ COACHING PRINCIPLES:
           <button className="btn btn-primary" style={{marginBottom:12}} onClick={generate} disabled={loading}>
             {loading ? "Generating your plan..." : plan ? "Regenerate Full Plan" : "Generate My Training Plan"}
           </button>
-          {!plan && !loading && <div className="tip-card">Your AI coach builds a {WEEKS_LEFT}-week Hal Higdon-style plan. Once generated it's saved — tap ✏️ on any day to edit, or use "Adjust Week" to modify a whole week with notes.</div>}
+          {!plan && !loading && <div className="tip-card">Your AI coach builds a {weeksLeft || 12}-week Hal Higdon-style plan. Once generated it's saved — tap ✏️ on any day to edit, or use "Adjust Week" to modify a whole week with notes.</div>}
           {loading && <div className="loading-row"><div className="spinner" /><span>Building your personalized plan...</span></div>}
           {plan && !loading && (
             <div className="card">
@@ -1633,9 +1672,18 @@ COACHING PRINCIPLES:
 
     // ─── Coach Tab ────────────────────────────────────────────────────────────────
     const COACH_MSG_LIMIT = 20;
-    function CoachTab({ fitbitStats, apiKey, races, onAddRace, onDeleteRace, savedMessages, onSaveMessages, workouts }) {
+    function CoachTab({ fitbitStats, apiKey, races, onAddRace, onDeleteRace, savedMessages, onSaveMessages, workouts, goal }) {
+      const weeksLeft = computeWeeksLeft(goal);
       const fbIntro = fitbitStats ? ` I can see your Fitbit data: ${fitbitStats.runCount} runs in the last 30 days, ${fitbitStats.totalMiles.toFixed(1)} miles, most recent pace ${fitbitStats.avgPace || "unknown"}.` : " Connect Fitbit in Settings for even more personalized advice.";
-      const defaultMsg = { role: "assistant", content: `Hi! I'm your personal running coach. You're 54 years old, targeting the Mother's Day Half Marathon in ${WEEKS_LEFT} weeks, and you finished the Holyoke 10K.${fbIntro} What questions do you have?` };
+      let goalIntro;
+      if (goal?.type === "race" && goal?.name) {
+        goalIntro = `targeting the ${goal.name} in ${weeksLeft} weeks`;
+      } else if (goal?.type === "fitness" || goal?.type === "activity") {
+        goalIntro = `focused on ${goal.description || "fitness"}`;
+      } else {
+        goalIntro = "working on your running fitness";
+      }
+      const defaultMsg = { role: "assistant", content: `Hi! I'm your personal running coach. You're 54 years old, ${goalIntro}.${fbIntro} What questions do you have?` };
       const [messages, setMessages] = useState(savedMessages?.length ? savedMessages : [defaultMsg]);
       const [input, setInput] = useState("");
       const [loading, setLoading] = useState(false);
@@ -1652,7 +1700,7 @@ COACHING PRINCIPLES:
         setMessages(newMessages);
         setInput("");
         setLoading(true);
-        const reply = await callClaude(newMessages, apiKey, fitbitStats, races, null, workouts, daysSince);
+        const reply = await callClaude(newMessages, apiKey, fitbitStats, races, null, workouts, daysSince, goal);
         const finalMessages = [...newMessages, { role: "assistant", content: reply, ts: Date.now() }];
         // Keep last COACH_MSG_LIMIT messages (always keep first greeting)
         const trimmed = finalMessages.length > COACH_MSG_LIMIT
@@ -1670,7 +1718,10 @@ COACHING PRINCIPLES:
         onSaveMessages(fresh);
       }
 
-      const suggestions = ["Am I ready for the half marathon?","What should I do this week?","How should I handle cold rainy weather?","I'm traveling for work — what do I do?","My knees are feeling sore","What pace should I run the half marathon at?","Does gardening count as cross-training?","How do I use my Fitbit heart rate zones?"];
+      const raceSuggestions = goal?.type === "race"
+        ? [`Am I ready for the ${goal.name || "race"}?`, `What pace should I run the ${goal.name || "race"} at?`]
+        : ["What should my weekly mileage look like?", "How do I keep running fun and avoid burnout?"];
+      const suggestions = [...raceSuggestions, "What should I do this week?","How should I handle cold rainy weather?","I'm traveling for work — what do I do?","My knees are feeling sore","Does gardening count as cross-training?","How do I use my Fitbit heart rate zones?"];
       const hasHistory = messages.length > 1;
       return (
         <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 130px)"}}>
@@ -1714,13 +1765,18 @@ COACHING PRINCIPLES:
     }
 
     // ─── Settings Tab ─────────────────────────────────────────────────────────────
-    function SettingsTab({ settings, onSaveSettings, fitbitToken, fitbitStats, onFitbitConnect, onFitbitDisconnect, onFitbitSync, onClearAndResync, syncing, workouts, onImportWorkouts, redirectUri, weatherLocation, setWeatherLocation, setWeather }) {
+    function SettingsTab({ settings, onSaveSettings, fitbitToken, fitbitStats, onFitbitConnect, onFitbitDisconnect, onFitbitSync, onClearAndResync, syncing, workouts, onImportWorkouts, redirectUri, weatherLocation, setWeatherLocation, setWeather, goal, onSaveGoal }) {
       const [apiKey, setApiKey] = useState(settings.apiKey || "");
       const [fitbitClientId, setFitbitClientId] = useState(settings.fitbitClientId || "");
       const [showKey, setShowKey] = useState(false);
       const [status, setStatus] = useState(null);
       const [pasteJson, setPasteJson] = useState("");
       const [showPaste, setShowPaste] = useState(false);
+      const [goalType, setGoalType] = useState(goal?.type || "fitness");
+      const [goalName, setGoalName] = useState(goal?.name || "");
+      const [goalDate, setGoalDate] = useState(goal?.date || "");
+      const [goalDist, setGoalDist] = useState(goal?.distance || "Half Marathon");
+      const [goalDesc, setGoalDesc] = useState(goal?.description || "");
       useEffect(() => {
         setApiKey(settings.apiKey || "");
         setFitbitClientId(settings.fitbitClientId || "");
@@ -1729,7 +1785,7 @@ COACHING PRINCIPLES:
       const importFileRef = useRef(null);
       function showMsg(type, msg) { setStatus({ type, msg }); setTimeout(() => setStatus(null), 4000); }
 
-      const DATA_KEYS = ["rc_workouts","rc_shoes","rc_plan","rc_week_notes","rc_settings","rc_races","rc_feeling","rc_coach_messages","rc_pace_calc","rc_weather_location","rc_fitbit_blocked"];
+      const DATA_KEYS = ["rc_workouts","rc_shoes","rc_plan","rc_week_notes","rc_settings","rc_races","rc_feeling","rc_coach_messages","rc_pace_calc","rc_weather_location","rc_fitbit_blocked","rc_goal"];
 
       async function exportData() {
         const out = {};
@@ -1803,6 +1859,33 @@ COACHING PRINCIPLES:
         <div className="section">
           <div className="section-title" style={{marginBottom:16}}>Settings</div>
           {status && <div className={`alert alert-${status.type==="success"?"success":"warn"}`}>{status.msg}</div>}
+          <div className="card">
+            <div className="card-title">Your Goal</div>
+            <div style={{display:"flex",gap:8,marginBottom:14}}>
+              {[["race","🏁 Race"],["fitness","💪 Fitness"],["activity","🚴 Activity"]].map(([t,label])=>(
+                <button key={t} onClick={()=>setGoalType(t)} style={{flex:1,padding:"10px 4px",fontSize:13,fontWeight:goalType===t?700:400,background:goalType===t?"#1a2a3a":"#1a1d2a",border:`1px solid ${goalType===t?"#f07030":"#2a2d3e"}`,borderRadius:10,color:goalType===t?"#f07030":"#a0a8c0",cursor:"pointer"}}>{label}</button>
+              ))}
+            </div>
+            {goalType === "race" && (
+              <>
+                <div className="label">Race name</div>
+                <input className="input" placeholder="e.g. Holyoke Half Marathon" value={goalName} onChange={e=>setGoalName(e.target.value)} />
+                <div className="label">Race date</div>
+                <input className="input" type="date" value={goalDate} onChange={e=>setGoalDate(e.target.value)} />
+                <div className="label">Distance</div>
+                <select className="input" value={goalDist} onChange={e=>setGoalDist(e.target.value)}>
+                  {["5K","10K","15K","10 Miles","Half Marathon","Marathon","Other"].map(d=><option key={d}>{d}</option>)}
+                </select>
+              </>
+            )}
+            {(goalType === "fitness" || goalType === "activity") && (
+              <>
+                <div className="label">Description</div>
+                <textarea className="input" style={{minHeight:70,resize:"vertical"}} placeholder="e.g. Maintaining fitness and building base mileage" value={goalDesc} onChange={e=>setGoalDesc(e.target.value)} />
+              </>
+            )}
+            <button className="btn btn-primary" style={{marginTop:4}} onClick={()=>{ onSaveGoal({type:goalType,name:goalName,date:goalDate,distance:goalDist,description:goalDesc}); showMsg("success","Goal saved!"); }}>Save Goal</button>
+          </div>
           <div className="card">
             <div className="card-title">AI Coach — Anthropic API Key</div>
             <div style={{fontSize:13,color:"#5a6080",marginBottom:10,lineHeight:1.5}}>Get your free API key at <strong style={{color:"#a0a8c0"}}>console.anthropic.com</strong>. Stored only on this device.</div>
@@ -2002,6 +2085,7 @@ COACHING PRINCIPLES:
       const [races, setRaces] = useState([]);
       const [feeling, setFeeling] = useState(null);
       const [coachMessages, setCoachMessages] = useState([]);
+      const [goal, setGoal] = useState({ type:"fitness", name:"", date:"", distance:"Half Marathon", description:"Maintaining fitness and building base mileage" });
       const [fitbitBlocked, setFitbitBlocked] = useState(new Set()); // IDs of Fitbit activities never to re-import
       const redirectUri = window.location.origin + window.location.pathname;
 
@@ -2029,7 +2113,7 @@ COACHING PRINCIPLES:
             }
           }
 
-          const [savedShoes, savedWorkouts, savedSettings, savedToken, savedPlanData, savedWeekNotes, savedRaces, savedFeeling, savedCoachMsgs, savedBlocked] = await Promise.all([sget("rc_shoes"), sget("rc_workouts"), sget("rc_settings"), sget("rc_fitbit_token"), sget("rc_plan"), sget("rc_week_notes"), sget("rc_races"), sget("rc_feeling"), sget("rc_coach_messages"), sget("rc_fitbit_blocked")]);
+          const [savedShoes, savedWorkouts, savedSettings, savedToken, savedPlanData, savedWeekNotes, savedRaces, savedFeeling, savedCoachMsgs, savedBlocked, savedGoal] = await Promise.all([sget("rc_shoes"), sget("rc_workouts"), sget("rc_settings"), sget("rc_fitbit_token"), sget("rc_plan"), sget("rc_week_notes"), sget("rc_races"), sget("rc_feeling"), sget("rc_coach_messages"), sget("rc_fitbit_blocked"), sget("rc_goal")]);
           const savedLoc = await sget("rc_weather_location");
           const loc = savedLoc || PRESET_LOCATIONS[0];
           if (savedLoc) setWeatherLocation(savedLoc);
@@ -2042,6 +2126,7 @@ COACHING PRINCIPLES:
           if (savedRaces) setRaces(savedRaces);
           if (savedFeeling) setFeeling(savedFeeling);
           if (savedCoachMsgs) setCoachMessages(savedCoachMsgs);
+          if (savedGoal) setGoal(savedGoal);
           if (savedBlocked) setFitbitBlocked(new Set(savedBlocked));
 
           const tokenToUse = freshPKCEToken || savedToken;
@@ -2155,6 +2240,7 @@ COACHING PRINCIPLES:
         setWeekNotes(updated); await sset("rc_week_notes", updated);
       }
       async function saveCoachMessages(msgs) { setCoachMessages(msgs); await sset("rc_coach_messages", msgs); }
+      async function saveGoal(g) { setGoal(g); await sset("rc_goal", g); }
       async function addRace(r) { const u=[...races,r]; setRaces(u); await sset("rc_races",u); }
       async function deleteRace(id) { const u=races.filter(r=>r.id!==id); setRaces(u); await sset("rc_races",u); }
       async function saveFeeeling(f) { setFeeling(f); await sset("rc_feeling",f); }
@@ -2203,19 +2289,22 @@ COACHING PRINCIPLES:
                 <div style={{display:"flex",gap:8,alignItems:"center"}}>
                   {syncing && <div className="spinner" style={{width:16,height:16}} />}
                   {fitbitToken && !syncing && <span style={{fontSize:11,color:"#00b0b9",cursor:"pointer",fontWeight:600}} onClick={()=>doFitbitSyncInner(fitbitToken.access_token,settings,workouts)}>↻ Fitbit</span>}
-                  <div className="race-badge">🏁 <b>{DAYS_LEFT}d</b> to race</div>
+                  {goal?.type === "race" && goal?.date
+                    ? <div className="race-badge">🏁 <b>{computeDaysLeft(goal) ?? "—"}d</b> to race</div>
+                    : <div className="race-badge">💪 <b>{goal?.type || "fitness"}</b></div>
+                  }
                 </div>
               </div>
             </div>
             {syncError && <div className="alert alert-warn" style={{margin:"8px 16px 0",fontSize:12}}>⚠️ {syncError}</div>}
             <div className="content">
-              {tab==="home" && <Dashboard workouts={workouts} fitbitStats={fitbitStats} onAddWorkout={()=>setShowAddWorkout(true)} feeling={feeling} onSetFeeling={saveFeeeling} />}
-              {tab==="plan" && <PlanTab fitbitStats={fitbitStats} apiKey={settings.apiKey} savedPlan={savedPlan} onSavePlan={savePlan} weather={weather} weatherLocation={weatherLocation} onRefreshWeather={async()=>{ const wx = await fetchWeather(weatherLocation.lat,weatherLocation.lon,weatherLocation.tz); if(wx) setWeather(wx); return wx; }} weekNotes={weekNotes} onSaveWeekNotes={saveWeekNotes} workouts={workouts} />}
-              {tab==="coach" && <CoachTab fitbitStats={fitbitStats} apiKey={settings.apiKey} races={races} onAddRace={addRace} onDeleteRace={deleteRace} savedMessages={coachMessages} onSaveMessages={saveCoachMessages} workouts={workouts} />}
+              {tab==="home" && <Dashboard workouts={workouts} fitbitStats={fitbitStats} onAddWorkout={()=>setShowAddWorkout(true)} feeling={feeling} onSetFeeling={saveFeeeling} goal={goal} />}
+              {tab==="plan" && <PlanTab fitbitStats={fitbitStats} apiKey={settings.apiKey} savedPlan={savedPlan} onSavePlan={savePlan} weather={weather} weatherLocation={weatherLocation} onRefreshWeather={async()=>{ const wx = await fetchWeather(weatherLocation.lat,weatherLocation.lon,weatherLocation.tz); if(wx) setWeather(wx); return wx; }} weekNotes={weekNotes} onSaveWeekNotes={saveWeekNotes} workouts={workouts} goal={goal} />}
+              {tab==="coach" && <CoachTab fitbitStats={fitbitStats} apiKey={settings.apiKey} races={races} onAddRace={addRace} onDeleteRace={deleteRace} savedMessages={coachMessages} onSaveMessages={saveCoachMessages} workouts={workouts} goal={goal} />}
               <div style={{display: tab==="track" ? "block" : "none"}}><TrackTab apiKey={settings.apiKey} fitbitStats={fitbitStats} onLogWorkout={addWorkout} shoes={shoes} /></div>
               {tab==="log" && <LogTab workouts={workouts} onAddWorkout={()=>setShowAddWorkout(true)} onDeleteWorkout={deleteWorkout} shoes={shoes} />}
               {tab==="shoes" && <ShoesTab shoes={shoes} onSave={saveShoes} />}
-              {tab==="settings" && <SettingsTab settings={settings} onSaveSettings={saveSettings} fitbitToken={fitbitToken} fitbitStats={fitbitStats} onFitbitConnect={handleFitbitConnect} onFitbitDisconnect={handleFitbitDisconnect} onFitbitSync={()=>doFitbitSyncInner(fitbitToken?.access_token,settings,workouts)} onClearAndResync={clearAndResync} syncing={syncing} workouts={workouts} onImportWorkouts={importWorkouts} redirectUri={redirectUri} weatherLocation={weatherLocation} setWeatherLocation={setWeatherLocation} setWeather={setWeather} />}
+              {tab==="settings" && <SettingsTab settings={settings} onSaveSettings={saveSettings} fitbitToken={fitbitToken} fitbitStats={fitbitStats} onFitbitConnect={handleFitbitConnect} onFitbitDisconnect={handleFitbitDisconnect} onFitbitSync={()=>doFitbitSyncInner(fitbitToken?.access_token,settings,workouts)} onClearAndResync={clearAndResync} syncing={syncing} workouts={workouts} onImportWorkouts={importWorkouts} redirectUri={redirectUri} weatherLocation={weatherLocation} setWeatherLocation={setWeatherLocation} setWeather={setWeather} goal={goal} onSaveGoal={saveGoal} />}
             </div>
             <div className="tab-bar">
               {tabs.map(t => <button key={t.id} className={`tab ${tab===t.id?"active":""}`} onClick={()=>setTab(t.id)}><span className="tab-icon">{t.icon}</span><span>{t.label}</span></button>)}
