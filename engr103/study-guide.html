@@ -96,7 +96,7 @@
     #quiz-qnum{font-size:.78rem;color:#7f97c9;white-space:nowrap;}
     #quiz-score{font-size:.82rem;font-weight:700;color:#8fb6ff;white-space:nowrap;}
     #quiz-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:22px;}
-    #quiz-body{overflow-y:auto;} #quiz-fig{width:100%;max-width:580px;display:flex;justify-content:center;} #proj-fig{width:100%;} #quiz-fig svg,#proj-fig svg{max-height:260px;} #quiz-qtxt{font-size:1.2rem;font-weight:600;color:#eef3ff;text-align:center;max-width:740px;line-height:1.5;}
+    #screen-welcome{overflow-y:auto;justify-content:flex-start;} #welcome-inner{margin:auto;} #quiz-body{overflow-y:auto;} #quiz-fig{width:100%;max-width:580px;display:flex;justify-content:center;} #proj-fig{width:100%;} #quiz-fig svg,#proj-fig svg{max-height:260px;} #quiz-qtxt{font-size:1.2rem;font-weight:600;color:#eef3ff;text-align:center;max-width:740px;line-height:1.5;}
     #quiz-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:740px;}
     .qopt{padding:18px 20px;border-radius:10px;font-size:.95rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:11px;border:2px solid transparent;transition:all .15s;}
     .qopt:hover:not(.off){filter:brightness(1.1);transform:scale(1.02);}
@@ -322,7 +322,7 @@
 
 <!-- ═══ SIDEBAR ═══ -->
 <div id="sidebar">
-  <h1>🐻 Golden Bear Engineering <span>ENGR 103 · Introduction to Engineering · Study Guide</span></h1>
+  <h1><img src="golden-bear-engineering.png" alt="Golden Bear Engineering" style="width:100%;max-width:230px;display:block;margin:0 auto 8px"><span style="text-align:center">ENGR 103 · Introduction to Engineering · Study Guide</span></h1>
 
   <div class="s-label">COURSE TOPICS <span class="badge" id="tbadge">0/13</span></div>
   <div id="topic-list"></div>
@@ -374,8 +374,8 @@
   <!-- WELCOME -->
   <div class="screen visible" id="screen-welcome">
     <div id="welcome-inner">
-      <h2>🐻 Golden Bear Engineering</h2>
-      <h3 style="color:#ffc72c;font-weight:600;margin:-4px 0 12px;letter-spacing:1px">ENGR 103 · Mid-Term Study Guide</h3>
+      <img src="golden-bear-engineering.png" alt="Golden Bear Engineering" style="width:100%;max-width:220px;display:block;margin:0 auto 6px">
+      <h3 style="color:#ffc72c;font-weight:600;margin:0 0 12px;letter-spacing:1px">ENGR 103 · Mid-Term Study Guide</h3>
       <p>Pick a preset (<strong style="color:#ffc72c">Mid-Term</strong> covers everything on the exam) or choose topics yourself, then choose a study mode. Wiring and Python questions link to the <a href="https://apwne.github.io/WNE-FY-Breadboard-Simulator/" target="_blank" rel="noopener" style="color:#ffc72c;font-weight:700">Breadboard Simulator</a> so you can build and test.</p>
       <div class="wgrid">
         <div class="wcard"><h4>🃏 Flashcards</h4><p>Flip cards to review terms & answers. Mark Know It / Still Learning and filter your deck.</p></div>
