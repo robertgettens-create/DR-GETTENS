@@ -1,0 +1,1844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ENGR 103 — Golden Bear Engineering Study Guide</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Segoe UI',Tahoma,sans-serif;background:#08183a;color:#eef3ff;display:flex;height:100vh;overflow:hidden;}
+
+    /* ── SIDEBAR ── */
+    #sidebar{width:272px;min-width:272px;background:#0f2858;border-right:1px solid #27498a;display:flex;flex-direction:column;padding:16px 14px;overflow-y:auto;gap:0;}
+    #sidebar>*{flex-shrink:0;}
+    #sidebar h1{font-size:.95rem;font-weight:700;color:#ffc72c;text-transform:uppercase;letter-spacing:2px;border-bottom:1px solid #27498a;padding-bottom:10px;margin-bottom:4px;}
+    #sidebar h1 span{display:block;font-size:.6rem;color:#7f97c9;font-weight:400;letter-spacing:1px;margin-top:3px;}
+    .s-label{font-size:.6rem;font-weight:700;color:#7f97c9;text-transform:uppercase;letter-spacing:1.5px;margin:13px 0 6px;}
+    .s-label .badge{float:right;background:#27498a;border-radius:10px;padding:1px 7px;font-size:.62rem;color:#ffc72c;}
+
+    /* presets */
+    .preset-row{display:flex;gap:5px;}
+    .preset-btn{flex:1;padding:6px 2px;background:#163570;border:1px solid #27498a;color:#8a9ab5;border-radius:6px;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;}
+    .preset-btn:hover{border-color:#ffc72c;color:#ffc72c;}
+    .preset-btn.active{background:#1b3f87;border-color:#ffc72c;color:#ffc72c;}
+
+    /* topics — tab style */
+    #topic-list{display:flex;flex-direction:column;gap:2px;max-height:230px;overflow-y:auto;margin-bottom:2px;}
+    .trow{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:6px;cursor:pointer;transition:all .12s;border:1px solid transparent;}
+    .trow:hover{background:#163570;border-color:#27498a;}
+    .trow.sel{background:#14336e;border-color:#ffc72c55;}
+    .tnum-badge{font-size:.62rem;font-weight:800;color:#3a4a60;background:#12306a;border:1px solid #27498a;border-radius:4px;padding:1px 5px;white-space:nowrap;flex-shrink:0;min-width:26px;text-align:center;transition:all .12s;}
+    .trow.sel .tnum-badge{color:#ffc72c;border-color:#ffc72c55;background:#1b3f87;}
+    .tlbl{font-size:.71rem;color:#6a7a95;line-height:1.3;transition:color .12s;}
+    .trow.sel .tlbl{color:#c8daf0;}
+
+    /* mode buttons */
+    .mode-grid{display:flex;flex-direction:column;gap:4px;}
+    .mode-btn{width:100%;padding:8px 10px;background:#163570;border:1px solid #27498a;color:#8a9ab5;border-radius:7px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;text-align:left;display:flex;align-items:center;gap:8px;}
+    .mode-btn:hover{border-color:#ffc72c;color:#c8d8f0;}
+    .mode-btn.active{background:#1b3f87;border-color:#ffc72c;color:#ffc72c;}
+    .mode-btn.proj-btn{border-color:#8fb6ff33;color:#9a8040;}
+    .mode-btn.proj-btn:hover{border-color:#8fb6ff;color:#8fb6ff;}
+    .mode-btn.proj-btn.active{background:#2a2310;border-color:#8fb6ff;color:#8fb6ff;}
+
+    /* stats */
+    #stats-box{background:#163570;border-radius:8px;padding:9px 11px;display:flex;flex-direction:column;gap:5px;margin-top:4px;}
+    .stat-row{display:flex;justify-content:space-between;}
+    .stat-lbl{font-size:.68rem;color:#7f97c9;}
+    .stat-val{font-size:.78rem;font-weight:700;color:#ffc72c;}
+
+    /* ── MAIN ── */
+    #main{flex:1;overflow:hidden;display:flex;flex-direction:column;position:relative;}
+    .screen{display:none;width:100%;height:100%;flex-direction:column;align-items:center;justify-content:center;}
+    .screen.visible{display:flex;}
+
+    /* ── WELCOME ── */
+    #welcome-inner{text-align:center;padding:36px 40px;max-width:620px;}
+    #welcome-inner h2{font-size:1.9rem;color:#ffc72c;margin-bottom:10px;}
+    #welcome-inner p{font-size:.95rem;color:#7a8aaa;line-height:1.6;margin-bottom:22px;}
+    .wgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px;text-align:left;}
+    .wcard{background:#0f2858;border:1px solid #27498a;border-radius:10px;padding:14px 16px;}
+    .wcard h4{color:#ffc72c;margin-bottom:5px;font-size:.85rem;}
+    .wcard p{color:#5a6a8a;font-size:.76rem;line-height:1.5;}
+
+    /* ── FLASHCARDS ── */
+    #screen-flashcard{padding:22px;gap:14px;}
+    #fc-prog-row{width:100%;max-width:680px;display:flex;align-items:center;gap:12px;}
+    #fc-prog-wrap{flex:1;height:6px;background:#27498a;border-radius:3px;overflow:hidden;}
+    #fc-prog-bar{height:100%;width:0%;background:linear-gradient(90deg,#ffc72c,#4a9de0);border-radius:3px;transition:width .3s;}
+    #fc-prog-txt{font-size:.75rem;color:#7f97c9;white-space:nowrap;}
+    #fc-wrap{width:100%;max-width:680px;perspective:1000px;}
+    #fc-card{width:100%;min-height:360px;position:relative;cursor:pointer;transition:transform .5s;transform-style:preserve-3d;}
+    #fc-card.flipped{transform:rotateY(180deg);}
+    .fc-face{position:absolute;top:0;left:0;width:100%;height:100%;min-height:360px;backface-visibility:hidden;background:#0f2858;border:1px solid #27498a;border-radius:14px;padding:28px 32px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+    #fc-front svg,#fc-back svg{max-width:100% !important;max-height:240px !important;height:auto;display:block;margin:0 auto;pointer-events:none;}
+    .fc-face.back{transform:rotateY(180deg);background:#12306a;}
+    .fc-badge{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4a5a70;border:1px solid #27498a;border-radius:20px;padding:2px 10px;margin-bottom:14px;}
+    .fc-side-lbl{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#3a5070;margin-bottom:10px;}
+    .fc-face.back .fc-side-lbl{color:#3a6a5a;}
+    #fc-front{font-size:1.25rem;font-weight:600;color:#eef3ff;line-height:1.5;}
+    #fc-back{font-size:.95rem;color:#b8cce8;line-height:1.65;white-space:pre-line;}
+    .fc-hint{font-size:.68rem;color:#2a3a50;margin-top:14px;}
+    #fc-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;width:100%;max-width:680px;}
+    .fcb{padding:7px 16px;border-radius:7px;border:1px solid #27498a;background:#163570;color:#8a9ab5;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;}
+    .fcb:hover{border-color:#ffc72c;color:#eef3ff;}
+    .fcb.know{border-color:#4caf5055;color:#4caf50;}
+    .fcb.know:hover{background:#182818;border-color:#4caf50;}
+    .fcb.still{border-color:#f4433655;color:#f44336;}
+    .fcb.still:hover{background:#2a1818;border-color:#f44336;}
+    .fcb.shuf{border-color:#8fb6ff44;color:#b09050;}
+
+    /* ── QUIZ ── */
+    #screen-quiz{flex-direction:column;align-items:stretch;justify-content:flex-start;}
+    #quiz-hdr{width:100%;padding:14px 26px;background:#0f2858;border-bottom:1px solid #27498a;display:flex;align-items:center;gap:14px;flex-shrink:0;}
+    #quiz-timer-wrap{flex:1;height:8px;background:#27498a;border-radius:4px;overflow:hidden;}
+    #quiz-timer-bar{height:100%;width:100%;background:linear-gradient(90deg,#4caf50,#8fb6ff,#f44336);border-radius:4px;transition:width .1s linear;}
+    #quiz-qnum{font-size:.78rem;color:#7f97c9;white-space:nowrap;}
+    #quiz-score{font-size:.82rem;font-weight:700;color:#8fb6ff;white-space:nowrap;}
+    #quiz-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:22px;}
+    #screen-welcome{overflow-y:auto;justify-content:flex-start;} #welcome-inner{margin:auto;} #quiz-body{overflow-y:auto;} #quiz-fig{width:100%;max-width:580px;display:flex;justify-content:center;} #proj-fig{width:100%;} #quiz-fig svg,#proj-fig svg{max-height:260px;} #quiz-qtxt{font-size:1.2rem;font-weight:600;color:#eef3ff;text-align:center;max-width:740px;line-height:1.5;}
+    #quiz-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:740px;}
+    .qopt{padding:18px 20px;border-radius:10px;font-size:.95rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:11px;border:2px solid transparent;transition:all .15s;}
+    .qopt:hover:not(.off){filter:brightness(1.1);transform:scale(1.02);}
+    .qopt.off{cursor:default;}
+    .qopt-ltr{width:30px;height:30px;border-radius:5px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.88rem;flex-shrink:0;}
+    .qopt.qa{background:#c0392b;color:#fff;}.qopt.qb{background:#2980b9;color:#fff;}
+    .qopt.qc{background:#c07b00;color:#fff;}.qopt.qd{background:#27ae60;color:#fff;}
+    .qopt.correct{box-shadow:0 0 0 3px #fff;transform:scale(1.03);}
+    .qopt.wrong{opacity:.3;}
+    .qopt.show-correct{box-shadow:0 0 0 3px #fff;}
+    #quiz-exp{max-width:740px;text-align:center;font-size:.84rem;color:#7ab0d8;line-height:1.6;padding:11px 18px;background:#0f2858;border-radius:8px;border-left:3px solid #ffc72c;display:none;}
+    #quiz-end{display:none;flex-direction:column;align-items:center;gap:16px;text-align:center;}
+    #quiz-end h2{font-size:1.8rem;color:#ffc72c;}
+    .score-big{font-size:3.2rem;font-weight:800;color:#8fb6ff;}
+
+    /* ── MATCHING ── */
+    #screen-matching{padding:22px;gap:18px;}
+    #match-hdr{font-size:.82rem;color:#7f97c9;}
+    #match-hdr span{color:#ffc72c;font-weight:700;}
+    #match-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;width:100%;max-width:780px;}
+    .mitem{padding:13px 15px;background:#0f2858;border:2px solid #27498a;border-radius:8px;cursor:pointer;font-size:.84rem;color:#c0d0e8;transition:all .15s;line-height:1.4;text-align:center;}
+    .mitem:hover{border-color:#ffc72caa;}
+    .mitem .mcol{font-size:.56rem;text-transform:uppercase;letter-spacing:1px;color:#3a4a5a;display:block;margin-bottom:3px;}
+    .mitem.sel{border-color:#ffc72c;background:#1a2e48;color:#fff;}
+    .mitem.done{border-color:#4caf5033;background:#182818;color:#4caf5099;cursor:default;opacity:.55;}
+    .mitem.bad{border-color:#f44336;background:#2a1818;animation:shake .3s;}
+    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+    #match-done{display:none;flex-direction:column;align-items:center;gap:14px;text-align:center;}
+    #match-done h3{font-size:1.4rem;color:#4caf50;}
+
+    /* ── TRUE/FALSE ── */
+    #screen-tf{padding:24px;gap:20px;}
+    #tf-stats{display:flex;gap:22px;font-size:.82rem;}
+    #tf-stats span{color:#7f97c9;}
+    #tf-stats strong{color:#ffc72c;}
+    #tf-stmt{max-width:660px;text-align:center;font-size:1.25rem;font-weight:600;color:#eef3ff;line-height:1.5;}
+    #tf-btns{display:flex;gap:18px;}
+    .tfb{padding:16px 44px;font-size:1.05rem;font-weight:700;border-radius:10px;cursor:pointer;border:2px solid transparent;transition:all .15s;}
+    .tfb:hover{transform:scale(1.04);}
+    .tfb.tft{background:#27ae60;color:#fff;}
+    .tfb.tff{background:#e74c3c;color:#fff;}
+    .tfb.correct{box-shadow:0 0 0 4px #fff;}
+    .tfb.wrong{opacity:.3;}
+    #tf-exp{max-width:620px;font-size:.84rem;color:#7ab0d8;line-height:1.6;background:#0f2858;padding:12px 16px;border-radius:8px;border-left:3px solid #ffc72c;text-align:center;display:none;}
+
+    /* ── PROJECTOR ── */
+    #projector{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#090a0f;z-index:1000;display:none;flex-direction:column;align-items:center;}
+    #projector.on{display:flex;}
+    #proj-top{width:100%;padding:14px 26px;background:#111218;display:flex;align-items:center;gap:16px;}
+    #proj-timer-wrap{flex:1;height:10px;background:#222;border-radius:5px;overflow:hidden;}
+    #proj-timer-bar{height:100%;width:100%;background:linear-gradient(90deg,#4caf50,#8fb6ff,#f44336);}
+    #proj-tnum{font-size:1.4rem;font-weight:800;color:#8fb6ff;min-width:28px;text-align:center;}
+    #proj-qnum{font-size:.85rem;color:#4a5a70;}
+    #proj-reveal{padding:10px 26px;background:#8fb6ff;color:#120f00;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;margin-left:auto;margin-right:10px;}
+    #proj-reveal:hover{background:#f0d88a;}
+    #proj-close{background:none;border:1px solid #333;color:#555;padding:5px 11px;border-radius:5px;cursor:pointer;font-size:.78rem;}
+    #proj-close:hover{color:#f44336;border-color:#f44336;}
+    #proj-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 48px;gap:30px;width:100%;}
+    #proj-qtxt{font-size:clamp(1.3rem,2.8vw,2.1rem);font-weight:700;color:#fff;text-align:center;max-width:860px;line-height:1.4;}
+    #proj-opts{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:860px;}
+    .popt{padding:20px 26px;border-radius:11px;font-size:clamp(.95rem,1.8vw,1.25rem);font-weight:600;color:#fff;display:flex;align-items:center;gap:14px;transition:all .2s;}
+    .popt-ltr{width:42px;height:42px;border-radius:7px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;flex-shrink:0;}
+    .popt.pa{background:#c0392b;}.popt.pb{background:#2980b9;}
+    .popt.pc{background:#c07b00;}.popt.pd{background:#27ae60;}
+    .popt.hide-txt .popt-txt{visibility:hidden;}
+    .popt.revealed{box-shadow:0 0 0 4px #fff;}
+    #proj-nav{display:flex;gap:10px;padding-bottom:18px;}
+    .pnavb{padding:9px 22px;background:#0f2858;border:1px solid #27498a;color:#8a9ab5;border-radius:7px;font-size:.85rem;cursor:pointer;}
+    .pnavb:hover{border-color:#ffc72c;color:#ffc72c;}
+
+    /* confetti */
+    .cpiece{position:fixed;width:8px;height:8px;border-radius:2px;animation:cfall 1.3s ease-in forwards;pointer-events:none;z-index:9999;}
+    @keyframes cfall{0%{opacity:1;transform:translateY(-10px) rotate(0)}100%{opacity:0;transform:translateY(320px) rotate(400deg)}}
+
+    /* shared btn */
+    .gbtn{padding:8px 20px;border-radius:8px;border:1px solid #27498a;background:#163570;color:#8a9ab5;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;}
+    .gbtn:hover{border-color:#ffc72c;color:#eef3ff;}
+
+    /* ── EXPLAIN IT ── */
+    #screen-explain{padding:22px;gap:14px;}
+    #ex-hdr{width:100%;max-width:700px;display:flex;flex-direction:column;gap:8px;}
+    #ex-stats{display:flex;gap:20px;font-size:.82rem;flex-wrap:wrap;}
+    #ex-stats span{color:#7f97c9;}#ex-stats strong{color:#ffc72c;}
+    #ex-prog-wrap{height:5px;background:#27498a;border-radius:3px;overflow:hidden;}
+    #ex-prog-bar{height:100%;width:0%;background:linear-gradient(90deg,#4caf50,#ffc72c);border-radius:3px;transition:width .3s;}
+    #ex-topic-lbl{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4a5a70;border:1px solid #27498a;border-radius:20px;padding:2px 10px;}
+    #ex-prompt{max-width:700px;text-align:center;font-size:1.2rem;font-weight:600;color:#eef3ff;line-height:1.5;}
+    #ex-textarea{width:100%;max-width:700px;min-height:100px;background:#0f2858;border:1px solid #27498a;border-radius:10px;color:#eef3ff;font-size:.9rem;padding:14px 16px;resize:vertical;font-family:inherit;line-height:1.6;transition:border-color .15s;}
+    #ex-textarea:focus{outline:none;border-color:#ffc72c55;}
+    #ex-textarea:disabled{opacity:.7;}
+    #ex-reveal-btn{padding:9px 28px;background:#1b3f87;border:1px solid #ffc72c;color:#ffc72c;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .15s;}
+    #ex-reveal-btn:hover{background:#254a7a;}
+    #ex-reveal-btn:disabled{opacity:.4;cursor:default;}
+    #ex-model{max-width:700px;background:#12306a;border:1px solid #27498a;border-radius:10px;padding:16px 20px;font-size:.9rem;color:#b8cce8;line-height:1.65;white-space:pre-line;border-left:3px solid #ffc72c;}
+    #ex-rate-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+    .exrb{padding:10px 22px;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;border:2px solid transparent;transition:all .15s;}
+    .exrb:hover{filter:brightness(1.1);transform:scale(1.02);}
+    .exrb.got{background:#27ae60;color:#fff;}.exrb.part{background:#c07b00;color:#fff;}.exrb.miss{background:#c0392b;color:#fff;}
+    #ex-end{display:none;flex-direction:column;align-items:center;gap:14px;text-align:center;}
+    #ex-end h2{font-size:1.6rem;color:#ffc72c;}
+    .ex-score-grid{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;}
+    .ex-score-box{background:#0f2858;border:1px solid #27498a;border-radius:10px;padding:16px 24px;text-align:center;}
+    .ex-score-box .esnum{font-size:2.4rem;font-weight:800;}
+    .ex-score-box .eslbl{font-size:.72rem;color:#7f97c9;text-transform:uppercase;letter-spacing:1px;margin-top:4px;}
+    .esnum.got{color:#27ae60;}.esnum.part{color:#8fb6ff;}.esnum.miss{color:#f44336;}
+
+    /* ── FILL IN BLANK ── */
+    #screen-fib{padding:24px;gap:18px;}
+    #fib-hdr{display:flex;gap:20px;font-size:.82rem;flex-wrap:wrap;}
+    #fib-hdr span{color:#7f97c9;}#fib-hdr strong{color:#ffc72c;}
+    #fib-prompt{max-width:700px;text-align:center;font-size:1.15rem;font-weight:500;color:#eef3ff;line-height:2.4;}
+    .fib-input{background:#163570;border:1px solid #4a6a8a;border-radius:5px;color:#ffc72c;font-size:.95rem;padding:4px 8px;width:130px;font-family:inherit;text-align:center;outline:none;transition:border-color .15s;}
+    .fib-input:focus{border-color:#ffc72c;}
+    .fib-input.correct{border-color:#4caf50;color:#4caf50;background:#182818;}
+    .fib-input.wrong{border-color:#f44336;color:#f44336;background:#2a1818;}
+    .fib-input:disabled{opacity:.8;}
+    #fib-submit{padding:9px 28px;background:#1b3f87;border:1px solid #ffc72c;color:#ffc72c;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .15s;}
+    #fib-submit:hover{background:#254a7a;}
+    #fib-exp{max-width:700px;font-size:.84rem;color:#7ab0d8;line-height:1.6;background:#0f2858;padding:12px 16px;border-radius:8px;border-left:3px solid #ffc72c;text-align:center;}
+    #fib-next{padding:8px 22px;background:#163570;border:1px solid #27498a;color:#8a9ab5;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;}
+    #fib-next:hover{border-color:#ffc72c;color:#eef3ff;}
+    #fib-end{display:none;flex-direction:column;align-items:center;gap:12px;text-align:center;}
+    #fib-end h2{font-size:1.6rem;color:#ffc72c;}
+
+    /* ── SEQUENCE ORDERING ── */
+    #screen-seq{padding:22px;gap:14px;}
+    #seq-hdr{display:flex;gap:20px;font-size:.82rem;flex-wrap:wrap;}
+    #seq-hdr span{color:#7f97c9;}#seq-hdr strong{color:#ffc72c;}
+    #seq-prompt{max-width:680px;text-align:center;font-size:1.1rem;font-weight:600;color:#eef3ff;line-height:1.5;}
+    #seq-list{display:flex;flex-direction:column;gap:6px;width:100%;max-width:680px;}
+    .seq-item{display:flex;align-items:center;gap:10px;background:#0f2858;border:2px solid #27498a;border-radius:8px;padding:10px 12px;transition:border-color .25s,background .25s;}
+    .seq-item.correct{border-color:#4caf50;background:#182818;}
+    .seq-item.wrong{border-color:#f44336;background:#2a1818;animation:shake .3s;}
+    .seq-num{font-size:.72rem;font-weight:800;color:#3a5070;background:#163570;border-radius:4px;padding:2px 7px;min-width:24px;text-align:center;flex-shrink:0;}
+    .seq-item.correct .seq-num{color:#4caf50;background:#1a3020;}
+    .seq-item.wrong .seq-num{color:#f44336;}
+    .seq-txt{font-size:.85rem;color:#c0d0e8;flex:1;line-height:1.4;}
+    .seq-arrows{display:flex;flex-direction:column;gap:2px;flex-shrink:0;}
+    .seq-arrow{background:none;border:1px solid #27498a;color:#4a5a70;border-radius:4px;width:24px;height:20px;cursor:pointer;font-size:.65rem;display:flex;align-items:center;justify-content:center;transition:all .1s;padding:0;}
+    .seq-arrow:hover:not(:disabled){border-color:#ffc72c;color:#ffc72c;}
+    .seq-arrow:disabled{opacity:.2;cursor:default;}
+    #seq-check{padding:9px 28px;background:#1b3f87;border:1px solid #ffc72c;color:#ffc72c;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .15s;}
+    #seq-check:hover{background:#254a7a;}
+    #seq-exp{max-width:680px;font-size:.84rem;color:#7ab0d8;line-height:1.6;background:#0f2858;padding:12px 16px;border-radius:8px;border-left:3px solid #ffc72c;text-align:center;}
+    #seq-result{font-size:.9rem;font-weight:700;text-align:center;}
+    #seq-next{padding:8px 22px;background:#163570;border:1px solid #27498a;color:#8a9ab5;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;}
+    #seq-next:hover{border-color:#ffc72c;color:#eef3ff;}
+    #seq-end{display:none;flex-direction:column;align-items:center;gap:12px;text-align:center;}
+    #seq-end h2{font-size:1.6rem;color:#ffc72c;}
+
+    /* ── FC WEAK-CARD BANNER ── */
+    #fc-review-banner{display:none;align-items:center;gap:10px;background:#1b3f87;border:1px solid #ffc72c55;border-radius:8px;padding:8px 14px;width:100%;max-width:680px;}
+    #fc-review-banner span{font-size:.8rem;color:#9ab8d8;flex:1;}
+    #fc-review-banner button{white-space:nowrap;border-color:#ffc72c;color:#ffc72c;}
+
+    ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:#08183a;}::-webkit-scrollbar-thumb{background:#27498a;border-radius:3px;}
+    @media(max-width:680px){#quiz-opts,#proj-opts{grid-template-columns:1fr;}#sidebar{width:220px;min-width:220px;}}
+
+    /* ── FINAL EXAM SPECIAL BUTTONS ── */
+    .mode-btn.final-btn{border-color:#8fb6ff33;color:#9a8a40;}
+    .mode-btn.final-btn:hover{border-color:#8fb6ff;color:#8fb6ff;}
+    .mode-btn.final-btn.active{background:#2a2310;border-color:#8fb6ff;color:#8fb6ff;}
+
+    /* ── PSPP SCREEN ── */
+    #screen-pspp{padding:22px 22px 40px;gap:14px;align-items:center;overflow-y:auto;justify-content:flex-start;}
+    .pspp-header{max-width:700px;width:100%;text-align:center;}
+    .pspp-header h3{font-size:1.25rem;font-weight:700;color:#8fb6ff;margin-bottom:6px;}
+    .pspp-header p{font-size:.82rem;color:#5a6a8a;line-height:1.5;}
+    .pspp-diagram{display:flex;align-items:center;justify-content:center;gap:0;max-width:700px;width:100%;flex-wrap:wrap;gap:6px;}
+    .pspp-node{padding:10px 16px;border-radius:10px;font-size:.85rem;font-weight:700;text-align:center;flex:1;min-width:110px;}
+    .pspp-arrow{font-size:1.3rem;color:#3a4a60;padding:0 2px;flex-shrink:0;}
+    .pspp-node.proc{background:#1b3f87;border:2px solid #ffc72c;color:#ffc72c;}
+    .pspp-node.struc{background:#2a2310;border:2px solid #8fb6ff;color:#8fb6ff;}
+    .pspp-node.prop{background:#182818;border:2px solid #4caf50;color:#4caf50;}
+    .pspp-node.perf{background:#2a1818;border:2px solid #f44336;color:#f44336;}
+    .pspp-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;max-width:700px;width:100%;}
+    .pspp-select{background:#0f2858;border:1px solid #27498a;color:#eef3ff;border-radius:8px;padding:7px 12px;font-size:.88rem;font-family:inherit;cursor:pointer;flex:1;}
+    .pspp-step{max-width:700px;width:100%;background:#0f2858;border:1px solid #27498a;border-radius:10px;padding:14px 18px;}
+    .pspp-step-badge{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:20px;padding:3px 12px;display:inline-block;margin-bottom:8px;}
+    .pspp-step.proc .pspp-step-badge{background:#1b3f87;color:#ffc72c;border:1px solid #ffc72c55;}
+    .pspp-step.struc .pspp-step-badge{background:#2a2310;color:#8fb6ff;border:1px solid #8fb6ff55;}
+    .pspp-step.prop .pspp-step-badge{background:#182818;color:#4caf50;border:1px solid #4caf5055;}
+    .pspp-step.perf .pspp-step-badge{background:#2a1818;color:#f44336;border:1px solid #f4433655;}
+    .pspp-step-q{font-size:.95rem;color:#eef3ff;font-weight:600;margin-bottom:8px;line-height:1.4;}
+    .pspp-ta{width:100%;min-height:72px;background:#163570;border:1px solid #27498a;border-radius:7px;color:#eef3ff;font-size:.86rem;padding:9px 12px;resize:vertical;font-family:inherit;line-height:1.5;margin-bottom:8px;}
+    .pspp-ta:focus{outline:none;border-color:#ffc72c55;}
+    .pspp-ans{background:#0f1e14;border:1px solid #4caf5033;border-left:3px solid #4caf50;border-radius:8px;padding:11px 15px;font-size:.85rem;color:#a8d8b8;line-height:1.65;display:none;white-space:pre-line;}
+    .pspp-reveal{padding:6px 16px;background:#182818;border:1px solid #4caf5055;color:#4caf50;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;transition:all .15s;}
+    .pspp-reveal:hover{background:#1e3818;border-color:#4caf50;}
+    .pspp-tip{max-width:700px;width:100%;background:#2a2310;border:1px solid #8fb6ff33;border-radius:8px;padding:11px 15px;font-size:.82rem;color:#c8a848;line-height:1.55;}
+
+    /* ── CALC SCREEN ── */
+    #screen-calc{padding:22px 22px 40px;gap:14px;align-items:center;overflow-y:auto;justify-content:flex-start;}
+    .calc-banner{max-width:700px;width:100%;background:#152030;border:1px solid #ffc72c55;border-radius:10px;padding:14px 18px;border-left:4px solid #ffc72c;}
+    .calc-banner h3{color:#ffc72c;font-size:1rem;margin-bottom:5px;}
+    .calc-banner p{color:#7a90b0;font-size:.83rem;line-height:1.55;}
+    .calc-formula-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:9px;max-width:700px;width:100%;}
+    .calc-formula{background:#0f2858;border:1px solid #27498a;border-radius:8px;padding:11px 14px;}
+    .cf-name{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4a5a70;margin-bottom:5px;}
+    .cf-eq{font-size:1.05rem;font-weight:700;color:#8fb6ff;font-family:monospace;}
+    .cf-note{font-size:.72rem;color:#4a5a70;margin-top:3px;line-height:1.4;}
+    .calc-section-lbl{max-width:700px;width:100%;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#5a6a8a;padding:4px 0 0;}
+    .calc-data{max-width:700px;width:100%;}
+    .calc-tbl{width:100%;border-collapse:collapse;font-size:.85rem;}
+    .calc-tbl th{background:#163570;color:#ffc72c;padding:7px 12px;text-align:center;border:1px solid #27498a;font-size:.78rem;}
+    .calc-tbl td{padding:6px 12px;text-align:center;border:1px solid #27498a;color:#c0d0e8;}
+    .calc-tbl tr:nth-child(even) td{background:#0f2858;}
+    .calc-tbl td.note{text-align:left;color:#7a9ab5;font-style:italic;font-size:.78rem;}
+    .calc-item{max-width:700px;width:100%;background:#0f2858;border:1px solid #27498a;border-radius:9px;overflow:hidden;}
+    .calc-item-hdr{background:#163570;padding:10px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;}
+    .calc-num{width:26px;height:26px;border-radius:50%;background:#ffc72c;color:#000;font-weight:800;font-size:.82rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .calc-q{font-size:.92rem;font-weight:600;color:#eef3ff;flex:1;}
+    .calc-chevron{color:#3a4a60;font-size:.8rem;transition:transform .2s;}
+    .calc-item.open .calc-chevron{transform:rotate(180deg);}
+    .calc-body{padding:13px 16px;font-size:.86rem;color:#a8bcd8;line-height:1.65;display:none;border-top:1px solid #27498a;}
+    .calc-item.open .calc-body{display:block;}
+    .calc-ans{background:#0d1a10;border-left:3px solid #4caf50;border-radius:0 6px 6px 0;padding:8px 13px;color:#8fd0a8;font-family:monospace;font-size:.9rem;margin:6px 0;display:block;line-height:1.6;}
+    .calc-warn{max-width:700px;width:100%;background:#1a1500;border:1px solid #8fb6ff44;border-left:3px solid #8fb6ff;border-radius:8px;padding:12px 16px;font-size:.85rem;color:#c8a848;line-height:1.6;}
+    .calc-warn strong{color:#8fb6ff;}
+  </style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══ -->
+<div id="sidebar">
+  <h1><img src="golden-bear-engineering.png" alt="Golden Bear Engineering" style="width:100%;max-width:230px;display:block;margin:0 auto 8px"><span style="text-align:center">ENGR 103 · Introduction to Engineering · Study Guide</span></h1>
+
+  <div class="s-label">COURSE TOPICS <span class="badge" id="tbadge">0/13</span></div>
+  <div id="topic-list"></div>
+
+  <div class="s-label">QUICK SELECT</div>
+  <div class="preset-row">
+    <button class="preset-btn" data-p="mid" onclick="applyPreset('mid')">Mid-Term</button>
+    <button class="preset-btn" data-p="gfx" onclick="applyPreset('gfx')">Graphics</button>
+  </div>
+  <div class="preset-row" style="margin-top:5px">
+    <button class="preset-btn" data-p="des" onclick="applyPreset('des')">Design</button>
+    <button class="preset-btn" data-p="wir" onclick="applyPreset('wir')">Wire/Code</button>
+    <button class="preset-btn" data-p="sw" onclick="applyPreset('sw')">SolidWorks</button>
+  </div>
+
+  <div class="s-label">BREADBOARD SIMULATOR</div>
+  <div class="mode-grid" style="gap:3px;">
+    <a class="mode-btn final-btn" href="https://apwne.github.io/WNE-FY-Breadboard-Simulator/" target="_blank" rel="noopener" style="text-decoration:none"><span>🔌</span> Open Simulator ↗</a>
+  </div>
+
+  <div class="s-label">MODE</div>
+  <div class="mode-grid">
+    <button class="mode-btn active" data-m="welcome" onclick="setMode('welcome')"><span>🏠</span> Home</button>
+    <button class="mode-btn" data-m="flashcard" onclick="setMode('flashcard')"><span>🃏</span> Flashcards</button>
+    <button class="mode-btn" data-m="quiz" onclick="setMode('quiz')"><span>⚡</span> Quiz (Kahoot Style)</button>
+    <button class="mode-btn" data-m="matching" onclick="setMode('matching')"><span>🔗</span> Matching</button>
+    <button class="mode-btn" data-m="tf" onclick="setMode('tf')"><span>✓✗</span> True / False</button>
+    <button class="mode-btn" data-m="explain" onclick="setMode('explain')"><span>✍</span> Explain It</button>
+    <button class="mode-btn" data-m="fib" onclick="setMode('fib')"><span>📝</span> Fill in Blank / Code</button>
+    <button class="mode-btn" data-m="seq" onclick="setMode('seq')"><span>🔢</span> Ordering</button>
+    <button class="mode-btn proj-btn" data-m="projector" onclick="openProj()"><span>📽</span> Class Mode</button>
+  </div>
+
+  <div class="s-label">SESSION</div>
+  <div id="stats-box">
+    <div class="stat-row"><span class="stat-lbl">Flashcards</span><span class="stat-val" id="sfc">—</span></div>
+    <div class="stat-row"><span class="stat-lbl">Quiz (MC)</span><span class="stat-val" id="smc">—</span></div>
+    <div class="stat-row"><span class="stat-lbl">True/False</span><span class="stat-val" id="stf">—</span></div>
+    <div class="stat-row"><span class="stat-lbl">Matching pairs</span><span class="stat-val" id="smt">—</span></div>
+    <div class="stat-row"><span class="stat-lbl">Explain It</span><span class="stat-val" id="sex">—</span></div>
+    <div class="stat-row"><span class="stat-lbl">Fill in Blank</span><span class="stat-val" id="sfb">—</span></div>
+    <div class="stat-row"><span class="stat-lbl">Ordering</span><span class="stat-val" id="sseq">—</span></div>
+  </div>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<div id="main">
+
+  <!-- WELCOME -->
+  <div class="screen visible" id="screen-welcome">
+    <div id="welcome-inner">
+      <img src="golden-bear-engineering.png" alt="Golden Bear Engineering" style="width:100%;max-width:220px;display:block;margin:0 auto 6px">
+      <h3 style="color:#ffc72c;font-weight:600;margin:0 0 12px;letter-spacing:1px">ENGR 103 · Mid-Term Study Guide</h3>
+      <p>Pick a preset (<strong style="color:#ffc72c">Mid-Term</strong> covers everything on the exam) or choose topics yourself, then choose a study mode. Wiring and Python questions link to the <a href="https://apwne.github.io/WNE-FY-Breadboard-Simulator/" target="_blank" rel="noopener" style="color:#ffc72c;font-weight:700">Breadboard Simulator</a> so you can build and test.</p>
+      <div class="wgrid">
+        <div class="wcard"><h4>🃏 Flashcards</h4><p>Flip cards to review terms & answers. Mark Know It / Still Learning and filter your deck.</p></div>
+        <div class="wcard"><h4>⚡ Quiz</h4><p>Timed Kahoot-style MC — colored tiles, countdown bar, streak bonus, and confetti.</p></div>
+        <div class="wcard"><h4>🔗 Matching</h4><p>Click a term, then its definition. Clear all pairs to advance to the next set.</p></div>
+        <div class="wcard"><h4>✓✗ True / False</h4><p>Fast-fire T/F with streak counter and answer explanations.</p></div>
+        <div class="wcard"><h4>✍ Explain It</h4><p>Short-answer practice. Write your explanation, reveal the model answer, then self-rate. Best prep for conceptual exam questions.</p></div>
+        <div class="wcard"><h4>📝 Fill in Blank</h4><p>Key sentences with blanks — type the missing term and check your answer. Great for vocabulary and definitions.</p></div>
+        <div class="wcard"><h4>🔢 Ordering</h4><p>Arrange steps into the correct sequence using ▲▼ buttons. Tests processes like the design thinking steps, concept selection, and drawing set-up.</p></div>
+        <div class="wcard" style="grid-column:1/-1"><h4>📽 Class Mode</h4><p>Full-screen projector view. Shows question + colored tiles (answers hidden). Click <em>Show Answer</em> to reveal. Use ← → keys or buttons to navigate. Press Space to reveal, Esc to exit.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLASHCARDS -->
+  <div class="screen" id="screen-flashcard">
+    <div id="fc-prog-row">
+      <div id="fc-prog-wrap"><div id="fc-prog-bar"></div></div>
+      <span id="fc-prog-txt">0 / 0</span>
+    </div>
+    <div id="fc-review-banner">
+      <span id="fc-review-msg"></span>
+      <button class="fcb" onclick="fcReviewWeak()">Review Weak Cards →</button>
+    </div>
+    <div id="fc-wrap">
+      <div id="fc-card" onclick="fcFlip()">
+        <div class="fc-face front">
+          <span class="fc-badge" id="fc-badge">—</span>
+          <div class="fc-side-lbl" id="fc-lbl-front">TERM / QUESTION</div>
+          <div id="fc-front">Choose topics, then click Flashcards</div>
+          <div class="fc-hint">Click card to flip</div>
+        </div>
+        <div class="fc-face back">
+          <span class="fc-badge" id="fc-badge-b">—</span>
+          <div class="fc-side-lbl" id="fc-lbl-back">ANSWER</div>
+          <div id="fc-back"></div>
+          <div class="fc-hint">Click to flip back</div>
+        </div>
+      </div>
+    </div>
+    <div id="fc-controls">
+      <button class="fcb" onclick="fcNav(-1)">← Prev</button>
+      <button class="fcb still" onclick="fcMark(false)">Still Learning</button>
+      <button class="fcb know" onclick="fcMark(true)">Know It ✓</button>
+      <button class="fcb" onclick="fcNav(1)">Next →</button>
+      <button class="fcb shuf" onclick="fcShuffle()">⇄ Shuffle</button>
+      <button class="fcb" id="fc-filter-btn" onclick="fcToggleFilter()">Show: All</button>
+      <button class="fcb" id="fc-dir-btn" onclick="fcToggleDir()" style="border-color:#9b7ec855;color:#9b7ec8;">▶ Term → Def</button>
+      <button class="fcb" onclick="fcReset()">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="screen" id="screen-quiz" style="flex-direction:column;align-items:stretch;justify-content:flex-start;">
+    <div id="quiz-hdr">
+      <div id="quiz-timer-wrap"><div id="quiz-timer-bar"></div></div>
+      <span id="quiz-qnum">Q 1/1</span>
+      <span id="quiz-score">Score: 0</span>
+    </div>
+    <div id="quiz-body">
+      <div id="quiz-qtxt"></div>
+      <div id="quiz-fig" style="text-align:center"></div>
+      <div id="quiz-opts">
+        <div class="qopt qa" id="qo0" onclick="quizAns(0)"><span class="qopt-ltr">A</span><span id="qt0"></span></div>
+        <div class="qopt qb" id="qo1" onclick="quizAns(1)"><span class="qopt-ltr">B</span><span id="qt1"></span></div>
+        <div class="qopt qc" id="qo2" onclick="quizAns(2)"><span class="qopt-ltr">C</span><span id="qt2"></span></div>
+        <div class="qopt qd" id="qo3" onclick="quizAns(3)"><span class="qopt-ltr">D</span><span id="qt3"></span></div>
+      </div>
+      <div id="quiz-exp"></div>
+      <div id="quiz-end">
+        <div style="font-size:2rem">🎉</div>
+        <h2>Quiz Complete!</h2>
+        <div class="score-big" id="quiz-final"></div>
+        <p id="quiz-detail" style="color:#7a8aaa"></p>
+        <button class="gbtn" onclick="initQuiz()" style="margin-top:8px">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MATCHING -->
+  <div class="screen" id="screen-matching">
+    <div id="match-hdr">Set <span id="mset-n">1</span> of <span id="mset-tot">?</span> &nbsp;|&nbsp; <span id="mremain">?</span> pairs left</div>
+    <div id="match-grid"></div>
+    <div id="match-done">
+      <div style="font-size:2rem">🎉</div>
+      <h3>All Matched!</h3>
+      <div style="display:flex;gap:10px;">
+        <button class="gbtn" id="match-next-btn" onclick="matchNext()">Next Set →</button>
+        <button class="gbtn" onclick="initMatching()">↺ Restart</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRUE/FALSE -->
+  <div class="screen" id="screen-tf">
+    <div id="tf-stats"><span>Correct: <strong id="tf-cor">0</strong></span><span>Streak: <strong id="tf-str">0</strong></span><span><strong id="tf-n">0</strong> / <strong id="tf-tot">0</strong></span></div>
+    <div id="tf-stmt">Select topics and click True / False to begin</div>
+    <div id="tf-btns">
+      <button class="tfb tft" id="tfT" onclick="tfAns(true)">TRUE</button>
+      <button class="tfb tff" id="tfF" onclick="tfAns(false)">FALSE</button>
+    </div>
+    <div id="tf-exp"></div>
+  </div>
+
+  <!-- EXPLAIN IT -->
+  <div class="screen" id="screen-explain">
+    <div id="ex-hdr">
+      <div id="ex-stats">
+        <span>Got It: <strong id="ex-got">0</strong></span>
+        <span>Partially: <strong id="ex-part">0</strong></span>
+        <span>Missed: <strong id="ex-miss">0</strong></span>
+        <span><strong id="ex-n">0</strong> / <strong id="ex-tot">0</strong></span>
+      </div>
+      <div id="ex-prog-wrap"><div id="ex-prog-bar"></div></div>
+    </div>
+    <div id="ex-topic-lbl">—</div>
+    <div id="ex-prompt">Select topics and click Explain It</div>
+    <textarea id="ex-textarea" placeholder="Write your explanation here — try to be thorough…"></textarea>
+    <button id="ex-reveal-btn" onclick="exReveal()">Reveal Model Answer</button>
+    <div id="ex-model" style="display:none"></div>
+    <div id="ex-rate-row" style="display:none">
+      <button class="exrb got" onclick="exRate('got')">✓ Got It</button>
+      <button class="exrb part" onclick="exRate('part')">🤔 Partially</button>
+      <button class="exrb miss" onclick="exRate('miss')">✗ Missed It</button>
+    </div>
+    <div id="ex-end">
+      <div style="font-size:2rem">🎉</div>
+      <h2>Deck Complete!</h2>
+      <div class="ex-score-grid">
+        <div class="ex-score-box"><div class="esnum got" id="ex-end-got">0</div><div class="eslbl">Got It</div></div>
+        <div class="ex-score-box"><div class="esnum part" id="ex-end-part">0</div><div class="eslbl">Partially</div></div>
+        <div class="ex-score-box"><div class="esnum miss" id="ex-end-miss">0</div><div class="eslbl">Missed It</div></div>
+      </div>
+      <button class="gbtn" onclick="initExplain()" style="margin-top:6px">↺ Retry</button>
+    </div>
+  </div>
+
+  <!-- SEQUENCE ORDERING -->
+  <div class="screen" id="screen-seq">
+    <div id="seq-hdr">
+      <span>Correct: <strong id="seq-cor">0</strong></span>
+      <span>Question: <strong id="seq-n">1</strong> / <strong id="seq-qtot">0</strong></span>
+    </div>
+    <div id="seq-prompt">Select topics and click Ordering</div>
+    <div id="seq-list"></div>
+    <button id="seq-check" onclick="seqCheck()" style="display:none">Check Order</button>
+    <div id="seq-result" style="display:none"></div>
+    <div id="seq-exp" style="display:none"></div>
+    <button id="seq-next" onclick="seqNext()" style="display:none">Next →</button>
+    <div id="seq-end">
+      <div style="font-size:2rem">🎉</div>
+      <h2>Complete!</h2>
+      <div class="score-big" id="seq-final"></div>
+      <button class="gbtn" onclick="initSeq()" style="margin-top:8px">↺ Retry</button>
+    </div>
+  </div>
+
+  <!-- FILL IN BLANK -->
+  <div class="screen" id="screen-fib">
+    <div id="fib-hdr">
+      <span>Correct: <strong id="fib-cor">0</strong></span>
+      <span><strong id="fib-n">0</strong> / <strong id="fib-tot">0</strong></span>
+    </div>
+    <div id="fib-prompt">Select topics and click Fill in Blank</div>
+    <button id="fib-submit" onclick="fibSubmit()" style="display:none">Check Answers</button>
+    <div id="fib-exp" style="display:none"></div>
+    <button id="fib-next" onclick="fibNext()" style="display:none">Next →</button>
+    <div id="fib-end">
+      <div style="font-size:2rem">🎉</div>
+      <h2>Complete!</h2>
+      <div class="score-big" id="fib-final"></div>
+      <button class="gbtn" onclick="initFIB()" style="margin-top:8px">↺ Retry</button>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- ═══ PROJECTOR ═══ -->
+<div id="projector">
+  <div id="proj-top">
+    <div id="proj-timer-wrap"><div id="proj-timer-bar"></div></div>
+    <span id="proj-tnum">20</span>
+    <span id="proj-qnum" style="margin-left:8px">Q 1/1</span>
+    <button id="proj-reveal" onclick="projReveal()">Show Answer</button>
+    <button id="proj-close" onclick="closeProj()">✕ Exit</button>
+  </div>
+  <div id="proj-body">
+    <div id="proj-qtxt"></div>
+    <div id="proj-fig" style="text-align:center;max-width:560px;margin:0 auto"></div>
+    <div id="proj-opts">
+      <div class="popt pa hide-txt" id="po0"><span class="popt-ltr">A</span><span class="popt-txt" id="pt0"></span></div>
+      <div class="popt pb hide-txt" id="po1"><span class="popt-ltr">B</span><span class="popt-txt" id="pt1"></span></div>
+      <div class="popt pc hide-txt" id="po2"><span class="popt-ltr">C</span><span class="popt-txt" id="pt2"></span></div>
+      <div class="popt pd hide-txt" id="po3"><span class="popt-ltr">D</span><span class="popt-txt" id="pt3"></span></div>
+    </div>
+  </div>
+  <div id="proj-nav">
+    <button class="pnavb" onclick="projMove(-1)">← Prev</button>
+    <button class="pnavb" onclick="projMove(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════ FIGURE HELPERS (inline SVG) ════════════════════════
+const INK='#e8eefc', DIM='#9fb4dc', GOLD='#ffc72c', RED='#ff6b6b', GRN='#5fd38d';
+const svgWrap=(w,h,inner,max)=>`<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${max||w}px;height:auto" font-family="Segoe UI,Tahoma,sans-serif" font-size="12" fill="${INK}">${inner}</svg>`;
+const T=(x,y,s,o)=>`<text x="${x}" y="${y}" text-anchor="${(o&&o.a)||'middle'}" fill="${(o&&o.c)||INK}" font-size="${(o&&o.s)||12}" ${(o&&o.b)?'font-weight="700"':''}>${s}</text>`;
+const L=(x1,y1,x2,y2,w,c,d)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c||INK}" stroke-width="${w||1.5}" ${d?`stroke-dasharray="${d}"`:''} stroke-linecap="butt"/>`;
+const arrow=(x1,y1,x2,y2,c)=>{ // arrowhead at (x2,y2)
+  const a=Math.atan2(y2-y1,x2-x1),s=7,p=Math.PI/8;
+  return `<polygon points="${x2},${y2} ${x2-s*Math.cos(a-p)},${y2-s*Math.sin(a-p)} ${x2-s*Math.cos(a+p)},${y2-s*Math.sin(a+p)}" fill="${c||INK}"/>`;
+};
+const dimLine=(x1,y1,x2,y2,c)=>L(x1,y1,x2,y2,1,c||DIM)+arrow(x2,y2,x1,y1,c||DIM)+arrow(x1,y1,x2,y2,c||DIM);
+
+// ── Line-type chart: types keyed by letter ──
+function lineSwatch(type,x,y,w){
+  const x2=x+w;
+  switch(type){
+    case 'visible': return L(x,y,x2,y,3.5);
+    case 'hidden': return L(x,y,x2,y,1.8,INK,'9 5');
+    case 'center': return L(x,y,x2,y,1.2,INK,'22 4 4 4');
+    case 'phantom': return L(x,y,x2,y,1.2,INK,'22 4 4 4 4 4');
+    case 'section': { let s=`<rect x="${x}" y="${y-12}" width="${w}" height="24" fill="none" stroke="${INK}" stroke-width="1.5"/>`; for(let i=x+8;i<x2-4;i+=9) s+=L(i,y+12,Math.min(i+14,x2),y-12+(i+14>x2?(i+14-x2):0),1); return s; }
+    case 'cutting': return L(x,y,x2,y,3,INK,'22 5')+L(x+4,y,x+4,y-16,3)+arrow(x+4,y,x+4,y-18,INK)+L(x2-4,y,x2-4,y-16,3)+arrow(x2-4,y,x2-4,y-18,INK);
+    case 'shortbreak': { let d=`M${x} ${y}`; const n=8; for(let i=1;i<=n;i++) d+=` L${x+w*i/n} ${y+(i%2?-7:7)*(i<n?1:0)}`; return `<path d="${d}" fill="none" stroke="${INK}" stroke-width="2.6"/>`; }
+    case 'longbreak': return L(x,y,x+w*0.38,y,1.2)+`<path d="M${x+w*0.38} ${y} l${w*0.06} -10 l${w*0.12} 20 l${w*0.06} -10" fill="none" stroke="${INK}" stroke-width="1.2"/>`+L(x+w*0.62,y,x2,y,1.2);
+    case 'dimension': return L(x,y,x2,y,1.1)+arrow(x2,y,x,y,INK)+arrow(x,y,x2,y,INK);
+    case 'extension': return L(x,y,x2,y,1.1);
+  }
+  return '';
+}
+function lineFig(items){ // items: [['A','visible'],['B','hidden'],...]
+  const rowH=34,h=items.length*rowH+10,w=330;
+  let s='';
+  items.forEach((it,i)=>{ const y=24+i*rowH; s+=T(16,y+4,it[0],{b:1,c:GOLD,s:15})+lineSwatch(it[1],40,y,260); });
+  return svgWrap(w,h,s,360);
+}
+
+// ── Step-block geometry: 4 wide (x) × 2 deep (y) × 3 high (z), step cut x∈[2,4], z∈[1.5,3] ──
+const PROJ=(x,y,z)=>[(x+y)/Math.SQRT2,(-x+y+2*z)/Math.sqrt(6)]; // viewer at (+x,-y,+z)
+function blockFig(opts){
+  opts=opts||{};
+  const S=40; // px per unit in iso
+  const faces={
+    A:[[0,0,0],[4,0,0],[4,0,1.5],[2,0,1.5],[2,0,3],[0,0,3]],          // front (L-shaped)
+    B:[[0,0,3],[2,0,3],[2,2,3],[0,2,3]],                              // top of tall part
+    C:[[2,0,1.5],[2,2,1.5],[2,2,3],[2,0,3]],                          // wall of step
+    D:[[2,0,1.5],[4,0,1.5],[4,2,1.5],[2,2,1.5]],                      // top of step
+    E:[[4,0,0],[4,2,0],[4,2,1.5],[4,0,1.5]]                           // right end
+  };
+  const shade={A:'#2b4f9e',B:'#4a73c9',C:'#35609f',D:'#5b86d6',E:'#274684'};
+  let all=[]; Object.values(faces).forEach(f=>f.forEach(p=>all.push(PROJ(...p))));
+  const minx=Math.min(...all.map(p=>p[0])),maxx=Math.max(...all.map(p=>p[0])),miny=Math.min(...all.map(p=>p[1])),maxy=Math.max(...all.map(p=>p[1]));
+  const ox=20-minx*S, oy=20+maxy*S; const W=(maxx-minx)*S+40,H=(maxy-miny)*S+40;
+  let iso='';
+  Object.keys(faces).forEach(k=>{
+    const pts=faces[k].map(p=>{const q=PROJ(...p);return [ox+q[0]*S,oy-q[1]*S];});
+    iso+=`<polygon points="${pts.map(p=>p.join(',')).join(' ')}" fill="${shade[k]}" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"/>`;
+    let cx=pts.reduce((a,p)=>a+p[0],0)/pts.length, cy=pts.reduce((a,p)=>a+p[1],0)/pts.length;
+    if(k==='A'){const q=PROJ(1,0,1);cx=ox+q[0]*S;cy=oy-q[1]*S;}
+    if(opts.labels!==false) iso+=T(cx,cy+5,k,{b:1,c:GOLD,s:16});
+  });
+  // three views, 3rd angle layout. unit = 30 px
+  const u=30, vx=W+30, fx=vx+10; const fw=4*u,fh=3*u,dd=2*u; const fy=34+dd+14+fh; // front-view origin (bottom-left)
+  const topY=fy-fh-14-dd; // top view top edge
+  let v='';
+  // front view (x right, z up)
+  const fp=[[0,0],[4,0],[4,1.5],[2,1.5],[2,3],[0,3]].map(p=>[fx+p[0]*u,fy-p[1]*u]);
+  v+=`<polygon points="${fp.map(p=>p.join(',')).join(' ')}" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linejoin="round"/>`;
+  v+=T(fx+fw/2,fy+18,'FRONT',{c:DIM,s:11});
+  // top view (x right, y up on paper): sits above front
+  const ty=fy-fh-14; // bottom edge of top view
+  v+=`<rect x="${fx}" y="${ty-dd}" width="${fw}" height="${dd}" fill="none" stroke="${INK}" stroke-width="2.4"/>`;
+  v+=L(fx+2*u,ty-dd,fx+2*u,ty,2.4);
+  v+=T(fx+fw/2,ty-dd-6,'TOP',{c:DIM,s:11});
+  // right view (y right, z up) right of front
+  const rx=fx+fw+14;
+  v+=`<rect x="${rx}" y="${fy-fh}" width="${dd}" height="${fh}" fill="none" stroke="${INK}" stroke-width="2.4"/>`;
+  v+=L(rx,fy-1.5*u,rx+dd,fy-1.5*u,2.4);
+  v+=T(rx+dd/2,fy+18,'RIGHT',{c:DIM,s:11});
+  if(opts.surfaceLabelsOnViews){ /* none: students work it out */ }
+  const Wt=rx+dd+20, Ht=Math.max(H,fy+30);
+  return svgWrap(Wt,Ht,iso+v,560);
+}
+// Table of how each face appears in each view (derived from the geometry above)
+const BLOCK_VIEW={ // 'S' = surface, 'E' = edge
+  A:{Front:'S',Top:'E',Right:'E'}, B:{Front:'E',Top:'S',Right:'E'}, C:{Front:'E',Top:'E',Right:'S'},
+  D:{Front:'E',Top:'S',Right:'E'}, E:{Front:'E',Top:'E',Right:'S'}
+};
+const BLOCK_NAME={A:'the L-shaped front face',B:'the top of the tall section',C:'the vertical wall of the step',D:'the top of the step',E:'the right end face'};
+
+// ── Block with a vertical through-hole: hidden lines ──
+function holeFig(){
+  const u=30,fx=20,fw=4*u,fh=3*u,dd=2*u,fy=30+dd+12+fh;
+  let s='';
+  s+=`<rect x="${fx}" y="${fy-fh}" width="${fw}" height="${fh}" fill="none" stroke="${INK}" stroke-width="2.4"/>`;
+  s+=L(fx+1.6*u,fy-fh,fx+1.6*u,fy,1.8,INK,'8 5')+L(fx+2.4*u,fy-fh,fx+2.4*u,fy,1.8,INK,'8 5');
+  s+=L(fx+2*u,fy-fh-6,fx+2*u,fy+6,1.1,INK,'20 4 4 4');
+  const ty=fy-fh-12;
+  s+=`<rect x="${fx}" y="${ty-dd}" width="${fw}" height="${dd}" fill="none" stroke="${INK}" stroke-width="2.4"/>`;
+  s+=`<circle cx="${fx+2*u}" cy="${ty-dd/2}" r="${0.4*u}" fill="none" stroke="${INK}" stroke-width="2.4"/>`;
+  s+=L(fx+2*u-0.7*u,ty-dd/2,fx+2*u+0.7*u,ty-dd/2,1.1,INK,'20 4 4 4')+L(fx+2*u,ty-dd/2-0.7*u,fx+2*u,ty-dd/2+0.7*u,1.1,INK,'20 4 4 4');
+  const rx=fx+fw+14;
+  s+=`<rect x="${rx}" y="${fy-fh}" width="${dd}" height="${fh}" fill="none" stroke="${INK}" stroke-width="2.4"/>`;
+  s+=L(rx+dd/2-0.4*u,fy-fh,rx+dd/2-0.4*u,fy,1.8,INK,'8 5')+L(rx+dd/2+0.4*u,fy-fh,rx+dd/2+0.4*u,fy,1.8,INK,'8 5');
+  s+=T(fx+fw/2,fy+20,'FRONT',{c:DIM,s:11})+T(fx+fw/2,ty-dd-6,'TOP',{c:DIM,s:11})+T(rx+dd/2,fy+20,'RIGHT',{c:DIM,s:11});
+  // callouts
+  s+=T(fx+2*u-52,fy-fh+16,'1',{b:1,c:GOLD,s:15});
+  s+=T(fx+2*u,ty-dd/2-0.55*u-3,'2',{b:1,c:GOLD,s:15});
+  s+=T(rx+dd+16,fy-fh/2,'3',{b:1,c:GOLD,s:15});
+  return svgWrap(rx+dd+40,fy+34,s,520);
+}
+
+// ── Dimensioning panels A–D ──
+function dimPanel(kind,letter){
+  const ox=56,oy=34,w=110,h=62;
+  let s=`<rect x="${ox}" y="${oy}" width="${w}" height="${h}" fill="none" stroke="${INK}" stroke-width="2.4"/>`;
+  const hx=ox+55,hy=oy+31;
+  s+=`<circle cx="${hx}" cy="${hy}" r="10" fill="none" stroke="${INK}" stroke-width="2.4"/>`;
+  s+=L(hx-16,hy,hx+16,hy,1,INK,'12 3 3 3')+L(hx,hy-16,hx,hy+16,1,INK,'12 3 3 3');
+  const fs={s:10,c:INK};
+  const widthDim=()=> L(ox,oy+h+2,ox,oy+h+22,1,DIM)+L(ox+w,oy+h+2,ox+w,oy+h+22,1,DIM)+dimLine(ox,oy+h+18,ox+w,oy+h+18)+T(ox+w/2,oy+h+15,'4.00',fs);
+  const heightDim=()=> L(ox-2,oy,ox-22,oy,1,DIM)+L(ox-2,oy+h,ox-22,oy+h,1,DIM)+dimLine(ox-18,oy,ox-18,oy+h)+T(ox-24,oy+h/2+4,'2.40',{s:10,c:INK,a:'end'});
+  const holeX=()=> L(hx,hy-18,hx,oy-22,1,DIM)+L(ox,oy-2,ox,oy-22,1,DIM)+dimLine(ox,oy-18,hx,oy-18)+T((ox+hx)/2,oy-21,'2.00',fs);
+  const holeY=()=> L(hx+18,hy,ox+w+22,hy,1,DIM)+L(ox+w+2,oy+h,ox+w+22,oy+h,1,DIM)+dimLine(ox+w+18,hy,ox+w+18,oy+h)+T(ox+w+22,hy+(h/2)/2+4,'1.20',{s:10,c:INK,a:'start'});
+  const holeD=()=> L(hx+7,hy-7,ox+w+10,oy-12,1,DIM)+arrow(ox+w+10,oy-12,hx+7,hy-7,DIM)+T(ox+w+14,oy-10,'Ø.75',{s:10,c:INK,a:'start'});
+  if(kind==='best'){ s+=widthDim()+heightDim()+holeX()+holeY()+holeD(); }
+  if(kind==='over'){ // chained pieces + overall = redundant
+    s+=heightDim()+holeX()+holeY()+holeD();
+    s+=L(ox,oy+h+2,ox,oy+h+22,1,DIM)+L(ox+w/2,oy+h+2,ox+w/2,oy+h+22,1,DIM)+L(ox+w,oy+h+2,ox+w,oy+h+22,1,DIM)
+      +dimLine(ox,oy+h+12,ox+w/2,oy+h+12)+dimLine(ox+w/2,oy+h+12,ox+w,oy+h+12)+T(ox+w/4,oy+h+9,'2.00',fs)+T(ox+3*w/4,oy+h+9,'2.00',fs)
+      +L(ox,oy+h+22,ox,oy+h+40,1,DIM)+L(ox+w,oy+h+22,ox+w,oy+h+40,1,DIM)+dimLine(ox,oy+h+36,ox+w,oy+h+36)+T(ox+w/2,oy+h+33,'4.00',fs);
+  }
+  if(kind==='under'){ s+=widthDim()+heightDim()+holeX()+holeY(); } // hole diameter missing
+  if(kind==='bad'){ // numbers rotated, dimension lines drawn through the part, no extension lines
+    s+=dimLine(ox,oy+10,ox+w,oy+10)+`<text transform="translate(${ox+w/2-26},${oy+8}) " font-size="10" fill="${INK}">4.00</text>`;
+    s+=dimLine(ox+14,oy,ox+14,oy+h)+`<text transform="translate(${ox+11},${oy+h/2+14}) rotate(-90)" font-size="10" fill="${INK}">2.40</text>`;
+    s+=holeD();
+  }
+  s+=T(10,16,letter,{b:1,c:GOLD,s:16,a:'start'});
+  return `<g>${s}</g>`;
+}
+function dimFig(){
+  const order=[['A','best'],['B','over'],['C','under'],['D','bad']];
+  let s='';
+  order.forEach((o,i)=>{ const cx=(i%2)*235, cy=Math.floor(i/2)*150; s+=`<g transform="translate(${cx},${cy})">${dimPanel(o[1],o[0])}</g>`; });
+  return svgWrap(470,300,s,560);
+}
+
+// ── LED schematics: GPIO → resistor → LED → GND ──
+function ledSym(x,y,dir){ // triangle + bar, arrow shows conventional current left→right when dir='fwd'
+  const f=dir==='fwd';
+  const tri=f?`${x},${y-12} ${x},${y+12} ${x+22},${y}`:`${x+22},${y-12} ${x+22},${y+12} ${x},${y}`;
+  const bar=f?x+22:x;
+  return `<polygon points="${tri}" fill="none" stroke="${INK}" stroke-width="2"/>`+L(bar,y-13,bar,y+13,2.4)+
+    `<path d="M${x+6} ${y-17} l8 -8 m-4 0 h4 v4 M${x+14} ${y-13} l8 -8 m-4 0 h4 v4" fill="none" stroke="${GOLD}" stroke-width="1.3"/>`;
+}
+function resSym(x,y){ return `<polyline points="${x},${y} ${x+5},${y-8} ${x+13},${y+8} ${x+21},${y-8} ${x+29},${y+8} ${x+37},${y-8} ${x+42},${y}" fill="none" stroke="${INK}" stroke-width="2"/>`; }
+function gndSym(x,y){ return L(x,y,x,y+8,2)+L(x-11,y+8,x+11,y+8,2)+L(x-7,y+13,x+7,y+13,2)+L(x-3,y+18,x+3,y+18,2); }
+function ledCircuit(o,letter){
+  // o: {led:'fwd'|'rev', open:bool, resFirst:bool}
+  const y=56; let s='';
+  s+=`<rect x="4" y="${y-12}" width="46" height="24" rx="4" fill="#173569" stroke="${GOLD}" stroke-width="1.4"/>`+T(27,y+4,'GP15',{s:11,c:GOLD})+T(27,y+30,'HIGH',{s:10,c:GRN});
+  const parts=o.resFirst===false?['led','res']:['res','led'];
+  let x=50;
+  parts.forEach(p=>{
+    s+=L(x,y,x+10,y,2); x+=10;
+    if(p==='res'){ s+=resSym(x,y); x+=42; } else { s+=ledSym(x,y,o.led); x+=22; }
+  });
+  s+=L(x,y,x+14,y,2); x+=14;
+  if(o.open){ s+=L(x,y,x+12,y-12,2)+gndSym(x+22,y+4)+L(x+22,y+4,x+22,y,2); }
+  else { s+=L(x,y,x+22,y,2)+gndSym(x+22,y); }
+  if(letter) s+=T(8,16,letter,{b:1,c:GOLD,s:16,a:'start'});
+  return s;
+}
+function ledPanelFig(){
+  const defs=[['A',{led:'fwd'}],['B',{led:'rev'}],['C',{led:'fwd',open:true}],['D',{led:'fwd',resFirst:false}]];
+  let s='';
+  defs.forEach((d,i)=>{ s+=`<g transform="translate(${(i%2)*260},${Math.floor(i/2)*100})">${ledCircuit(d[1],d[0])}</g>`; });
+  return svgWrap(510,200,s,560);
+}
+function ledOne(o){ return svgWrap(250,100,ledCircuit(o,''),280); }
+
+// ── Servo wiring schematic ──
+function servoFig(o){
+  // o.common: share GND between pack − and Pico GND ; o.signal: signal wire to GP15
+  let s='';
+  s+=`<rect x="8" y="20" width="110" height="100" rx="6" fill="#173569" stroke="${GOLD}" stroke-width="1.6"/>`+T(63,38,'Pico',{b:1,c:GOLD});
+  s+=T(110,62,'GP15',{s:11,c:INK,a:'end'})+T(110,104,'GND',{s:11,c:INK,a:'end'});
+  s+=`<rect x="250" y="20" width="100" height="100" rx="6" fill="#173569" stroke="${INK}" stroke-width="1.6"/>`+T(300,38,'Servo',{b:1});
+  s+=T(262,62,'signal',{s:11,a:'start',c:'#ffb54a'})+T(262,82,'V+',{s:11,a:'start',c:RED})+T(262,104,'GND',{s:11,a:'start',c:'#c9a27e'});
+  s+=`<rect x="130" y="150" width="130" height="38" rx="6" fill="#173569" stroke="${INK}" stroke-width="1.6"/>`+T(195,173,'6 V battery pack',{s:11});
+  s+=T(140,162,'+',{c:RED,b:1,s:14})+T(250,162,'−',{c:INK,b:1,s:14});
+  if(o.signal!==false) s+=L(118,60,250,60,2.4,'#ffb54a');
+  s+=L(140,150,140,82,2.4,RED)+L(140,82,250,82,2.4,RED);
+  s+=L(250,150,250,104,2.4,'#c9a27e');
+  if(o.common!==false){ s+=L(118,104,188,104,2.4,'#7aa7ff')+L(188,104,188,128,2.4,'#7aa7ff')+L(188,128,250,128,2.4,'#7aa7ff')+L(250,128,250,150,2.4,'#7aa7ff'); }
+  return svgWrap(370,200,s,420);
+}
+
+// ── Breadboard strip diagram ──
+function breadboardFig(){
+  const cols='abcdefghij', cw=24, rh=22, x0=40, y0=34, rows=6;
+  let s='';
+  s+=`<rect x="14" y="14" width="${x0+cols.length*cw+30}" height="${y0+rows*rh}" rx="8" fill="#243a6b" stroke="${DIM}" stroke-width="1.2"/>`;
+  for(let r=0;r<rows;r++){
+    s+=T(24,y0+r*rh+4,String(r+1),{s:10,c:DIM});
+    for(let c=0;c<10;c++){
+      const cx=x0+c*cw+(c>=5?18:0), cy=y0+r*rh;
+      const hl=(r===2&&c===1);
+      s+=`<circle cx="${cx}" cy="${cy}" r="${hl?6:4}" fill="${hl?GOLD:'#0a1a38'}" stroke="${hl?INK:DIM}" stroke-width="1"/>`;
+    }
+  }
+  for(let c=0;c<10;c++){ s+=T(x0+c*cw+(c>=5?18:0),20,cols[c],{s:10,c:DIM}); }
+  s+=T(x0+4.5*cw+9,y0+rows*rh+22,'center gap',{s:10,c:DIM});
+  return svgWrap(x0+cols.length*cw+60,y0+rows*rh+34,s,360);
+}
+
+// ════════════════════════ TOPICS & PRESETS ════════════════════════
+const TOPICS=[
+  {id:'01',label:'Graphics: Views & Projection'},
+  {id:'02',label:'Graphics: Lines & Symbols'},
+  {id:'03',label:'Graphics: Dimensioning'},
+  {id:'04',label:'Design Thinking: The 5 Steps'},
+  {id:'05',label:'Need, Constraints & Criteria'},
+  {id:'06',label:'Concept Screening Matrix'},
+  {id:'07',label:'Breadboard & Circuit Basics'},
+  {id:'08',label:'Wiring: LED, Servo & Motors'},
+  {id:'09',label:'Python on the Pico'},
+  {id:'10',label:'Motor Data, Excel & Memo'},
+  {id:'11',label:'SolidWorks: Sketching'},
+  {id:'12',label:'SolidWorks: Features & Assemblies'},
+  {id:'13',label:'SolidWorks: Drawings & Pack and Go'}
+];
+const PRESETS={
+  mid:['01','02','03','04','05','06','07','08','09','10','11','12','13'],
+  gfx:['01','02','03'],
+  des:['04','05','06','10'],
+  wir:['07','08','09','10'],
+  sw:['11','12','13']
+};
+const SIM_URL='https://apwne.github.io/WNE-FY-Breadboard-Simulator/';
+
+// ════════════════════════ QUESTION BANK ══════════════════════════
+const Q=[
+/* ─────────────── FLASHCARDS (also used by Explain It) ─────────────── */
+// 01 Views & Projection
+{id:'f01a',t:['01'],type:'fc',fr:'Orthographic vs. perspective projection',bk:'Orthographic: viewer is infinitely far away, so projectors are PARALLEL. Measurements stay accurate; used for engineering drawings.\nPerspective: projectors radiate from one point (the observer), so they are not parallel. Looks realistic but distorts measurements.'},
+{id:'f01b',t:['01'],type:'fc',fr:'What is an isometric view?',bk:'A type of orthographic projection where the object is turned 45° about the Z axis and tilted about 35° about the X axis so that three sides (front, top and side) show at once.'},
+{id:'f01c',t:['01'],type:'fc',fr:'Which two axes does each standard view show?',bk:'Front: X–Z\nTop (horizontal): X–Y\nRight (profile): Y–Z\nThe front view is seen by a viewer on the Y axis looking toward +Y.'},
+{id:'f01d',t:['01'],type:'fc',fr:'Where are the views placed in 3rd angle projection?',bk:'Front view in the middle. TOP view directly ABOVE the front. RIGHT view directly to the RIGHT of the front.\n(Third angle is the ANSI / US standard.)'},
+{id:'f01e',t:['01'],type:'fc',fr:'How does 1st angle projection differ from 3rd angle?',bk:'In 1st angle the views are flipped: the TOP view is placed BELOW the front view and the RIGHT view is placed to the LEFT of the front view.\n1st angle is used in much of Europe/Asia; 3rd angle is used in the US.'},
+{id:'f01f',t:['01'],type:'fc',fr:'What are fold (hinge) lines?',bk:'The lines where the projection planes meet when the 3D "glass box" is unfolded into a flat sheet. For example HF is the fold line between the Horizontal (top) view and the Front view.'},
+{id:'f01g',t:['01'],type:'fc',fr:'A surface can look like three different things in a view. What are they?',bk:'1) A true-shape or foreshortened SURFACE (area)\n2) An EDGE VIEW (a line) when the surface is parallel to the line of sight\n3) Not visible (hidden behind other geometry; shown with hidden lines if you need it)'},
+{id:'f01h',t:['01'],type:'fc',fr:'Lines on a drawing can represent which three features?',bk:'1) The edge view of a surface\n2) The intersection of two surfaces\n3) The limit (tangent edge) of a curved surface'},
+// 02 Lines & Symbols
+{id:'f02a',t:['02'],type:'fc',fr:'Visible line vs. hidden line',bk:'Visible line: thick solid line for edges you can see in that view.\nHidden line: medium dashed line for edges that exist but are behind a surface in that view.'},
+{id:'f02b',t:['02'],type:'fc',fr:'Center line',bk:'Thin line made of long–short–long dashes. Marks the center of holes, cylinders and symmetric features.'},
+{id:'f02c',t:['02'],type:'fc',fr:'Phantom line',bk:'Thin line of one long dash followed by two short dashes. Shows an alternate position or travel path of a moving part.'},
+{id:'f02d',t:['02'],type:'fc',fr:'Section lines and cutting plane line',bk:'Section lines: thin diagonal hatching showing material that was cut, giving a look at the interior.\nCutting plane line: thick line with arrows at the ends showing where the part was sliced and which way you look.'},
+{id:'f02e',t:['02'],type:'fc',fr:'Short break and long break lines',bk:'Short break line: thick wavy/freehand line that "breaks out" a portion of a view for clarity.\nLong break line: thin line with zig-zags used to shorten a long part that has the same shape throughout.'},
+{id:'f02f',t:['02'],type:'fc',fr:'Line precedence: when lines coincide, which one is drawn?',bk:'Visible > Hidden > Center.\nA visible line hides a hidden line behind it, and a hidden line takes priority over a center line. Center line tips are still shown sticking out past the edge with a small gap.'},
+// 03 Dimensioning
+{id:'f03a',t:['03'],type:'fc',fr:'Parts of a dimension',bk:'Dimension number, dimension line (with arrowheads), extension lines (show what is being measured and move the dimension away from the part) and leader lines (link a number to a feature, usually circles).'},
+{id:'f03b',t:['03'],type:'fc',fr:'ANSI dimension text rule',bk:'ANSI (unidirectional) style: ALL dimension numbers are horizontal so they can be read without turning the page. ANSI goes with 3rd angle projection.'},
+{id:'f03c',t:['03'],type:'fc',fr:'What does tolerance mean?',bk:'The maximum amount a dimension is allowed to vary = max size − min size.\nExample: Ø0.750 ± .005 means the hole can be .745 to .755, a total tolerance of .010.'},
+{id:'f03d',t:['03'],type:'fc',fr:'Ø and R symbols',bk:'Ø = diameter (used on holes and cylinders with a leader line).\nR = radius (used on rounded corners and arcs).'},
+{id:'f03e',t:['03'],type:'fc',fr:'Dimensioning best practices',bk:'• Put dimensions between views, grouped on 1–2 views\n• Keep intermediate dimensions INSIDE the overall dimension\n• Dimension each feature once (no over-dimensioning), and don\'t leave sizes or locations out (under-dimensioning)\n• Use extension lines; keep dimension lines off the part'},
+{id:'f03f',t:['03'],type:'fc',fr:'Over-dimensioned vs. under-dimensioned',bk:'Over: the same size is given twice (or in a closed chain that includes the overall), so the dimensions conflict.\nUnder: a size or location is missing, so the part cannot be made from the drawing.'},
+{id:'f03g',t:['03'],type:'fc',fr:'What does an underlined dimension number mean?',bk:'The dimension is NOT drawn to scale (the number was changed without redrawing the geometry).'},
+// 04 Design thinking
+{id:'f04a',t:['04'],type:'fc',fr:'The 5 steps of the design thinking process (in order)',bk:'1) Empathize\n2) Define\n3) Ideate\n4) Prototype\n5) Test\n(Concepts are generated in Step 3, Ideate.)'},
+{id:'f04b',t:['04'],type:'fc',fr:'Empathize',bk:'Understand the USER: observe, interview and immerse yourself in their situation. Goal: learn what they do, think, feel and struggle with, before proposing solutions.'},
+{id:'f04c',t:['04'],type:'fc',fr:'Define',bk:'Turn what you learned into a clear problem (point-of-view) statement about the user\'s need, then list constraints and criteria for success.'},
+{id:'f04d',t:['04'],type:'fc',fr:'Ideate',bk:'Generate MANY possible concepts (brainstorm, sketch), then screen and combine them to develop the best concept. Quantity first, judge later.'},
+{id:'f04e',t:['04'],type:'fc',fr:'Prototype and Test',bk:'Prototype: build a quick, cheap model of the best concept (looks-like, works-like, or both).\nTest: try it with real users, learn what fails, and loop back to earlier steps to improve.'},
+{id:'f04f',t:['04'],type:'fc',fr:'Is design thinking a straight line?',bk:'No. It is iterative. Testing results often send you back to Define or Ideate. Failing early and cheaply is part of the process.'},
+{id:'f04g',t:['04'],type:'fc',fr:'Looks-like vs. works-like prototypes',bk:'Looks-like (appearance model): shows visuals and feel.\nWorks-like (functional): demonstrates feasibility.\nSometimes both. Your rescue bot is a works-like prototype.'},
+// 05 Need / constraints / criteria
+{id:'f05a',t:['05'],type:'fc',fr:'How do you write a need (point-of-view) statement?',bk:'[A specific USER] needs [a way to do something / meet a need] because [surprising insight or reason].\nExample: "A Friendly\'s server needs a way to portion ice cream fast and with one hand because the line backs up at rush hour."\nIt states the need, NOT the solution.'},
+{id:'f05b',t:['05'],type:'fc',fr:'What is a constraint?',bk:'A hard limit the design MUST satisfy (pass/fail): cost, size, time, materials, safety, standards.\nExample: "The scoop shall cost less than $25 per unit."'},
+{id:'f05c',t:['05'],type:'fc',fr:'What is a criterion for success?',bk:'A measurable way to judge HOW WELL a design works, used to compare concepts. More is better (or less is better).\nExample: "Portions of ice cream differ by less than 10% in mass" or "cleans in under 30 seconds."'},
+{id:'f05d',t:['05'],type:'fc',fr:'Constraint vs. criterion: quick test',bk:'If failing it eliminates the design, it is a CONSTRAINT.\nIf it lets you rank one design as better than another, it is a CRITERION.'},
+{id:'f05e',t:['05'],type:'fc',fr:'Good constraint statements are…',bk:'Written as a full sentence, specific, measurable/verifiable, and about the design (not a solution). e.g. "The scoop shall be cleanable without equipment other than water and soap."'},
+// 06 Screening matrix
+{id:'f06a',t:['06'],type:'fc',fr:'Concept screening matrix: what is it for?',bk:'A quick way to narrow many concepts to a few promising ones by comparing each concept against a reference (datum) concept on each selection criterion.'},
+{id:'f06b',t:['06'],type:'fc',fr:'Steps for using a screening matrix',bk:'1) Prepare the matrix (criteria in rows, concepts in columns, pick a reference concept)\n2) Rate each concept vs. the reference: + (better), 0 (same), − (worse)\n3) Rank by net score\n4) Combine and improve the concepts\n5) Select / develop the best concept'},
+{id:'f06c',t:['06'],type:'fc',fr:'Screening matrix vs. scoring matrix',bk:'Screening: coarse (+ / 0 / −) relative to a reference; used first to eliminate weak concepts.\nScoring: finer (1–5 ratings) with WEIGHTS for each criterion; used on the survivors. Weighted score = Σ(weight × rating).'},
+{id:'f06d',t:['06'],type:'fc',fr:'What is the real goal of concept selection?',bk:'Not just to select the best concept, but to DEVELOP the best concept. Combine the good features of different concepts and refine them.'},
+// 07 Breadboard & circuits
+{id:'f07a',t:['07'],type:'fc',fr:'How are holes connected on a breadboard?',bk:'In the main area, the 5 holes in each short column strip (a–e or f–j) on the same numbered row are connected. The center gap separates the two halves. The long power rails run along the length of the board.'},
+{id:'f07b',t:['07'],type:'fc',fr:'How do you avoid a short circuit?',bk:'Never connect + directly to − (or a supply directly to ground) without a load such as a resistor, LED or motor in between. Don\'t let bare leads of two different strips touch. Check wiring before powering.'},
+{id:'f07c',t:['07'],type:'fc',fr:'What does LED stand for? Polarity?',bk:'Light Emitting Diode. Current only flows one way: anode (+, longer leg) to cathode (−, flat side / shorter leg). Installed backwards, it stays dark.'},
+{id:'f07d',t:['07'],type:'fc',fr:'Why does an LED need a resistor?',bk:'To limit current. An LED has almost no resistance once it conducts, so without a resistor the current can destroy the LED (and the Pico pin).'},
+{id:'f07e',t:['07'],type:'fc',fr:'Ohm\'s Law and units',bk:'V = I × R\nV = voltage (volts, V)\nI = current (amperes, A)\nR = resistance (ohms, Ω)'},
+{id:'f07f',t:['07'],type:'fc',fr:'Digital vs. analog signals',bk:'Digital: discrete, only two levels, HIGH or LOW (on/off). Blinking an LED uses a digital signal.\nAnalog: continuous, any value in a range (e.g. a temperature sensor voltage).'},
+// 08 Wiring
+{id:'f08a',t:['08'],type:'fc',fr:'Wire an LED off a digital pin',bk:'GPIO pin → resistor (about 220 Ω) → LED anode (long leg); LED cathode (short leg / flat side) → GND. In code: led = Pin(15, Pin.OUT); led.on()'},
+{id:'f08b',t:['08'],type:'fc',fr:'Servo wires',bk:'Signal: orange or yellow → a Pico GPIO pin (e.g. GP15)\nV+: red → external 4.8–6 V battery pack (+)\nGND: brown or black → battery pack (−) AND a Pico GND (common ground)'},
+{id:'f08c',t:['08'],type:'fc',fr:'Why must the servo supply and the Pico share a ground?',bk:'The signal voltage is measured relative to ground. Without a common GND the servo has no reference and ignores the Pico\'s signal.'},
+{id:'f08d',t:['08'],type:'fc',fr:'Standard vs. continuous servo',bk:'Standard: signal sets the shaft POSITION (movement range of about 90° or 180°).\nContinuous: signal sets direction and SPEED of rotation, not position.'},
+{id:'f08e',t:['08'],type:'fc',fr:'Wire a DC motor and battery to the motor shield',bk:'Motor leads → the motor terminals (Motor 1 / Motor 2) on the Kitronik shield. Battery pack → shield power terminals (+/− correct). Switch the shield ON. The Pico gets its own power (USB or the regulator to VSYS) and talks to the shield through the WNE103 module.'},
+{id:'f08f',t:['08'],type:'fc',fr:'How does the shield control motor speed and direction?',bk:'Speed: Pulse Width Modulation (PWM). Low average current = slow, high = fast.\nDirection: an H-bridge circuit reverses the current through the motor (forward / reverse).'},
+{id:'f08g',t:['08'],type:'fc',fr:'Troubleshooting a physical setup: checklist',bk:'1) Power on? (battery voltage, shield switch)\n2) Ground connected / common?\n3) Right pin number in the code vs. the wire?\n4) LED backwards? Resistor present?\n5) Loose or wrong-strip wires? Breadboard rows?'},
+// 09 Python
+{id:'f09a',t:['09'],type:'fc',fr:'Python syntax rules to remember',bk:'• # starts a comment\n• Indentation defines blocks (after a colon :)\n• Case-sensitive (Pin ≠ pin, True ≠ true)\n• No type declarations and no semicolons\n• Code runs top to bottom; no main() needed'},
+{id:'f09b',t:['09'],type:'fc',fr:'Set up a pin for writing (output)',bk:'from machine import Pin\nled = Pin(15, Pin.OUT)\nled.on()   # or led.value(1)\nled.off()  # or led.value(0)'},
+{id:'f09c',t:['09'],type:'fc',fr:'Read a digital input / analog value',bk:'Digital in: sw = Pin(14, Pin.IN, Pin.PULL_UP); sw.value()\nAnalog in: from machine import ADC; a = ADC(26); a.read_u16() returns 0–65535. ADC pins are GP26–GP28.'},
+{id:'f09d',t:['09'],type:'fc',fr:'Delays and loops',bk:'import time\ntime.sleep(0.5)  # wait 0.5 s\nwhile True:  # repeat forever (indented block)\nfor i in range(10):  # repeat 10 times'},
+{id:'f09e',t:['09'],type:'fc',fr:'Using the WNE103 motor module',bk:'import WNE103\nboard = WNE103.KitronikPicoMotor()\nboard.motorOn(1, \'f\', 100)  # motor 1, forward, speed 100\nboard.motorOn(2, \'r\', 100)  # motor 2, reverse\nboard.motorOff(1)'},
+{id:'f09f',t:['09'],type:'fc',fr:'Make the robot turn',bk:'Pivot right: motor 1 forward, motor 2 reverse.\nPivot left: motor 1 reverse, motor 2 forward.\nHow far it turns depends on how long (time.sleep) you hold the turn. A 90° turn is found by testing.'},
+{id:'f09g',t:['09'],type:'fc',fr:'Debugging a program: where to look',bk:'1) Read the error message and line number\n2) Indentation and colons\n3) Capitalization and spelling of names\n4) Missing import or wrong pin number\n5) Missing sleep (action too fast to see)'},
+{id:'f09h',t:['09'],type:'fc',fr:'What is main.py on the Pico?',bk:'The file the Pico runs automatically on power-up. Save your untethered robot code to the Pico as main.py. WNE103.py (library) is uploaded once.'},
+// 10 Motor data / Excel / memo
+{id:'f10a',t:['10'],type:'fc',fr:'Translational velocity from wheel data',bk:'v = (revolutions × wheel circumference) / time interval\nCircumference = π × diameter. Units: inches per second.'},
+{id:'f10b',t:['10'],type:'fc',fr:'Using the motor characterization to plan a path',bk:'Look up the speed (in/s) for your set speed value, then time = distance ÷ speed. Use that time in time.sleep().'},
+{id:'f10c',t:['10'],type:'fc',fr:'Make a scatter plot in Excel',bk:'1) Enter the X column (set speed) and Y column (velocity)\n2) Select both columns → Insert → Scatter (markers only)\n3) Add chart title, axis titles WITH UNITS\n4) Optional: trendline'},
+{id:'f10d',t:['10'],type:'fc',fr:'Which variable goes on which axis?',bk:'The thing you control or change (independent variable, e.g. speed value) goes on the X axis. The thing you measure (dependent, e.g. velocity) goes on the Y axis.'},
+{id:'f10e',t:['10'],type:'fc',fr:'Memo format',bk:'Header block: TO, FROM, DATE, SUBJECT.\nThen a short body: purpose first, key details/results, and any needed action. Concise, single-spaced paragraphs, no letter-style greeting or closing.'},
+// 11 SolidWorks sketching
+{id:'f11a',t:['11'],type:'fc',fr:'Set document properties for a new part',bk:'Options → Document Properties: set Overall drafting standard to ANSI and Units to IPS (inch, pound, second) unless told otherwise.'},
+{id:'f11b',t:['11'],type:'fc',fr:'How do you pick the sketch plane?',bk:'Start on the plane (Front, Top or Right) where the profile you will extrude is seen. Choose so the part is oriented as shown in the problem (e.g. the Front plane gives the front view).'},
+{id:'f11c',t:['11'],type:'fc',fr:'What does "fully defined" mean?',bk:'Every sketch entity is fully fixed by dimensions and relations. Fully defined sketch lines are BLACK (under defined = blue, over defined = red). The status bar also tells you.'},
+{id:'f11d',t:['11'],type:'fc',fr:'Smart Dimension and relations',bk:'Smart Dimension sets sizes (length, diameter, angle). Relations (coincident, horizontal, vertical, tangent, equal…) control geometry without numbers. You can show/hide relation icons with View → Sketch Relations.'},
+{id:'f11e',t:['11'],type:'fc',fr:'Construction lines and Mirror Entities',bk:'Construction geometry guides the sketch and is not used to make the feature (a centerline for symmetry). Mirror Entities mirrors sketched geometry about a centerline/construction line.'},
+{id:'f11f',t:['11'],type:'fc',fr:'Trim Entities',bk:'Removes the portion of a sketch line or arc between intersections; used to clean up overlapping geometry.'},
+{id:'f11g',t:['11'],type:'fc',fr:'Exit and enter sketch mode',bk:'Click the sketch / Exit Sketch confirmation icon at the top right (or the sketch check mark). Enter by selecting a plane or face and choosing Sketch, or by editing the sketch in the tree.'},
+// 12 SolidWorks features & assemblies
+{id:'f12a',t:['12'],type:'fc',fr:'Extruded Boss/Base vs. Extruded Cut',bk:'Boss/Base ADDS material by pushing a sketch profile out to a depth. Cut REMOVES material (holes, pockets) from the existing solid.'},
+{id:'f12b',t:['12'],type:'fc',fr:'Fillet vs. chamfer',bk:'Fillet: rounds an edge (radius).\nChamfer: bevels an edge (flat angled cut, distance/angle).'},
+{id:'f12c',t:['12'],type:'fc',fr:'Linear pattern vs. circular pattern',bk:'Linear: repeats a feature along one or two directions with a spacing and count.\nCircular: repeats a feature around an axis with a count and total angle (e.g. 360°).'},
+{id:'f12d',t:['12'],type:'fc',fr:'Assign a material and find mass',bk:'Right-click Material in the FeatureManager → Edit Material (e.g. Brass). Then Evaluate → Mass Properties to read the mass (the problem states the units).'},
+{id:'f12e',t:['12'],type:'fc',fr:'What are mates in an assembly?',bk:'Relationships between components that position them (coincident, concentric, parallel, distance…). The first component placed is fixed; add mates to remove degrees of freedom of the others.'},
+// 13 SolidWorks drawings
+{id:'f13a',t:['13'],type:'fc',fr:'Set up a drawing correctly',bk:'Sheet size 8.5 × 11 (A), projection = THIRD angle, standard = ANSI. Make 3 views (front, top, right) plus an isometric in the top-right corner. Scale so the views fit well.'},
+{id:'f13b',t:['13'],type:'fc',fr:'Edit the sheet format / title block',bk:'Right-click the sheet → Edit Sheet Format, then fill in name, title/assignment, DWG. NO., weight, material. Exit back to Edit Sheet.'},
+{id:'f13c',t:['13'],type:'fc',fr:'What must a good drawing show?',bk:'Hidden lines and center lines, correctly placed and complete dimensions (not over- or under-dimensioned), neat layout, and a filled title block.'},
+{id:'f13d',t:['13'],type:'fc',fr:'What does Pack and Go do?',bk:'Collects the part, assembly and drawing (and any referenced files) into one folder or ZIP so nothing is missing. File → Pack and Go → Save to Zip file. Submit the ZIP to Kodiak.'},
+
+/* ─────────────── TRUE / FALSE ─────────────── */
+{id:'t01a',t:['01'],type:'tf',q:'In 3rd angle projection the right view is placed to the right of the front view.',ans:true,exp:'3rd angle: top view above the front, right view to the right of the front.'},
+{id:'t01b',t:['01'],type:'tf',q:'In 1st angle projection the top view is placed above the front view.',ans:false,exp:'In 1st angle the top view goes BELOW the front and the right view goes to the LEFT.'},
+{id:'t01c',t:['01'],type:'tf',q:'Perspective projections are used for engineering drawings because they allow accurate measurements.',ans:false,exp:'Orthographic (parallel) projection is used because it keeps measurements accurate.'},
+{id:'t01d',t:['01'],type:'tf',q:'The front view shows the X and Z axes.',ans:true,exp:'Front: X–Z. Top: X–Y. Right: Y–Z.'},
+{id:'t01e',t:['01'],type:'tf',q:'A surface that is parallel to your line of sight appears as an edge (a line).',ans:true,exp:'Edge-on surfaces project to lines.'},
+{id:'t02a',t:['02'],type:'tf',q:'A hidden line is a thin, solid line.',ans:false,exp:'A hidden line is a medium-weight DASHED line.'},
+{id:'t02b',t:['02'],type:'tf',q:'When a visible line and a hidden line coincide, the visible line is drawn.',ans:true,exp:'Precedence: visible > hidden > center.'},
+{id:'t02c',t:['02'],type:'tf',q:'A phantom line is used to show an alternate position of a moving part.',ans:true,exp:'Long-short-short dash pattern showing travel or alternate positions.'},
+{id:'t02d',t:['02'],type:'tf',q:'Section lines are the arrows that show where a part is cut.',ans:false,exp:'Those are the cutting plane line. Section lines are the thin diagonal hatching on the cut surface.'},
+{id:'t03a',t:['03'],type:'tf',q:'In ANSI style, dimension numbers should all be horizontal.',ans:true,exp:'Unidirectional ANSI text makes drawings easy to read.'},
+{id:'t03b',t:['03'],type:'tf',q:'Good practice is to put dimensions on the outside of all three views, spread over every view.',ans:false,exp:'Dimensions go between views and are grouped on 1–2 views.'},
+{id:'t03c',t:['03'],type:'tf',q:'An intermediate dimension should be placed inside the overall dimension.',ans:true,exp:'Overall dimension outermost, shorter ones inside, to keep it tidy.'},
+{id:'t03d',t:['03'],type:'tf',q:'A drawing that gives 2.00 + 2.00 and also the overall 4.00 for the same length is correctly dimensioned.',ans:false,exp:'That is over-dimensioning (redundant). Leave out one of them.'},
+{id:'t03e',t:['03'],type:'tf',q:'The symbol Ø in front of a number indicates a radius.',ans:false,exp:'Ø is diameter. R is radius.'},
+{id:'t03f',t:['03'],type:'tf',q:'A dimension of Ø0.750 ± .005 has a total tolerance of 0.010.',ans:true,exp:'It may range from .745 to .755 so max − min = .010.'},
+{id:'t04a',t:['04'],type:'tf',q:'Ideate is the second step of design thinking.',ans:false,exp:'Steps: Empathize, Define, Ideate (3rd), Prototype, Test.'},
+{id:'t04b',t:['04'],type:'tf',q:'After testing a prototype you may need to go back to an earlier step.',ans:true,exp:'Design thinking is iterative.'},
+{id:'t04c',t:['04'],type:'tf',q:'Empathize means starting by building the best solution you can think of.',ans:false,exp:'Empathize is about understanding the user first.'},
+{id:'t04d',t:['04'],type:'tf',q:'A works-like prototype demonstrates function and feasibility.',ans:true,exp:'Looks-like shows appearance; works-like shows function.'},
+{id:'t05a',t:['05'],type:'tf',q:'A need statement should describe the solution you plan to build.',ans:false,exp:'It states the user\'s need and insight, not the solution.'},
+{id:'t05b',t:['05'],type:'tf',q:'"The scoop shall cost less than $25 per unit" is a constraint.',ans:true,exp:'It is a pass/fail limit given in the problem.'},
+{id:'t05c',t:['05'],type:'tf',q:'Criteria for success are used to compare how well different concepts perform.',ans:true,exp:'Constraints eliminate; criteria rank.'},
+{id:'t05d',t:['05'],type:'tf',q:'"The scoop should be nice" is a good criterion for success.',ans:false,exp:'Too vague. Criteria should be specific and measurable.'},
+{id:'t06a',t:['06'],type:'tf',q:'In a screening matrix, concepts are rated relative to a reference concept using +, 0 and −.',ans:true,exp:'A datum concept is chosen and every other concept is compared to it.'},
+{id:'t06b',t:['06'],type:'tf',q:'The only goal of concept selection is to pick one winner and throw the others away.',ans:false,exp:'Combine and improve concepts to DEVELOP the best one.'},
+{id:'t06c',t:['06'],type:'tf',q:'A scoring matrix uses weights for the criteria.',ans:true,exp:'Weighted score = Σ(weight × rating).'},
+{id:'t07a',t:['07'],type:'tf',q:'The holes in one column of five (a–e) on the same row of a breadboard are connected.',ans:true,exp:'Each 5-hole strip is connected; the center gap separates the halves.'},
+{id:'t07b',t:['07'],type:'tf',q:'Holes a–e and f–j of the same row are connected across the center gap.',ans:false,exp:'The center gap isolates the two halves.'},
+{id:'t07c',t:['07'],type:'tf',q:'An LED works equally well connected in either direction.',ans:false,exp:'An LED conducts in one direction only (anode +, cathode −).'},
+{id:'t07d',t:['07'],type:'tf',q:'LED stands for Light Emitting Diode.',ans:true,exp:'A diode that emits light.'},
+{id:'t07e',t:['07'],type:'tf',q:'Connecting a supply + terminal directly to − with a wire can create a short circuit.',ans:true,exp:'No load to limit current: wires, battery and parts can overheat.'},
+{id:'t08a',t:['08'],type:'tf',q:'A servo\'s signal wire is usually orange or yellow.',ans:true,exp:'Red = V+, brown or black = GND.'},
+{id:'t08b',t:['08'],type:'tf',q:'It is OK to power a servo directly from a Pico GPIO pin.',ans:false,exp:'Use a separate battery pack and share ground; GPIO pins supply only tiny current.'},
+{id:'t08c',t:['08'],type:'tf',q:'A standard servo controls shaft position.',ans:true,exp:'A continuous servo controls speed and direction.'},
+{id:'t08d',t:['08'],type:'tf',q:'The motor shield must be switched ON for the motors to run.',ans:true,exp:'Also remember to turn it off afterwards to save the batteries.'},
+{id:'t08e',t:['08'],type:'tf',q:'The Pico GPIO pin outputs a logic HIGH of about 3.3 V.',ans:true,exp:'Pico logic level is 3.3 V.'},
+{id:'t09a',t:['09'],type:'tf',q:'In Python you must declare a variable\'s type before using it.',ans:false,exp:'Python is dynamically typed. Just assign.'},
+{id:'t09b',t:['09'],type:'tf',q:'Indentation matters in Python.',ans:true,exp:'Indentation defines which lines belong to a loop, if, or function.'},
+{id:'t09c',t:['09'],type:'tf',q:'Every Python statement must end with a semicolon.',ans:false,exp:'Python does not use semicolons to end statements.'},
+{id:'t09d',t:['09'],type:'tf',q:'Python code cannot run without a main() function.',ans:false,exp:'Code runs top to bottom without main().'},
+{id:'t09e',t:['09'],type:'tf',q:'You have to specify if a GPIO pin is an input or an output.',ans:true,exp:'e.g. Pin(15, Pin.OUT).'},
+{id:'t09f',t:['09'],type:'tf',q:'`pin(15, Pin.OUT)` and `Pin(15, Pin.OUT)` are equivalent in Python.',ans:false,exp:'Python is case-sensitive: the class is Pin.'},
+{id:'t09g',t:['09'],type:'tf',q:'The Pico can read an analog voltage on GP26.',ans:true,exp:'GP26–GP28 are ADC pins.'},
+{id:'t10a',t:['10'],type:'tf',q:'In a scatter plot of the motor data, the speed setting you choose goes on the X axis.',ans:true,exp:'Independent variable on X; measured velocity on Y.'},
+{id:'t10b',t:['10'],type:'tf',q:'A memo needs TO, FROM, DATE and SUBJECT lines.',ans:true,exp:'Standard memo header.'},
+{id:'t11a',t:['11'],type:'tf',q:'A fully defined sketch is shown in black.',ans:true,exp:'Blue = under defined, red = over defined.'},
+{id:'t11b',t:['11'],type:'tf',q:'Construction lines become part of the extruded profile.',ans:false,exp:'Construction geometry is a guide only.'},
+{id:'t12a',t:['12'],type:'tf',q:'A fillet bevels an edge with a flat cut.',ans:false,exp:'That is a chamfer. A fillet rounds an edge.'},
+{id:'t12b',t:['12'],type:'tf',q:'A circular pattern repeats a feature around an axis.',ans:true,exp:'Linear patterns repeat along a direction.'},
+{id:'t13a',t:['13'],type:'tf',q:'The drawing should be in 1st angle projection for ANSI.',ans:false,exp:'ANSI uses THIRD angle projection.'},
+{id:'t13b',t:['13'],type:'tf',q:'Pack and Go gathers the part and drawing files into one ZIP.',ans:true,exp:'Submit that ZIP to Kodiak.'},
+
+/* ─────────────── FILL IN THE BLANK (including code) ─────────────── */
+{id:'fib01a',t:['01'],type:'fib',q:'In ___ angle projection the top view is placed above the front view and the right view is to the ___ of the front view.',blanks:['third','right'],exp:'3rd angle is the ANSI standard.'},
+{id:'fib02a',t:['02'],type:'fib',q:'When a visible line, a hidden line and a center line coincide, the ___ line is drawn.',blanks:['visible'],exp:'Visible > hidden > center.'},
+{id:'fib03a',t:['03'],type:'fib',q:'The ___ line links a dimension number to a circle, and ___ lines extend from the feature to the dimension.',blanks:['leader','extension'],exp:'Leader lines point to circular features; extension lines locate the edges being measured.'},
+{id:'fib04a',t:['04'],type:'fib',q:'The five design thinking steps are Empathize, ___, Ideate, ___ and Test.',blanks:['define','prototype'],exp:'Define = problem statement; Prototype = build to learn.'},
+{id:'fib05a',t:['05'],type:'fib',q:'A ___ is a hard limit a design must meet, while a ___ for success measures how well it performs.',blanks:['constraint','criterion'],exp:'Constraints eliminate designs; criteria compare them.'},
+{id:'fib06a',t:['06'],type:'fib',q:'In a screening matrix each concept is rated against the ___ concept using +, 0 or −, then the net scores are used to ___ the concepts.',blanks:['reference','rank'],exp:'Reference (datum) concept; rank, combine and improve.'},
+{id:'fib07a',t:['07'],type:'fib',q:'Ohm\'s law: V = ___ × R, with resistance measured in ___.',blanks:['I','ohms'],exp:'V = IR; unit symbol Ω.'},
+{id:'fib08a',t:['08'],type:'fib',q:'A servo has three wires: signal, ___ (red) and ___ (brown or black).',blanks:['V+','GND'],exp:'Power and ground; signal is orange or yellow.'},
+{id:'fib09a',t:['09'],type:'fib',q:'<pre style="text-align:left;line-height:2;font-size:1rem;display:inline-block;background:#0a1a38;padding:14px 18px;border-radius:8px;border:1px solid #27498a;color:#dff">from machine import Pin\nimport time\n\nled = Pin(15, Pin.___)\nwhile True:\n    led.___()\n    time.sleep(0.5)</pre>',blanks:['OUT','toggle'],exp:'Pin.OUT makes the pin an output; toggle() flips the LED each pass. (led.on() / led.off() also work.)',sim:'Blink an LED on GP15 (Examples menu)'},
+{id:'fib09b',t:['09','10'],type:'fib',q:'<pre style="text-align:left;line-height:2;font-size:1rem;display:inline-block;background:#0a1a38;padding:14px 18px;border-radius:8px;border:1px solid #27498a;color:#dff">board = WNE103.KitronikPicoMotor()\n# At set speed 100 the bot travels 12 in/s.\n# Drive forward 36 inches:\nboard.motorOn(1, \'f\', 100)\nboard.motorOn(2, \'f\', 100)\ntime.sleep(___)\nboard.motorOff(1)\nboard.motorOff(2)</pre>',blanks:['3'],exp:'time = distance ÷ speed = 36 in ÷ 12 in/s = 3 s.',sim:'Examples → WNE103: drive a square'},
+{id:'fib09c',t:['09','10'],type:'fib',q:'<pre style="text-align:left;line-height:2;font-size:1rem;display:inline-block;background:#0a1a38;padding:14px 18px;border-radius:8px;border:1px solid #27498a;color:#dff"># Pivot right (turn clockwise) in place\nboard.motorOn(1, \'f\', 100)\nboard.motorOn(2, ___, 100)\ntime.sleep(0.3)</pre>',blanks:['r'],exp:'Motor 1 forward + motor 2 reverse = pivot right (reverse = \'r\').'},
+{id:'fib09d',t:['09'],type:'fib',q:'<pre style="text-align:left;line-height:2;font-size:1rem;display:inline-block;background:#0a1a38;padding:14px 18px;border-radius:8px;border:1px solid #27498a;color:#dff">___ Set up the LED pin\nled = Pin(15, Pin.OUT)\nfor i in range(5):___\n    led.toggle()</pre>',blanks:['#',':'],exp:'# begins a comment; a colon ends the for-line, and the body is indented.'},
+{id:'fib10a',t:['10'],type:'fib',q:'Translational velocity = (___ × wheel circumference) ÷ time.',blanks:['revolutions'],exp:'Circumference = π × diameter.'},
+{id:'fib11a',t:['11'],type:'fib',q:'Fully defined sketch geometry is shown in ___; under defined geometry is shown in blue.',blanks:['black'],exp:'Red indicates over defined.'},
+{id:'fib12a',t:['12'],type:'fib',q:'An ___ Cut removes material, while a ___ rounds an edge.',blanks:['extruded','fillet'],exp:'Chamfer bevels an edge.'},
+{id:'fib13a',t:['13'],type:'fib',q:'Use ___ and Go to save the part, drawing and assembly into one ZIP file.',blanks:['pack'],exp:'File → Pack and Go.'},
+
+/* ─────────────── MATCHING ─────────────── */
+{id:'mt01a',t:['01'],type:'match',term:'Front view',def:'Shows the X and Z axes'},
+{id:'mt01b',t:['01'],type:'match',term:'Top view',def:'Shows the X and Y axes'},
+{id:'mt01c',t:['01'],type:'match',term:'Right view',def:'Shows the Y and Z axes'},
+{id:'mt01d',t:['01'],type:'match',term:'3rd angle',def:'Top view above front; right view to the right (ANSI)'},
+{id:'mt01e',t:['01'],type:'match',term:'1st angle',def:'Top view below front; right view to the left'},
+{id:'mt01f',t:['01'],type:'match',term:'Orthographic',def:'Parallel projectors; accurate measurements'},
+{id:'mt08a',t:['08'],type:'match',term:'Servo signal wire',def:'Orange or yellow; connects to a GPIO pin'},
+{id:'mt08b',t:['08'],type:'match',term:'Servo V+ wire',def:'Red; goes to the battery pack +'},
+{id:'mt08c',t:['08'],type:'match',term:'Servo GND wire',def:'Brown or black; common ground with the Pico'},
+{id:'mt08d',t:['08'],type:'match',term:'Standard servo',def:'Signal sets shaft position'},
+{id:'mt08e',t:['08'],type:'match',term:'Continuous servo',def:'Signal sets speed and direction'},
+{id:'mt08f',t:['08'],type:'match',term:'PWM',def:'Controls motor speed by switching power on and off quickly'},
+{id:'mt08g',t:['08'],type:'match',term:'H-bridge',def:'Circuit that reverses motor direction'},
+{id:'mt10a',t:['10'],type:'match',term:'v = (rev × C) / t',def:'Translational velocity from wheel data'},
+{id:'mt10b',t:['10'],type:'match',term:'C = π d',def:'Wheel circumference'},
+{id:'mt10c',t:['10'],type:'match',term:'t = d / v',def:'Time to travel a distance at a known speed'},
+{id:'mt10d',t:['10'],type:'match',term:'Memo header',def:'TO, FROM, DATE, SUBJECT'},
+{id:'mt10e',t:['10'],type:'match',term:'X axis of scatter plot',def:'The variable you set (speed value)'},
+{id:'mt02a',t:['02'],type:'match',term:'Visible line',def:'Thick solid line for edges you can see'},
+{id:'mt02b',t:['02'],type:'match',term:'Hidden line',def:'Medium dashed line for edges behind a surface'},
+{id:'mt02c',t:['02'],type:'match',term:'Center line',def:'Long-short-long dash; marks centers of holes'},
+{id:'mt02d',t:['02'],type:'match',term:'Phantom line',def:'Long-short-short dash; alternate position of part'},
+{id:'mt02e',t:['02'],type:'match',term:'Section lines',def:'Thin diagonal hatch on cut surfaces'},
+{id:'mt02f',t:['02'],type:'match',term:'Cutting plane line',def:'Thick dashed line with arrows showing where a part is sliced'},
+{id:'mt02g',t:['02'],type:'match',term:'Long break line',def:'Thin line with zig-zag; shortens a uniform part'},
+{id:'mt02h',t:['02'],type:'match',term:'Short break line',def:'Thick wavy line that breaks out part of a view'},
+{id:'mt03a',t:['03'],type:'match',term:'Extension line',def:'Thin line that extends from a feature to the dimension line'},
+{id:'mt03b',t:['03'],type:'match',term:'Leader line',def:'Line with arrow that links a note to a feature (often a circle)'},
+{id:'mt03c',t:['03'],type:'match',term:'Tolerance',def:'Max size − min size of a dimension'},
+{id:'mt03d',t:['03'],type:'match',term:'Ø',def:'Diameter symbol'},
+{id:'mt03e',t:['03'],type:'match',term:'R',def:'Radius symbol'},
+{id:'mt04a',t:['04'],type:'match',term:'Empathize',def:'Learn about the user\'s needs by observing and interviewing'},
+{id:'mt04b',t:['04'],type:'match',term:'Define',def:'Write the problem (need) statement'},
+{id:'mt04c',t:['04'],type:'match',term:'Ideate',def:'Brainstorm many concepts'},
+{id:'mt04d',t:['04'],type:'match',term:'Prototype',def:'Build a quick model of the best concept'},
+{id:'mt04e',t:['04'],type:'match',term:'Test',def:'Try the prototype with users and learn what to change'},
+{id:'mt05a',t:['05'],type:'match',term:'Need statement',def:'User + need + insight; not a solution'},
+{id:'mt05b',t:['05'],type:'match',term:'Constraint',def:'Pass/fail limit such as cost < $25'},
+{id:'mt05c',t:['05'],type:'match',term:'Criterion for success',def:'Measurable way to judge how good a design is'},
+{id:'mt06a',t:['06'],type:'match',term:'Screening matrix',def:'+ / 0 / − ratings against a reference concept'},
+{id:'mt06b',t:['06'],type:'match',term:'Scoring matrix',def:'Weighted 1–5 ratings'},
+{id:'mt07a',t:['07'],type:'match',term:'Ω',def:'Unit symbol for resistance'},
+{id:'mt07b',t:['07'],type:'match',term:'Ampere',def:'SI unit for electrical current'},
+{id:'mt07c',t:['07'],type:'match',term:'Voltage',def:'Electrical potential'},
+{id:'mt07d',t:['07'],type:'match',term:'Analog',def:'Continuous, infinitely varying signal'},
+{id:'mt07e',t:['07'],type:'match',term:'Digital',def:'Discrete (HIGH or LOW) signal'},
+{id:'mt07f',t:['07'],type:'match',term:'R',def:'Variable for resistance in Ohm\'s law'},
+{id:'mt07g',t:['07'],type:'match',term:'I',def:'Variable for current in Ohm\'s law'},
+{id:'mt09a',t:['09'],type:'match',term:'Module',def:'Group of functions, classes and statements that simplifies code'},
+{id:'mt09b',t:['09'],type:'match',term:'#',def:'Starts a comment in Python'},
+{id:'mt09c',t:['09'],type:'match',term:'Pin.OUT',def:'Sets a GPIO pin up for writing'},
+{id:'mt09d',t:['09'],type:'match',term:'time.sleep(2)',def:'Pauses the program for two seconds'},
+{id:'mt09e',t:['09'],type:'match',term:'main.py',def:'The file the Pico runs automatically at power-up'},
+{id:'mt11a',t:['11'],type:'match',term:'Smart Dimension',def:'Sets sizes of sketch entities'},
+{id:'mt11b',t:['11'],type:'match',term:'Trim Entities',def:'Removes sketch segments between intersections'},
+{id:'mt12a',t:['12'],type:'match',term:'Extruded Boss/Base',def:'Adds material from a sketch'},
+{id:'mt12b',t:['12'],type:'match',term:'Extruded Cut',def:'Removes material from a solid'},
+{id:'mt12c',t:['12'],type:'match',term:'Fillet',def:'Rounds an edge'},
+{id:'mt12d',t:['12'],type:'match',term:'Chamfer',def:'Bevels an edge'},
+{id:'mt12e',t:['12'],type:'match',term:'Mate',def:'Relationship that positions components in an assembly'},
+{id:'mt13a',t:['13'],type:'match',term:'.SLDPRT',def:'SolidWorks part file'},
+{id:'mt13b',t:['13'],type:'match',term:'.SLDDRW',def:'SolidWorks drawing file'},
+{id:'mt13c',t:['13'],type:'match',term:'.SLDASM',def:'SolidWorks assembly file'},
+
+/* ─────────────── ORDERING ─────────────── */
+{id:'seq04a',t:['04'],type:'seq',q:'Put the design thinking steps in order:',steps:['Empathize','Define','Ideate','Prototype','Test'],exp:'Empathize → Define → Ideate → Prototype → Test (and iterate).'},
+{id:'seq06a',t:['06'],type:'seq',q:'Put the concept selection steps in order:',steps:['Prepare the matrix','Rate the concepts','Rank the concepts','Combine and improve','Develop the best concept'],exp:'The goal is not to select the best concept but to develop it.'},
+{id:'seq12a',t:['11','12'],type:'seq',q:'Order the steps to model a block with a hole:',steps:['Choose the sketch plane','Sketch the rectangle and dimension it','Extruded Boss/Base','Sketch a circle on a face','Extruded Cut'],exp:'Base feature first, then add details.'},
+{id:'seq13a',t:['13'],type:'seq',q:'Order the drawing steps:',steps:['Make the part and save it','New drawing: set 3rd angle, ANSI, 8.5 × 11','Insert front, top, right and isometric views','Add dimensions, centerlines, and fill the title block','Pack and Go to a ZIP'],exp:'Part first, then the drawing, then package.'},
+{id:'seq09a',t:['09'],type:'seq',q:'Order the steps to blink an LED in Python:',steps:['import the Pin class and time','Create the pin as an output','Start a while True: loop','Turn the LED on / toggle','Sleep for a moment'],exp:'Imports → set up pins → loop → act → delay.'},
+
+/* ─────────────── MULTIPLE CHOICE ─────────────── */
+{id:'m01a',t:['01'],type:'mc',q:'Which projection has the top view BELOW the front view?',opts:['1st angle','3rd angle','Isometric','Perspective'],ans:0,exp:'1st angle puts the top view below and the right view to the left.'},
+{id:'m01b',t:['01'],type:'mc',q:'In an orthographic drawing the projectors are…',opts:['parallel to each other','all meeting at the observer','at 45° to the object','curved'],ans:0,exp:'Orthographic = parallel projectors from an infinitely distant viewer.'},
+{id:'m01c',t:['01'],type:'mc',q:'The Right view of an object shows which axes?',opts:['X–Y','X–Z','Y–Z','Z only'],ans:2,exp:'Front: X–Z; Top: X–Y; Right: Y–Z.'},
+{id:'m02a',t:['02'],type:'mc',q:'Which line type is used for a hole\'s axis?',opts:['Hidden','Center','Phantom','Cutting plane'],ans:1,exp:'Long-short-long.'},
+{id:'m02b',t:['02'],type:'mc',q:'In the front view the dashed lines (1) of this part with a vertical hole represent…',fig:'HOLE',opts:['Visible edges','The hole\'s edges, which are hidden behind the surface','Center lines','Section lines'],ans:1,exp:'Hidden lines are dashed and show edges you cannot see from that side. The hole is inside the block.'},
+{id:'m02c',t:['02'],type:'mc',q:'In the TOP view the hole (2) appears as…',fig:'HOLE',opts:['A circle (true shape)','A dashed rectangle','Not shown','A phantom line'],ans:0,exp:'The hole axis is vertical, so looking from the top you see the hole\'s circle.'},
+{id:'m02d',t:['02'],type:'mc',q:'Line (1) in the front view and line (3) in the right view are both…',fig:'HOLE',opts:['Hidden lines','Visible lines','Dimension lines','Phantom lines'],ans:0,exp:'Both pairs of dashed lines are hidden lines for the same hole.'},
+{id:'m03a',t:['03'],type:'mc',q:'Which panel is dimensioned BEST? (hole must be sized and located once, with horizontal numbers)',fig:'DIM',opts:['A','B','C','D'],ans:0,exp:'A has overall size, hole size (Ø) and hole location. B is over-dimensioned (2.00 + 2.00 + 4.00). C is missing the hole diameter. D has rotated numbers and dimension lines through the part with no extension lines.'},
+{id:'m03b',t:['03'],type:'mc',q:'What is the main error in panel B?',fig:'DIM',opts:['Over-dimensioned (a redundant 2.00 + 2.00 and 4.00)','The hole size is missing','Text is not horizontal','Wrong projection'],ans:0,exp:'Three dimensions on one length where two would define it.'},
+{id:'m03c',t:['03'],type:'mc',q:'What is the main error in panel C?',fig:'DIM',opts:['The hole diameter is missing','Over-dimensioned','No extension lines','The part is not drawn'],ans:0,exp:'You could not make the hole: its size is not given (under-dimensioned).'},
+{id:'m03d',t:['03'],type:'mc',q:'What is the main error in panel D?',fig:'DIM',opts:['Dimension lines drawn through the part, no extension lines and rotated text','Hole location missing','Over-dimensioned hole','The Ø symbol is missing'],ans:0,exp:'Dimensions belong outside the part with extension lines, with horizontal numbers.'},
+{id:'m03e',t:['03'],type:'mc',q:'What does ± .005 on a dimension tell you?',opts:['The size may vary by 0.005 either side of nominal','The part must be exactly nominal','The dimension is not to scale','The number is a radius'],ans:0,exp:'Total tolerance is 0.010.'},
+{id:'m04a',t:['04'],type:'mc',q:'Which step is completed first in design thinking?',opts:['Define','Empathize','Ideate','Test'],ans:1,exp:'You start by understanding the user.'},
+{id:'m04b',t:['04'],type:'mc',q:'You have drawn three possible scoop concepts and now compare them with a matrix. Which step are you in?',opts:['Empathize','Define','Ideate','Test'],ans:2,exp:'Step 3: Ideate (generate and select concepts).'},
+{id:'m04c',t:['04'],type:'mc',q:'What are the final two stages of the process?',opts:['Define and Ideate','Prototype and Test','Empathize and Define','Test and Empathize'],ans:1,exp:'Build a prototype then test it with users, then iterate.'},
+{id:'m05a',t:['05'],type:'mc',q:'Which is the best need (point-of-view) statement?',opts:['Design a stainless steel scoop with a spring lever.','A restaurant server needs a way to portion ice cream quickly with one hand because lines back up at busy times.','Make ice cream better.','Friendly\'s needs more customers.'],ans:1,exp:'User + need + insight, with no solution built in.'},
+{id:'m05b',t:['05'],type:'mc',q:'Which of these is a CONSTRAINT?',opts:['The scoop shall cost less than $25 per unit.','The scoop should feel comfortable.','The scoop would be fun to use.','The scoop looks cool.'],ans:0,exp:'Cost limit is pass/fail and stated in the problem.'},
+{id:'m05c',t:['05'],type:'mc',q:'Which is the best CRITERION for success?',opts:['Easy to use','Cleans in less than 30 seconds using only water and soap','Looks nice','Made of metal'],ans:1,exp:'It is specific and measurable.'},
+{id:'m06a',t:['06'],type:'mc',q:'In a screening matrix, a "+" means the concept is…',opts:['worse than the reference on that criterion','the same as the reference','better than the reference on that criterion','chosen as the final design'],ans:2,exp:'+ better, 0 same, − worse.'},
+{id:'m06b',t:['06'],type:'mc',q:'After ranking concepts with the matrix, what should you do?',opts:['Throw away everything except the winner','Combine and improve the best features, then develop the best concept','Start prototyping all of them','Skip to testing'],ans:1,exp:'Goal: develop the best concept.'},
+{id:'m06c',t:['06'],type:'mc',q:'Concept B scores: Cost +, Cleaning 0, Portion −, Grip +. What is its net score?',opts:['+1','0','+2','−1'],ans:0,exp:'Two pluses (+2) and one minus (−1) give a net score of +1; the zero adds nothing.'},
+{id:'m07a',t:['07'],type:'mc',q:'Which hole is electrically connected to the gold hole (row 3, column b)?',fig:'BB',opts:['Row 3, column e','Row 3, column f','Row 4, column b','Row 3, column j'],ans:0,exp:'Holes a–e of the same row are one strip. The center gap separates f–j.'},
+{id:'m07b',t:['07'],type:'mc',q:'What is the unit symbol for resistance?',opts:['A','V','Ω','W'],ans:2,exp:'Ohm = Ω.'},
+{id:'m07c',t:['07'],type:'mc',q:'A signal that is continuous and can take any value in a range is…',opts:['digital','analog','binary','PWM'],ans:1,exp:'Digital = HIGH or LOW only.'},
+{id:'m07d',t:['07'],type:'mc',q:'If 3.3 V is placed across a 220 Ω resistor, what current flows (I = V/R)?',opts:['15 mA','1.5 mA','150 mA','0.15 mA'],ans:0,exp:'3.3 ÷ 220 = 0.015 A = 15 mA.'},
+{id:'m08a',t:['08'],type:'mc',q:'GP15 is set HIGH. Which circuits light the LED? (All have a resistor.)',fig:'LEDS',opts:['A only','A and D','B and C','All four'],ans:1,exp:'A and D are complete paths with the LED facing the right way (the order of resistor and LED does not matter). B has the LED backwards; C has no connection to GND.',sim:'Challenges → Light an LED from GP15'},
+{id:'m08b',t:['08'],type:'mc',q:'What colour is a servo\'s signal wire (usually)?',opts:['Black','Red','Orange or yellow','Brown'],ans:2,exp:'Red = V+, brown/black = GND.'},
+{id:'m08c',t:['08'],type:'mc',q:'The servo does not move. Looking at the wiring, what is wrong?',fig:'SERVO_NOGND',opts:['The servo signal is on the wrong colour wire','There is no common ground between the Pico and the battery pack','The battery pack is too small','GP15 cannot make a signal'],ans:1,exp:'Battery − must connect to a Pico GND so the signal has a reference.',sim:'Challenges → The servo ignores the Pico'},
+{id:'m08d',t:['08'],type:'mc',q:'What is the main advantage of a breadboard?',opts:['Built-in resistors','Permanent connections','Easy prototyping without soldering','Higher current capacity'],ans:2,exp:'Parts can be changed quickly with no solder.'},
+{id:'m08e',t:['08'],type:'mc',q:'Which controls the direction of a DC motor on the shield?',opts:['A voltage regulator','An H-bridge','A resistor','A servo'],ans:1,exp:'The H-bridge reverses current; PWM sets the speed.'},
+{id:'m08f',t:['08'],type:'mc',q:'You see this wiring and the servo works. Which statement is TRUE?',fig:'SERVO_OK',opts:['Signal from GP15, power from a separate pack, grounds joined','The servo is powered by GP15','The battery + goes to the Pico','No ground is needed'],ans:0,exp:'This is the recommended servo wiring.'},
+{id:'m09a',t:['09'],type:'mc',q:'Which line sets GP15 up as an output?',opts:['led = pin(15, OUT)','led = Pin(15, Pin.OUT)','led = Pin(15, Pin.OUT);','Pin led(15, OUT)'],ans:1,exp:'Capital P, Pin.OUT, no semicolon.'},
+{id:'m09b',t:['09'],type:'mc',q:'A program has `while True:` followed by `led.on()` and `time.sleep(1)`, both starting at the far-left margin. What is wrong?',opts:['Nothing','The loop body is not indented','sleep needs a semicolon','while is invalid'],ans:1,exp:'The lines under while must be indented.'},
+{id:'m09c',t:['09'],type:'mc',q:'Which Python line is a comment?',opts:['// turn on LED','# turn on LED','-- turn on LED','/* turn on LED */'],ans:1,exp:'# starts a comment.'},
+{id:'m09d',t:['09'],type:'mc',q:'Which statement makes motor 2 spin in reverse at full speed?',opts:['board.motorOn(2, \'r\', 100)','board.motorOn(100, 2, \'r\')','board.motor2.reverse(100)','board.motorOn(2, reverse)'],ans:0,exp:'motorOn(motor_number, direction, speed).'},
+{id:'m09e',t:['09'],type:'mc',q:'The bot should run forward for 4 s then stop. Which is correct?',opts:['motorOn(1,\'f\',100); motorOn(2,\'f\',100); sleep(4); motorOff(1); motorOff(2)','sleep(4); motorOn(1,\'f\',100)','motorOff(1); motorOn(2,\'f\',100)','motorOn(1,\'f\',4)'],ans:0,exp:'Start both motors, wait, then stop both.'},
+{id:'m10a',t:['10'],type:'mc',q:'Speed value 80 gives 8 in/s. How long to travel 24 in?',opts:['3 s','2 s','0.33 s','192 s'],ans:0,exp:'time = distance ÷ speed = 24 ÷ 8 = 3 s.'},
+{id:'m10b',t:['10'],type:'mc',q:'A wheel of diameter 2.5 in turns 10 times in 5 s. Translational velocity is about…',opts:['15.7 in/s','7.85 in/s','31.4 in/s','5 in/s'],ans:0,exp:'C = π × 2.5 = 7.85 in. 10 rev × 7.85 in ÷ 5 s = 15.7 in/s.'},
+{id:'m10c',t:['10'],type:'mc',q:'Which chart type is used for the motor characterization data?',opts:['Pie chart','Scatter plot','Bar chart of names','Histogram'],ans:1,exp:'Numeric X vs. numeric Y.'},
+{id:'m11a',t:['11'],type:'mc',q:'A sketch entity is blue. It is…',opts:['fully defined','under defined','over defined','a construction line only'],ans:1,exp:'Black = fully defined; red = over defined.'},
+{id:'m11b',t:['11'],type:'mc',q:'Which tool mirrors sketch geometry about a centerline?',opts:['Trim Entities','Mirror Entities','Sketch Fillet','Offset'],ans:1,exp:'Mirror in sketch mode, using a construction line.'},
+{id:'m11c',t:['11'],type:'mc',q:'Which settings should you check when starting a new part for ANSI work?',opts:['Standard = ANSI and Units = IPS','Standard = ISO and Units = MMGS','Standard = DIN only','No settings'],ans:0,exp:'Document Properties: ANSI + IPS unless told otherwise.'},
+{id:'m12a',t:['12'],type:'mc',q:'Which feature removes material?',opts:['Extruded Boss/Base','Extruded Cut','Linear Pattern','Mirror only'],ans:1,exp:'Cut removes.'},
+{id:'m12b',t:['12'],type:'mc',q:'How do you find the mass of a part?',opts:['Evaluate → Mass Properties (after assigning a material)','Measure with a ruler','Insert → Mass','File → Properties'],ans:0,exp:'Assign the material first (e.g. brass).'},
+{id:'m12c',t:['12'],type:'mc',q:'Which pattern would you use to place 6 holes equally around a circle?',opts:['Linear pattern','Circular pattern','Chamfer','Mirror'],ans:1,exp:'Circular pattern: count 6 over 360°.'},
+{id:'m13a',t:['13'],type:'mc',q:'Which projection must the midterm drawing use?',opts:['1st angle','3rd angle','Isometric only','Perspective'],ans:1,exp:'Third angle, ANSI, 8.5 × 11.'},
+{id:'m13b',t:['13'],type:'mc',q:'The title block must show…',opts:['Name, assignment/title and DWG. No.','Only the date','The file size','Nothing'],ans:0,exp:'Edit the sheet format to fill in name, title, DWG. No., weight and material.'},
+{id:'m13c',t:['13'],type:'mc',q:'Pack and Go is used to…',opts:['create a zipped folder with the part and drawing','print the drawing','change units','apply a material'],ans:0,exp:'Submit the ZIP to Kodiak.'}
+];
+
+// Generated: line-type identification from drawn swatches
+(function(){
+  const names={visible:'Visible line',hidden:'Hidden line',center:'Center line',phantom:'Phantom line',cutting:'Cutting plane line',section:'Section lines',dimension:'Dimension line',extension:'Extension line',longbreak:'Long break line',shortbreak:'Short break line'};
+  const sets=[{fig:'LINES',items:[['A','visible'],['B','hidden'],['C','center'],['D','phantom'],['E','cutting'],['F','section']]},
+              {fig:'LINES2',items:[['A','dimension'],['B','extension'],['C','longbreak'],['D','shortbreak'],['E','visible'],['F','hidden']]}];
+  const pool=Object.values(names);
+  sets.forEach((st,si)=>st.items.forEach((it,i)=>{
+    const right=names[it[1]]; const wrong=pool.filter(n=>n!==right).sort((a,b)=>((a+si+i).length*7+a.charCodeAt(1))%5-((b+si+i).length*7+b.charCodeAt(1))%5).slice(0,3);
+    const opts=[right,...wrong]; const rot=(si*2+i)%4; const rotated=opts.slice(rot).concat(opts.slice(0,rot));
+    Q.push({id:'ml'+si+i,t:['02'],type:'mc',fig:st.fig,q:`What type of line is line ${it[0]}?`,opts:rotated,ans:rotated.indexOf(right),exp:`Line ${it[0]} is a ${right.toLowerCase()}.`});
+  }));
+})();
+
+// Generated: surface/edge questions from the step-block geometry
+(function(){
+  const views=['Front','Top','Right'];
+  const picks=[['A','Front'],['A','Top'],['B','Top'],['B','Front'],['C','Right'],['C','Front'],['D','Top'],['D','Right'],['E','Right'],['E','Top']];
+  picks.forEach((p,i)=>{
+    const s=BLOCK_VIEW[p[0]][p[1]]==='S';
+    Q.push({id:'mg'+i,t:['01'],type:'mc',fig:'BLOCK',
+      q:`Surface ${p[0]} (${BLOCK_NAME[p[0]]}) appears in the ${p[1].toUpperCase()} view as…`,
+      opts:['A surface (area)','An edge (a line)','A hidden line','It is not visible'].map(x=>x),
+      ans:s?0:1,
+      exp:s?`${BLOCK_NAME[p[0]]} faces the ${p[1].toLowerCase()} viewer, so you see its area in that view.`:`Surface ${p[0]} is parallel to the line of sight in the ${p[1]} view, so it shows as an edge (line).`});
+  });
+  Q.push({id:'mg-b1',t:['01'],type:'mc',fig:'BLOCK',q:'Which is the correct FRONT view outline for this part?',opts:['L-shaped (step at upper right)','Plain rectangle','Rectangle with a diagonal line','Mirror-image L (step at upper left)'],ans:0,exp:'Looking from the front you see the stepped profile with the cut at the upper right.'});
+  Q.push({id:'mg-b2',t:['01'],type:'mc',fig:'BLOCK',q:'In the TOP view the vertical line at the middle of the width is…',opts:['The edge between the tall part and the step (visible line)','A hidden line','A center line','The edge of a hole'],ans:0,exp:'The step wall meets the tall top. Both can be seen from above, so it is a visible line.'});
+  Q.push({id:'mg-b3',t:['01'],type:'mc',fig:'BLOCK',q:'In the RIGHT view the horizontal line across the middle shows…',opts:['The edge where the end face and step wall meet (visible)','A hidden edge','The center line','Section lines'],ans:0,exp:'Surfaces E and C both face the right viewer; they meet at a visible line.'});
+})();
+
+
+const FIGS={HOLE:holeFig(),DIM:dimFig(),BB:breadboardFig(),LEDS:ledPanelFig(),SERVO_NOGND:servoFig({common:false}),SERVO_OK:servoFig({common:true}),BLOCK:blockFig(),
+  LINES:lineFig([['A','visible'],['B','hidden'],['C','center'],['D','phantom'],['E','cutting'],['F','section']]),
+  LINES2:lineFig([['A','dimension'],['B','extension'],['C','longbreak'],['D','shortbreak'],['E','visible'],['F','hidden']])};
+const figHTML=q=>q&&q.fig?FIGS[q.fig]||'':'';
+const simHTML=q=>q&&q.sim?` <a href="${SIM_URL}" target="_blank" rel="noopener" style="color:#ffc72c;font-weight:700;text-decoration:underline">🔌 Try it in the simulator: ${q.sim}</a>`:'';
+
+// ════════════════════════ STATE ════════════════════════
+let selectedTopics = new Set();
+let fcDeck=[], fcIdx=0, fcFlipped=false, fcFilter='all', fcKnown=new Set(), fcDir='fwd';
+let quizQs=[], quizIdx=0, quizScore=0, quizStreak=0, quizTimer=null, quizAnswered=false, quizTimerSec=20;
+let matchSets=[], matchSetIdx=0, matchSelected=null, matchDone=new Set();
+let tfQs=[], tfIdx=0, tfCor=0, tfStr=0, tfAnswered=false;
+let projQs=[], projIdx=0, projTimer=null;
+let exDeck=[], exIdx=0, exGot=0, exPart=0, exMiss=0, exRevealed=false;
+let fibQs=[], fibIdx=0, fibCor=0, fibAnswered=false;
+let seqQs=[], seqIdx=0, seqOrder=[], seqCor=0, seqChecked=false;
+
+// ════════════════════════ INIT ════════════════════════
+function init() {
+  buildTopicList();
+  applyPreset('mid');
+  setMode('welcome');
+}
+
+function buildTopicList() {
+  const container = document.getElementById('topic-list');
+  container.innerHTML = '';
+  TOPICS.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'trow';
+    row.dataset.id = t.id;
+    row.innerHTML = `<span class="tnum-badge">${t.id}</span><span class="tlbl">${t.label}</span>`;
+    row.onclick = () => toggleTopic(t.id);
+    container.appendChild(row);
+  });
+}
+
+function toggleTopic(id) {
+  if (selectedTopics.has(id)) selectedTopics.delete(id);
+  else selectedTopics.add(id);
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  refreshTopicUI();
+}
+
+function applyPreset(p) {
+  selectedTopics = new Set(PRESETS[p]);
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', b.dataset.p === p));
+  refreshTopicUI();
+}
+
+function refreshTopicUI() {
+  document.querySelectorAll('.trow').forEach(row => {
+    row.classList.toggle('sel', selectedTopics.has(row.dataset.id));
+  });
+  document.getElementById('tbadge').textContent = selectedTopics.size + '/13';
+  const fc=getFiltered('fc').length, mc=getFiltered('mc').length,
+        tf=getFiltered('tf').length, mt=getFiltered('match').length,
+        fib=getFiltered('fib').length;
+  document.getElementById('sfc').textContent = fc||'—';
+  document.getElementById('smc').textContent = mc||'—';
+  document.getElementById('stf').textContent = tf||'—';
+  document.getElementById('smt').textContent = mt||'—';
+  document.getElementById('sex').textContent = fc||'—';
+  document.getElementById('sfb').textContent = fib||'—';
+  document.getElementById('sseq').textContent = getFiltered('seq').length||'—';
+}
+
+function getFiltered(type) {
+  if (selectedTopics.size === 0) return Q.filter(q => q.type === type);
+  return Q.filter(q => q.type === type && q.t.some(tid => selectedTopics.has(tid)));
+}
+
+function shuffle(arr) {
+  const a=[...arr];
+  for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+function setMode(mode) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('visible'));
+  document.getElementById('screen-' + (mode==='welcome'?'welcome':mode)).classList.add('visible');
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.m === mode));
+  if (mode==='flashcard') initFlashcard();
+  else if (mode==='quiz') initQuiz();
+  else if (mode==='matching') initMatching();
+  else if (mode==='tf') initTF();
+  else if (mode==='explain') initExplain();
+  else if (mode==='fib') initFIB();
+  else if (mode==='seq') initSeq();
+}
+
+// ════════════════════════ localStorage ════════════════════════
+function lsKey(){return 'engr103_known_'+[...selectedTopics].sort().join(',');}
+function lsSave(){try{localStorage.setItem(lsKey(),JSON.stringify([...fcKnown]));}catch(e){}}
+function lsLoad(){try{const r=localStorage.getItem(lsKey());fcKnown=r?new Set(JSON.parse(r)):new Set();}catch(e){fcKnown=new Set();}}
+
+// ════════════════════════ FLASHCARDS ════════════════════════
+function initFlashcard() {
+  fcDeck=shuffle(getFiltered('fc')); fcIdx=0; fcFlipped=false; fcFilter='all';
+  lsLoad();
+  document.getElementById('fc-filter-btn').textContent='Show: All';
+  document.getElementById('fc-review-banner').style.display='none';
+  renderFC();
+}
+
+function getFilteredDeck() {
+  if (fcFilter==='known') return fcDeck.filter(c=>fcKnown.has(c.id));
+  if (fcFilter==='learning') return fcDeck.filter(c=>!fcKnown.has(c.id));
+  return fcDeck;
+}
+
+function renderFC() {
+  const deck=getFilteredDeck();
+  const card=document.getElementById('fc-card');
+  card.classList.remove('flipped'); fcFlipped=false;
+  if (!deck.length) {
+    document.getElementById('fc-front').textContent='No cards in this filter.';
+    document.getElementById('fc-back').textContent='';
+    document.getElementById('fc-badge').textContent='—';
+    document.getElementById('fc-prog-txt').textContent='0 / 0';
+    document.getElementById('fc-prog-bar').style.width='0%';
+    return;
+  }
+  fcIdx=Math.max(0,Math.min(deck.length-1,fcIdx));
+  const q=deck[fcIdx];
+  const topic=TOPICS.find(t=>t.id===q.t[0]);
+  const lbl=topic?`L${q.t[0]} — ${topic.label}`:q.t[0];
+  if(fcDir==='fwd'){
+    document.getElementById('fc-lbl-front').textContent='TERM / QUESTION';
+    document.getElementById('fc-lbl-back').textContent='ANSWER';
+    if(q.frhtml) document.getElementById('fc-front').innerHTML=q.frhtml;
+    else document.getElementById('fc-front').textContent=q.fr;
+    if(q.bkhtml) document.getElementById('fc-back').innerHTML=q.bkhtml;
+    else document.getElementById('fc-back').textContent=q.bk||'';
+  } else {
+    document.getElementById('fc-lbl-front').textContent='DEFINITION / ANSWER';
+    document.getElementById('fc-lbl-back').textContent='TERM / QUESTION';
+    if(q.bkhtml) document.getElementById('fc-front').innerHTML=q.bkhtml;
+    else document.getElementById('fc-front').textContent=q.bk||'';
+    if(q.frhtml) document.getElementById('fc-back').innerHTML=q.frhtml;
+    else document.getElementById('fc-back').textContent=q.fr;
+  }
+  document.getElementById('fc-badge').textContent=lbl;
+  document.getElementById('fc-badge-b').textContent=lbl;
+  document.getElementById('fc-prog-txt').textContent=`${fcIdx+1} / ${deck.length}`;
+  document.getElementById('fc-prog-bar').style.width=`${((fcIdx+1)/deck.length)*100}%`;
+  // Weak-card review banner
+  const banner=document.getElementById('fc-review-banner');
+  if(fcIdx===deck.length-1 && fcFilter==='all'){
+    const learningCount=fcDeck.filter(c=>!fcKnown.has(c.id)).length;
+    if(learningCount>0){
+      document.getElementById('fc-review-msg').textContent=`End of deck — ${learningCount} card${learningCount>1?'s':''} still in "Still Learning". Review them?`;
+      banner.style.display='flex';
+    } else { banner.style.display='none'; }
+  } else { banner.style.display='none'; }
+}
+
+function fcFlip(){document.getElementById('fc-card').classList.toggle('flipped');fcFlipped=!fcFlipped;}
+function fcNav(dir){fcIdx+=dir;renderFC();}
+function fcMark(know){
+  const deck=getFilteredDeck();
+  if(!deck[fcIdx])return;
+  if(know)fcKnown.add(deck[fcIdx].id);else fcKnown.delete(deck[fcIdx].id);
+  lsSave();
+  fcNav(1);
+}
+function fcShuffle(){fcDeck=shuffle(fcDeck);fcIdx=0;renderFC();}
+function fcToggleFilter(){
+  const f=['all','learning','known'],l=['Show: All','Show: Still Learning','Show: Know It ✓'];
+  const i=f.indexOf(fcFilter);
+  fcFilter=f[(i+1)%3];
+  document.getElementById('fc-filter-btn').textContent=l[(i+1)%3];
+  fcIdx=0;renderFC();
+}
+function fcToggleDir(){
+  fcDir=fcDir==='fwd'?'rev':'fwd';
+  const btn=document.getElementById('fc-dir-btn');
+  btn.textContent=fcDir==='fwd'?'▶ Term → Def':'▶ Def → Term';
+  btn.style.borderColor=fcDir==='fwd'?'#9b7ec855':'#ffc72c55';
+  btn.style.color=fcDir==='fwd'?'#9b7ec8':'#ffc72c';
+  fcIdx=0;renderFC();
+}
+function fcReviewWeak(){
+  fcFilter='learning';
+  document.getElementById('fc-filter-btn').textContent='Show: Still Learning';
+  document.getElementById('fc-review-banner').style.display='none';
+  fcIdx=0;renderFC();
+}
+function fcReset(){
+  fcKnown=new Set();lsSave();fcFilter='all';fcIdx=0;fcDir='fwd';
+  document.getElementById('fc-filter-btn').textContent='Show: All';
+  document.getElementById('fc-dir-btn').textContent='▶ Term → Def';
+  document.getElementById('fc-dir-btn').style.borderColor='#9b7ec855';
+  document.getElementById('fc-dir-btn').style.color='#9b7ec8';
+  document.getElementById('fc-review-banner').style.display='none';
+  fcDeck=shuffle(fcDeck);renderFC();
+}
+
+// ════════════════════════ QUIZ ════════════════════════
+function initQuiz() {
+  quizQs=shuffle(getFiltered('mc'));quizIdx=0;quizScore=0;quizStreak=0;quizAnswered=false;
+  if(quizTimer)clearInterval(quizTimer);
+  document.getElementById('quiz-end').style.display='none';
+  document.getElementById('quiz-opts').style.display='grid';
+  document.getElementById('quiz-qtxt').style.display='';
+  document.getElementById('quiz-exp').style.display='none';
+  document.getElementById('quiz-score').textContent='Score: 0';
+  if(!quizQs.length){document.getElementById('quiz-qtxt').textContent='No questions for selected topics.';return;}
+  renderQuiz();
+}
+
+function renderQuiz() {
+  if(quizIdx>=quizQs.length){showQuizEnd();return;}
+  quizAnswered=false;
+  const q=quizQs[quizIdx];
+  document.getElementById('quiz-qtxt').textContent=q.q;
+  document.getElementById('quiz-fig').innerHTML=figHTML(q);
+  document.getElementById('quiz-qnum').textContent=`Q ${quizIdx+1}/${quizQs.length}`;
+  document.getElementById('quiz-exp').style.display='none';
+  ['qa','qb','qc','qd'].forEach((cls,i)=>{
+    const el=document.getElementById('qo'+i);
+    el.className=`qopt ${cls}`;
+    document.getElementById('qt'+i).textContent=q.opts[i]||'';
+  });
+  startQuizTimer();
+}
+
+function startQuizTimer() {
+  if(quizTimer)clearInterval(quizTimer);
+  quizTimerSec=20;
+  const bar=document.getElementById('quiz-timer-bar');
+  bar.style.width='100%';
+  quizTimer=setInterval(()=>{
+    quizTimerSec--;
+    bar.style.width=(quizTimerSec/20*100)+'%';
+    if(quizTimerSec<=0){clearInterval(quizTimer);if(!quizAnswered)quizAns(-1);}
+  },1000);
+}
+
+function quizAns(idx) {
+  if(quizAnswered)return;
+  quizAnswered=true;
+  if(quizTimer)clearInterval(quizTimer);
+  const q=quizQs[quizIdx];
+  const correct=idx===q.ans;
+  for(let i=0;i<4;i++){
+    const el=document.getElementById('qo'+i);
+    el.classList.add('off');
+    if(i===q.ans)el.classList.add(correct&&i===idx?'correct':'show-correct');
+    else if(i===idx)el.classList.add('wrong');
+  }
+  if(correct){quizStreak++;const bonus=quizStreak>=3?Math.min(quizStreak-2,3):0;quizScore+=100+bonus*50;spawnConfetti(8);}
+  else quizStreak=0;
+  document.getElementById('quiz-score').textContent=`Score: ${quizScore}`;
+  if(q.exp){const e=document.getElementById('quiz-exp');e.innerHTML=(correct?'✓ ':'✗ ')+q.exp+simHTML(q);e.style.display='';}
+  setTimeout(()=>{quizIdx++;renderQuiz();},2200);
+}
+
+function showQuizEnd() {
+  document.getElementById('quiz-end').style.display='flex';
+  document.getElementById('quiz-opts').style.display='none';
+  document.getElementById('quiz-qtxt').style.display='none';
+  document.getElementById('quiz-exp').style.display='none';
+  document.getElementById('quiz-final').textContent=`${quizScore} pts`;
+  document.getElementById('quiz-detail').textContent=`${quizQs.length} questions completed`;
+  spawnConfetti(40);
+}
+
+// ════════════════════════ MATCHING ════════════════════════
+function initMatching() {
+  const pairs=shuffle(getFiltered('match'));
+  matchSets=[];
+  for(let i=0;i<pairs.length;i+=6)matchSets.push(pairs.slice(i,i+6));
+  matchSetIdx=0;matchSelected=null;matchDone=new Set();
+  document.getElementById('mset-tot').textContent=matchSets.length||'0';
+  document.getElementById('match-done').style.display='none';
+  if(!matchSets.length){document.getElementById('match-grid').innerHTML='<p style="color:#7f97c9;padding:20px;text-align:center">No matching pairs for selected topics.</p>';return;}
+  renderMatchSet();
+}
+
+function renderMatchSet() {
+  const set=matchSets[matchSetIdx];
+  matchSelected=null;matchDone=new Set();
+  document.getElementById('mset-n').textContent=matchSetIdx+1;
+  document.getElementById('mremain').textContent=set.length;
+  document.getElementById('match-done').style.display='none';
+  const terms=set.map(p=>({text:p.term,pairId:p.id,side:'term'}));
+  const defs=shuffle(set.map(p=>({text:p.def,pairId:p.id,side:'def'})));
+  const grid=document.getElementById('match-grid');
+  grid.innerHTML='';
+  terms.forEach((t,i)=>{
+    grid.appendChild(makeMatchItem(t));
+    grid.appendChild(makeMatchItem(defs[i]));
+  });
+}
+
+function makeMatchItem(item) {
+  const el=document.createElement('div');
+  el.className='mitem';
+  el.dataset.pairId=item.pairId;
+  el.dataset.side=item.side;
+  el.innerHTML=`<span class="mcol">${item.side==='term'?'TERM':'DEFINITION'}</span>${item.text}`;
+  el.onclick=()=>onMatchClick(el,item);
+  return el;
+}
+
+function onMatchClick(el,item) {
+  if(el.classList.contains('done'))return;
+  if(!matchSelected){matchSelected={el,item};el.classList.add('sel');return;}
+  const first=matchSelected;matchSelected=null;
+  if(first.el===el){el.classList.remove('sel');return;}
+  if(first.item.pairId===item.pairId&&first.item.side!==item.side){
+    first.el.classList.remove('sel');first.el.classList.add('done');
+    el.classList.add('done');matchDone.add(item.pairId);
+    const rem=matchSets[matchSetIdx].length-matchDone.size;
+    document.getElementById('mremain').textContent=rem;
+    if(!rem){spawnConfetti(20);document.getElementById('match-done').style.display='flex';
+      document.getElementById('match-next-btn').style.display=matchSetIdx+1<matchSets.length?'':'none';}
+  } else {
+    first.el.classList.remove('sel');first.el.classList.add('bad');el.classList.add('bad');
+    setTimeout(()=>{first.el.classList.remove('bad');el.classList.remove('bad');},500);
+  }
+}
+
+function matchNext(){
+  if(++matchSetIdx<matchSets.length)renderMatchSet();else initMatching();
+}
+
+// ════════════════════════ TRUE / FALSE ════════════════════════
+function initTF() {
+  tfQs=shuffle(getFiltered('tf'));tfIdx=0;tfCor=0;tfStr=0;tfAnswered=false;
+  document.getElementById('tf-cor').textContent='0';
+  document.getElementById('tf-str').textContent='0';
+  document.getElementById('tf-n').textContent='0';
+  document.getElementById('tf-tot').textContent=tfQs.length;
+  document.getElementById('tf-exp').style.display='none';
+  document.getElementById('tf-btns').style.display='flex';
+  if(!tfQs.length){document.getElementById('tf-stmt').textContent='No T/F questions for selected topics.';return;}
+  renderTF();
+}
+
+function renderTF() {
+  if(tfIdx>=tfQs.length){
+    document.getElementById('tf-stmt').textContent=`Complete! ${tfCor} / ${tfQs.length} correct 🎉`;
+    document.getElementById('tf-btns').style.display='none';spawnConfetti(30);return;
+  }
+  tfAnswered=false;
+  document.getElementById('tf-btns').style.display='flex';
+  document.getElementById('tf-stmt').textContent=tfQs[tfIdx].q;
+  document.getElementById('tf-n').textContent=tfIdx+1;
+  document.getElementById('tf-exp').style.display='none';
+  document.getElementById('tfT').className='tfb tft';
+  document.getElementById('tfF').className='tfb tff';
+}
+
+function tfAns(ans) {
+  if(tfAnswered)return;tfAnswered=true;
+  const q=tfQs[tfIdx];const correct=ans===q.ans;
+  if(correct){tfCor++;tfStr++;spawnConfetti(5);}else tfStr=0;
+  document.getElementById(ans?'tfT':'tfF').classList.add(correct?'correct':'wrong');
+  document.getElementById(!ans?'tfT':'tfF').classList.add(correct?'wrong':'correct');
+  document.getElementById('tf-cor').textContent=tfCor;
+  document.getElementById('tf-str').textContent=tfStr;
+  if(q.exp){const e=document.getElementById('tf-exp');e.innerHTML=(correct?'✓ Correct! ':'✗ Incorrect. ')+q.exp+simHTML(q);e.style.display='';}
+  setTimeout(()=>{tfIdx++;renderTF();},2000);
+}
+
+// ════════════════════════ EXPLAIN IT ════════════════════════
+function initExplain() {
+  exDeck=shuffle(getFiltered('fc')); exIdx=0; exGot=0; exPart=0; exMiss=0; exRevealed=false;
+  document.getElementById('ex-end').style.display='none';
+  document.getElementById('ex-topic-lbl').style.display='';
+  document.getElementById('ex-prompt').style.display='';
+  document.getElementById('ex-textarea').style.display='';
+  document.getElementById('ex-reveal-btn').style.display='';
+  if(!exDeck.length){
+    document.getElementById('ex-prompt').textContent='No cards for selected topics.';
+    document.getElementById('ex-textarea').style.display='none';
+    document.getElementById('ex-reveal-btn').style.display='none';
+    return;
+  }
+  renderExplain();
+}
+
+function renderExplain() {
+  if(exIdx>=exDeck.length){showExplainEnd();return;}
+  exRevealed=false;
+  const q=exDeck[exIdx];
+  const topic=TOPICS.find(t=>t.id===q.t[0]);
+  document.getElementById('ex-topic-lbl').textContent=topic?`L${q.t[0]} — ${topic.label}`:q.t[0];
+  document.getElementById('ex-prompt').textContent=q.fr;
+  const ta=document.getElementById('ex-textarea');
+  ta.value=''; ta.disabled=false; ta.style.borderColor='';
+  document.getElementById('ex-model').style.display='none';
+  document.getElementById('ex-rate-row').style.display='none';
+  document.getElementById('ex-reveal-btn').disabled=false;
+  document.getElementById('ex-got').textContent=exGot;
+  document.getElementById('ex-part').textContent=exPart;
+  document.getElementById('ex-miss').textContent=exMiss;
+  document.getElementById('ex-n').textContent=exIdx+1;
+  document.getElementById('ex-tot').textContent=exDeck.length;
+  document.getElementById('ex-prog-bar').style.width=`${(exIdx/exDeck.length)*100}%`;
+}
+
+function exReveal() {
+  if(exRevealed)return;
+  exRevealed=true;
+  const q=exDeck[exIdx];
+  const modelEl=document.getElementById('ex-model');
+  if(q.bkhtml) modelEl.innerHTML=q.bkhtml;
+  else modelEl.textContent=q.bk||'';
+  modelEl.style.display='';
+  document.getElementById('ex-textarea').disabled=true;
+  document.getElementById('ex-textarea').style.borderColor='#27498a';
+  document.getElementById('ex-reveal-btn').disabled=true;
+  document.getElementById('ex-rate-row').style.display='flex';
+}
+
+function exRate(rating) {
+  if(rating==='got') exGot++;
+  else if(rating==='part') exPart++;
+  else exMiss++;
+  exIdx++;
+  renderExplain();
+}
+
+function showExplainEnd() {
+  document.getElementById('ex-end').style.display='flex';
+  document.getElementById('ex-topic-lbl').style.display='none';
+  document.getElementById('ex-prompt').style.display='none';
+  document.getElementById('ex-textarea').style.display='none';
+  document.getElementById('ex-reveal-btn').style.display='none';
+  document.getElementById('ex-model').style.display='none';
+  document.getElementById('ex-rate-row').style.display='none';
+  document.getElementById('ex-end-got').textContent=exGot;
+  document.getElementById('ex-end-part').textContent=exPart;
+  document.getElementById('ex-end-miss').textContent=exMiss;
+  document.getElementById('ex-prog-bar').style.width='100%';
+  spawnConfetti(30);
+}
+
+// ════════════════════════ FILL IN BLANK ════════════════════════
+function initFIB() {
+  fibQs=shuffle(getFiltered('fib')); fibIdx=0; fibCor=0; fibAnswered=false;
+  document.getElementById('fib-end').style.display='none';
+  document.getElementById('fib-prompt').style.display='';
+  document.getElementById('fib-submit').style.display='';
+  document.getElementById('fib-cor').textContent='0';
+  document.getElementById('fib-tot').textContent=fibQs.length;
+  if(!fibQs.length){
+    document.getElementById('fib-prompt').textContent='No fill-in-blank questions for selected topics.';
+    document.getElementById('fib-submit').style.display='none';
+    return;
+  }
+  renderFIB();
+}
+
+function renderFIB() {
+  if(fibIdx>=fibQs.length){showFIBEnd();return;}
+  fibAnswered=false;
+  const q=fibQs[fibIdx];
+  document.getElementById('fib-n').textContent=fibIdx+1;
+  document.getElementById('fib-exp').style.display='none';
+  document.getElementById('fib-next').style.display='none';
+  document.getElementById('fib-submit').style.display='';
+  // Build prompt with inline inputs replacing each ___
+  let html=q.q; let blankIdx=0;
+  html=html.replace(/___/g,()=>{
+    const w=Math.max(80,(q.blanks[blankIdx]||'').length*12+40);
+    const inp=`<input class="fib-input" data-bi="${blankIdx}" style="width:${w}px" placeholder="?" autocomplete="off">`;
+    blankIdx++; return inp;
+  });
+  document.getElementById('fib-prompt').innerHTML=html;
+  // Focus first input
+  const first=document.querySelector('.fib-input');
+  if(first) setTimeout(()=>first.focus(),50);
+  // Enter key submits
+  document.querySelectorAll('.fib-input').forEach(inp=>{
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')fibSubmit();});
+  });
+}
+
+function fibSubmit() {
+  if(fibAnswered)return;
+  fibAnswered=true;
+  const q=fibQs[fibIdx];
+  const inputs=document.querySelectorAll('.fib-input');
+  let allCorrect=true;
+  inputs.forEach(inp=>{
+    const bi=parseInt(inp.dataset.bi);
+    const expected=(q.blanks[bi]||'').toLowerCase().trim();
+    const given=inp.value.toLowerCase().trim();
+    const correct=(given===expected)||(given.length>2&&expected.includes(given))||(given.length>2&&given.includes(expected));
+    inp.classList.add(correct?'correct':'wrong');
+    inp.disabled=true;
+    if(!correct){allCorrect=false; inp.title=`Expected: ${q.blanks[bi]}`;}
+  });
+  if(allCorrect){fibCor++;document.getElementById('fib-cor').textContent=fibCor;spawnConfetti(6);}
+  if(q.exp){
+    const e=document.getElementById('fib-exp');
+    e.innerHTML=(allCorrect?'✓ Correct! ':'✗ Review: ')+q.exp+simHTML(q);
+    e.style.display='';
+  }
+  document.getElementById('fib-submit').style.display='none';
+  document.getElementById('fib-next').style.display='';
+}
+
+function fibNext() {
+  fibIdx++;
+  renderFIB();
+}
+
+function showFIBEnd() {
+  document.getElementById('fib-end').style.display='flex';
+  document.getElementById('fib-prompt').style.display='none';
+  document.getElementById('fib-submit').style.display='none';
+  document.getElementById('fib-exp').style.display='none';
+  document.getElementById('fib-next').style.display='none';
+  document.getElementById('fib-final').textContent=`${fibCor} / ${fibQs.length}`;
+  spawnConfetti(35);
+}
+
+// ════════════════════════ PROJECTOR / CLASS MODE ════════════════════════
+function openProj() {
+  projQs=shuffle(getFiltered('mc'));projIdx=0;
+  if(!projQs.length){alert('No quiz questions for selected topics.');return;}
+  document.getElementById('projector').classList.add('on');
+  renderProjector();
+  document.addEventListener('keydown',projKeyHandler);
+}
+
+function closeProj() {
+  document.getElementById('projector').classList.remove('on');
+  if(projTimer)clearInterval(projTimer);
+  document.removeEventListener('keydown',projKeyHandler);
+}
+
+function renderProjector() {
+  projIdx=Math.max(0,Math.min(projQs.length-1,projIdx));
+  const q=projQs[projIdx];
+  document.getElementById('proj-qtxt').textContent=q.q;
+  document.getElementById('proj-fig').innerHTML=figHTML(q);
+  document.getElementById('proj-qnum').textContent=`Q ${projIdx+1}/${projQs.length}`;
+  for(let i=0;i<4;i++){
+    const el=document.getElementById('po'+i);
+    el.className=el.className.replace(/\s*(hide-txt|revealed)/g,'');
+    document.getElementById('pt'+i).textContent=q.opts[i]||'';
+  }
+  startProjTimer();
+}
+
+function startProjTimer() {
+  if(projTimer)clearInterval(projTimer);
+  let sec=20;
+  document.getElementById('proj-tnum').textContent=sec;
+  document.getElementById('proj-timer-bar').style.width='100%';
+  projTimer=setInterval(()=>{
+    sec--;
+    document.getElementById('proj-tnum').textContent=sec;
+    document.getElementById('proj-timer-bar').style.width=(sec/20*100)+'%';
+    if(sec<=0)clearInterval(projTimer);
+  },1000);
+}
+
+function projReveal() {
+  if(projTimer)clearInterval(projTimer);
+  const q=projQs[projIdx];
+  for(let i=0;i<4;i++)document.getElementById('po'+i).classList.remove('hide-txt');
+  document.getElementById('po'+q.ans).classList.add('revealed');
+}
+
+function projMove(dir) {
+  projIdx+=dir;renderProjector();
+}
+
+function projKeyHandler(e) {
+  if(e.key==='Escape')closeProj();
+  else if(e.key==='ArrowRight'||e.key==='ArrowDown')projMove(1);
+  else if(e.key==='ArrowLeft'||e.key==='ArrowUp')projMove(-1);
+  else if(e.key===' '){e.preventDefault();projReveal();}
+}
+
+// ════════════════════════ SEQUENCE ORDERING ════════════════════════
+function initSeq() {
+  seqQs=shuffle(getFiltered('seq')); seqIdx=0; seqCor=0; seqChecked=false;
+  document.getElementById('seq-end').style.display='none';
+  document.getElementById('seq-list').style.display='flex';
+  document.getElementById('seq-prompt').style.display='';
+  document.getElementById('seq-check').style.display='';
+  document.getElementById('seq-qtot').textContent=seqQs.length;
+  if(!seqQs.length){
+    document.getElementById('seq-prompt').textContent='No ordering questions for selected topics.';
+    document.getElementById('seq-check').style.display='none';
+    document.getElementById('seq-list').innerHTML='';
+    return;
+  }
+  renderSeq();
+}
+
+function renderSeq() {
+  seqChecked=false;
+  const q=seqQs[seqIdx];
+  seqOrder=[...Array(q.steps.length).keys()];
+  for(let i=seqOrder.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[seqOrder[i],seqOrder[j]]=[seqOrder[j],seqOrder[i]];}
+  document.getElementById('seq-prompt').textContent=q.q;
+  document.getElementById('seq-n').textContent=seqIdx+1;
+  document.getElementById('seq-check').style.display='';
+  document.getElementById('seq-exp').style.display='none';
+  document.getElementById('seq-result').style.display='none';
+  document.getElementById('seq-next').style.display='none';
+  buildSeqList(q);
+}
+
+function buildSeqList(q) {
+  const list=document.getElementById('seq-list');
+  list.innerHTML='';
+  seqOrder.forEach((stepIdx,pos)=>{
+    const item=document.createElement('div');
+    item.className='seq-item';
+    item.innerHTML=`<span class="seq-num">${pos+1}</span><span class="seq-txt">${q.steps[stepIdx]}</span><div class="seq-arrows"><button class="seq-arrow" onclick="seqMove(${pos},-1)" ${pos===0?'disabled':''}>▲</button><button class="seq-arrow" onclick="seqMove(${pos},1)" ${pos===seqOrder.length-1?'disabled':''}>▼</button></div>`;
+    list.appendChild(item);
+  });
+}
+
+function seqMove(pos,dir) {
+  if(seqChecked)return;
+  const newPos=pos+dir;
+  if(newPos<0||newPos>=seqOrder.length)return;
+  [seqOrder[pos],seqOrder[newPos]]=[seqOrder[newPos],seqOrder[pos]];
+  buildSeqList(seqQs[seqIdx]);
+}
+
+function seqCheck() {
+  if(seqChecked)return;
+  seqChecked=true;
+  const q=seqQs[seqIdx];
+  let allCorrect=true;
+  const items=document.querySelectorAll('.seq-item');
+  seqOrder.forEach((stepIdx,pos)=>{
+    const correct=(stepIdx===pos);
+    items[pos].classList.add(correct?'correct':'wrong');
+    if(!correct)allCorrect=false;
+  });
+  document.querySelectorAll('.seq-arrows').forEach(a=>a.style.display='none');
+  if(allCorrect){seqCor++;spawnConfetti(15);}
+  document.getElementById('seq-cor').textContent=seqCor;
+  const resultEl=document.getElementById('seq-result');
+  resultEl.textContent=allCorrect?'✓ Correct order!':'✗ Not quite — correct order shown below';
+  resultEl.style.color=allCorrect?'#4caf50':'#f44336';
+  resultEl.style.display='';
+  if(!allCorrect){
+    setTimeout(()=>{
+      seqOrder=[...Array(q.steps.length).keys()];
+      buildSeqList(q);
+      document.querySelectorAll('.seq-item').forEach(el=>{
+        el.classList.add('correct');
+        const a=el.querySelector('.seq-arrows');if(a)a.style.display='none';
+      });
+    },900);
+  }
+  if(q.exp){const e=document.getElementById('seq-exp');e.textContent=q.exp;e.style.display='';}
+  document.getElementById('seq-check').style.display='none';
+  document.getElementById('seq-next').style.display='';
+}
+
+function seqNext() {
+  seqIdx++;
+  if(seqIdx>=seqQs.length){showSeqEnd();return;}
+  renderSeq();
+}
+
+function showSeqEnd() {
+  document.getElementById('seq-end').style.display='flex';
+  document.getElementById('seq-list').style.display='none';
+  document.getElementById('seq-prompt').style.display='none';
+  document.getElementById('seq-check').style.display='none';
+  document.getElementById('seq-exp').style.display='none';
+  document.getElementById('seq-result').style.display='none';
+  document.getElementById('seq-next').style.display='none';
+  document.getElementById('seq-final').textContent=`${seqCor} / ${seqQs.length}`;
+  spawnConfetti(35);
+}
+
+// ════════════════════════ CONFETTI ════════════════════════
+function spawnConfetti(n) {
+  const colors=['#ffc72c','#ffffff','#4a7bd6','#ffdf7a','#1b3f87','#ff9800'];
+  for(let i=0;i<n;i++){
+    const el=document.createElement('div');el.className='cpiece';
+    el.style.left=Math.random()*100+'vw';el.style.top='-10px';
+    el.style.background=colors[Math.floor(Math.random()*colors.length)];
+    el.style.animationDelay=Math.random()*.6+'s';
+    document.body.appendChild(el);
+    el.addEventListener('animationend',()=>el.remove());
+  }
+}
+
+
+window.onload=init;
+</script>
+
+</body>
+</html>
