@@ -96,7 +96,7 @@
     #quiz-qnum{font-size:.78rem;color:#7f97c9;white-space:nowrap;}
     #quiz-score{font-size:.82rem;font-weight:700;color:#8fb6ff;white-space:nowrap;}
     #quiz-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:22px;}
-    #screen-welcome{overflow-y:auto;justify-content:flex-start;} #welcome-inner{margin:auto;} #quiz-body{overflow-y:auto;} #quiz-fig{width:100%;max-width:580px;display:flex;justify-content:center;} #proj-fig{width:100%;} #quiz-fig svg,#proj-fig svg{max-height:260px;} #quiz-qtxt{font-size:1.2rem;font-weight:600;color:#eef3ff;text-align:center;max-width:740px;line-height:1.5;}
+    #screen-welcome{overflow-y:auto;justify-content:flex-start;} #welcome-inner{margin:auto;} #quiz-body{overflow-y:auto;} #qt0,#qt1,#qt2,#qt3,#pt0,#pt1,#pt2,#pt3{white-space:pre-line;text-align:left;} #quiz-fig{width:100%;max-width:580px;display:flex;justify-content:center;} #proj-fig{width:100%;} #quiz-fig svg,#proj-fig svg{max-height:260px;} #quiz-qtxt{font-size:1.2rem;font-weight:600;color:#eef3ff;text-align:center;max-width:740px;line-height:1.5;}
     #quiz-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:740px;}
     .qopt{padding:18px 20px;border-radius:10px;font-size:.95rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:11px;border:2px solid transparent;transition:all .15s;}
     .qopt:hover:not(.off){filter:brightness(1.1);transform:scale(1.02);}
@@ -866,7 +866,6 @@ const Q=[
 {id:'f06c',t:['06'],type:'fc',fr:'Screening matrix vs. scoring matrix',bk:'Screening: coarse (+ / 0 / −) relative to a reference; used first to eliminate weak concepts.\nScoring: finer (1–5 ratings) with WEIGHTS for each criterion; used on the survivors. Weighted score = Σ(weight × rating).'},
 {id:'f06d',t:['06'],type:'fc',fr:'What is the real goal of concept selection?',bk:'Not just to select the best concept, but to DEVELOP the best concept. Combine the good features of different concepts and refine them.'},
 // 07 Breadboard & circuits
-{id:'f07a',t:['07'],type:'fc',fr:'How are holes connected on a breadboard?',bk:'In the main area, the 5 holes in each short column strip (a–e or f–j) on the same numbered row are connected. The center gap separates the two halves. The long power rails run along the length of the board.'},
 {id:'f07b',t:['07'],type:'fc',fr:'How do you avoid a short circuit?',bk:'Never connect + directly to − (or a supply directly to ground) without a load such as a resistor, LED or motor in between. Don\'t let bare leads of two different strips touch. Check wiring before powering.'},
 {id:'f07c',t:['07'],type:'fc',fr:'What does LED stand for? Polarity?',bk:'Light Emitting Diode. Current only flows one way: anode (+, longer leg) to cathode (−, flat side / shorter leg). Installed backwards, it stays dark.'},
 {id:'f07d',t:['07'],type:'fc',fr:'Why does an LED need a resistor?',bk:'To limit current. An LED has almost no resistance once it conducts, so without a resistor the current can destroy the LED (and the Pico pin).'},
@@ -883,9 +882,7 @@ const Q=[
 // 09 Python
 {id:'f09a',t:['09'],type:'fc',fr:'Python syntax rules to remember',bk:'• # starts a comment\n• Indentation defines blocks (after a colon :)\n• Case-sensitive (Pin ≠ pin, True ≠ true)\n• No type declarations and no semicolons\n• Code runs top to bottom; no main() needed'},
 {id:'f09b',t:['09'],type:'fc',fr:'Set up a pin for writing (output)',bk:'from machine import Pin\nled = Pin(15, Pin.OUT)\nled.on()   # or led.value(1)\nled.off()  # or led.value(0)'},
-{id:'f09c',t:['09'],type:'fc',fr:'Read a digital input / analog value',bk:'Digital in: sw = Pin(14, Pin.IN, Pin.PULL_UP); sw.value()\nAnalog in: from machine import ADC; a = ADC(26); a.read_u16() returns 0–65535. ADC pins are GP26–GP28.'},
 {id:'f09d',t:['09'],type:'fc',fr:'Delays and loops',bk:'import time\ntime.sleep(0.5)  # wait 0.5 s\nwhile True:  # repeat forever (indented block)\nfor i in range(10):  # repeat 10 times'},
-{id:'f09e',t:['09'],type:'fc',fr:'Using the WNE103 motor module',bk:'import WNE103\nboard = WNE103.KitronikPicoMotor()\nboard.motorOn(1, \'f\', 100)  # motor 1, forward, speed 100\nboard.motorOn(2, \'r\', 100)  # motor 2, reverse\nboard.motorOff(1)'},
 {id:'f09f',t:['09'],type:'fc',fr:'Make the robot turn',bk:'Pivot right: motor 1 forward, motor 2 reverse.\nPivot left: motor 1 reverse, motor 2 forward.\nHow far it turns depends on how long (time.sleep) you hold the turn. A 90° turn is found by testing.'},
 {id:'f09g',t:['09'],type:'fc',fr:'Debugging a program: where to look',bk:'1) Read the error message and line number\n2) Indentation and colons\n3) Capitalization and spelling of names\n4) Missing import or wrong pin number\n5) Missing sleep (action too fast to see)'},
 {id:'f09h',t:['09'],type:'fc',fr:'What is main.py on the Pico?',bk:'The file the Pico runs automatically on power-up. Save your untethered robot code to the Pico as main.py. WNE103.py (library) is uploaded once.'},
@@ -1054,8 +1051,6 @@ const Q=[
 /* ─────────────── ORDERING ─────────────── */
 {id:'seq04a',t:['04'],type:'seq',q:'Put the design thinking steps in order:',steps:['Empathize','Define','Ideate','Prototype','Test'],exp:'Empathize → Define → Ideate → Prototype → Test (and iterate).'},
 {id:'seq06a',t:['06'],type:'seq',q:'Put the concept selection steps in order:',steps:['Prepare the matrix','Rate the concepts','Rank the concepts','Combine and improve','Develop the best concept'],exp:'The goal is not to select the best concept but to develop it.'},
-{id:'seq12a',t:['11','12'],type:'seq',q:'Order the steps to model a block with a hole:',steps:['Choose the sketch plane','Sketch the rectangle and dimension it','Extruded Boss/Base','Sketch a circle on a face','Extruded Cut'],exp:'Base feature first, then add details.'},
-{id:'seq13a',t:['13'],type:'seq',q:'Order the drawing steps:',steps:['Make the part and save it','New drawing: set 3rd angle, ANSI, 8.5 × 11','Insert front, top, right and isometric views','Add dimensions, centerlines, and fill the title block','Pack and Go to a ZIP'],exp:'Part first, then the drawing, then package.'},
 {id:'seq09a',t:['09'],type:'seq',q:'Order the steps to blink an LED in Python:',steps:['import the Pin class and time','Create the pin as an output','Start a while True: loop','Turn the LED on / toggle','Sleep for a moment'],exp:'Imports → set up pins → loop → act → delay.'},
 
 /* ─────────────── MULTIPLE CHOICE ─────────────── */
@@ -1094,7 +1089,7 @@ const Q=[
 {id:'m09b',t:['09'],type:'mc',q:'A program has `while True:` followed by `led.on()` and `time.sleep(1)`, both starting at the far-left margin. What is wrong?',opts:['Nothing','The loop body is not indented','sleep needs a semicolon','while is invalid'],ans:1,exp:'The lines under while must be indented.'},
 {id:'m09c',t:['09'],type:'mc',q:'Which Python line is a comment?',opts:['// turn on LED','# turn on LED','-- turn on LED','/* turn on LED */'],ans:1,exp:'# starts a comment.'},
 {id:'m09d',t:['09'],type:'mc',q:'Which statement makes motor 2 spin in reverse at full speed?',opts:['board.motorOn(2, \'r\', 100)','board.motorOn(100, 2, \'r\')','board.motor2.reverse(100)','board.motorOn(2, reverse)'],ans:0,exp:'motorOn(motor_number, direction, speed).'},
-{id:'m09e',t:['09'],type:'mc',q:'The bot should run forward for 4 s then stop. Which is correct?',opts:['motorOn(1,\'f\',100); motorOn(2,\'f\',100); sleep(4); motorOff(1); motorOff(2)','sleep(4); motorOn(1,\'f\',100)','motorOff(1); motorOn(2,\'f\',100)','motorOn(1,\'f\',4)'],ans:0,exp:'Start both motors, wait, then stop both.'},
+{id:'m09e',t:['09'],type:'mc',mono:true,q:'Which code runs both motors forward at full speed for 4 seconds and then stops them?',opts:["board.motorOn(1, 'f', 100)\nboard.motorOn(2, 'f', 100)\ntime.sleep(4)\nboard.motorOff(1)\nboard.motorOff(2)","time.sleep(4)\nboard.motorOn(1, 'f', 100)","board.motorOff(1)\nboard.motorOn(2, 'f', 100)","board.motorOn(1, 'f', 4)"],ans:0,exp:'Start both motors, wait with time.sleep, then stop both.'},
 {id:'m10a',t:['10'],type:'mc',q:'Speed value 80 gives 8 in/s. How long to travel 24 in?',opts:['3 s','2 s','0.33 s','192 s'],ans:0,exp:'time = distance ÷ speed = 24 ÷ 8 = 3 s.'},
 {id:'m10b',t:['10'],type:'mc',q:'A wheel of diameter 2.5 in turns 10 times in 5 s. Translational velocity is about…',opts:['15.7 in/s','7.85 in/s','31.4 in/s','5 in/s'],ans:0,exp:'C = π × 2.5 = 7.85 in. 10 rev × 7.85 in ÷ 5 s = 15.7 in/s.'},
 {id:'m10c',t:['10'],type:'mc',q:'Which chart type is used for the motor characterization data?',opts:['Pie chart','Scatter plot','Bar chart of names','Histogram'],ans:1,exp:'Numeric X vs. numeric Y.'},
@@ -1129,7 +1124,7 @@ const Q=[
   picks.forEach((p,i)=>{
     const s=BLOCK_VIEW[p[0]][p[1]]==='S';
     Q.push({id:'mg'+i,t:['01'],type:'mc',fig:'BLOCK',
-      q:`Surface ${p[0]} (${BLOCK_NAME[p[0]]}) appears in the ${p[1].toUpperCase()} view as…`,
+      q:`Surface ${p[0]} (${BLOCK_NAME[p[0]]}, lettered on the isometric) appears in the ${p[1].toUpperCase()} view as…`,
       opts:['A surface (area)','An edge (a line)','A hidden line','It is not visible'].map(x=>x),
       ans:s?0:1,
       exp:s?`${BLOCK_NAME[p[0]]} faces the ${p[1].toLowerCase()} viewer, so you see its area in that view.`:`Surface ${p[0]} is parallel to the line of sight in the ${p[1]} view, so it shows as an edge (line).`});
@@ -1362,7 +1357,7 @@ function renderQuiz() {
   ['qa','qb','qc','qd'].forEach((cls,i)=>{
     const el=document.getElementById('qo'+i);
     el.className=`qopt ${cls}`;
-    document.getElementById('qt'+i).textContent=q.opts[i]||'';
+    document.getElementById('qt'+i).textContent=q.opts[i]||'';document.getElementById('qt'+i).style.fontFamily=q.mono?'Consolas,Menlo,monospace':'';
   });
   startQuizTimer();
 }
@@ -1686,7 +1681,7 @@ function renderProjector() {
   for(let i=0;i<4;i++){
     const el=document.getElementById('po'+i);
     el.className=el.className.replace(/\s*(hide-txt|revealed)/g,'');
-    document.getElementById('pt'+i).textContent=q.opts[i]||'';
+    document.getElementById('pt'+i).textContent=q.opts[i]||'';document.getElementById('pt'+i).style.fontFamily=q.mono?'Consolas,Menlo,monospace':'';
   }
   startProjTimer();
 }
