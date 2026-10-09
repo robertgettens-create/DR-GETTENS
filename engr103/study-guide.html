@@ -335,6 +335,14 @@
 .dl-chk{margin-top:10px;border-top:1px dashed #27498a;padding-top:8px;font-size:.82rem;color:#c8d8ff}
 .dl-chk ul{margin:4px 0 0 18px;padding:0}
 .dl-foot{display:flex;gap:10px;justify-content:center}
+
+#swp-body{width:100%;max-width:820px;padding:20px 22px 50px;display:flex;flex-direction:column;gap:14px}
+.swp-link{display:inline-block;background:#ffc72c;color:#08183a;font-weight:800;padding:10px 18px;border-radius:8px;text-decoration:none;font-size:.9rem}
+.swp-link:hover{background:#ffd75e}
+.swp-tbl{border-collapse:collapse;width:100%;margin-top:8px;font-size:.9rem}
+.swp-tbl th{background:#163570;color:#ffc72c;text-align:left;padding:8px 12px;border:1px solid #27498a}
+.swp-tbl td{padding:8px 12px;border:1px solid #27498a;color:#eef3ff}
+.swp-ol,.swp-ul{margin:6px 0 0 20px;padding:0;line-height:1.75;font-size:.9rem;color:#e1ecff}
 </style>
 </head>
 <body>
@@ -360,6 +368,11 @@
   <div class="s-label">BREADBOARD SIMULATOR</div>
   <div class="mode-grid" style="gap:3px;">
     <a class="mode-btn final-btn" href="https://apwne.github.io/WNE-FY-Breadboard-Simulator/" target="_blank" rel="noopener" style="text-decoration:none"><span>🔌</span> Open Simulator ↗</a>
+  </div>
+
+  <div class="s-label">SOLIDWORKS PRACTICE</div>
+  <div class="mode-grid" style="gap:3px;">
+    <button class="mode-btn final-btn" data-m="swp" onclick="setMode('swp')"><span>🧊</span> Practice Problems &amp; Skills</button>
   </div>
 
   <div class="s-label">DESIGN PROCESS</div>
@@ -395,6 +408,51 @@
 <!-- ═══ MAIN ═══ -->
 <div id="main">
 
+  <!-- SOLIDWORKS PRACTICE -->
+  <div class="screen" id="screen-swp" style="justify-content:flex-start;align-items:center;overflow-y:auto">
+    <div id="swp-body">
+      <div class="dl-card">
+        <div class="dl-lbl">SolidWorks practice problems</div>
+        <p style="font-size:.95rem;line-height:1.65;color:#eef3ff;margin:6px 0 12px">SolidWorks publishes a large set of practice problems. Many are harder than this course needs, so use the guide below to pick the right ones.</p>
+        <a class="swp-link" href="https://www.solidworks.com/solution/education/practice-problems" target="_blank" rel="noopener">Open the SolidWorks practice problems ↗</a>
+      </div>
+      <div class="dl-card">
+        <div class="dl-lbl">Which problems to practice</div>
+        <table class="swp-tbl">
+          <tr><th>Exam</th><th>Level of problems</th></tr>
+          <tr><td><b>Mid-term</b></td><td>Easy to Medium level only</td></tr>
+          <tr><td><b>Final</b></td><td>Up to the hardest level: CSWA-style problems</td></tr>
+          <tr><td>Everything above that</td><td>Beyond this course: skip it</td></tr>
+        </table>
+        <p style="font-size:.84rem;color:#c8d8ff;margin-top:8px;line-height:1.55">Tip: start with an Easy problem, finish it fully (including the material and mass), then move to a Medium one.</p>
+      </div>
+      <div class="dl-card" style="border-color:#ffc72c">
+        <div class="dl-lbl">Must know for the mid-term</div>
+        <p style="font-size:1rem;line-height:1.6;color:#fff;margin:6px 0"><b>You must be able to assign a given material to a part and find its mass.</b></p>
+        <ol class="swp-ol">
+          <li>Right-click <b>Material</b> in the FeatureManager → <b>Edit Material</b> → choose the material (e.g. brass) → Apply.</li>
+          <li><b>Evaluate → Mass Properties</b> and read the mass.</li>
+          <li>Report it in the units the problem asks for (set Document Properties → Units; IPS gives pounds).</li>
+        </ol>
+        <p style="font-size:.84rem;color:#c8d8ff;margin-top:6px">Practice this on every problem you model, even if the problem does not ask for it.</p>
+      </div>
+      <div class="dl-card">
+        <div class="dl-lbl">Skills checklist for the mid-term</div>
+        <ul class="swp-ul">
+          <li>Set document properties: ANSI and the right units</li>
+          <li>Pick the correct plane and sketch (rectangles, lines, arcs, circles)</li>
+          <li>Smart Dimension, Trim Entities, relations, construction lines, Mirror, fully defined sketch</li>
+          <li>Extrude and Extruded Cut; Fillets and Chamfers; Linear and Circular patterns</li>
+          <li><b>Assign a material and evaluate the mass</b></li>
+          <li>Make an assembly with mates</li>
+          <li>Make a dimensioned drawing: 3rd angle, ANSI, correct and neat dimensions, filled title block</li>
+          <li>Make a ZIP of the part, drawing and assembly with Pack and Go</li>
+        </ul>
+        <p style="font-size:.84rem;color:#c8d8ff;margin-top:8px">Quiz yourself on the concepts in the SolidWorks topics (11–13) using Flashcards, Quiz and Explain It.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- DESIGN LAB -->
   <div class="screen" id="screen-design" style="justify-content:flex-start;align-items:center;overflow-y:auto">
     <div id="design-body"></div>
@@ -414,6 +472,7 @@
         <div class="wcard"><h4>✍ Explain It</h4><p>Short-answer practice. Write your explanation, reveal the model answer, then self-rate. Best prep for conceptual exam questions.</p></div>
         <div class="wcard"><h4>📝 Fill in Blank</h4><p>Key sentences with blanks — type the missing term and check your answer. Great for vocabulary and definitions.</p></div>
         <div class="wcard"><h4>🔢 Ordering</h4><p>Arrange steps into the correct sequence using ▲▼ buttons. Tests processes like the design thinking steps, concept selection, and drawing set-up.</p></div>
+        <div class="wcard"><h4>🧊 SolidWorks Practice</h4><p>Link to the SolidWorks practice problems, which levels to use for the mid-term, and the must-know skill: assign a material and take the mass.</p></div>
         <div class="wcard"><h4>✏️ Design Lab</h4><p>Three new design scenarios with mid-term style short answers: need statement, constraints, criteria, a third concept, a screening matrix and the final two steps. Write your answer, then compare with the model answer.</p></div>
         <div class="wcard" style="grid-column:1/-1"><h4>📽 Class Mode</h4><p>Full-screen projector view. Shows question + colored tiles (answers hidden). Click <em>Show Answer</em> to reveal. Use ← → keys or buttons to navigate. Press Space to reveal, Esc to exit.</p></div>
       </div>
@@ -935,6 +994,7 @@ const Q=[
 {id:'f12b',t:['12'],type:'fc',fr:'Fillet vs. chamfer',bk:'Fillet: rounds an edge (radius).\nChamfer: bevels an edge (flat angled cut, distance/angle).'},
 {id:'f12c',t:['12'],type:'fc',fr:'Linear pattern vs. circular pattern',bk:'Linear: repeats a feature along one or two directions with a spacing and count.\nCircular: repeats a feature around an axis with a count and total angle (e.g. 360°).\nUses: linear = a row of holes in a plate; circular = bolt holes around a flange.'},
 {id:'f12d',t:['12'],type:'fc',fr:'Assign a material and find mass',bk:'Right-click Material in the FeatureManager → Edit Material (e.g. Brass). Then Evaluate → Mass Properties to read the mass (the problem states the units).'},
+{id:'f12f',t:['12'],type:'fc',fr:'REQUIRED SKILL: assign a given material and take the mass',bk:'Given a part and a material (for example brass or steel), you must be able to:\n1) Assign the material: right-click Material in the FeatureManager → Edit Material → choose it → Apply\n2) Read the mass: Evaluate → Mass Properties\n3) Report the mass in the units the problem asks for (check Document Properties → Units; IPS gives pounds)\nThis is on both the mid-term and the final.'},
 {id:'f12e',t:['12'],type:'fc',fr:'What are mates in an assembly?',bk:'Relationships between components that position them (coincident, concentric, parallel, distance…). The first component placed is fixed; add mates to remove degrees of freedom of the others.'},
 // 13 SolidWorks drawings
 {id:'f13a',t:['13'],type:'fc',fr:'Set up a drawing correctly',bk:'Sheet size 8.5 × 11 (A), projection = THIRD angle, standard = ANSI. Make 3 views (front, top, right) plus an isometric in the top-right corner. Scale so the views fit well.'},
@@ -1237,6 +1297,7 @@ f12a:'COMPARE: What does Extruded Boss/Base do and what does Extruded Cut do? Gi
 f12b:'COMPARE: What is the difference between a fillet and a chamfer? Say what each does to an edge.',
 f12c:'COMPARE + USE CASE: How do linear and circular patterns differ? Name a part where you would use each.',
 f12d:'LIST THE STEPS: How do you assign a material to a part and then find its mass?',
+f12f:'LIST THE STEPS: You are given a part and told to use brass. Describe exactly how you assign the material, find the mass, and report it in the right units.',
 f12e:'DEFINE + EXAMPLE: What is a mate in an assembly? Give two kinds and what they do.',
 f13a:'LIST THE SET-UP: List the settings you must make when you start the mid-term drawing (sheet, projection, standard, views, scale).',
 f13b:'DESCRIBE THE STEPS: How do you edit the sheet format to fill in the title block, and what information goes in it?',
