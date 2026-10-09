@@ -316,7 +316,26 @@
     .calc-ans{background:#0d1a10;border-left:3px solid #4caf50;border-radius:0 6px 6px 0;padding:8px 13px;color:#8fd0a8;font-family:monospace;font-size:.9rem;margin:6px 0;display:block;line-height:1.6;}
     .calc-warn{max-width:700px;width:100%;background:#1a1500;border:1px solid #8fb6ff44;border-left:3px solid #8fb6ff;border-radius:8px;padding:12px 16px;font-size:.85rem;color:#c8a848;line-height:1.6;}
     .calc-warn strong{color:#8fb6ff;}
-  </style>
+  
+#design-body{width:100%;max-width:820px;padding:20px 22px 50px;display:flex;flex-direction:column;gap:14px}
+.dl-tabs{display:flex;gap:8px;flex-wrap:wrap}
+.dl-tab{flex:1;min-width:190px;padding:10px 12px;background:#163570;border:1px solid #27498a;color:#c8d8ff;border-radius:8px;font-size:.84rem;font-weight:700;cursor:pointer}
+.dl-tab.on{background:#1b3f87;border-color:#ffc72c;color:#ffc72c}
+.dl-card{background:#0f2858;border:1px solid #27498a;border-radius:12px;padding:16px 18px}
+.dl-scn p{font-size:.95rem;line-height:1.65;color:#eef3ff;margin:6px 0 10px}
+.dl-lbl{font-size:.62rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#ffc72c}
+.dl-cons div{background:#08183a;border-left:3px solid #ffc72c;border-radius:0 6px 6px 0;padding:8px 12px;margin-top:6px;font-size:.88rem;color:#c8d8ff;line-height:1.5}
+.dl-hd{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}
+.dl-num{width:28px;height:28px;border-radius:50%;background:#ffc72c;color:#08183a;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dl-ttl{font-weight:700;color:#ffc72c;font-size:.95rem}
+.dl-q{font-size:.88rem;color:#c8d8ff;line-height:1.55;margin-top:2px}
+.dl-ta{width:100%;min-height:90px;background:#08183a;color:#eef3ff;border:1px solid #27498a;border-radius:8px;padding:10px 12px;font:inherit;font-size:.9rem;resize:vertical}
+.dl-btn{margin-top:8px}
+.dl-ans{margin-top:10px;background:#08183a;border:1px solid #2e7d5b;border-radius:8px;padding:12px 14px;font-size:.88rem;line-height:1.6;color:#e1ecff}
+.dl-chk{margin-top:10px;border-top:1px dashed #27498a;padding-top:8px;font-size:.82rem;color:#c8d8ff}
+.dl-chk ul{margin:4px 0 0 18px;padding:0}
+.dl-foot{display:flex;gap:10px;justify-content:center}
+</style>
 </head>
 <body>
 
@@ -341,6 +360,11 @@
   <div class="s-label">BREADBOARD SIMULATOR</div>
   <div class="mode-grid" style="gap:3px;">
     <a class="mode-btn final-btn" href="https://apwne.github.io/WNE-FY-Breadboard-Simulator/" target="_blank" rel="noopener" style="text-decoration:none"><span>🔌</span> Open Simulator ↗</a>
+  </div>
+
+  <div class="s-label">DESIGN PROCESS</div>
+  <div class="mode-grid" style="gap:3px;">
+    <button class="mode-btn final-btn" data-m="design" onclick="setMode('design')"><span>✏️</span> Design Lab (Short Answer)</button>
   </div>
 
   <div class="s-label">MODE</div>
@@ -371,6 +395,11 @@
 <!-- ═══ MAIN ═══ -->
 <div id="main">
 
+  <!-- DESIGN LAB -->
+  <div class="screen" id="screen-design" style="justify-content:flex-start;align-items:center;overflow-y:auto">
+    <div id="design-body"></div>
+  </div>
+
   <!-- WELCOME -->
   <div class="screen visible" id="screen-welcome">
     <div id="welcome-inner">
@@ -385,6 +414,7 @@
         <div class="wcard"><h4>✍ Explain It</h4><p>Short-answer practice. Write your explanation, reveal the model answer, then self-rate. Best prep for conceptual exam questions.</p></div>
         <div class="wcard"><h4>📝 Fill in Blank</h4><p>Key sentences with blanks — type the missing term and check your answer. Great for vocabulary and definitions.</p></div>
         <div class="wcard"><h4>🔢 Ordering</h4><p>Arrange steps into the correct sequence using ▲▼ buttons. Tests processes like the design thinking steps, concept selection, and drawing set-up.</p></div>
+        <div class="wcard"><h4>✏️ Design Lab</h4><p>Three new design scenarios with mid-term style short answers: need statement, constraints, criteria, a third concept, a screening matrix and the final two steps. Write your answer, then compare with the model answer.</p></div>
         <div class="wcard" style="grid-column:1/-1"><h4>📽 Class Mode</h4><p>Full-screen projector view. Shows question + colored tiles (answers hidden). Click <em>Show Answer</em> to reveal. Use ← → keys or buttons to navigate. Press Space to reveal, Esc to exit.</p></div>
       </div>
     </div>
@@ -858,7 +888,7 @@ const Q=[
 {id:'f05a',t:['05'],type:'fc',fr:'How do you write a need (point-of-view) statement?',bk:'[A specific USER] needs [a way to do something / meet a need] because [surprising insight or reason].\nExample: "A Friendly\'s server needs a way to portion ice cream fast and with one hand because the line backs up at rush hour."\nIt states the need, NOT the solution.'},
 {id:'f05b',t:['05'],type:'fc',fr:'What is a constraint?',bk:'A hard limit the design MUST satisfy (pass/fail): cost, size, time, materials, safety, standards.\nExample: "The scoop shall cost less than $25 per unit."'},
 {id:'f05c',t:['05'],type:'fc',fr:'What is a criterion for success?',bk:'A measurable way to judge HOW WELL a design works, used to compare concepts. More is better (or less is better).\nExample: "Portions of ice cream differ by less than 10% in mass" or "cleans in under 30 seconds."'},
-{id:'f05d',t:['05'],type:'fc',fr:'Constraint vs. criterion: quick test',bk:'If failing it eliminates the design, it is a CONSTRAINT.\nIf it lets you rank one design as better than another, it is a CRITERION.'},
+{id:'f05d',t:['05'],type:'fc',fr:'Constraint vs. criterion: quick test',bk:'If failing it eliminates the design, it is a CONSTRAINT.\nIf it lets you rank one design as better than another, it is a CRITERION.\n"Costs less than $25" is a constraint (pass/fail). "Easy to clean" is a criterion (better or worse; make it measurable, e.g. cleans in under 30 s).'},
 {id:'f05e',t:['05'],type:'fc',fr:'Good constraint statements are…',bk:'Written as a full sentence, specific, measurable/verifiable, and about the design (not a solution). e.g. "The scoop shall be cleanable without equipment other than water and soap."'},
 // 06 Screening matrix
 {id:'f06a',t:['06'],type:'fc',fr:'Concept screening matrix: what is it for?',bk:'A quick way to narrow many concepts to a few promising ones by comparing each concept against a reference (datum) concept on each selection criterion.'},
@@ -866,10 +896,10 @@ const Q=[
 {id:'f06c',t:['06'],type:'fc',fr:'Screening matrix vs. scoring matrix',bk:'Screening: coarse (+ / 0 / −) relative to a reference; used first to eliminate weak concepts.\nScoring: finer (1–5 ratings) with WEIGHTS for each criterion; used on the survivors. Weighted score = Σ(weight × rating).'},
 {id:'f06d',t:['06'],type:'fc',fr:'What is the real goal of concept selection?',bk:'Not just to select the best concept, but to DEVELOP the best concept. Combine the good features of different concepts and refine them.'},
 // 07 Breadboard & circuits
-{id:'f07b',t:['07'],type:'fc',fr:'How do you avoid a short circuit?',bk:'Never connect + directly to − (or a supply directly to ground) without a load such as a resistor, LED or motor in between. Don\'t let bare leads of two different strips touch. Check wiring before powering.'},
+{id:'f07b',t:['07'],type:'fc',fr:'How do you avoid a short circuit?',bk:'A short circuit is a direct low-resistance path from + to − with no load, so very large current flows and parts or wires can overheat.\nAvoid it: never connect + directly to − (or a supply to ground) without a load such as a resistor, LED or motor in between; don\'t let bare leads of two different strips touch; check wiring before powering.'},
 {id:'f07c',t:['07'],type:'fc',fr:'What does LED stand for? Polarity?',bk:'Light Emitting Diode. Current only flows one way: anode (+, longer leg) to cathode (−, flat side / shorter leg). Installed backwards, it stays dark.'},
 {id:'f07d',t:['07'],type:'fc',fr:'Why does an LED need a resistor?',bk:'To limit current. An LED has almost no resistance once it conducts, so without a resistor the current can destroy the LED (and the Pico pin).'},
-{id:'f07e',t:['07'],type:'fc',fr:'Ohm\'s Law and units',bk:'V = I × R\nV = voltage (volts, V)\nI = current (amperes, A)\nR = resistance (ohms, Ω)'},
+{id:'f07e',t:['07'],type:'fc',fr:'Ohm\'s Law and units',bk:'V = I × R\nV = voltage (volts, V)\nI = current (amperes, A)\nR = resistance (ohms, Ω)\nExample: I = V ÷ R = 3.3 V ÷ 220 Ω = 0.015 A = 15 mA'},
 {id:'f07f',t:['07'],type:'fc',fr:'Digital vs. analog signals',bk:'Digital: discrete, only two levels, HIGH or LOW (on/off). Blinking an LED uses a digital signal.\nAnalog: continuous, any value in a range (e.g. a temperature sensor voltage).'},
 // 08 Wiring
 {id:'f08a',t:['08'],type:'fc',fr:'Wire an LED off a digital pin',bk:'GPIO pin → resistor (about 220 Ω) → LED anode (long leg); LED cathode (short leg / flat side) → GND. In code: led = Pin(15, Pin.OUT); led.on()'},
@@ -888,7 +918,7 @@ const Q=[
 {id:'f09h',t:['09'],type:'fc',fr:'What is main.py on the Pico?',bk:'The file the Pico runs automatically on power-up. Save your untethered robot code to the Pico as main.py. WNE103.py (library) is uploaded once.'},
 // 10 Motor data / Excel / memo
 {id:'f10a',t:['10'],type:'fc',fr:'Translational velocity from wheel data',bk:'v = (revolutions × wheel circumference) / time interval\nCircumference = π × diameter. Units: inches per second.'},
-{id:'f10b',t:['10'],type:'fc',fr:'Using the motor characterization to plan a path',bk:'Look up the speed (in/s) for your set speed value, then time = distance ÷ speed. Use that time in time.sleep().'},
+{id:'f10b',t:['10'],type:'fc',fr:'Using the motor characterization to plan a path',bk:'Look up the speed (in/s) for your set speed value, then time = distance ÷ speed. Use that time in time.sleep().\nExample: at 12 in/s, 30 in takes 30 ÷ 12 = 2.5 s, so time.sleep(2.5).'},
 {id:'f10c',t:['10'],type:'fc',fr:'Make a scatter plot in Excel',bk:'1) Enter the X column (set speed) and Y column (velocity)\n2) Select both columns → Insert → Scatter (markers only)\n3) Add chart title, axis titles WITH UNITS\n4) Optional: trendline'},
 {id:'f10d',t:['10'],type:'fc',fr:'Which variable goes on which axis?',bk:'The thing you control or change (independent variable, e.g. speed value) goes on the X axis. The thing you measure (dependent, e.g. velocity) goes on the Y axis.'},
 {id:'f10e',t:['10'],type:'fc',fr:'Memo format',bk:'Header block: TO, FROM, DATE, SUBJECT.\nThen a short body: purpose first, key details/results, and any needed action. Concise, single-spaced paragraphs, no letter-style greeting or closing.'},
@@ -901,9 +931,9 @@ const Q=[
 {id:'f11f',t:['11'],type:'fc',fr:'Trim Entities',bk:'Removes the portion of a sketch line or arc between intersections; used to clean up overlapping geometry.'},
 {id:'f11g',t:['11'],type:'fc',fr:'Exit and enter sketch mode',bk:'Click the sketch / Exit Sketch confirmation icon at the top right (or the sketch check mark). Enter by selecting a plane or face and choosing Sketch, or by editing the sketch in the tree.'},
 // 12 SolidWorks features & assemblies
-{id:'f12a',t:['12'],type:'fc',fr:'Extruded Boss/Base vs. Extruded Cut',bk:'Boss/Base ADDS material by pushing a sketch profile out to a depth. Cut REMOVES material (holes, pockets) from the existing solid.'},
+{id:'f12a',t:['12'],type:'fc',fr:'Extruded Boss/Base vs. Extruded Cut',bk:'Boss/Base ADDS material by pushing a sketch profile out to a depth (e.g. the first block of a part).\nCut REMOVES material (holes, pockets) from the existing solid (e.g. a hole through the block).'},
 {id:'f12b',t:['12'],type:'fc',fr:'Fillet vs. chamfer',bk:'Fillet: rounds an edge (radius).\nChamfer: bevels an edge (flat angled cut, distance/angle).'},
-{id:'f12c',t:['12'],type:'fc',fr:'Linear pattern vs. circular pattern',bk:'Linear: repeats a feature along one or two directions with a spacing and count.\nCircular: repeats a feature around an axis with a count and total angle (e.g. 360°).'},
+{id:'f12c',t:['12'],type:'fc',fr:'Linear pattern vs. circular pattern',bk:'Linear: repeats a feature along one or two directions with a spacing and count.\nCircular: repeats a feature around an axis with a count and total angle (e.g. 360°).\nUses: linear = a row of holes in a plate; circular = bolt holes around a flange.'},
 {id:'f12d',t:['12'],type:'fc',fr:'Assign a material and find mass',bk:'Right-click Material in the FeatureManager → Edit Material (e.g. Brass). Then Evaluate → Mass Properties to read the mass (the problem states the units).'},
 {id:'f12e',t:['12'],type:'fc',fr:'What are mates in an assembly?',bk:'Relationships between components that position them (coincident, concentric, parallel, distance…). The first component placed is fixed; add mates to remove degrees of freedom of the others.'},
 // 13 SolidWorks drawings
@@ -1134,6 +1164,186 @@ const Q=[
   Q.push({id:'mg-b3',t:['01'],type:'mc',fig:'BLOCK',q:'In the RIGHT view the horizontal line across the middle shows…',opts:['The edge where the end face and step wall meet (visible)','A hidden edge','The center line','Section lines'],ans:0,exp:'Surfaces E and C both face the right viewer; they meet at a visible line.'});
 })();
 
+// Explain-It prompts: each says WHAT to produce (define / list / compare / steps / code / why)
+const EXPLAIN={
+f01a:'COMPARE: Explain how orthographic projection differs from perspective projection. Say what the projectors do in each, and why engineers use orthographic for drawings.',
+f01b:'DEFINE & DESCRIBE: What is an isometric view? Say how the object is rotated and what you can see in it.',
+f01c:'LIST: For the Front, Top and Right views, name the two axes each one shows.',
+f01d:'DESCRIBE LAYOUT: In 3rd angle projection, where do the Top and Right views sit relative to the Front view?',
+f01e:'COMPARE: How does the view layout in 1st angle projection differ from 3rd angle? Which one does ANSI use?',
+f01f:'DEFINE: What are fold (hinge) lines, and what do they represent when the glass box is unfolded?',
+f01g:'LIST & EXPLAIN: A surface in an orthographic view can appear in three different ways. Name them and say when each happens.',
+f01h:'LIST: A single line on a drawing can mean three different things. Name all three.',
+f02a:'COMPARE: Describe a visible line and a hidden line (how each looks and what it shows) and say when you would use a hidden line.',
+f02b:'DEFINE + USE: Describe a center line (how it is drawn) and name two features it marks.',
+f02c:'DEFINE + USE: Describe a phantom line and give one situation where you would use it.',
+f02d:'COMPARE: How are section lines different from a cutting plane line? What does each tell the reader?',
+f02e:'COMPARE: Describe short break lines and long break lines, and say when you would use each.',
+f02f:'RULE: When a visible line, hidden line and center line fall in the same place, which one is drawn? Give the order of priority.',
+f03a:'LIST & LABEL: Name the parts of a dimension (number, dimension line, extension lines, leader) and say what each one does.',
+f03b:'STATE THE RULE: What does the ANSI standard say about the direction of dimension numbers, and why?',
+f03c:'DEFINE + EXAMPLE: What is tolerance? Use the dimension Ø0.750 ± .005 to show the allowed sizes and the total tolerance.',
+f03d:'DEFINE: What do the symbols Ø and R mean, and which features do you use each on?',
+f03e:'LIST: Give at least four best practices for placing and choosing dimensions on a drawing.',
+f03f:'COMPARE: What is an over-dimensioned drawing and what is an under-dimensioned drawing? Give a one-line example of each.',
+f03g:'EXPLAIN: What does an underlined dimension number tell the reader?',
+f04a:'LIST IN ORDER: Name the five steps of the design thinking process.',
+f04b:'DESCRIBE THE STEP: What do you do in the Empathize step, and what do you hope to learn?',
+f04c:'DESCRIBE THE STEP: What do you do in the Define step, and what do you produce at the end of it?',
+f04d:'DESCRIBE THE STEP: What do you do in the Ideate step? What should you do before you judge any concept?',
+f04e:'DESCRIBE TWO STEPS: What happens in the Prototype step and in the Test step, and how do they connect to earlier steps?',
+f04f:'EXPLAIN WHY: Is design thinking a straight line? Describe what usually happens after a test.',
+f04g:'COMPARE: What is a looks-like prototype and what is a works-like prototype? Which one is your rescue bot?',
+f05a:'WRITE: How do you write a need (point-of-view) statement? Give the pattern, then write one for a user of your choice.',
+f05b:'DEFINE + EXAMPLE: What is a constraint in a design problem? Give one example for a product you know.',
+f05c:'DEFINE + EXAMPLE: What is a criterion for success? Give one measurable example.',
+f05d:'DECIDE: Give a quick test for telling a constraint from a criterion, and apply it to "costs less than $25" and "easy to clean".',
+f05e:'LIST QUALITIES: What makes a constraint statement good? Name at least three qualities.',
+f06a:'EXPLAIN PURPOSE: What is a concept screening matrix for, and when in the design process do you use it?',
+f06b:'LIST THE STEPS: Give the steps for using a screening matrix, in order.',
+f06c:'COMPARE: How is a screening matrix different from a scoring matrix? Say which one you use first and why.',
+f06d:'EXPLAIN: What is the real goal of concept selection, and what should you do after ranking the concepts?',
+f07b:'EXPLAIN & PREVENT: What is a short circuit, and what are two things you can do to avoid one when wiring?',
+f07c:'DEFINE + RULE: What does LED stand for, and which leg is positive? What happens if you wire it backwards?',
+f07d:'EXPLAIN WHY: Why does an LED need a resistor in series? What could happen without one?',
+f07e:'STATE + USE: Write Ohm\'s law, name each variable with its unit, and say what current flows through 220 Ω with 3.3 V.',
+f07f:'COMPARE: Explain the difference between a digital and an analog signal. Give one example of each.',
+f08a:'DESCRIBE THE WIRING: List the path from the GPIO pin to ground for an LED, in order, and say which leg of the LED goes where.',
+f08b:'IDENTIFY: Name the three servo wires by color and say where each one connects.',
+f08c:'EXPLAIN WHY: Why must the servo\'s battery pack and the Pico share a common ground?',
+f08d:'COMPARE: What does a standard servo control and what does a continuous servo control? Give one use for each.',
+f08e:'DESCRIBE THE WIRING: Explain how to connect a DC motor and battery pack to the motor shield, including what to do before running code.',
+f08f:'EXPLAIN HOW: How does the motor shield control a motor\'s speed, and how does it control its direction?',
+f08g:'LIST A CHECKLIST: Your circuit does not work. List the steps you would check, in the order you would check them.',
+f09a:'LIST RULES: Give at least four Python syntax rules (comments, indentation, capitals, semicolons, etc.).',
+f09b:'WRITE THE CODE: Write the lines that set GP15 up as an output and turn the LED on and off.',
+f09d:'WRITE THE CODE: Write a short loop that waits half a second and repeats forever. Name the module you must import.',
+f09f:'EXPLAIN & WRITE: Which motor commands make the robot pivot right, and what controls how far it turns?',
+f09g:'LIST A PROCESS: Your program gives an error or does the wrong thing. List where you would look, in order.',
+f09h:'EXPLAIN: What is main.py on the Pico, and why does the file name matter for an untethered robot?',
+f10a:'WRITE THE FORMULA: How do you convert wheel revolutions into translational velocity? Include the units.',
+f10b:'DESCRIBE THE METHOD: Explain how you use the motor characterization data to decide the time.sleep value for driving 30 inches.',
+f10c:'LIST THE STEPS: Describe how you make a scatter plot of the motor data in Excel, including the labels it needs.',
+f10d:'DECIDE: For the motor characterization plot, which variable goes on the X axis and which on the Y? Explain why.',
+f10e:'DESCRIBE THE FORMAT: What are the parts of a memo, and what should the first paragraph do?',
+f11a:'LIST THE STEPS: Describe how you set up a new SolidWorks part so it uses ANSI and the right units.',
+f11b:'EXPLAIN HOW YOU CHOOSE: How do you decide which plane (Front, Top or Right) to start your first sketch on?',
+f11c:'DEFINE + RECOGNIZE: What does a "fully defined" sketch mean, and how can you tell in SolidWorks (color and status bar)?',
+f11d:'COMPARE: What is the difference between a Smart Dimension and a relation? Give one example of each.',
+f11e:'DEFINE + USE: What are construction lines, and how do you use Mirror Entities with one?',
+f11f:'DEFINE + USE CASE: What does Trim Entities do to a sketch, and give one situation where you would use it.',
+f11g:'DESCRIBE THE STEPS: How do you start a sketch and how do you exit it?',
+f12a:'COMPARE: What does Extruded Boss/Base do and what does Extruded Cut do? Give an example of when you would use each.',
+f12b:'COMPARE: What is the difference between a fillet and a chamfer? Say what each does to an edge.',
+f12c:'COMPARE + USE CASE: How do linear and circular patterns differ? Name a part where you would use each.',
+f12d:'LIST THE STEPS: How do you assign a material to a part and then find its mass?',
+f12e:'DEFINE + EXAMPLE: What is a mate in an assembly? Give two kinds and what they do.',
+f13a:'LIST THE SET-UP: List the settings you must make when you start the mid-term drawing (sheet, projection, standard, views, scale).',
+f13b:'DESCRIBE THE STEPS: How do you edit the sheet format to fill in the title block, and what information goes in it?',
+f13c:'LIST: What must a good dimensioned drawing include? Name at least four things.',
+f13d:'EXPLAIN: What does Pack and Go do, and why do you use it before submitting your files?'
+};
+
+// ════════════════════════ DESIGN LAB (short answer, mid-term style) ════════════════════════
+const DESIGN=[
+{ id:'garden', title:'Community Garden Watering', icon:'🌱',
+  scenario:`A community garden in Springfield, MA has 24 raised beds, and the nearest hose connection is far from the back beds. Many volunteers are seniors with limited hand strength, and today they fill and carry heavy watering cans. The garden board is asking design teams for a new way to water the beds. The board says the tool should cost less than $40 per unit, work without electricity, and carry enough water for at least two beds before refilling. It must not require a volunteer to lift more than 15 lb. Design teams have until the start of the planting season to present a working prototype.`,
+  concepts:['Concept 1 — A wheeled rain-barrel cart with a hand pump and a short hose.','Concept 2 — A backpack-style sprayer with a hand-lever pump.'],
+  steps:['Observe and interview volunteers as they water; ask what is hard and why.','Write the need statement, constraints and criteria for success.','Brainstorm many tools and screen them with a matrix to develop the best concept.','Build a quick works-like model (e.g. bucket, hose, cardboard stand).','Have volunteers water real beds with it; measure, then improve.'],
+  pov:`A volunteer with limited hand strength needs a way to water several garden beds without lifting or carrying heavy cans, because the carrying, not the watering, keeps them from helping.`,
+  constraints:['The tool shall cost less than $40 per unit.','The tool shall work without electricity.','The tool shall hold enough water for at least two beds before refilling.','No part of the tool shall require a volunteer to lift more than 15 lb.','A working prototype shall be ready by the start of the planting season.'],
+  criteria:['Time to water one bed (shorter is better).','Hand squeeze or pump effort, measured by volunteer rating from 1–5 (lower is better).','Weight the user must lift or push (lighter is better).','Number of steps needed to refill (fewer is better).','Water delivered evenly without washing out soil (fewer complaints is better).'],
+  third:`<b>Example:</b> A 5-gallon bucket on a two-wheel hand truck, with a gravity-fed hose and a thumb-valve spray nozzle. Any clear, different third idea is fine; label it and sketch it.`,
+  matrixCrit:['Time to water one bed','Hand effort','Weight user lifts or pushes','Ease of refilling','Cost'],
+  matrix:{c2:['0','−','−','0','+'],c3:['0','+','+','+','+']},
+  matrixNote:'Reference (datum) = Concept 1. Concept 2 is worse on effort and carrying; Concept 3 is better on four criteria.',
+  use:`The matrix screens many concepts quickly against a reference. Ratings are +, 0 or − relative to the reference on each criterion, and the net score ranks the concepts (Concept 3 first, then 1, then 2). The team then drops the weakest concept, <b>combines and improves</b> the best features (for example, Concept 3's wheeled base with Concept 1's pump), and develops that concept further. The goal is not just to pick a winner but to <b>develop the best concept</b>.`,
+  prototype:`<b>Prototype:</b> Build a works-like model with a bucket, a hose, a valve and a cardboard or PVC stand, keep a cost log against the $40 limit, and check the weight with a scale.`,
+  test:`<b>Test:</b> Ask 3–5 volunteers to water a bed with it. Record time, how many refills, and a 1–5 comfort rating. Note what breaks or confuses them, then loop back to Ideate or Prototype and improve.` },
+
+{ id:'laundry', title:'Residence Hall Laundry Alert', icon:'🧺',
+  scenario:`A residence hall has 6 washers and 6 dryers shared by about 300 students. Students often walk down to find every machine busy, or finished laundry sits for hours. Facilities asks design teams for a way to tell students when a machine is free or finished. Facilities says the solution must cost less than $30 per machine, run on battery or USB power (no new electrical wiring), and must not open or modify the washers and dryers. It must work with the existing machines of different brands. Teams must demonstrate a working prototype by the end of the semester.`,
+  concepts:['Concept 1 — A vibration sensor stuck to the side of each machine that lights a red/green LED on the front when the machine is running or stopped.','Concept 2 — A phone page where students tap "start" and "done" for each machine (no hardware).'],
+  steps:['Watch and ask students how they decide when to do laundry and what frustrates them.','Write the need statement, constraints and criteria for success.','Brainstorm many ways to sense and share machine status; screen them with a matrix.','Wire a Pico, sensor and LED on a breadboard and tape it to a machine.','Run it over many real cycles and ask students to use it; fix what fails.'],
+  pov:`A first-year resident needs a quick way to know whether a laundry machine is free or finished, because they waste trips to the laundry room and cannot get their clothes out on time.`,
+  constraints:['The device shall cost less than $30 per machine.','The device shall run on batteries or USB power with no new wiring.','The device shall not open or modify the washer or dryer.','The device shall work on machines of different brands.','A working prototype shall be demonstrated by the end of the semester.'],
+  criteria:['Status accuracy: the percent of cycles it detects correctly (higher is better).','Time for a student to learn a machine\'s status (shorter is better).','Battery life in weeks (longer is better).','Installation time per machine in minutes (shorter is better).','Number of steps a student must take to use it (fewer is better).'],
+  third:`<b>Example:</b> A Pico W with a small accelerometer on each machine that detects running or stopped and posts the status to a web page students can open on their phone. Any clear, different third idea is fine.`,
+  matrixCrit:['Status accuracy','Status visible without walking to the room','Installation time','Power / battery effort','Cost'],
+  matrix:{c2:['−','+','+','+','+'],c3:['0','+','−','−','−']},
+  matrixNote:'Reference (datum) = Concept 1. Concept 2 wins on net score but is weak on accuracy, which matters most.',
+  use:`The matrix screens concepts quickly against a reference using +, 0 and − on each criterion; the net score ranks them (Concept 2 first, then 1, then 3). But Concept 2 is weak on accuracy, so the team should <b>combine and improve</b>: keep Concept 2's phone visibility and add Concept 1's automatic sensing, which is close to Concept 3. The goal of the matrix is to <b>develop the best concept</b>, not just to pick the highest score.`,
+  prototype:`<b>Prototype:</b> Breadboard a Pico with a vibration or accelerometer sensor and an LED, tape it to a machine, and use a cardboard housing. Write the Python to read the sensor and set the LED.`,
+  test:`<b>Test:</b> Run it over 10+ real cycles and count correct detections, time how long a student needs to learn a status, and check battery use. Fix false readings, then retest.` },
+
+{ id:'senior', title:'Senior Center Meal Carrier', icon:'🍽️',
+  scenario:`A senior center in Wilbraham, MA serves hot lunches from a counter 40 feet from the dining tables. Many visitors use a cane or walker and cannot carry a standard cafeteria tray. The center wants a new way for these visitors to carry a meal to their table. The center says the carrier should cost less than $20 per unit, hold a plate, a bowl and a drink without spilling, and be able to go through a standard dishwasher. It must fit through the existing 36-inch doorways. Design firms must present a working prototype before the winter session begins.`,
+  concepts:['Concept 1 — A tray that clips onto a standard walker frame.','Concept 2 — A volunteer-pushed cart that brings meals to the tables (the visitor carries nothing).'],
+  steps:['Watch visitors getting meals; talk with them and staff about what is hard and what is unsafe.','Write the need statement, constraints and criteria for success.','Brainstorm many carriers and screen them with a matrix.','Build a quick works-like model out of cardboard, foam board or a cheap tray.','Have visitors carry a real meal 40 ft; record spills and comfort, then improve.'],
+  pov:`A senior who uses a cane or walker needs a way to carry a hot meal to the table, because they cannot hold a tray and steady themselves at the same time, so they depend on others or skip hot meals.`,
+  constraints:['The carrier shall cost less than $20 per unit.','The carrier shall hold a plate, a bowl and a drink without spilling.','The carrier shall be dishwasher-safe.','The carrier shall fit through a 36-inch doorway.','A working prototype shall be ready before the winter session.'],
+  criteria:['Spill resistance: milliliters spilled over a 40-ft walk (less is better).','Hands needed to use it (fewer is better).','Time to attach or remove (shorter is better).','Weight in pounds (lighter is better).','User comfort rating of 1–5 (higher is better).'],
+  third:`<b>Example:</b> A small rolling tray that clips to a cane, with a non-slip pad, raised edges and a drink holder. Any clear, different third idea is fine.`,
+  matrixCrit:['Spill resistance','Hands needed','Independence (no help needed)','Cost','Storage ease'],
+  matrix:{c2:['+','+','−','−','−'],c3:['+','0','+','0','−']},
+  matrixNote:'Reference (datum) = Concept 1. Concept 3 scores best; Concept 2 gives up independence and cost.',
+  use:`The matrix compares each concept to a reference on each criterion with +, 0 or −, and the net score ranks them (Concept 3 first, then 1, then 2). Drop the weakest, <b>combine and improve</b> the best features (e.g. Concept 3's rolling base with Concept 1's secure clip), and develop that concept. The goal is to <b>develop the best concept</b>, not just to select one.`,
+  prototype:`<b>Prototype:</b> Build a works-like model from foam board, a cheap tray and cardboard, with a cup holder and a non-slip liner, and check that it is less than 36 inches wide.`,
+  test:`<b>Test:</b> Ask several visitors to carry a real meal 40 ft. Record spills, comfort ratings and what confuses them; then loop back to Ideate or Prototype and improve.` }
+];
+
+const DPARTS=[
+ {k:'steps',n:1,title:'Fill in each step of the design process',q:'Name each of the five steps and write one sentence about what you would do at each step for THIS scenario.',check:['Lists Empathize, Define, Ideate, Prototype, Test in order','Each sentence is specific to the scenario']},
+ {k:'pov',n:2,title:'Write a (user) point-of-view / need statement',q:'Starting with the first steps, write a point-of-view (need) statement for this scenario.',check:['Names a specific user','States a need (not a solution)','Includes an insight: the "because" part']},
+ {k:'constraints',n:3,title:'List three constraint statements',q:'List three constraint statements (full sentences) for this design.',check:['Each is a pass/fail requirement taken from the problem','Written as a full sentence, specific and checkable','Not a solution']},
+ {k:'criteria',n:4,title:'List three criteria for success',q:'List three criteria for success (full sentences) you could use to compare designs.',check:['Each is measurable (a number, time, rating or count)','Says which direction is better','Different from the constraints']},
+ {k:'third',n:5,title:'Create a third concept',q:'Two design concepts are given. Create a third, different concept and briefly describe or sketch it.',check:['Clearly different from the two given','Meets the constraints (plausibly)','Described in a sentence or two, with a labeled sketch']},
+ {k:'matrix',n:6,title:'Create a screening matrix',q:'Create a screening matrix for the three concepts. Pick a reference concept, list the criteria in rows, rate each other concept +, 0 or −, then total the net score.',check:['Criteria in rows, concepts in columns','One reference concept rated as the datum','Uses +, 0 and − only','Net score = number of + minus number of −']},
+ {k:'use',n:7,title:'Describe how the matrix is used',q:'Describe how a design team uses the matrix to develop the "best" concept.',check:['Rank by net score','Combine and improve the best features','States that the goal is to develop the best concept']},
+ {k:'last',n:8,title:'Final two stages of design thinking',q:'Briefly describe what you would do in the final two stages of the design thinking process for this scenario.',check:['Names Prototype and Test','Says what you would build and how you would test with users','Mentions iterating based on what you learn']}
+];
+
+let designIdx=0;
+function initDesign(){ renderDesign(); }
+function pickDesign(i){ designIdx=i; renderDesign(); }
+function dmodel(sc,k){
+  const li=a=>'<ol style="margin:4px 0 0 20px;padding:0;line-height:1.7">'+a.map(x=>'<li>'+x+'</li>').join('')+'</ol>';
+  if(k==='steps'){const n=['Empathize','Define','Ideate','Prototype','Test'];return '<ol style="margin:4px 0 0 20px;padding:0;line-height:1.7">'+n.map((s,i)=>'<li><b>'+s+':</b> '+sc.steps[i]+'</li>').join('')+'</ol>';}
+  if(k==='pov')return '<i>'+sc.pov+'</i><div style="color:#7f97c9;font-size:.78rem;margin-top:6px">Pattern: [user] needs [need] because [insight].</div>';
+  if(k==='constraints')return li(sc.constraints)+'<div style="color:#7f97c9;font-size:.78rem;margin-top:6px">Any three of these (or similar) earn full credit.</div>';
+  if(k==='criteria')return li(sc.criteria)+'<div style="color:#7f97c9;font-size:.78rem;margin-top:6px">Any three measurable criteria earn full credit.</div>';
+  if(k==='third')return sc.third;
+  if(k==='matrix'){
+    const rate=(r)=>{const c={'+':'#5fd38d','−':'#ff6b6b','0':'#c8d8ff'}[r];return '<td style="text-align:center;color:'+c+';font-weight:700;border:1px solid #27498a;padding:5px 10px">'+r+'</td>';};
+    const net=a=>a.filter(x=>x==='+').length-a.filter(x=>x==='−').length;
+    const f=n=>(n>0?'+':'')+n;
+    const th='style="border:1px solid #27498a;padding:6px 10px;background:#163570;color:#ffc72c"';
+    let t='<table style="border-collapse:collapse;font-size:.82rem;margin-top:4px"><tr><th '+th+'>Criteria</th><th '+th+'>Concept 1<br>(reference)</th><th '+th+'>Concept 2</th><th '+th+'>Concept 3</th></tr>';
+    sc.matrixCrit.forEach((c,i)=>{t+='<tr><td style="border:1px solid #27498a;padding:5px 10px">'+c+'</td>'+rate('0')+rate(sc.matrix.c2[i])+rate(sc.matrix.c3[i])+'</tr>';});
+    t+='<tr><td style="border:1px solid #27498a;padding:5px 10px;font-weight:700">Net score</td><td style="text-align:center;font-weight:700;border:1px solid #27498a">0</td><td style="text-align:center;font-weight:700;border:1px solid #27498a">'+f(net(sc.matrix.c2))+'</td><td style="text-align:center;font-weight:700;border:1px solid #27498a">'+f(net(sc.matrix.c3))+'</td></tr></table>';
+    return t+'<div style="color:#7f97c9;font-size:.78rem;margin-top:6px">'+sc.matrixNote+' Your criteria and ratings may differ; what matters is a reference concept, +/0/− ratings and a net score.</div>';
+  }
+  if(k==='use')return sc.use;
+  if(k==='last')return sc.prototype+'<br><br>'+sc.test;
+  return '';
+}
+function renderDesign(){
+  const sc=DESIGN[designIdx], el=document.getElementById('design-body');
+  let h='<div class="dl-tabs">'+DESIGN.map((d,i)=>'<button class="dl-tab'+(i===designIdx?' on':'')+'" onclick="pickDesign('+i+')">'+d.icon+' '+d.title+'</button>').join('')+'</div>';
+  h+='<div class="dl-card dl-scn"><div class="dl-lbl">Design Process Problem</div><p>'+sc.scenario+'</p><div class="dl-cons">'+sc.concepts.map(c=>'<div>'+c+'</div>').join('')+'</div></div>';
+  DPARTS.forEach(p=>{
+    h+='<div class="dl-card" id="dl-'+p.k+'"><div class="dl-hd"><span class="dl-num">'+p.n+'</span><div><div class="dl-ttl">'+p.title+'</div><div class="dl-q">'+p.q+'</div></div></div>'
+     +'<textarea class="dl-ta" id="dl-ta-'+p.k+'" placeholder="Type your answer here…"></textarea>'
+     +'<button class="gbtn dl-btn" onclick="dlReveal(\''+p.k+'\')" id="dl-b-'+p.k+'">Show model answer</button>'
+     +'<div class="dl-ans" id="dl-a-'+p.k+'" style="display:none"><div class="dl-lbl" style="color:#5fd38d">Model answer</div>'+dmodel(sc,p.k)
+     +'<div class="dl-chk"><b>Check yours:</b><ul>'+p.check.map(c=>'<li>'+c+'</li>').join('')+'</ul></div></div></div>';
+  });
+  h+='<div class="dl-foot"><button class="gbtn" onclick="dlAll(true)">Show all answers</button> <button class="gbtn" onclick="dlAll(false)">Clear and hide all</button></div>';
+  el.innerHTML=h; el.scrollTop=0;
+}
+function dlReveal(k){const a=document.getElementById('dl-a-'+k);const on=a.style.display==='none';a.style.display=on?'':'none';document.getElementById('dl-b-'+k).textContent=on?'Hide model answer':'Show model answer';}
+function dlAll(show){DPARTS.forEach(p=>{const a=document.getElementById('dl-a-'+p.k);a.style.display=show?'':'none';document.getElementById('dl-b-'+p.k).textContent=show?'Hide model answer':'Show model answer';if(!show)document.getElementById('dl-ta-'+p.k).value='';});}
+
 
 const FIGS={HOLE:holeFig(),DIM:dimFig(),BB:breadboardFig(),LEDS:ledPanelFig(),SERVO_NOGND:servoFig({common:false}),SERVO_OK:servoFig({common:true}),BLOCK:blockFig(),
   LINES:lineFig([['A','visible'],['B','hidden'],['C','center'],['D','phantom'],['E','cutting'],['F','section']]),
@@ -1224,6 +1434,7 @@ function setMode(mode) {
   else if (mode==='explain') initExplain();
   else if (mode==='fib') initFIB();
   else if (mode==='seq') initSeq();
+  else if (mode==='design') initDesign();
 }
 
 // ════════════════════════ localStorage ════════════════════════
@@ -1525,7 +1736,7 @@ function renderExplain() {
   const q=exDeck[exIdx];
   const topic=TOPICS.find(t=>t.id===q.t[0]);
   document.getElementById('ex-topic-lbl').textContent=topic?`L${q.t[0]} — ${topic.label}`:q.t[0];
-  document.getElementById('ex-prompt').textContent=q.fr;
+  document.getElementById('ex-prompt').textContent=(typeof EXPLAIN!=='undefined'&&EXPLAIN[q.id])||q.fr;
   const ta=document.getElementById('ex-textarea');
   ta.value=''; ta.disabled=false; ta.style.borderColor='';
   document.getElementById('ex-model').style.display='none';
