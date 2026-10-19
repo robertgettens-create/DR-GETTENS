@@ -471,7 +471,7 @@
         <div class="wcard"><h4>✓✗ True / False</h4><p>Fast-fire T/F with streak counter and answer explanations.</p></div>
         <div class="wcard"><h4>✍ Explain It</h4><p>Short-answer practice. Write your explanation, reveal the model answer, then self-rate. Best prep for conceptual exam questions.</p></div>
         <div class="wcard"><h4>📝 Fill in Blank</h4><p>Key sentences with blanks — type the missing term and check your answer. Great for vocabulary and definitions.</p></div>
-        <div class="wcard"><h4>🔢 Ordering</h4><p>Arrange steps into the correct sequence using ▲▼ buttons. Tests processes like the design thinking steps, concept selection, and drawing set-up.</p></div>
+        <div class="wcard"><h4>🔢 Ordering</h4><p>Arrange steps into the correct sequence using ▲▼ buttons. Tests processes like the design thinking steps and drawing set-up, plus Python code-line (Parsons) puzzles for the Pico: the indentation is set, you put the lines in order.</p></div>
         <div class="wcard"><h4>🧊 SolidWorks Practice</h4><p>Link to the SolidWorks practice problems, which levels to use for the mid-term, and the must-know skill: assign a material and take the mass.</p></div>
         <div class="wcard"><h4>✏️ Design Lab</h4><p>Three new design scenarios with mid-term style short answers: need statement, constraints, criteria, a third concept, a screening matrix and the final two steps. Write your answer, then compare with the model answer.</p></div>
         <div class="wcard" style="grid-column:1/-1"><h4>📽 Class Mode</h4><p>Full-screen projector view. Shows question + colored tiles (answers hidden). Click <em>Show Answer</em> to reveal. Use ← → keys or buttons to navigate. Press Space to reveal, Esc to exit.</p></div>
@@ -1141,6 +1141,88 @@ const Q=[
 /* ─────────────── ORDERING ─────────────── */
 {id:'seq04a',t:['04'],type:'seq',q:'Put the design thinking steps in order:',steps:['Empathize','Define','Ideate','Prototype','Test'],exp:'Empathize → Define → Ideate → Prototype → Test (and iterate).'},
 {id:'seq06a',t:['06'],type:'seq',q:'Put the concept selection steps in order:',steps:['Prepare the matrix','Rate the concepts','Rank the concepts','Combine and improve','Develop the best concept'],exp:'The goal is not to select the best concept but to develop it.'},
+{id:'seq09b',t:["09"],type:'seq',code:true,
+  q:"CODE ORDER (Parsons): Arrange the lines so the LED on GP15 blinks forever. Indentation is already set. Put the imports first.",
+  steps:[
+    "from machine import Pin",
+    "import time",
+    "led = Pin(15, Pin.OUT)",
+    "while True:",
+    "    led.on()",
+    "    time.sleep(0.5)",
+    "    led.off()",
+    "    time.sleep(0.5)"],
+  alt:[[0, 1]],
+  exp:"Imports, then set up the pin as an output, then the loop. The lines inside while True: are indented one level."},
+{id:'seq09c',t:["08", "09"],type:'seq',code:true,
+  q:"CODE ORDER (Parsons): Arrange the lines to sweep a standard servo on GP15 through 0\u00b0, 90\u00b0 and 180\u00b0. Indentation is already set. Put the imports first.",
+  steps:[
+    "import WNE103",
+    "import time",
+    "S1 = WNE103.Servo(15)",
+    "for angle in (0, 90, 180):",
+    "    S1.STServo(angle)",
+    "    time.sleep(1)"],
+  alt:[[0, 1]],
+  exp:"Create the servo object before the loop. Inside the loop set the angle, then wait so the servo has time to move."},
+{id:'seq09d',t:["08", "09"],type:'seq',code:true,
+  q:"CODE ORDER (Parsons): Arrange the lines so the robot drives forward for 3 seconds and then stops. Put the imports first.",
+  steps:[
+    "import WNE103",
+    "import time",
+    "board = WNE103.KitronikPicoMotor()",
+    "board.motorOn(1, 'f', 100)",
+    "board.motorOn(2, 'f', 100)",
+    "time.sleep(3)",
+    "board.motorOff(1)",
+    "board.motorOff(2)"],
+  alt:[[0, 1], [3, 4], [6, 7]],
+  exp:"Create the board object, start both motors, wait, then stop both motors. Either motor may be started (or stopped) first."},
+{id:'seq09e',t:["08", "09", "10"],type:'seq',code:true,
+  q:"CODE ORDER (Parsons): Arrange the lines so the robot drives a square: forward, then pivot right, four times, and then stops. Indentation is already set.",
+  steps:[
+    "import WNE103",
+    "import time",
+    "board = WNE103.KitronikPicoMotor()",
+    "for side in range(4):",
+    "    board.motorOn(1, 'f', 100)",
+    "    board.motorOn(2, 'f', 100)",
+    "    time.sleep(2)",
+    "    board.motorOn(1, 'f', 80)",
+    "    board.motorOn(2, 'r', 80)",
+    "    time.sleep(0.3)",
+    "board.motorOff(1)",
+    "board.motorOff(2)"],
+  alt:[[0, 1], [4, 5], [7, 8], [10, 11]],
+  exp:"The loop body (drive forward, then turn) is indented. The motorOff lines are NOT indented, so they run once after all four sides are done."},
+{id:'seq09f',t:["09"],type:'seq',code:true,
+  q:"CODE ORDER (Parsons): Arrange the lines so the LED on GP15 is on only while the button on GP14 is pressed. Indentation is already set. Put the imports first.",
+  steps:[
+    "from machine import Pin",
+    "import time",
+    "led = Pin(15, Pin.OUT)",
+    "button = Pin(14, Pin.IN, Pin.PULL_UP)",
+    "while True:",
+    "    if button.value() == 0:",
+    "        led.on()",
+    "    else:",
+    "        led.off()",
+    "    time.sleep(0.05)"],
+  alt:[[0, 1], [2, 3]],
+  exp:"With PULL_UP the pin reads 0 when the button is pressed. else: lines up with if; the sleep is inside the while loop but outside the if/else."},
+{id:'seq09g',t:["09"],type:'seq',code:true,
+  q:"CODE ORDER (Parsons): Arrange the lines to read an analog sensor on GP26 and print the value twice a second. Indentation is already set. Put the imports first.",
+  steps:[
+    "from machine import ADC",
+    "import time",
+    "sensor = ADC(26)",
+    "while True:",
+    "    value = sensor.read_u16()",
+    "    print(value)",
+    "    time.sleep(0.5)"],
+  alt:[[0, 1]],
+  exp:"Set up the ADC pin once, then read, print and wait inside the loop. read_u16() returns 0 to 65535."},
+{id:'seq08a',t:['08'],type:'seq',q:'WIRING ORDER: Put the path of the current in the correct order, from the Pico pin to ground, for an LED lit by GP15.',steps:['GP15 (set HIGH)','220 Ω resistor','LED anode (long leg, +)','LED cathode (short leg, −)','GND'],exp:'Current flows from the HIGH pin through the resistor and the LED (anode to cathode) to ground. The resistor limits the current.'},
 {id:'seq09a',t:['09'],type:'seq',q:'Order the steps to blink an LED in Python:',steps:['import the Pin class and time','Create the pin as an output','Start a while True: loop','Turn the LED on / toggle','Sleep for a moment'],exp:'Imports → set up pins → loop → act → delay.'},
 
 /* ─────────────── MULTIPLE CHOICE ─────────────── */
@@ -2026,7 +2108,7 @@ function buildSeqList(q) {
   seqOrder.forEach((stepIdx,pos)=>{
     const item=document.createElement('div');
     item.className='seq-item';
-    item.innerHTML=`<span class="seq-num">${pos+1}</span><span class="seq-txt">${q.steps[stepIdx]}</span><div class="seq-arrows"><button class="seq-arrow" onclick="seqMove(${pos},-1)" ${pos===0?'disabled':''}>▲</button><button class="seq-arrow" onclick="seqMove(${pos},1)" ${pos===seqOrder.length-1?'disabled':''}>▼</button></div>`;
+    item.innerHTML=`<span class="seq-num">${pos+1}</span><span class="seq-txt"${q.code?' style="font-family:Consolas,Menlo,monospace;white-space:pre;font-size:.92rem;text-align:left"':''}>${q.steps[stepIdx]}</span><div class="seq-arrows"><button class="seq-arrow" onclick="seqMove(${pos},-1)" ${pos===0?'disabled':''}>▲</button><button class="seq-arrow" onclick="seqMove(${pos},1)" ${pos===seqOrder.length-1?'disabled':''}>▼</button></div>`;
     list.appendChild(item);
   });
 }
@@ -2046,7 +2128,7 @@ function seqCheck() {
   let allCorrect=true;
   const items=document.querySelectorAll('.seq-item');
   seqOrder.forEach((stepIdx,pos)=>{
-    const correct=(stepIdx===pos);
+    const cls=i=>{if(q.alt){for(const g of q.alt)if(g.includes(i))return 'g'+g[0];}return q.steps[i];};const correct=(cls(stepIdx)===cls(pos));
     items[pos].classList.add(correct?'correct':'wrong');
     if(!correct)allCorrect=false;
   });
