@@ -1,0 +1,14 @@
+name: Weekly website check
+
+# A failed run makes GitHub email the repo owner, which is how problems get reported.
+on:
+  schedule:
+    - cron: "35 12 * * 1"   # Mondays 12:35 UTC
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 .github/scripts/check_sites.py
